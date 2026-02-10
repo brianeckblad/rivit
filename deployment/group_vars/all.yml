@@ -5,9 +5,9 @@
 # ============================================================================
 # Application Identity - CHANGE THESE TO RENAME YOUR APP
 # ============================================================================
-app_name: app_item_listing_tool              # Technical name (used for paths, services)
-app_display_name: "App Item Listing Tool"    # Human-readable name (used in docs, UI)
-app_url: "https://github.com/brianeckblad/app_item_listing_tool"  # Repository URL
+app_name: rampe                                  # Technical name (used for paths, services)
+app_display_name: "Rampe"                        # Human-readable name (used in docs, UI)
+app_url: "https://github.com/yourusername/{{ app_name }}"  # Repository URL
 
 # ============================================================================
 # Application Settings
@@ -15,6 +15,7 @@ app_url: "https://github.com/brianeckblad/app_item_listing_tool"  # Repository U
 service_name: "{{ app_name }}"               # Systemd/supervisor service name
 app_user: ubuntu                              # Linux user running the app
 app_dir: "/home/{{ app_user }}/{{ app_name }}"  # Application directory
+venv_dir: "/home/{{ app_user }}/.venv"        # Virtual environment (in user's home)
 python_version: "3.10"
 
 # Git repository - MOVED TO VAULT (contains your GitHub username)

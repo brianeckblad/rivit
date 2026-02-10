@@ -76,16 +76,16 @@
 
     - name: Create Python virtual environment
       become_user: "{{ app_user }}"
-      command: python3 -m venv {{ app_dir }}/.venv
+      command: python3 -m venv {{ venv_dir }}
       args:
-        creates: "{{ app_dir }}/.venv/bin/activate"
+        creates: "{{ venv_dir }}/bin/activate"
 
     - name: Upgrade pip in virtual environment
       become_user: "{{ app_user }}"
       pip:
         name: pip
         state: latest
-        virtualenv: "{{ app_dir }}/.venv"
+        virtualenv: "{{ venv_dir }}"
 
     - name: Check if deployment requirements.txt exists
       stat:
@@ -101,14 +101,14 @@
       become_user: "{{ app_user }}"
       pip:
         requirements: "{{ app_dir }}/deployment/requirements.txt"
-        virtualenv: "{{ app_dir }}/.venv"
+        virtualenv: "{{ venv_dir }}"
       when: deployment_requirements_file.stat.exists
 
     - name: Install Python dependencies from root (fallback)
       become_user: "{{ app_user }}"
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
-        virtualenv: "{{ app_dir }}/.venv"
+        virtualenv: "{{ venv_dir }}"
       when: not deployment_requirements_file.stat.exists and root_requirements_file.stat.exists
 
     - name: Install gunicorn in virtual environment
@@ -116,7 +116,7 @@
       pip:
         name: gunicorn
         state: present
-        virtualenv: "{{ app_dir }}/.venv"
+        virtualenv: "{{ venv_dir }}"
 
     - name: Check if .env file already exists
       stat:
@@ -181,15 +181,15 @@
       notify: restart nginx
 
     - name: Install logrotate configuration
-      copy:
-        src: ../files/app_item_listing_tool-logrotate
-        dest: /etc/logrotate.d/app_item_listing_tool
+      template:
+        src: ../templates/logrotate.conf.j2
+        dest: /etc/logrotate.d/{{ app_name }}
         mode: '0644'
         owner: root
         group: root
 
     - name: Verify logrotate configuration syntax
-      command: logrotate -d /etc/logrotate.d/app_item_listing_tool
+      command: logrotate -d /etc/logrotate.d/{{ app_name }}
       changed_when: false
       failed_when: false
 
@@ -215,7 +215,7 @@
         name: "Cleanup old backups (>{{ backup_retention_days }} days)"
         minute: "{{ backup_cleanup_minute }}"
         hour: "{{ backup_cleanup_hour }}"
-        job: "cd {{ app_dir }} && {{ app_dir }}/.venv/bin/python {{ app_dir }}/scripts/cleanup_old_backups.py >> {{ log_dir }}/cleanup.log 2>&1"
+        job: "cd {{ app_dir }} && {{ venv_dir }}/bin/python {{ app_dir }}/scripts/cleanup_old_backups.py >> {{ log_dir }}/cleanup.log 2>&1"
         user: "{{ app_user }}"
         state: present
 

@@ -43,8 +43,8 @@ Get the application running in under 5 minutes:
 
 ```bash
 # 1. Clone and setup
-git clone https://github.com/yourusername/app_item_listing_tool.git
-cd app_item_listing_tool
+git clone https://github.com/yourusername/<your-app-name>.git
+cd <your-app-name>
 
 # 2. Optional: Rename the app (see deployment/DEPLOYMENT_PREP.md)
 #    Edit deployment/group_vars/all.yml to change:
@@ -237,9 +237,9 @@ Additional documentation organized by topic:
 **File:** `deployment/group_vars/all.yml`
 
 ```yaml
-app_name: app_item_listing_tool              # Change to your app name
-app_display_name: "App Item Listing Tool"    # Change to your display name  
-app_url: "https://github.com/yourusername/app_item_listing_tool"  # Your repo URL
+app_name: rampe                              # Change to your app name
+app_display_name: "Rampe"                    # Change to your display name  
+app_url: "https://github.com/yourusername/rampe"  # Your repo URL
 ```
 
 See [deployment/DEPLOYMENT_PREP.md](deployment/DEPLOYMENT_PREP.md#application-configuration) for complete details.
@@ -457,7 +457,7 @@ See [SECRETS.md](deployment/docs/SECRETS.md) for complete reference and generati
 ## Project Structure
 
 ```
-app_item_listing_tool/
+<app_name>/
 │
 ├── 📁 app/                              # Flask application package
 │   ├── models/                          # Data models
@@ -602,11 +602,11 @@ Deploy to AWS Lightsail with one command:
 
 # 2. Upload code
 rsync -avz --exclude='.venv' --exclude='.git' --exclude='instance' \
-  ./ ubuntu@<YOUR-IP>:/home/ubuntu/app_item_listing_tool/
+  ./ ubuntu@<YOUR-IP>:/home/ubuntu/<app_name>/
 
 # 3. Run deployment script
 ssh ubuntu@<YOUR-IP>
-cd /home/ubuntu/app_item_listing_tool/deployment
+cd /home/ubuntu/<app_name>/deployment
 sudo bash deploy.sh
 ```
 
@@ -634,9 +634,9 @@ For custom setups or non-Lightsail environments:
 
 2. **Setup Application**
    ```bash
-   cd /opt/app_item_listing_tool
-   python3 -m venv .venv
-   .venv/bin/pip install -r requirements.txt
+   cd /home/ubuntu/<app_name>
+   python3 -m venv ~/.venv
+   ~/.venv/bin/pip install -r requirements.txt
    ```
 
 3. **Configure Gunicorn**
@@ -897,7 +897,7 @@ Made with ❤️ | [View Docs](deployment/docs/) | [Report Issue](../../issues) 
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd app_item_listing_tool
+cd <app_name>
 ```
 
 ### 2. Create Virtual Environment
@@ -987,7 +987,7 @@ python main.py --s3delete
 ## Project Structure
 
 ```
-app_item_listing_tool/
+<app_name>/
 ├── app/                          # Flask application package
 │   ├── models/                  # Data models
 │   ├── routes/                  # Route handlers
@@ -1105,9 +1105,9 @@ This project includes **automated deployment** to AWS EC2 with complete infrastr
 **Prerequisites:**
 1. Configure your app name in `deployment/group_vars/all.yml`:
    ```yaml
-   app_name: app_item_listing_tool  # Change this to rename your app
-   app_display_name: "App Item Listing Tool"
-   app_url: "https://github.com/yourusername/app_item_listing_tool"
+   app_name: rampe  # Change this to rename your app
+   app_display_name: "Rampe"
+   app_url: "https://github.com/yourusername/rampe"
    ```
 
 2. Create `deployment/secrets.env` with your credentials (see [deployment/DEPLOYMENT_PREP.md](deployment/DEPLOYMENT_PREP.md))

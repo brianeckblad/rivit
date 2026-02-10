@@ -1,4 +1,4 @@
-/var/log/app_item_listing_tool/*.log {
+/var/log/{{ app_name }}/*.log {
     # Rotate daily
     daily
 
@@ -15,7 +15,7 @@
     notifempty
 
     # Create new log file with these permissions after rotation
-    create 0640 ubuntu ubuntu
+    create 0640 {{ app_user }} {{ app_user }}
 
     # Don't error if log file is missing
     missingok
@@ -30,9 +30,10 @@
     # Run these commands after rotation
     postrotate
         # Reload application to pick up new log file (if needed)
-        systemctl reload app_item_listing_tool.service 2>/dev/null || true
+        systemctl reload {{ service_name }}.service 2>/dev/null || true
     endscript
 
     # Share scripts between all log files
     sharedscripts
 }
+

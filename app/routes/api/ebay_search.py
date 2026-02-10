@@ -313,7 +313,8 @@ def proxy_image() -> Tuple[bytes, int, Dict[str, str]]:
         return jsonify({'error': 'URL parameter required'}), 400
 
     # Security: Only allow S3 URLs from our bucket
-    if 'app_item_listing_tool' not in image_url and 's3.amazonaws.com' not in image_url:
+    s3_bucket = os.environ.get('S3_BUCKET_NAME', '')
+    if not ('s3.amazonaws.com' in image_url and (not s3_bucket or s3_bucket in image_url)):
         return jsonify({'error': 'Invalid image URL'}), 403
 
     try:

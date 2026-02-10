@@ -88,14 +88,14 @@
           become_user: "{{ app_user }}"
           pip:
             requirements: "{{ app_dir }}/deployment/requirements.txt"
-            virtualenv: "{{ app_dir }}/.venv"
+            virtualenv: "{{ venv_dir }}"
           when: deployment_requirements.stat.exists
 
         - name: Install Python dependencies from root (fallback)
           become_user: "{{ app_user }}"
           pip:
             requirements: "{{ app_dir }}/requirements.txt"
-            virtualenv: "{{ app_dir }}/.venv"
+            virtualenv: "{{ venv_dir }}"
           when: not deployment_requirements.stat.exists
 
         - name: Display pip update result

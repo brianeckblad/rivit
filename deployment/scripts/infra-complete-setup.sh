@@ -93,8 +93,8 @@ if [ -z "$S3_BUCKET_NAME" ]; then
 fi
 
 if [ -z "$INSTANCE_NAME" ]; then
-    read -p "Instance Name (default: app-item-listing-tool): " INSTANCE_NAME
-    INSTANCE_NAME=${INSTANCE_NAME:-app-item-listing-tool}
+    read -p "Instance Name (default: rampe): " INSTANCE_NAME
+    INSTANCE_NAME=${INSTANCE_NAME:-rampe}
 fi
 
 if [ -z "$INSTANCE_TYPE" ]; then

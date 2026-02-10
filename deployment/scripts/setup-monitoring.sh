@@ -163,7 +163,7 @@ if [ -z "$EXISTING_TOPIC" ]; then
     echo -e "${YELLOW}Creating new SNS topic...${NC}"
 
     TOPIC_ARN=$(aws sns create-topic \
-        --name app-item-listing-tool-alerts \
+        --name ${INSTANCE_NAME:-rampe}-alerts \
         --region "$AWS_REGION" \
         --query 'TopicArn' \
         --output text)
@@ -262,7 +262,7 @@ aws cloudwatch put-metric-alarm \
     --alarm-name app-slow-response \
     --alarm-description "Alert when responses are slow" \
     --metric-name APIResponseTime \
-    --namespace AppItemListingTool \
+    --namespace ${CLOUDWATCH_NAMESPACE:-Rampe} \
     --statistic Average \
     --period 300 \
     --evaluation-periods 1 \
@@ -320,7 +320,7 @@ echo -e "   ./scripts/app-deploy.sh update"
 echo ""
 echo -e "3. ${BLUE}Verify metrics are flowing:${NC}"
 echo -e "   Wait 5 minutes, then check:"
-echo -e "   aws cloudwatch list-metrics --namespace AppItemListingTool"
+echo -e "   aws cloudwatch list-metrics --namespace ${CLOUDWATCH_NAMESPACE:-Rampe}"
 echo ""
 echo -e "4. ${BLUE}View S3 cost savings in ~30 days${NC}"
 echo ""

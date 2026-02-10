@@ -15,9 +15,10 @@ Want to rename the app? Edit this file first:
 **File:** `deployment/group_vars/all.yml`
 
 ```yaml
-app_name: app_item_listing_tool              # Change to: katlo, listkit, etc.
-app_display_name: "App Item Listing Tool"    # Display name
-app_url: "https://github.com/yourusername/app_item_listing_tool"
+app_name: your_app_name                      # Change to: rampe, katlo, listkit, etc.
+app_display_name: "Your App Name"            # Display name
+app_url: "https://github.com/yourusername/your_app_name"
+venv_dir: "/home/{{ app_user }}/.venv"       # Virtual environment (in user's home)
 ```
 
 One change renames everything! See [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md#application-configuration) for details.
@@ -179,7 +180,7 @@ cd deployment
 
 # Or live logs via SSM
 aws ssm start-session --target i-xxxxxxxxxxxxx
-sudo tail -f /var/log/app_item_listing_tool/error.log
+sudo tail -f /var/log/{{ app_name }}/error.log
 ```
 
 ### Check Application Status
@@ -279,7 +280,7 @@ AWS Console → CloudWatch → Dashboards → app-item-listing-tool
 ### Logs
 
 **CloudWatch:** `/aws/cloudfront/...`, `/aws/waf/...`  
-**Server:** `/var/log/app_item_listing_tool/*.log`
+**Server:** `/var/log/{{ app_name }}/*.log`
 
 ---
 

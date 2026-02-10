@@ -140,16 +140,16 @@
 
 ```bash
 # Check status
-sudo systemctl status app_item_listing_tool
+sudo systemctl status {{ service_name }}
 
 # Restart service
-sudo systemctl restart app_item_listing_tool
+sudo systemctl restart {{ service_name }}
 
 # View service logs
-sudo journalctl -u app_item_listing_tool -f
+sudo journalctl -u {{ service_name }} -f
 
 # Check if service is active
-systemctl is-active app_item_listing_tool
+systemctl is-active {{ service_name }}
 ```
 
 ### Log Viewing
@@ -363,7 +363,7 @@ sudo lsof -i :8000
 
 # 4. Python dependencies missing
 cd /home/ubuntu/app_item_listing_tool
-.venv/bin/pip install -r deployment/requirements.txt
+~/.venv/bin/pip install -r deployment/requirements.txt
 ```
 
 ### High Memory Usage

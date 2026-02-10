@@ -4,7 +4,7 @@
 **Purpose:** Application runtime data and persistent storage  
 **Created:** Automatically during deployment
 
-**Note:** `<app_name>` defaults to `app_item_listing_tool` but can be changed in `deployment/group_vars/all.yml`
+**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml` (default: `rampe`)
 
 ---
 
@@ -77,7 +77,7 @@ S3_BUCKET_NAME=your-bucket-name
 S3_FOLDER=production
 
 # Application Configuration
-COMIC_IMAGE_PATH=/home/ubuntu/app_item_listing_tool/instance/item_images
+COMIC_IMAGE_PATH=/home/ubuntu/<app_name>/instance/item_images
 
 # eBay Verification Token (persisted across deployments)
 # Required for eBay Marketplace Account Deletion endpoint (32-80 chars)
@@ -134,7 +134,7 @@ EBAY_VERIFICATION_TOKEN=<generated-once-64-chars>
   "ADMIN_PASSWORD": "...",
   "APP_SECRET_TOKEN": "...",
   "GITHUB_TOKEN": "ghp_...",
-  "GITHUB_REPO": "yourusername/app_item_listing_tool",
+  "GITHUB_REPO": "yourusername/<app_name>",
   "GITHUB_BRANCH": "main"
 }
 ```
@@ -153,7 +153,7 @@ EBAY_VERIFICATION_TOKEN=<generated-once-64-chars>
 - ✅ IAM role controls access (no keys to leak)
 
 **Rotation:**
-See `/home/ubuntu/app_item_listing_tool/deployment/SECRET_MANAGEMENT.md`
+See `/home/ubuntu/<app_name>/deployment/SECRET_MANAGEMENT.md`
 
 ---
 
@@ -257,7 +257,7 @@ SKU,Title,Category,Price,Quantity,Condition,Description,Location,Image URLs,Stat
 **Purpose:** Application runtime logs  
 **Rotation:** Daily via logrotate (keep 14 days)  
 **Max Size:** 10MB per file  
-**Location:** Also copied to `/var/log/app_item_listing_tool/app.log`
+**Location:** Also copied to `/var/log/<app_name>/app.log`
 
 **Contents:**
 - Application errors and warnings
@@ -441,7 +441,7 @@ drwxr-xr-x  ubuntu:ubuntu  uploads/
 **Daily Snapshots:**
 ```bash
 # Cron job (3:00 AM daily)
-0 3 * * * cd /home/ubuntu/app_item_listing_tool && .venv/bin/python scripts/cleanup_old_backups.py
+0 3 * * * cd /home/ubuntu/<app_name> && ~/.venv/bin/python scripts/cleanup_old_backups.py
 ```
 
 **Before Changes:**
@@ -479,7 +479,7 @@ cp instance/items.csv items_backup_$(date +%Y%m%d).csv
 **Monitoring:**
 ```bash
 # Check instance directory size
-du -sh /home/ubuntu/app_item_listing_tool/instance
+du -sh /home/ubuntu/<app_name>/instance
 
 # Check disk usage
 df -h /home/ubuntu
@@ -505,8 +505,8 @@ df -h /home/ubuntu
 
 ### Commands
 ```bash
-# Set your app directory (change if you renamed the app)
-APP_DIR="/home/ubuntu/app_item_listing_tool"  # or /home/ubuntu/katlo, etc.
+# Set your app directory (configured in deployment/group_vars/all.yml)
+APP_DIR="/home/ubuntu/<app_name>"  # Replace <app_name> with actual name (e.g., rampe)
 
 # View recent logs
 tail -f $APP_DIR/instance/app.log
@@ -567,20 +567,17 @@ du -sh $APP_DIR/instance
 ### Issue: Disk space full
 **Check:**
 ```bash
-APP_DIR="/home/ubuntu/app_item_listing_tool"  # Change if renamed
+APP_DIR="/home/ubuntu/<app_name>"  # Replace with actual name
 du -sh $APP_DIR/instance/snapshots/
 du -sh $APP_DIR/instance/exports/
-du -sh /var/log/app_item_listing_tool/  # Or /var/log/<your_app_name>/
+du -sh /var/log/<app_name>/  # Replace with actual name
 ```
 
 **Clean up:**
 ```bash
 # Run cleanup script manually
 cd $APP_DIR
-.venv/bin/python scripts/cleanup_old_backups.py
-```
-cd /home/ubuntu/app_item_listing_tool
-.venv/bin/python scripts/cleanup_old_backups.py
+~/.venv/bin/python scripts/cleanup_old_backups.py
 ```
 
 ### Issue: Can't create new items
@@ -611,7 +608,7 @@ cd /home/ubuntu/app_item_listing_tool
 /home/ubuntu/<app_name>/instance/
 ```
 
-**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml` (default: `app_item_listing_tool`)
+**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml` (default: `rampe`)
 
 **Logs (also at):**
 ```

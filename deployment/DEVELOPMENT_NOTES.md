@@ -298,7 +298,7 @@ aws s3api get-bucket-lifecycle-configuration --bucket YOUR_BUCKET
 ### Check Monitoring
 ```bash
 # List CloudWatch metrics
-aws cloudwatch list-metrics --namespace AppItemListingTool
+aws cloudwatch list-metrics --namespace <CloudWatchNamespace>
 
 # View alarms
 aws cloudwatch describe-alarms --alarm-name-prefix "YOUR_APP_NAME-"
@@ -407,7 +407,7 @@ sudo systemctl status {app_name}
 
 # Check configuration
 cd /home/ubuntu/{app_name}
-source .venv/bin/activate
+source ~/.venv/bin/activate  # Production uses ~/.venv (in home directory)
 python3 -c "from app import create_app; app = create_app('production'); print(app.config)"
 ```
 

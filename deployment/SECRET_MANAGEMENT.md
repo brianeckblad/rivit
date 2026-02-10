@@ -171,7 +171,7 @@ vault_ebay_production_token_new: v^1.1#i^1#...new-token...  # ← Add this
 # Application can test AWSPENDING version
 # If successful, promote to AWSCURRENT
 aws secretsmanager update-secret-version-stage \
-  --secret-id app-item-listing-tool/production \
+  --secret-id <app_name>/production \
   --version-stage AWSCURRENT \
   --move-to-version-id <new-version-id>
 ```
@@ -259,7 +259,7 @@ vault_admin_password: "secure-password-here"
 
 # GitHub Deployment
 vault_github_token: "ghp_your_personal_access_token_here"
-vault_github_repo: "yourusername/app_item_listing_tool"
+vault_github_repo: "yourusername/your_app_name"
 vault_github_branch: "main"
 
 # CloudFront (Auto-populated during deployment)
@@ -299,7 +299,7 @@ The deployment script now:
     - name: Upload secrets to AWS Secrets Manager
       command: |
         aws secretsmanager put-secret-value \
-          --secret-id app-item-listing-tool/production \
+          --secret-id <app_name>/production \
           --secret-string '{
             "SECRET_KEY": "{{ vault_secret_key }}",
             "EBAY_PRODUCTION_APP_ID": "{{ vault_ebay_production_app_id }}",
@@ -389,7 +389,7 @@ git checkout deployment/group_vars/production/vault.yml
 
 # 2. From backup
 aws secretsmanager put-secret-value \
-  --secret-id app-item-listing-tool/production \
+  --secret-id <app_name>/production \
   --secret-string file://secrets-backup.json
 ```
 
@@ -498,7 +498,7 @@ ansible-vault view deployment/group_vars/production/vault.yml
 ```bash
 # Add Secrets Manager permissions
 aws iam put-role-policy \
-  --role-name app-item-listing-tool-ec2-role \
+  --role-name <app_name>-ec2-role \
   --policy-name SecretsManagerAccess \
   --policy-document file://secrets-policy.json
 ```

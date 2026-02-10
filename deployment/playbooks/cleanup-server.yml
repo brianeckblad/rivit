@@ -156,13 +156,13 @@
 
         - name: Check venv exists
           stat:
-            path: "{{ app_dir }}/.venv"
-          register: venv_dir
+            path: "{{ venv_dir }}"
+          register: venv_check
 
         - name: Fail if critical files missing
           fail:
             msg: "ERROR: Critical application files are missing!"
-          when: not main_py.stat.exists or not requirements_file.stat.exists or not venv_dir.stat.exists
+          when: not main_py.stat.exists or not requirements_file.stat.exists or not venv_check.stat.exists
 
     - name: Get directory size
       block:
@@ -196,7 +196,7 @@
           - "✅ Kept:"
           - "  • Application code (app/, main.py, etc.)"
           - "  • Instance data (instance/)"
-          - "  • Python venv (.venv/)"
+          - "  • Python venv (~/.venv in home directory)"
           - "  • Configuration (requirements.txt)"
           - ""
           - "📊 Size: {{ app_size.stdout | default('unknown') }}"

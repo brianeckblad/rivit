@@ -127,7 +127,7 @@ vault_cloudfront_domain: "${CLOUDFRONT_DOMAIN:-}"
 vault_cloudfront_distribution_id: "${CLOUDFRONT_DISTRIBUTION_ID:-}"
 
 # Instance Name
-vault_instance_name: "${INSTANCE_NAME:-app-item-listing-tool}"
+vault_instance_name: "${INSTANCE_NAME:-rampe}"
 EOF
 
 echo -e "${GREEN}✓ Vault content created${NC}"

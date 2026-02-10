@@ -1,0 +1,43 @@
+[Unit]
+Description={{ app_display_name }} Flask Application
+After=network.target
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_dir }}
+Environment="PATH={{ venv_dir }}/bin"
+Environment="FLASK_APP=app"
+Environment="FLASK_ENV=production"
+Environment="APP_SERVICE_NAME={{ service_name }}"
+
+# Load environment variables from .env file
+EnvironmentFile={{ app_dir }}/.env
+
+# Run gunicorn with proper logging
+ExecStart={{ venv_dir }}/bin/gunicorn \
+    --bind {{ gunicorn_bind }} \
+    --workers {{ gunicorn_workers }} \
+    --threads 2 \
+    --timeout {{ gunicorn_timeout }} \
+    --access-logfile {{ log_dir }}/access.log \
+    --error-logfile {{ log_dir }}/error.log \
+    --log-level warning \
+    "app:create_app('production')"
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=append:{{ log_dir }}/app.log
+StandardError=append:{{ log_dir }}/app.log
+
+[Install]
+WantedBy=multi-user.target
+

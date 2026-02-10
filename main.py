@@ -641,14 +641,18 @@ def restart_application():
     import subprocess
     import time
 
+    # Get service name from environment or use default
+    # This should match the service name configured in deployment/group_vars/all.yml
+    service_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+
     try:
         # Send restart command
-        result = subprocess.run(['supervisorctl', 'restart', 'app_item_listing_tool'],
+        result = subprocess.run(['supervisorctl', 'restart', service_name],
                               capture_output=True, text=True, timeout=10)
 
         if result.returncode != 0:
             print(f"⚠️  Could not restart application: {result.stderr}")
-            print("   Please manually restart with: sudo supervisorctl restart app_item_listing_tool")
+            print(f"   Please manually restart with: sudo supervisorctl restart {service_name}")
             return False
 
         print("✓ Restart command sent")
@@ -666,7 +670,7 @@ def restart_application():
 
             # Check if application is running
             try:
-                status_result = subprocess.run(['supervisorctl', 'status', 'app_item_listing_tool'],
+                status_result = subprocess.run(['supervisorctl', 'status', service_name],
                                              capture_output=True, text=True, timeout=5)
                 if 'RUNNING' in status_result.stdout:
                     print("\n✅ Application restarted successfully!")
@@ -674,20 +678,20 @@ def restart_application():
             except Exception:
                 pass
 
-        print("\n⚠️  Application restart timed out after 30 seconds")
-        print("   Please check status with: sudo supervisorctl status app_item_listing_tool")
+        print(f"\n⚠️  Application restart timed out after 30 seconds")
+        print(f"   Please check status with: sudo supervisorctl status {service_name}")
         return False
 
     except FileNotFoundError:
         print("⚠️  supervisorctl not found - please manually restart the application")
-        print("   Run: sudo supervisorctl restart app_item_listing_tool")
+        print(f"   Run: sudo supervisorctl restart {service_name}")
         return False
     except subprocess.TimeoutExpired:
         print("⚠️  Restart command timed out - please check application status")
         return False
     except Exception as restart_err:
         print(f"⚠️  Could not restart application: {restart_err}")
-        print("   Please manually restart with: sudo supervisorctl restart app_item_listing_tool")
+        print(f"   Please manually restart with: sudo supervisorctl restart {service_name}")
         return False
 
 

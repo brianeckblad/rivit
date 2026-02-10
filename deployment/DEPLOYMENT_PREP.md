@@ -508,7 +508,7 @@ YOUR_EMAIL=your-email@example.com
 
 **On EC2:**
 ```
-/var/log/app_item_listing_tool/
+/var/log/{{ app_name }}/
 ├── access.log      # Nginx access logs
 ├── error.log       # Application errors
 ├── gunicorn.log    # WSGI server logs
@@ -566,10 +566,10 @@ aws s3 ls s3://your-bucket-name/backups/ --recursive
 # 2. Restore specific backup
 aws s3 sync \
   s3://your-bucket-name/backups/20260208/ \
-  /home/ubuntu/app_item_listing_tool/instance/
+  /home/ubuntu/{{ app_name }}/instance/
 
 # 3. Restart application
-sudo systemctl restart app_item_listing_tool
+sudo systemctl restart {{ app_name }}
 ```
 
 **From EC2 snapshot:**

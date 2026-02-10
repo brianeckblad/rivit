@@ -1,5 +1,6 @@
 """Service for sending custom metrics to AWS CloudWatch."""
 import boto3
+import os
 from datetime import datetime
 from flask import current_app
 
@@ -9,7 +10,9 @@ class CloudWatchService:
 
     def __init__(self):
         self.client = None
-        self.namespace = 'AppItemListingTool'
+        # Use environment variable for namespace, default to 'Rampe'
+        # This can be set in deployment configs or .env file
+        self.namespace = os.environ.get('CLOUDWATCH_NAMESPACE', 'Rampe')
 
     def _get_client(self):
         """Get or create boto3 CloudWatch client."""

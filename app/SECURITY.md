@@ -372,7 +372,7 @@ curl http://localhost:8000/api/admin/security/blocked-ips
 ### 2. Review Attack Logs
 ```bash
 # Weekly review
-grep "ATTACK DETECTED" /var/log/app_item_listing_tool/app.log | tail -100
+grep "ATTACK DETECTED" /var/log/<app_name>/app.log | tail -100
 ```
 
 ### 3. Adjust Rate Limits

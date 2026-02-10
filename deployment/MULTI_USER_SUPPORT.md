@@ -423,7 +423,7 @@ aws ssm start-session --target i-xxxxxxxxxxxxx
 
 # Run password reset script
 cd /home/ubuntu/app_item_listing_tool
-source .venv/bin/activate
+source ~/.venv/bin/activate
 python3 << 'EOF'
 from app.models.user import user_manager
 username = 'brian'
@@ -600,7 +600,7 @@ echo ""
 # Connect to server and add user
 ssh ubuntu@your-server.com << EOF
 cd /home/ubuntu/app_item_listing_tool
-source .venv/bin/activate
+source ~/.venv/bin/activate
 
 python3 << PYTHON
 from app.models.user import user_manager

@@ -513,13 +513,13 @@ aws iam put-role-policy \
       "secretsmanager:GetSecretValue",
       "secretsmanager:DescribeSecret"
     ],
-    "Resource": "arn:aws:secretsmanager:*:*:secret:app-item-listing-tool/*"
+    "Resource": "arn:aws:secretsmanager:*:*:secret:<app_name>/*"
   }]
 }
 
 # 2. Restart application
 aws ssm start-session --target i-xxxxxxxxxxxxx
-sudo systemctl restart app_item_listing_tool
+sudo systemctl restart {{ service_name }}
 ```
 
 ### CloudFront Cache Issues

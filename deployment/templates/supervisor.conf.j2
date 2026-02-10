@@ -1,5 +1,5 @@
 [program:{{ service_name }}]
-command={{ app_dir }}/.venv/bin/gunicorn -w {{ gunicorn_workers }} -b 127.0.0.1:8000 --timeout {{ gunicorn_timeout }} --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level info --capture-output "app:create_app('production')"
+command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers }} -b 127.0.0.1:8000 --timeout {{ gunicorn_timeout }} --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level info --capture-output "app:create_app('production')"
 directory={{ app_dir }}
 user={{ app_user }}
 autostart=true
@@ -8,4 +8,4 @@ stopasgroup=true
 killasgroup=true
 stderr_logfile={{ log_dir }}/app.log
 stdout_logfile={{ log_dir }}/app.log
-environment=PATH="{{ app_dir }}/.venv/bin"
+environment=PATH="{{ venv_dir }}/bin"

@@ -48,7 +48,7 @@ def _setup_service_logger(app, config_name):
     """
     Setup a dedicated logger for service operations (S3 sync, health checks, etc).
 
-    In production: Creates /var/log/app_item_listing_tool/service.log
+    In production: Creates /var/log/<app_name>/service.log
     In development: Creates instance/service.log
 
     Args:
@@ -58,7 +58,9 @@ def _setup_service_logger(app, config_name):
     try:
         # Determine log path based on environment
         if config_name == 'production':
-            log_dir = Path('/var/log/app_item_listing_tool')
+            # Get app name from environment, default to 'rampe'
+            app_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+            log_dir = Path(f'/var/log/{app_name}')
         else:
             log_dir = Path(app.instance_path)
 
@@ -97,7 +99,7 @@ def _setup_cleanup_logger(app, config_name):
     """
     Setup a dedicated logger for cleanup operations (health checks, trash cleanup, orphaned files).
 
-    In production: Creates /var/log/app_item_listing_tool/cleanup.log
+    In production: Creates /var/log/<app_name>/cleanup.log
     In development: Creates instance/cleanup.log
 
     Args:
@@ -107,7 +109,9 @@ def _setup_cleanup_logger(app, config_name):
     try:
         # Determine log path based on environment
         if config_name == 'production':
-            log_dir = Path('/var/log/app_item_listing_tool')
+            # Get app name from environment, default to 'rampe'
+            app_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+            log_dir = Path(f'/var/log/{app_name}')
         else:
             log_dir = Path(app.instance_path)
 
@@ -168,10 +172,12 @@ def create_app(config_name='development'):
 
     # Configure logging
     if config_name == 'production':
-        # In production, try to log to /var/log/app_item_listing_tool/app.log
+        # In production, try to log to /var/log/<app_name>/app.log
         # The directory should be created by deployment scripts
         try:
-            log_file = Path('/var/log/app_item_listing_tool/app.log')
+            # Get app name from environment, default to 'rampe'
+            app_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+            log_file = Path(f'/var/log/{app_name}/app.log')
 
             # Only set up file logging if directory exists and is writable
             if log_file.parent.exists() and os.access(log_file.parent, os.W_OK):

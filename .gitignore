@@ -11,10 +11,12 @@ __pycache__/
 # ============================================================================
 # Virtual Environment
 # ============================================================================
+# Local development (in project directory)
 venv/
 .venv/
 env/
 ENV/
+# Note: In production, venv is at ~/.venv (in user's home directory, outside project)
 
 # ============================================================================
 # Environment Variables & Secrets (NEVER COMMIT!)
