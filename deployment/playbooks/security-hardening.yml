@@ -1,0 +1,245 @@
+---
+# Basic security hardening for Ubuntu servers
+# Follows security best practices without excessive complexity
+# Can be run independently: ansible-playbook playbooks/security-hardening.yml
+
+- name: Apply Security Hardening
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Security Hardening - System Updates
+      block:
+        - name: Update all packages to latest versions
+          apt:
+            upgrade: dist
+            update_cache: yes
+            cache_valid_time: 3600
+          register: apt_upgrade
+
+        - name: Check if reboot is required
+          stat:
+            path: /var/run/reboot-required
+          register: reboot_required_file
+
+        - name: Notify if reboot required
+          debug:
+            msg: "⚠️  REBOOT REQUIRED - Run: sudo reboot"
+          when: reboot_required_file.stat.exists
+
+    - name: Security Hardening - Firewall Note
+      debug:
+        msg: |
+          ℹ️  Firewall Configuration:
+          Lightsail provides network firewall at the instance level.
+          Ensure these ports are open in Lightsail console:
+          - Port 22 (SSH)
+          - Port 80 (HTTP)
+          - Port 443 (HTTPS)
+
+          Port 8000 (Gunicorn) is bound to 127.0.0.1 (localhost only)
+          and NOT exposed externally - this is correct and secure.
+
+          UFW is not used as Lightsail handles network-level firewall.
+          This reduces complexity and avoids potential conflicts.
+
+    - name: Security Hardening - Automatic Security Updates
+      block:
+        - name: Install unattended-upgrades
+          apt:
+            name:
+              - unattended-upgrades
+              - apt-listchanges
+            state: present
+
+        - name: Configure unattended-upgrades for security updates only
+          template:
+            src: ../templates/50unattended-upgrades.j2
+            dest: /etc/apt/apt.conf.d/50unattended-upgrades
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: Enable automatic updates
+          template:
+            src: ../templates/20auto-upgrades.j2
+            dest: /etc/apt/apt.conf.d/20auto-upgrades
+            owner: root
+            group: root
+            mode: '0644'
+
+    - name: Security Hardening - SSH Configuration
+      block:
+        - name: Disable SSH password authentication (key-only)
+          lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: '^#?PasswordAuthentication'
+            line: 'PasswordAuthentication no'
+            state: present
+          notify: restart sshd
+
+        - name: Disable SSH root login
+          lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: '^#?PermitRootLogin'
+            line: 'PermitRootLogin no'
+            state: present
+          notify: restart sshd
+
+        - name: Set SSH MaxAuthTries
+          lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: '^#?MaxAuthTries'
+            line: 'MaxAuthTries 3'
+            state: present
+          notify: restart sshd
+
+    - name: Security Hardening - File Permissions
+      import_tasks: tasks/harden-permissions.yml
+
+    - name: Security Hardening - Shared Memory
+      lineinfile:
+        path: /etc/fstab
+        line: 'tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0'
+        state: present
+
+    - name: Security Hardening - Sysctl Optimizations
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        # IP Spoofing protection
+        - { name: 'net.ipv4.conf.all.rp_filter', value: '1' }
+        - { name: 'net.ipv4.conf.default.rp_filter', value: '1' }
+        # Ignore ICMP broadcast requests
+        - { name: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1' }
+        # Disable source packet routing
+        - { name: 'net.ipv4.conf.all.accept_source_route', value: '0' }
+        - { name: 'net.ipv6.conf.all.accept_source_route', value: '0' }
+        - { name: 'net.ipv4.conf.default.accept_source_route', value: '0' }
+        - { name: 'net.ipv6.conf.default.accept_source_route', value: '0' }
+        # Ignore send redirects
+        - { name: 'net.ipv4.conf.all.send_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.default.send_redirects', value: '0' }
+        # Block SYN attacks
+        - { name: 'net.ipv4.tcp_syncookies', value: '1' }
+        - { name: 'net.ipv4.tcp_max_syn_backlog', value: '2048' }
+        - { name: 'net.ipv4.tcp_synack_retries', value: '2' }
+        - { name: 'net.ipv4.tcp_syn_retries', value: '5' }
+        # Log Martians
+        - { name: 'net.ipv4.conf.all.log_martians', value: '1' }
+        - { name: 'net.ipv4.conf.default.log_martians', value: '1' }
+        # Disable IPv6 (if not needed, comment out if you need IPv6)
+        # - { name: 'net.ipv6.conf.all.disable_ipv6', value: '1' }
+        # - { name: 'net.ipv6.conf.default.disable_ipv6', value: '1' }
+        # - { name: 'net.ipv6.conf.lo.disable_ipv6', value: '1' }
+
+
+    - name: Security Hardening - Fail2Ban (Brute Force Protection)
+      block:
+        - name: Install fail2ban
+          apt:
+            name: fail2ban
+            state: present
+
+        - name: Configure fail2ban for SSH
+          template:
+            src: ../templates/jail.local.j2
+            dest: /etc/fail2ban/jail.local
+            owner: root
+            group: root
+            mode: '0644'
+          notify: restart fail2ban
+
+        - name: Install Nginx filter for limit-req (if not present)
+          copy:
+            dest: /etc/fail2ban/filter.d/nginx-limit-req.conf
+            content: |
+              [Definition]
+              failregex = ^\s*\[error\] \d+#\d+: \*\d+ limiting requests, client: <HOST>,
+              ignoreregex =
+            owner: root
+            group: root
+            mode: '0644'
+          notify: restart fail2ban
+
+        - name: Ensure fail2ban is running
+          service:
+            name: fail2ban
+            state: started
+            enabled: yes
+
+    - name: Security Hardening - Disable Unused Services
+      block:
+        - name: List of services to disable (if present)
+          set_fact:
+            services_to_disable:
+              - apache2
+              - avahi-daemon
+              - cups
+              - bluetooth
+
+        - name: Stop and disable unused services
+          service:
+            name: "{{ item }}"
+            state: stopped
+            enabled: no
+          loop: "{{ services_to_disable }}"
+          ignore_errors: yes  # Service might not be installed
+
+    - name: Security Hardening - SSL/TLS Renewal
+      block:
+        - name: Ensure Certbot is installed
+          apt:
+            name: certbot
+            state: present
+
+        - name: Check for Certbot renewal timer
+          systemd:
+            name: certbot.timer
+            enabled: yes
+            state: started
+
+        - name: Configure Certbot post-renewal hook for Nginx
+          copy:
+            content: |
+              #!/bin/sh
+              systemctl reload nginx
+            dest: /etc/letsencrypt/renewal-hooks/post/reload-nginx
+            owner: root
+            group: root
+            mode: '0755'
+
+    - name: Security Hardening - System Logging
+      block:
+        - name: Ensure rsyslog is installed
+          apt:
+            name: rsyslog
+            state: present
+
+        - name: Ensure rsyslog is running
+          service:
+            name: rsyslog
+            state: started
+            enabled: yes
+
+        - name: Configure log rotation for system logs
+          template:
+            src: ../templates/rsyslog-rotation.j2
+            dest: /etc/logrotate.d/rsyslog
+            owner: root
+            group: root
+            mode: '0644'
+
+  handlers:
+    - name: restart sshd
+      service:
+        name: sshd
+        state: restarted
+
+    - name: restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted

@@ -1,0 +1,33 @@
+# Ansible runtime files
+*.retry
+.ansible/
+
+# Temporary files
+/tmp/
+*.tmp
+*.log
+
+# Ansible fact cache
+/tmp/ansible_facts/
+ansible_facts/
+
+# Vault password files (never commit!)
+.vault_pass
+.vault_password
+vault_pass.txt
+
+# NOTE: vault.yml files are NOT ignored by default
+# Encrypted vault.yml files SHOULD be committed to git for reusable deployments
+# If you create an unencrypted vault.yml for local testing, add it manually:
+#   git update-index --skip-worktree group_vars/production/vault.yml
+
+# Backup files
+*.bak
+*~
+
+# IDE files
+.vscode/
+.idea/
+
+# macOS
+.DS_Store

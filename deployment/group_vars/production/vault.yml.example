@@ -1,0 +1,30 @@
+---
+# Example vault file for production secrets
+#
+# RECOMMENDED: Use the interactive script
+# Run: ./scripts/create-vault.sh
+# This will prompt for credentials and encrypt automatically
+#
+# Manual method:
+# 1. Copy this file to vault.yml
+# 2. Fill in your actual credentials
+# 3. Encrypt: ansible-vault encrypt group_vars/production/vault.yml
+# 4. Commit encrypted vault.yml to git (SAFE when encrypted)
+# 5. Run playbook: ansible-playbook site.yml --ask-vault-pass
+#
+# NOTE: Encrypted vault.yml should be committed to git for reusable deployments.
+# Only skip encryption if you're testing locally and don't want to deal with passwords.
+
+# Git Repository (contains your GitHub username/org - keep private)
+vault_git_repo: "https://github.com/yourusername/app_item_listing_tool.git"
+
+# AWS Credentials
+vault_aws_access_key_id: "AKIAXXXXXXXXXXXXXXXX"
+vault_aws_secret_access_key: "your-secret-access-key-here"
+vault_aws_region: "us-east-2"
+vault_s3_bucket_name: "your-bucket-name"
+vault_s3_key_prefix: ""  # Optional: prefix for S3 keys (e.g., "prod/")
+
+# Application Credentials
+vault_app_username: "your-admin-username"
+vault_app_password: "your-secure-password"

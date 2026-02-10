@@ -1,0 +1,292 @@
+---
+# Initial server setup and application deployment
+# Usage: ansible-playbook -i inventories/production playbooks/setup.yml
+
+- name: Configure Listing App Server
+  hosts: all
+  become: yes
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/production.yml
+    - ../group_vars/production/vault.yml
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install system dependencies
+      apt:
+        name: "{{ system_packages }}"
+        state: present
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Create instance directory for data persistence
+      file:
+        path: "{{ app_dir }}/instance"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Create log directory
+      file:
+        path: "{{ log_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Remove legacy supervisor configuration
+      file:
+        path: /etc/supervisor/conf.d/badartlistingtool.conf
+        state: absent
+
+    - name: Remove legacy nginx configuration
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/nginx/sites-available/badartlistingtool
+        - /etc/nginx/sites-enabled/badartlistingtool
+        - /etc/nginx/sites-available/badart-app
+        - /etc/nginx/sites-enabled/badart-app
+
+    - name: Check if application code exists
+      stat:
+        path: "{{ app_dir }}/runapp.py"
+      register: app_code_exists
+
+    - name: Clone application code from git
+      become_user: "{{ app_user }}"
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ app_dir }}"
+        version: "{{ git_branch }}"
+        force: no
+      when: not app_code_exists.stat.exists
+
+    - name: Create Python virtual environment
+      become_user: "{{ app_user }}"
+      command: python3 -m venv {{ app_dir }}/.venv
+      args:
+        creates: "{{ app_dir }}/.venv/bin/activate"
+
+    - name: Upgrade pip in virtual environment
+      become_user: "{{ app_user }}"
+      pip:
+        name: pip
+        state: latest
+        virtualenv: "{{ app_dir }}/.venv"
+
+    - name: Check if deployment requirements.txt exists
+      stat:
+        path: "{{ app_dir }}/deployment/requirements.txt"
+      register: deployment_requirements_file
+
+    - name: Check if root requirements.txt exists
+      stat:
+        path: "{{ app_dir }}/requirements.txt"
+      register: root_requirements_file
+
+    - name: Install Python dependencies from deployment directory
+      become_user: "{{ app_user }}"
+      pip:
+        requirements: "{{ app_dir }}/deployment/requirements.txt"
+        virtualenv: "{{ app_dir }}/.venv"
+      when: deployment_requirements_file.stat.exists
+
+    - name: Install Python dependencies from root (fallback)
+      become_user: "{{ app_user }}"
+      pip:
+        requirements: "{{ app_dir }}/requirements.txt"
+        virtualenv: "{{ app_dir }}/.venv"
+      when: not deployment_requirements_file.stat.exists and root_requirements_file.stat.exists
+
+    - name: Install gunicorn in virtual environment
+      become_user: "{{ app_user }}"
+      pip:
+        name: gunicorn
+        state: present
+        virtualenv: "{{ app_dir }}/.venv"
+
+    - name: Check if .env file already exists
+      stat:
+        path: "{{ app_dir }}/.env"
+      register: env_file
+
+    - name: Read existing SECRET_KEY if .env exists
+      shell: grep '^SECRET_KEY=' {{ app_dir }}/.env | cut -d'=' -f2
+      register: existing_secret_key
+      when: env_file.stat.exists
+      changed_when: false
+      failed_when: false
+
+    - name: Read existing EBAY_VERIFICATION_TOKEN if .env exists
+      shell: grep '^EBAY_VERIFICATION_TOKEN=' {{ app_dir }}/.env | cut -d'=' -f2
+      register: existing_ebay_token
+      when: env_file.stat.exists
+      changed_when: false
+      failed_when: false
+
+    - name: Generate new SECRET_KEY if needed
+      set_fact:
+        secret_key: "{{ existing_secret_key.stdout if (env_file.stat.exists and existing_secret_key.stdout != '') else lookup('password', '/dev/null chars=ascii_letters,digits,punctuation length=50') }}"
+
+    - name: Generate new EBAY_VERIFICATION_TOKEN if needed (64 chars)
+      set_fact:
+        ebay_verification_token: "{{ existing_ebay_token.stdout if (env_file.stat.exists and existing_ebay_token.stdout != '' and existing_ebay_token.stdout != 'your-64-character-token-here') else lookup('password', '/dev/null chars=ascii_letters,digits length=64') }}"
+
+    - name: Create .env file from template
+      template:
+        src: ../templates/env.j2
+        dest: "{{ app_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+
+    - name: Create supervisor configuration
+      template:
+        src: ../templates/supervisor.conf.j2
+        dest: /etc/supervisor/conf.d/{{ service_name }}.conf
+        mode: '0644'
+      notify: restart supervisor
+
+    - name: Create nginx site configuration
+      template:
+        src: ../templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/{{ service_name }}
+        mode: '0644'
+      notify: restart nginx
+
+    - name: Enable nginx site
+      file:
+        src: /etc/nginx/sites-available/{{ service_name }}
+        dest: /etc/nginx/sites-enabled/{{ service_name }}
+        state: link
+      notify: restart nginx
+
+    - name: Remove default nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: restart nginx
+
+    - name: Install logrotate configuration
+      copy:
+        src: ../files/app_item_listing_tool-logrotate
+        dest: /etc/logrotate.d/app_item_listing_tool
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Verify logrotate configuration syntax
+      command: logrotate -d /etc/logrotate.d/app_item_listing_tool
+      changed_when: false
+      failed_when: false
+
+    - name: Create scripts directory
+      file:
+        path: "{{ app_dir }}/scripts"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Copy backup cleanup script
+      copy:
+        src: "{{ playbook_dir }}/../files/cleanup_old_backups.py"
+        dest: "{{ app_dir }}/scripts/cleanup_old_backups.py"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+        remote_src: no
+
+    - name: Create daily cron job for backup cleanup
+      cron:
+        name: "Cleanup old backups (>{{ backup_retention_days }} days)"
+        minute: "{{ backup_cleanup_minute }}"
+        hour: "{{ backup_cleanup_hour }}"
+        job: "cd {{ app_dir }} && {{ app_dir }}/.venv/bin/python {{ app_dir }}/scripts/cleanup_old_backups.py >> {{ log_dir }}/cleanup.log 2>&1"
+        user: "{{ app_user }}"
+        state: present
+
+    - name: Apply security permissions
+      import_tasks: tasks/harden-permissions.yml
+
+    - name: Ensure supervisor is running
+      service:
+        name: supervisor
+        state: started
+        enabled: yes
+
+    - name: Ensure nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Reread supervisor configuration
+      command: supervisorctl reread
+      register: supervisor_reread
+      failed_when: false
+
+    - name: Update supervisor with new configuration
+      command: supervisorctl update
+      register: supervisor_update
+      failed_when: false
+
+    - name: Check if service exists in supervisor
+      command: supervisorctl status {{ service_name }}
+      register: supervisor_status
+      failed_when: false
+      changed_when: false
+
+    - name: Start application via supervisor
+      supervisorctl:
+        name: "{{ service_name }}"
+        state: started
+      when: supervisor_status.rc == 0 or supervisor_status.rc == 3
+
+    - name: Restart supervisor if service not found
+      service:
+        name: supervisor
+        state: restarted
+      when: supervisor_status.rc != 0 and supervisor_status.rc != 3
+
+    - name: Wait for supervisor to restart
+      wait_for:
+        path: /var/run/supervisor.sock
+        state: present
+        timeout: 30
+      when: supervisor_status.rc != 0 and supervisor_status.rc != 3
+
+    - name: Start application after supervisor restart
+      supervisorctl:
+        name: "{{ service_name }}"
+        state: started
+      when: supervisor_status.rc != 0 and supervisor_status.rc != 3
+
+  handlers:
+    - name: restart supervisor
+      service:
+        name: supervisor
+        state: restarted
+
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: restart application
+      supervisorctl:
+        name: "{{ service_name }}"
+        state: restarted

@@ -1,0 +1,56 @@
+[Unit]
+Description=Comic Listing Tool Application
+After=network.target
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_dir }}
+
+# Environment
+Environment="PATH={{ app_dir }}/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+Environment="SECRET_NAME={{ secret_name | default(app_name ~ '/production') }}"
+Environment="AWS_REGION={{ aws_region | default('us-east-1') }}"
+# Optional: Load additional variables from .env file if it exists
+# The '-' prefix makes this optional (won't fail if file doesn't exist)
+EnvironmentFile=-{{ app_dir }}/.env
+
+# Pre-start validation - PREVENTS startup if schema invalid
+ExecStartPre=/bin/bash -c 'echo "Validating CSV schema..."'
+ExecStartPre={{ app_dir }}/.venv/bin/python {{ app_dir }}/deployment/scripts/util-validate-csv-schema.py --quiet
+ExecStartPre=/bin/bash -c 'echo "✓ CSV schema validation passed"'
+
+# Start application
+# Using 2 workers to minimize startup logging duplication
+# Each worker gets 4 threads for concurrency (2 workers * 4 threads = 8 concurrent requests)
+ExecStart={{ app_dir }}/.venv/bin/gunicorn \
+    --bind 127.0.0.1:8000 \
+    --workers 2 \
+    --threads 4 \
+    --worker-class gthread \
+    --timeout 120 \
+    --access-logfile {{ log_dir }}/access.log \
+    --error-logfile {{ log_dir }}/error.log \
+    --log-level info \
+    --capture-output \
+    runapp:app
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=append:{{ log_dir }}/app.log
+StandardError=append:{{ log_dir }}/error.log
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

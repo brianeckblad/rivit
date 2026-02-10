@@ -1,0 +1,2152 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    <style>
+        /* Hide labels on mobile */
+        @media (max-width: 768px) {
+            .nav-label {
+                display: none;
+            }
+        }
+
+        .main {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px 24px 140px;
+        }
+
+        /* Page Header - matches other pages */
+        .page-header {
+            background: rgba(42, 42, 42, 0.3);
+            border: 1px solid #2A2A2A;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #FFE500;
+            margin: 0 0 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .page-header h1 svg {
+            width: 28px;
+            height: 28px;
+            stroke: #FFE500;
+        }
+
+        .page-header p {
+            font-size: 14px;
+            color: #9A9A9A;
+            margin: 0;
+        }
+
+        /* Action sections with visual hierarchy */
+        .action-section {
+            background: rgba(42, 42, 42, 0.3);
+            border: 1px solid #2A2A2A;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .action-section:hover {
+            border-color: #3A3A3A;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #FFE500;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2A2A2A;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-label svg {
+            width: 16px;
+            height: 16px;
+            stroke: #FFE500;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #E5E5E5;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #2A2A2A;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: #9A9A9A;
+            width: 110px;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #E5E5E5;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #E5E5E5;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 36px 10px 12px;
+            background: #0A0A0A;
+            border: 1px solid #2A2A2A;
+            border-radius: 6px;
+            color: #E5E5E5;
+            font-size: 14px;
+            font-family: 'Outfit', sans-serif;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #FFE500;
+        }
+
+        .btn {
+            padding: 10px 32px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .btn-primary {
+            background: #FFE500;
+            color: #1A1A1A;
+            box-shadow: 0 3px 12px rgba(255, 229, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #F5DB00;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 16px rgba(255, 229, 0, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #FFE500;
+            border: 2px solid #3A3A3A;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            border-color: #FFE500;
+            color: #FFE500;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.95);
+        }
+
+        .message {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .password-requirements {
+            font-size: 12px;
+            color: #9A9A9A;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+
+        .password-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #9A9A9A;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: #FFE500;
+        }
+
+        .password-toggle:focus {
+            outline: 2px solid #FFE500;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        .env-option {
+            transition: all 0.2s;
+        }
+
+        .env-option:hover {
+            border-color: #4A4A4A !important;
+            transform: translateY(-1px);
+        }
+
+        .env-option:has(input:checked) {
+            border-color: currentColor !important;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .env-option[data-env="sandbox"]:has(input:checked) {
+            border-color: #4AE5FF !important;
+        }
+
+        .env-option[data-env="production"]:has(input:checked) {
+            border-color: #FFE500 !important;
+        }
+
+        /* User list item styling */
+        .user-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(42, 42, 42, 0.3);
+            border: 1px solid #2A2A2A;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .user-list-item:hover {
+            border-color: #3A3A3A;
+        }
+
+        .user-delete-btn {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #ef4444;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .user-delete-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+        }
+
+        /* Fixed Footer - matches other pages */
+        .account-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(26, 26, 26, 0.95) 0%, #1A1A1A 100%);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #2A2A2A;
+            padding: 16px 24px;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .account-footer .btn {
+            min-width: 180px;
+        }
+
+        /* Settings Modal - polished design */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .settings-modal.active {
+            display: flex;
+        }
+
+        .settings-modal-content {
+            background: #1A1A1A;
+            border: 1px solid #3A3A3A;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2A2A2A;
+        }
+
+        .settings-modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #FFE500;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-modal-header h2 svg {
+            width: 22px;
+            height: 22px;
+            stroke: #FFE500;
+        }
+
+        .close-settings-modal {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #9A9A9A;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 6px 10px;
+            line-height: 1;
+            transition: all 0.2s;
+            border-radius: 6px;
+        }
+
+        .close-settings-modal:hover {
+            background: rgba(255, 229, 0, 0.1);
+            color: #FFE500;
+        }
+
+        /* Two column layout for sections */
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .main {
+                padding: 16px 16px 160px;
+            }
+
+            .page-header {
+                padding: 20px 16px;
+            }
+
+            .page-header h1 {
+                font-size: 22px;
+            }
+
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+                margin-top: 20px;
+            }
+
+            .action-section {
+                padding: 16px;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 100%;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .account-footer {
+                padding: 12px 16px;
+                flex-direction: column;
+            }
+
+            .account-footer .btn {
+                width: 100%;
+            }
+
+            .sections-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .settings-modal-content {
+                padding: 16px;
+                margin: 10px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <main id="main-content" class="main">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Account Settings
+            </h1>
+            <p>Manage your account preferences and settings</p>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="sections-grid">
+            <!-- Account & Security (Combined) -->
+            <div class="action-section">
+                <div class="section-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Account & Security
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Username</span>
+                    <span class="info-value" id="currentUsername">{{ username }}</span>
+                </div>
+                <form id="passwordForm" onsubmit="changePassword(event)" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #2A2A2A;">
+                    <div style="font-size: 13px; color: #9A9A9A; margin-bottom: 12px;">Change Password</div>
+                    <div class="form-group">
+                        <label class="form-label" for="currentPassword">Current Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="currentPassword" name="currentPassword" class="form-input" required autocomplete="current-password">
+                            <button type="button" class="password-toggle" onclick="togglePassword('currentPassword')">
+                                <svg id="currentPassword-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newPassword">New Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="newPassword" name="newPassword" class="form-input" required minlength="8" autocomplete="new-password">
+                            <button type="button" class="password-toggle" onclick="togglePassword('newPassword')">
+                                <svg id="newPassword-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="password-requirements">Minimum 8 characters</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required minlength="8" autocomplete="new-password">
+                            <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')">
+                                <svg id="confirmPassword-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%;">Change Password</button>
+                </form>
+            </div>
+
+            <!-- Display Preferences -->
+            <div class="action-section">
+                <div class="section-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    Display Preferences
+                </div>
+                <form id="preferencesForm" onsubmit="savePreferences(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="timezone">Timezone</label>
+                        <select id="timezone" name="timezone" class="form-input" style="cursor: pointer;">
+                            <option value="local">Local Browser Time</option>
+                            <option value="utc">UTC Time</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="desktopPerPage">Comics Per Page (Desktop)</label>
+                        <input type="number" id="desktopPerPage" name="desktopPerPage" class="form-input" required min="1" max="100" value="24">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="mobilePerPage">Comics Per Page (Mobile)</label>
+                        <input type="number" id="mobilePerPage" name="mobilePerPage" class="form-input" required min="1" max="100" value="8">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="defaultSort">Default Sort Order</label>
+                        <select id="defaultSort" name="defaultSort" class="form-input" style="cursor: pointer;">
+                            <option value="sku_asc">SKU: Low to High</option>
+                            <option value="sku_desc">SKU: High to Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="microCardSize">Bulk Action Card Size: <span id="microCardSizeValue">60%</span></label>
+                        <input type="range" id="microCardSize" name="microCardSize" min="40" max="100" step="5" value="60" class="form-input" style="cursor: pointer; height: 8px; accent-color: #FFE500;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #6A6A6A; margin-top: 4px;">
+                            <span>Micro (40%)</span>
+                            <span>Small (60%)</span>
+                            <span>Normal (100%)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">eBay Environment</label>
+                        <div style="display: flex; gap: 12px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid #2A2A2A; border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="sandbox">
+                                <input type="radio" name="ebayEnvironment" value="sandbox" id="ebayEnvSandbox" style="width: 16px; height: 16px; cursor: pointer; accent-color: #4AE5FF;">
+                                <span style="font-weight: 500; color: #4AE5FF; font-size: 13px;">Sandbox</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid #2A2A2A; border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="production">
+                                <input type="radio" name="ebayEnvironment" value="production" id="ebayEnvProduction" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: #FFE500;">
+                                <span style="font-weight: 500; color: #FFE500; font-size: 13px;">Production</span>
+                            </label>
+                        </div>
+                        <input type="hidden" id="ebayEnvironment" value="production">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="preferencesSubmitBtn" style="width: 100%; margin-top: 8px;">Save Preferences</button>
+                </form>
+            </div>
+
+            <!-- eBay API Credentials -->
+            <div class="action-section">
+                <div class="section-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                    eBay API Credentials
+                </div>
+                <div style="font-size: 12px; color: #9A9A9A; margin-bottom: 16px; line-height: 1.5;">
+                    Your eBay API credentials are securely stored in AWS Secrets Manager and used for listing items and price lookups.
+                </div>
+
+                <div id="ebayCredentialsStatus" style="margin-bottom: 16px;">
+                    <div style="text-align: center; padding: 20px; color: #9A9A9A;">
+                        Loading credentials...
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-secondary" onclick="openEbayCredentialsModal()" style="width: 100%; border-color: #4AE5FF;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Manage Credentials
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Fixed Footer -->
+    <footer class="account-footer">
+        <button type="button" class="btn btn-secondary" onclick="openDefaultSettings()" style="border-color: #FFE500;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Default Settings
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="openUserManagement()" style="border-color: #FFE500;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Manage Users
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="openEbayCategoryExplorer()" style="border-color: #4AE5FF;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            eBay Category Explorer
+        </button>
+        <a href="/" class="btn btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            Back to Home
+        </a>
+    </footer>
+
+    <!-- Default Settings Modal -->
+    <div id="defaultSettingsModal" class="settings-modal" onclick="closeDefaultSettingsOnBackdrop(event)">
+        <div class="settings-modal-content" onclick="event.stopPropagation()">
+            <div class="settings-modal-header">
+                <h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Default Settings
+                </h2>
+                <button type="button" class="close-settings-modal" onclick="closeDefaultSettings()">&times;</button>
+            </div>
+
+            <p style="color: #9A9A9A; margin-bottom: 20px; text-align: center; font-size: 13px;">
+                Configure default values for new comic entries
+            </p>
+
+            <!-- Settings Tabs -->
+            <div class="settings-tabs" style="display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid #2A2A2A;">
+                <button type="button" class="settings-tab active" onclick="switchDefaultsTab('whatnot')" style="flex: 1; padding: 10px 16px; background: none; border: none; border-bottom: 2px solid #FFE500; color: #FFE500; cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 500;">WhatNot</button>
+                <button type="button" class="settings-tab" onclick="switchDefaultsTab('ebay')" style="flex: 1; padding: 10px 16px; background: none; border: none; border-bottom: 2px solid transparent; color: #9A9A9A; cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 500;">eBay</button>
+            </div>
+
+            <form id="defaultSettingsForm" onsubmit="saveDefaultSettings(event)">
+                <!-- WhatNot Defaults Tab -->
+                <div id="whatnotDefaultsTab" class="defaults-tab-content" style="display: block;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="defaultType">Type</label>
+                            <select id="defaultType" class="form-input">
+                                <option value="Buy it Now">Buy it Now</option>
+                                <option value="Auction">Auction</option>
+                                <option value="Giveaway">Giveaway</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultCategory">Category</label>
+                            <select id="defaultCategory" class="form-input">
+                                <option value="Comics & Manga">Comics & Manga</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultSubCategory">Sub Category</label>
+                            <select id="defaultSubCategory" class="form-input">
+                                <option value="Anime & Manga">Anime & Manga</option>
+                                <option value="Comic Art">Comic Art</option>
+                                <option value="Modern Comics">Modern Comics</option>
+                                <option value="Pop Culture Memorabilia">Pop Culture Memorabilia</option>
+                                <option value="Vintage Comics">Vintage Comics</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultCondition">Condition</label>
+                            <select id="defaultCondition" class="form-input">
+                                <option value="Near Mint">Near Mint</option>
+                                <option value="Graded">Graded</option>
+                                <option value="Gem Mint">Gem Mint</option>
+                                <option value="Mint">Mint</option>
+                                <option value="Very Fine">Very Fine</option>
+                                <option value="Fine">Fine</option>
+                                <option value="Very Good">Very Good</option>
+                                <option value="Good">Good</option>
+                                <option value="Fair">Fair</option>
+                                <option value="Poor">Poor</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultShippingProfile">Shipping Profile</label>
+                            <select id="defaultShippingProfile" class="form-input">
+                                <option value="One Comic (Gemeni Mailer)">One Comic (Gemeni Mailer)</option>
+                                <option value="Multi (Gemeni Mailer)">Multi (Gemeni Mailer)</option>
+                                <option value="Dynamic (Gemeni Mailer)">Dynamic (Gemeni Mailer)</option>
+                                <option value="Flate Rate Box o Comics">Flate Rate Box o Comics</option>
+                                <option value="Comic Slab (USPS Medium Box)">Comic Slab (USPS Medium Box)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultOfferable">Offerable</label>
+                            <select id="defaultOfferable" class="form-input">
+                                <option value="TRUE">TRUE</option>
+                                <option value="FALSE">FALSE</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultHazmat">Hazmat</label>
+                            <select id="defaultHazmat" class="form-input">
+                                <option value="Not Hazmat">Not Hazmat</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultPriceBuyItNow">Price (Buy it Now)</label>
+                            <input type="text" id="defaultPriceBuyItNow" class="form-input" placeholder="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultPriceAuction">Price (Auction)</label>
+                            <input type="text" id="defaultPriceAuction" class="form-input" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- eBay Defaults Tab -->
+                <div id="ebayDefaultsTab" class="defaults-tab-content" style="display: none;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayListingMode">Default Listing Mode</label>
+                            <select id="defaultEbayListingMode" class="form-input">
+                                <option value="list">List Now</option>
+                                <option value="future">List in 18 Days</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayFormat">Format</label>
+                            <select id="defaultEbayFormat" class="form-input">
+                                <option value="FixedPrice">FixedPrice</option>
+                                <option value="Auction">Auction</option>
+                                <option value="StoresFixedPrice">StoresFixedPrice</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayDuration">Duration</label>
+                            <select id="defaultEbayDuration" class="form-input">
+                                <option value="GTC">GTC</option>
+                                <option value="Days_1">Days_1</option>
+                                <option value="Days_3">Days_3</option>
+                                <option value="Days_5">Days_5</option>
+                                <option value="Days_7">Days_7</option>
+                                <option value="Days_10">Days_10</option>
+                                <option value="Days_30">Days_30</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayImmediatePay">Immediate Pay</label>
+                            <select id="defaultEbayImmediatePay" class="form-input">
+                                <option value="TRUE">TRUE</option>
+                                <option value="FALSE">FALSE</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayCategoryId">Category ID</label>
+                            <input type="text" id="defaultEbayCategoryId" class="form-input" placeholder="259104">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayCategoryName">Category Name</label>
+                            <input type="text" id="defaultEbayCategoryName" class="form-input" placeholder="/Collectibles/Comic Books...">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayLocation">Location</label>
+                            <input type="text" id="defaultEbayLocation" class="form-input" placeholder="Highlands Ranch, CO">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayPostalCode">Postal Code</label>
+                            <input type="text" id="defaultEbayPostalCode" class="form-input" placeholder="80129">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayReturnsAccepted">Returns Accepted</label>
+                            <select id="defaultEbayReturnsAccepted" class="form-input">
+                                <option value="ReturnsNotAccepted">ReturnsNotAccepted</option>
+                                <option value="ReturnsAccepted">ReturnsAccepted</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayReturnProfile">Return Profile</label>
+                            <select id="defaultEbayReturnProfile" class="form-input">
+                                <option value="No Return Accepted (261505402015) - (ID: 261505402015)">No Return Accepted</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="defaultEbayPaymentProfile">Payment Profile</label>
+                            <select id="defaultEbayPaymentProfile" class="form-input">
+                                <option value="eBay Managed Payments - (ID: 261505403015)">eBay Managed Payments</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #2A2A2A;">
+                    <button type="submit" class="btn btn-primary" id="defaultSettingsSubmitBtn">Save Settings</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeDefaultSettings()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="userManagementModal" class="settings-modal" onclick="closeUserManagementOnBackdrop(event)">
+        <div class="settings-modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+            <div class="settings-modal-header">
+                <h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Manage Users
+                </h2>
+                <button type="button" class="close-settings-modal" onclick="closeUserManagement()">&times;</button>
+            </div>
+
+            <p style="color: #9A9A9A; margin-bottom: 20px; text-align: center; font-size: 13px;">
+                Add or remove user accounts
+            </p>
+
+            <!-- User List -->
+            <div id="userList" style="margin-bottom: 20px;">
+                <div style="font-size: 13px; color: #FFE500; margin-bottom: 12px; font-weight: 500;">Current Users</div>
+                <div id="userListContainer" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Users will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Add User Form -->
+            <div style="border-top: 1px solid #2A2A2A; padding-top: 20px;">
+                <div style="font-size: 13px; color: #FFE500; margin-bottom: 12px; font-weight: 500;">Add New User</div>
+                <form id="addUserForm" onsubmit="addUser(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="newUsername">Username</label>
+                        <input type="text" id="newUsername" class="form-input" required minlength="3" placeholder="Enter username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newUserPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="newUserPassword" class="form-input" required minlength="8" placeholder="Minimum 8 characters">
+                            <button type="button" class="password-toggle" onclick="togglePassword('newUserPassword')">
+                                <svg id="newUserPassword-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="addUserBtn" style="width: 100%;">Add User</button>
+                </form>
+            </div>
+
+            <div id="userManagementMessage" style="margin-top: 16px; display: none; padding: 12px; border-radius: 6px; font-size: 13px;"></div>
+
+            <div style="display: flex; justify-content: center; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #2A2A2A;">
+                <button type="button" class="btn btn-secondary" onclick="closeUserManagement()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- eBay Credentials Modal -->
+    <div id="ebayCredentialsModal" class="settings-modal" onclick="closeEbayCredentialsOnBackdrop(event)">
+        <div class="settings-modal-content" onclick="event.stopPropagation()" style="max-width: 700px;">
+            <div class="settings-modal-header">
+                <h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                    eBay API Credentials
+                </h2>
+                <button type="button" class="close-settings-modal" onclick="closeEbayCredentialsModal()">&times;</button>
+            </div>
+
+            <div style="background: rgba(74, 229, 255, 0.1); border: 1px solid rgba(74, 229, 255, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: start; gap: 12px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4AE5FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div style="font-size: 12px; color: #4AE5FF; line-height: 1.6;">
+                        <strong>How to get your eBay API credentials:</strong><br>
+                        1. Go to <a href="https://developer.ebay.com/" target="_blank" style="color: #4AE5FF; text-decoration: underline;">developer.ebay.com</a><br>
+                        2. Sign in with your eBay account<br>
+                        3. Create an application to get your App ID, Cert ID, and Dev ID<br>
+                        4. Generate a User Token from the OAuth section<br>
+                        <br>
+                        Your credentials are encrypted and stored securely in AWS Secrets Manager.
+                    </div>
+                </div>
+            </div>
+
+            <form id="ebayCredentialsForm" onsubmit="saveEbayCredentials(event)">
+                <!-- Production Credentials -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #FFE500; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #2A2A2A;">
+                        Production Credentials
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="prodAppId">App ID (Client ID)</label>
+                        <input type="text" id="prodAppId" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="prodCertId">Cert ID (Client Secret)</label>
+                        <input type="password" id="prodCertId" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="prodDevId">Dev ID</label>
+                        <input type="text" id="prodDevId" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="prodToken">User Token</label>
+                        <input type="password" id="prodToken" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+                </div>
+
+                <!-- Sandbox Credentials -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #4AE5FF; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #2A2A2A;">
+                        Sandbox Credentials (Optional - for testing)
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="sandboxAppId">App ID (Client ID)</label>
+                        <input type="text" id="sandboxAppId" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="sandboxCertId">Cert ID (Client Secret)</label>
+                        <input type="password" id="sandboxCertId" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="sandboxDevId">Dev ID</label>
+                        <input type="text" id="sandboxDevId" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="sandboxToken">User Token</label>
+                        <input type="password" id="sandboxToken" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+                </div>
+
+                <div id="ebayCredentialsMessage" style="margin-bottom: 16px; padding: 12px; border-radius: 6px; font-size: 13px; display: none;"></div>
+
+                <div style="display: flex; justify-content: space-between; gap: 12px; padding-top: 20px; border-top: 1px solid #2A2A2A;">
+                    <button type="button" class="btn btn-secondary" onclick="deleteEbayCredentials()" style="border-color: #FF4A4A; color: #FF4A4A;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Delete All
+                    </button>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeEbayCredentialsModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveEbayCredsBtn">Save Credentials</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- eBay Category Explorer Modal -->
+    <div id="ebayCategoryExplorerModal" class="settings-modal" onclick="closeEbayCategoryExplorerOnBackdrop(event)">
+        <div class="settings-modal-content" onclick="event.stopPropagation()">
+            <div class="settings-modal-header">
+                <h2>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                    eBay Category Explorer (Test)
+                </h2>
+                <button type="button" class="close-settings-modal" onclick="closeEbayCategoryExplorer()">&times;</button>
+            </div>
+
+            <p style="color: #9A9A9A; margin-bottom: 20px; text-align: center; font-size: 13px;">
+                Search and explore eBay categories using the Taxonomy API
+            </p>
+
+            <div class="form-group">
+                <label class="form-label" for="categorySearchInput">Search Categories</label>
+                <input
+                    type="text"
+                    id="categorySearchInput"
+                    class="form-input"
+                    placeholder="Type to filter (e.g., 'comic', 'toys', 'collectibles')"
+                    style="margin-bottom: 12px;"
+                >
+                <div id="categorySearchStatus" style="font-size: 12px; color: #9A9A9A; margin-bottom: 12px; min-height: 16px;"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Category Tree</label>
+                <div id="categoryTreeContainer" style="
+                    border: 1px solid #2A2A2A;
+                    border-radius: 6px;
+                    background: rgba(26, 26, 26, 0.5);
+                    padding: 12px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    font-family: monospace;
+                    font-size: 12px;
+                ">
+                    <div style="color: #9A9A9A; text-align: center; padding: 20px;">Loading categories...</div>
+                </div>
+            </div>
+
+            <div id="selectedCategoryDetails" style="background: rgba(42, 42, 42, 0.5); border: 1px solid #2A2A2A; border-radius: 8px; padding: 16px; margin-top: 16px; display: none;">
+                <h3 style="font-size: 14px; font-weight: 600; color: #FFE500; margin: 0 0 12px 0;">Selected Category</h3>
+                <div id="categoryDetailsContent" style="font-size: 12px; color: #E5E5E5; font-family: monospace; line-height: 1.6;"></div>
+            </div>
+
+            <div style="display: flex; justify-content: center; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #2A2A2A;">
+                <button type="button" class="btn btn-secondary" onclick="closeEbayCategoryExplorer()">Close</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function togglePassword(inputId) {
+        const input = document.getElementById(inputId);
+        const eyeIcon = document.getElementById(inputId + '-eye');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        } else {
+            input.type = 'password';
+            eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
+    }
+
+    function openDefaultSettings() {
+        document.getElementById('defaultSettingsModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        loadDefaultSettings();
+    }
+
+    function closeDefaultSettings() {
+        document.getElementById('defaultSettingsModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function closeDefaultSettingsOnBackdrop(event) {
+        if (event.target === document.getElementById('defaultSettingsModal')) {
+            closeDefaultSettings();
+        }
+    }
+
+
+    async function changePassword(event) {
+        event.preventDefault();
+
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const messageEl = document.getElementById('message');
+        const submitBtn = document.getElementById('submitBtn');
+
+        if (newPassword !== confirmPassword) {
+            messageEl.textContent = 'New passwords do not match';
+            messageEl.className = 'message error';
+            messageEl.style.display = 'block';
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            messageEl.textContent = 'Password must be at least 8 characters long';
+            messageEl.className = 'message error';
+            messageEl.style.display = 'block';
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Changing...';
+
+        try {
+            const response = await fetch('/api/account/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                messageEl.style.display = 'none';
+                showNotification('Password changed successfully. Logging out...', 'success');
+                document.getElementById('passwordForm').reset();
+                setTimeout(() => { window.location.href = '/logout'; }, 2000);
+            } else {
+                messageEl.textContent = data.error || 'Failed to change password';
+                messageEl.className = 'message error';
+                messageEl.style.display = 'block';
+            }
+        } catch (error) {
+            messageEl.textContent = 'An error occurred. Please try again.';
+            messageEl.className = 'message error';
+            messageEl.style.display = 'block';
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Change Password';
+        }
+    }
+
+    async function loadPreferences() {
+        try {
+            const response = await fetch('/api/account/preferences');
+            const data = await response.json();
+
+            if (data.success && data.preferences) {
+                const prefs = data.preferences;
+                document.getElementById('timezone').value = prefs.timezone || 'local';
+                document.getElementById('desktopPerPage').value = prefs.desktop_per_page || 24;
+                document.getElementById('mobilePerPage').value = prefs.mobile_per_page || 8;
+                document.getElementById('defaultSort').value = prefs.default_sort || 'sku_asc';
+
+                // Set micro card size
+                const microCardSize = prefs.micro_card_size || 60;
+                document.getElementById('microCardSize').value = microCardSize;
+                document.getElementById('microCardSizeValue').textContent = microCardSize + '%';
+
+                applyEnv(prefs.ebay_environment || 'production');
+            }
+        } catch (error) {
+            console.error('Error loading preferences:', error);
+        }
+    }
+
+    // eBay Credentials Functions
+    async function loadEbayCredentials() {
+        const statusContainer = document.getElementById('ebayCredentialsStatus');
+
+        try {
+            const response = await fetch('/api/account/ebay-credentials');
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.has_credentials) {
+                    const prod = data.production;
+                    const sandbox = data.sandbox;
+
+                    statusContainer.innerHTML = `
+                        <div style="font-size: 12px; line-height: 1.8;">
+                            <div style="font-weight: 600; color: #FFE500; margin-bottom: 8px;">Production:</div>
+                            <div style="color: #9A9A9A; margin-left: 12px;">
+                                App ID: ${prod.app_id || '<span style="color: #FF4A4A;">Not set</span>'}<br>
+                                Cert ID: ${prod.cert_id || '<span style="color: #FF4A4A;">Not set</span>'}<br>
+                                Dev ID: ${prod.dev_id || '<span style="color: #FF4A4A;">Not set</span>'}<br>
+                                Token: ${prod.token || '<span style="color: #FF4A4A;">Not set</span>'}
+                            </div>
+                            <div style="font-weight: 600; color: #4AE5FF; margin: 12px 0 8px 0;">Sandbox:</div>
+                            <div style="color: #9A9A9A; margin-left: 12px;">
+                                ${sandbox.app_id || sandbox.cert_id || sandbox.dev_id || sandbox.token ?
+                                    `App ID: ${sandbox.app_id || 'Not set'}<br>
+                                     Cert ID: ${sandbox.cert_id || 'Not set'}<br>
+                                     Dev ID: ${sandbox.dev_id || 'Not set'}<br>
+                                     Token: ${sandbox.token || 'Not set'}`
+                                    : '<span style="color: #6A6A6A;">No sandbox credentials configured</span>'}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusContainer.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: rgba(255, 74, 74, 0.1); border: 1px solid rgba(255, 74, 74, 0.3); border-radius: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF4A4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <div style="color: #FF4A4A; font-weight: 600; margin-bottom: 4px;">No eBay credentials configured</div>
+                            <div style="color: #9A9A9A; font-size: 12px;">Click "Manage Credentials" to add your eBay API keys</div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading eBay credentials:', error);
+            statusContainer.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #FF4A4A;">
+                    Error loading credentials
+                </div>
+            `;
+        }
+    }
+
+    function openEbayCredentialsModal() {
+        document.getElementById('ebayCredentialsModal').style.display = 'flex';
+        // Clear form
+        document.getElementById('ebayCredentialsForm').reset();
+        document.getElementById('ebayCredentialsMessage').style.display = 'none';
+    }
+
+    function closeEbayCredentialsModal() {
+        document.getElementById('ebayCredentialsModal').style.display = 'none';
+    }
+
+    function closeEbayCredentialsOnBackdrop(event) {
+        if (event.target.id === 'ebayCredentialsModal') {
+            closeEbayCredentialsModal();
+        }
+    }
+
+    async function saveEbayCredentials(event) {
+        event.preventDefault();
+        const btn = document.getElementById('saveEbayCredsBtn');
+        const messageEl = document.getElementById('ebayCredentialsMessage');
+        const originalText = btn.textContent;
+
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        const payload = {
+            production: {
+                app_id: document.getElementById('prodAppId').value.trim(),
+                cert_id: document.getElementById('prodCertId').value.trim(),
+                dev_id: document.getElementById('prodDevId').value.trim(),
+                token: document.getElementById('prodToken').value.trim()
+            },
+            sandbox: {
+                app_id: document.getElementById('sandboxAppId').value.trim(),
+                cert_id: document.getElementById('sandboxCertId').value.trim(),
+                dev_id: document.getElementById('sandboxDevId').value.trim(),
+                token: document.getElementById('sandboxToken').value.trim()
+            }
+        };
+
+        try {
+            const response = await fetch('/api/account/ebay-credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                messageEl.textContent = data.message;
+                messageEl.className = 'success';
+                messageEl.style.display = 'block';
+                messageEl.style.background = 'rgba(74, 229, 75, 0.1)';
+                messageEl.style.border = '1px solid rgba(74, 229, 75, 0.3)';
+                messageEl.style.color = '#4AE54B';
+
+                // Reload credentials display
+                setTimeout(() => {
+                    loadEbayCredentials();
+                    closeEbayCredentialsModal();
+                }, 1500);
+            } else {
+                throw new Error(data.error || 'Failed to save credentials');
+            }
+        } catch (error) {
+            messageEl.textContent = error.message;
+            messageEl.className = 'error';
+            messageEl.style.display = 'block';
+            messageEl.style.background = 'rgba(255, 74, 74, 0.1)';
+            messageEl.style.border = '1px solid rgba(255, 74, 74, 0.3)';
+            messageEl.style.color = '#FF4A4A';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    async function deleteEbayCredentials() {
+        if (!confirm('Are you sure you want to delete all eBay credentials? This action cannot be undone.')) {
+            return;
+        }
+
+        const messageEl = document.getElementById('ebayCredentialsMessage');
+
+        try {
+            const response = await fetch('/api/account/ebay-credentials', {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': window.csrfToken
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                messageEl.textContent = data.message;
+                messageEl.className = 'success';
+                messageEl.style.display = 'block';
+                messageEl.style.background = 'rgba(74, 229, 75, 0.1)';
+                messageEl.style.border = '1px solid rgba(74, 229, 75, 0.3)';
+                messageEl.style.color = '#4AE54B';
+
+                // Clear form and reload
+                document.getElementById('ebayCredentialsForm').reset();
+                setTimeout(() => {
+                    loadEbayCredentials();
+                    closeEbayCredentialsModal();
+                }, 1500);
+            } else {
+                throw new Error(data.error || 'Failed to delete credentials');
+            }
+        } catch (error) {
+            messageEl.textContent = error.message;
+            messageEl.className = 'error';
+            messageEl.style.display = 'block';
+            messageEl.style.background = 'rgba(255, 74, 74, 0.1)';
+            messageEl.style.border = '1px solid rgba(255, 74, 74, 0.3)';
+            messageEl.style.color = '#FF4A4A';
+        }
+    }
+
+    function setMessage(text, type = 'success') {
+        const messageEl = document.getElementById('message');
+        if (!messageEl) return;
+        if (!text) {
+            messageEl.style.display = 'none';
+            return;
+        }
+        messageEl.textContent = text;
+        messageEl.className = `message ${type}`;
+        messageEl.style.display = 'block';
+    }
+
+    function applyEnv(value) {
+        const envHidden = document.getElementById('ebayEnvironment');
+        const sandboxRadio = document.getElementById('ebayEnvSandbox');
+        const productionRadio = document.getElementById('ebayEnvProduction');
+        const normalized = value === 'sandbox' ? 'sandbox' : 'production';
+
+        if (envHidden) envHidden.value = normalized;
+        if (normalized === 'sandbox' && sandboxRadio) {
+            sandboxRadio.checked = true;
+        } else if (normalized === 'production' && productionRadio) {
+            productionRadio.checked = true;
+        }
+    }
+
+    async function savePreferences(event) {
+        event.preventDefault();
+        const btn = document.getElementById('preferencesSubmitBtn');
+        const originalText = btn?.textContent;
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+        }
+
+        const payload = {
+            preferences: {
+                timezone: document.getElementById('timezone').value,
+                desktop_per_page: parseInt(document.getElementById('desktopPerPage').value, 10) || 24,
+                mobile_per_page: parseInt(document.getElementById('mobilePerPage').value, 10) || 8,
+                default_sort: document.getElementById('defaultSort').value,
+                micro_card_size: parseInt(document.getElementById('microCardSize').value, 10) || 60,
+                ebay_environment: document.getElementById('ebayEnvironment').value
+            }
+        };
+
+        try {
+            const response = await fetch('/api/account/preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to save preferences');
+            }
+
+            // Update window.userPreferences with the new values
+            if (window.userPreferences) {
+                window.userPreferences = { ...window.userPreferences, ...payload.preferences };
+            } else {
+                window.userPreferences = payload.preferences;
+            }
+
+            // Dispatch custom event so other pages can react to preference changes
+            window.dispatchEvent(new CustomEvent('preferencesUpdated', {
+                detail: { preferences: payload.preferences }
+            }));
+
+            showNotification?.('Preferences saved successfully.', 'success');
+        } catch (error) {
+            console.error('Failed to save preferences:', error);
+            setMessage(error.message || 'Failed to save preferences', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalText || 'Save Preferences';
+            }
+        }
+    }
+
+    function switchDefaultsTab(tabName) {
+        const tabs = document.querySelectorAll('.settings-tab');
+        tabs.forEach(tab => {
+            tab.classList.remove('active');
+            tab.style.borderBottomColor = 'transparent';
+            tab.style.color = '#9A9A9A';
+        });
+
+        const activeTab = Array.from(tabs).find(tab =>
+            tab.textContent.toLowerCase().includes(tabName)
+        );
+        if (activeTab) {
+            activeTab.classList.add('active');
+            activeTab.style.borderBottomColor = '#FFE500';
+            activeTab.style.color = '#FFE500';
+        }
+
+        const whatnotTab = document.getElementById('whatnotDefaultsTab');
+        const ebayTab = document.getElementById('ebayDefaultsTab');
+
+        if (tabName === 'whatnot') {
+            whatnotTab.style.display = 'block';
+            ebayTab.style.display = 'none';
+        } else if (tabName === 'ebay') {
+            whatnotTab.style.display = 'none';
+            ebayTab.style.display = 'block';
+        }
+    }
+
+    async function loadDefaultSettings() {
+        try {
+            const response = await fetch('/api/admin/defaults');
+            if (!response.ok) {
+                throw new Error(`Failed to load defaults: ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (data.success && data.defaults) {
+                const d = data.defaults;
+
+                // WhatNot defaults
+                if (d.Type) document.getElementById('defaultType').value = d.Type;
+                if (d.Price_BuyItNow) document.getElementById('defaultPriceBuyItNow').value = d.Price_BuyItNow;
+                if (d.Price_Auction) document.getElementById('defaultPriceAuction').value = d.Price_Auction;
+                if (d.Category) document.getElementById('defaultCategory').value = d.Category;
+                if (d['Sub Category']) document.getElementById('defaultSubCategory').value = d['Sub Category'];
+                if (d['Shipping Profile']) document.getElementById('defaultShippingProfile').value = d['Shipping Profile'];
+                if (d.Offerable) document.getElementById('defaultOfferable').value = d.Offerable;
+                if (d.Hazmat) document.getElementById('defaultHazmat').value = d.Hazmat;
+                if (d.Condition) document.getElementById('defaultCondition').value = d.Condition;
+
+                // eBay defaults
+                if (d.EbayListingMode) document.getElementById('defaultEbayListingMode').value = d.EbayListingMode;
+                if (d.EbayCategoryId) document.getElementById('defaultEbayCategoryId').value = d.EbayCategoryId;
+                if (d.EbayCategoryName) document.getElementById('defaultEbayCategoryName').value = d.EbayCategoryName;
+                if (d.EbayFormat) document.getElementById('defaultEbayFormat').value = d.EbayFormat;
+                if (d.EbayDuration) document.getElementById('defaultEbayDuration').value = d.EbayDuration;
+                if (d.EbayImmediatePay) document.getElementById('defaultEbayImmediatePay').value = d.EbayImmediatePay;
+                if (d.EbayLocation) document.getElementById('defaultEbayLocation').value = d.EbayLocation;
+                if (d.EbayPostalCode) document.getElementById('defaultEbayPostalCode').value = d.EbayPostalCode;
+                if (d.EbayReturnsAccepted) document.getElementById('defaultEbayReturnsAccepted').value = d.EbayReturnsAccepted;
+                if (d.EbayReturnProfile) document.getElementById('defaultEbayReturnProfile').value = d.EbayReturnProfile;
+                if (d.EbayPaymentProfile) document.getElementById('defaultEbayPaymentProfile').value = d.EbayPaymentProfile;
+            }
+        } catch (error) {
+            console.error('Failed to load default settings:', error);
+        }
+    }
+
+    async function saveDefaultSettings(event) {
+        event.preventDefault();
+        const btn = document.getElementById('defaultSettingsSubmitBtn');
+        const originalText = btn?.textContent;
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+        }
+
+        const defaults = {
+            Type: document.getElementById('defaultType').value,
+            'Price_BuyItNow': document.getElementById('defaultPriceBuyItNow').value,
+            'Price_Auction': document.getElementById('defaultPriceAuction').value,
+            Category: document.getElementById('defaultCategory').value,
+            'Sub Category': document.getElementById('defaultSubCategory').value,
+            'Shipping Profile': document.getElementById('defaultShippingProfile').value,
+            Offerable: document.getElementById('defaultOfferable').value,
+            Hazmat: document.getElementById('defaultHazmat').value,
+            Condition: document.getElementById('defaultCondition').value,
+            EbayListingMode: document.getElementById('defaultEbayListingMode').value,
+            EbayCategoryId: document.getElementById('defaultEbayCategoryId').value,
+            EbayCategoryName: document.getElementById('defaultEbayCategoryName').value,
+            EbayFormat: document.getElementById('defaultEbayFormat').value,
+            EbayDuration: document.getElementById('defaultEbayDuration').value,
+            EbayImmediatePay: document.getElementById('defaultEbayImmediatePay').value,
+            EbayLocation: document.getElementById('defaultEbayLocation').value,
+            EbayPostalCode: document.getElementById('defaultEbayPostalCode').value,
+            EbayReturnsAccepted: document.getElementById('defaultEbayReturnsAccepted').value,
+            EbayReturnProfile: document.getElementById('defaultEbayReturnProfile').value,
+            EbayPaymentProfile: document.getElementById('defaultEbayPaymentProfile').value,
+        };
+
+        try {
+            const response = await fetch('/api/admin/defaults', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify({ defaults })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to save defaults');
+            }
+
+            showNotification?.('Default settings saved successfully.', 'success');
+            closeDefaultSettings();
+        } catch (error) {
+            console.error('Failed to save default settings:', error);
+            setMessage(error.message || 'Failed to save default settings', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalText || 'Save Default Settings';
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const sandboxRadio = document.getElementById('ebayEnvSandbox');
+        const productionRadio = document.getElementById('ebayEnvProduction');
+        const envHidden = document.getElementById('ebayEnvironment');
+
+        if (sandboxRadio) {
+            sandboxRadio.addEventListener('change', (e) => {
+                if (e.target.checked && envHidden) envHidden.value = 'sandbox';
+            });
+        }
+
+        if (productionRadio) {
+            productionRadio.addEventListener('change', (e) => {
+                if (e.target.checked && envHidden) envHidden.value = 'production';
+            });
+        }
+
+        // Add event listener for micro card size slider
+        const microCardSizeSlider = document.getElementById('microCardSize');
+        const microCardSizeValue = document.getElementById('microCardSizeValue');
+        if (microCardSizeSlider && microCardSizeValue) {
+            microCardSizeSlider.addEventListener('input', (e) => {
+                microCardSizeValue.textContent = e.target.value + '%';
+            });
+        }
+
+        loadPreferences();
+        loadEbayCredentials();
+
+        // Handle escape key to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (document.getElementById('defaultSettingsModal').classList.contains('active')) {
+                    closeDefaultSettings();
+                }
+                if (document.getElementById('userManagementModal').classList.contains('active')) {
+                    closeUserManagement();
+                }
+            }
+        });
+    });
+
+    // ============================================================================
+    // USER MANAGEMENT FUNCTIONS
+    // ============================================================================
+
+    function openUserManagement() {
+        document.getElementById('userManagementModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        loadUsers();
+    }
+
+    function closeUserManagement() {
+        document.getElementById('userManagementModal').classList.remove('active');
+        document.body.style.overflow = '';
+        // Reset form
+        document.getElementById('addUserForm').reset();
+        hideUserManagementMessage();
+    }
+
+    function closeUserManagementOnBackdrop(event) {
+        if (event.target === document.getElementById('userManagementModal')) {
+            closeUserManagement();
+        }
+    }
+
+    function showUserManagementMessage(text, type = 'success') {
+        const messageEl = document.getElementById('userManagementMessage');
+        if (!messageEl) return;
+        messageEl.textContent = text;
+        messageEl.style.display = 'block';
+        if (type === 'success') {
+            messageEl.style.background = 'rgba(34, 197, 94, 0.1)';
+            messageEl.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+            messageEl.style.color = '#22c55e';
+        } else {
+            messageEl.style.background = 'rgba(239, 68, 68, 0.1)';
+            messageEl.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            messageEl.style.color = '#ef4444';
+        }
+    }
+
+    function hideUserManagementMessage() {
+        const messageEl = document.getElementById('userManagementMessage');
+        if (messageEl) messageEl.style.display = 'none';
+    }
+
+    async function loadUsers() {
+        const container = document.getElementById('userListContainer');
+        container.innerHTML = '<div style="color: #9A9A9A; font-size: 13px; text-align: center; padding: 16px;">Loading users...</div>';
+
+        try {
+            const response = await fetch('/api/account/users');
+            const data = await response.json();
+
+            if (data.success && data.users) {
+                const currentUsername = data.currentUsername;
+
+                if (data.users.length === 0) {
+                    container.innerHTML = '<div style="color: #9A9A9A; font-size: 13px; text-align: center; padding: 16px;">No users found</div>';
+                    return;
+                }
+
+                container.innerHTML = data.users.map(username => {
+                    const isCurrentUser = username.toLowerCase() === currentUsername?.toLowerCase();
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(42, 42, 42, 0.3); border: 1px solid #2A2A2A; border-radius: 6px; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${isCurrentUser ? '#FFE500' : '#9A9A9A'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <span style="color: ${isCurrentUser ? '#FFE500' : '#E5E5E5'}; font-size: 14px; font-weight: ${isCurrentUser ? '600' : '400'};">
+                                    ${username}${isCurrentUser ? ' (you)' : ''}
+                                </span>
+                            </div>
+                            ${!isCurrentUser ? `
+                                <button onclick="deleteUser('${username}')" style="background: transparent; border: 1px solid rgba(239, 68, 68, 0.5); color: #ef4444; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.background='transparent'">
+                                    Delete
+                                </button>
+                            ` : `
+                                <span style="color: #4AE5FF; font-size: 11px; padding: 4px 8px; border: 1px solid #4AE5FF; border-radius: 4px;">Active</span>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = '<div style="color: #ef4444; font-size: 13px; text-align: center; padding: 16px;">Failed to load users</div>';
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+            container.innerHTML = '<div style="color: #ef4444; font-size: 13px; text-align: center; padding: 16px;">Error loading users</div>';
+        }
+    }
+
+    async function addUser(event) {
+        event.preventDefault();
+        const btn = document.getElementById('addUserBtn');
+        const originalText = btn?.textContent;
+
+        const username = document.getElementById('newUsername').value.trim();
+        const password = document.getElementById('newUserPassword').value;
+
+        if (!username || !password) {
+            showUserManagementMessage('Username and password are required', 'error');
+            return;
+        }
+
+        if (username.length < 3) {
+            showUserManagementMessage('Username must be at least 3 characters', 'error');
+            return;
+        }
+
+        if (password.length < 8) {
+            showUserManagementMessage('Password must be at least 8 characters', 'error');
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Adding...';
+        }
+
+        try {
+            const response = await fetch('/api/account/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showUserManagementMessage('User created successfully', 'success');
+                document.getElementById('addUserForm').reset();
+                loadUsers(); // Refresh the user list
+            } else {
+                showUserManagementMessage(data.error || 'Failed to create user', 'error');
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            showUserManagementMessage('An error occurred while creating user', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalText || 'Add User';
+            }
+        }
+    }
+
+    async function deleteUser(username) {
+        if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/account/users/${encodeURIComponent(username)}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': window.csrfToken
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showUserManagementMessage('User deleted successfully', 'success');
+                loadUsers(); // Refresh the user list
+            } else {
+                showUserManagementMessage(data.error || 'Failed to delete user', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showUserManagementMessage('An error occurred while deleting user', 'error');
+        }
+    }
+
+    // ============================================================================
+    // EBAY LISTINGS FUNCTIONS
+    // ============================================================================
+
+    async function fetchEbayListings() {
+        // Redirect to eBay listings summary page
+        window.location.href = '/ebay-listings';
+    }
+
+    // ============================================================================
+    // EBAY CATEGORY EXPLORER FUNCTIONS
+    // ============================================================================
+
+    let allCategoriesTree = null;  // Store full category tree
+    let expandedNodes = new Set();  // Track which nodes are expanded
+    let currentFilter = '';  // Current search filter
+
+    function openEbayCategoryExplorer() {
+        const modal = document.getElementById('ebayCategoryExplorerModal');
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        // Set up search input handler
+        const searchInput = document.getElementById('categorySearchInput');
+        searchInput.value = '';
+        currentFilter = '';
+
+        // Add event listener for filtering
+        searchInput.removeEventListener('input', handleCategoryTreeFilter);
+        searchInput.addEventListener('input', handleCategoryTreeFilter);
+
+        // Reset details
+        document.getElementById('selectedCategoryDetails').style.display = 'none';
+
+        // Load full category tree (cached on backend)
+        loadAllCategories();
+    }
+
+    function closeEbayCategoryExplorer() {
+        const modal = document.getElementById('ebayCategoryExplorerModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function closeEbayCategoryExplorerOnBackdrop(event) {
+        if (event.target === document.getElementById('ebayCategoryExplorerModal')) {
+            closeEbayCategoryExplorer();
+        }
+    }
+
+    async function loadAllCategories() {
+        const statusEl = document.getElementById('categorySearchStatus');
+        const treeContainer = document.getElementById('categoryTreeContainer');
+
+        try {
+            statusEl.textContent = 'Loading complete category tree (may take a minute on first load)...';
+            statusEl.style.color = '#4AE5FF';
+            treeContainer.innerHTML = '<div style="color: #9A9A9A; text-align: center; padding: 20px;">Loading complete eBay category tree...<br/><small>First load fetches all categories, subsequent loads use cache</small></div>';
+
+            const response = await fetch('/api/ebay/taxonomy/root');
+            const data = await response.json();
+
+            if (!data.success) {
+                statusEl.textContent = `Error: ${data.error}`;
+                statusEl.style.color = '#FF6B6B';
+                treeContainer.innerHTML = '<div style="color: #FF6B6B; text-align: center; padding: 20px;">Failed to load categories.</div>';
+                return;
+            }
+
+            // Store the tree
+            allCategoriesTree = data.data;
+
+
+            // Render the tree
+            renderCategoryTree();
+
+            const totalCount = countTotalCategories(allCategoriesTree.categoryTreeNode);
+            statusEl.textContent = `Loaded complete tree with ${totalCount} categories. Click ▶ to expand, type to search all levels.`;
+            statusEl.style.color = '#9A9A9A';
+
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            statusEl.textContent = `Error: ${error.message}`;
+            statusEl.style.color = '#FF6B6B';
+            treeContainer.innerHTML = '<div style="color: #FF6B6B; text-align: center; padding: 20px;">An error occurred.</div>';
+        }
+    }
+
+    function countTotalCategories(node) {
+        if (!node) return 0;
+        let count = 1;
+        const children = node.childCategoryTreeNodes || [];
+        children.forEach(child => {
+            count += countTotalCategories(child);
+        });
+        return count;
+    }
+
+    function renderCategoryTree() {
+        const treeContainer = document.getElementById('categoryTreeContainer');
+
+        if (!allCategoriesTree || !allCategoriesTree.categoryTreeNode) {
+            treeContainer.innerHTML = '<div style="color: #9A9A9A; padding: 10px;">No categories found.</div>';
+            return;
+        }
+
+        const html = renderTreeNode(allCategoriesTree.categoryTreeNode, 0, true);
+        treeContainer.innerHTML = html || '<div style="color: #9A9A9A; padding: 10px;">No categories.</div>';
+    }
+
+    function nodeMatchesFilter(node, filter) {
+        if (!filter) return true;
+
+        const nodeId = node.categoryId || node.categoryTreeNodeId;
+        const nodeName = node.categoryName || node.categoryTreeNodeName || '';
+
+        // Case-insensitive search in name or ID
+        return nodeName.toLowerCase().includes(filter.toLowerCase()) ||
+               nodeId.toString().includes(filter);
+    }
+
+    function hasMatchingDescendant(node, filter) {
+        if (!filter) return true;
+        if (nodeMatchesFilter(node, filter)) return true;
+
+        const children = node.childCategoryTreeNodes || [];
+        return children.some(child => hasMatchingDescendant(child, filter));
+    }
+
+    function renderTreeNode(node, level, isRoot = false) {
+        if (!node) return '';
+
+        const nodeId = node.categoryId || node.categoryTreeNodeId;
+        const nodeName = node.categoryName || node.categoryTreeNodeName || 'Unknown';
+
+        // Skip nodes with invalid IDs
+        if (!nodeId || nodeId === 'null' || nodeId === 'undefined') {
+            console.warn('Skipping node with invalid ID:', node);
+            return '';
+        }
+
+        const children = node.childCategoryTreeNodes || [];
+        const hasChildren = children.length > 0;
+
+        // Filter logic: show node if it matches OR if any descendant matches
+        if (currentFilter && !isRoot) {
+            if (!hasMatchingDescendant(node, currentFilter)) {
+                return '';  // Skip this node if neither it nor its descendants match
+            }
+        }
+
+        let html = '';
+
+        // Don't render the root "All Categories" node, just its children
+        if (isRoot) {
+            children.forEach(child => {
+                html += renderTreeNode(child, 0, false);
+            });
+            return html;
+        }
+
+        const isExpanded = expandedNodes.has(nodeId);
+        const isLoading = node.loading;
+        const indent = level * 20;
+
+        // Auto-expand if filtering and has matching descendants
+        const shouldAutoExpand = currentFilter && hasChildren && hasMatchingDescendant(node, currentFilter);
+
+        // Node container
+        html += `<div class="tree-node" style="margin-left: ${indent}px; margin-bottom: 4px;">`;
+
+        // Expand/collapse button + category name
+        const escapedName = nodeName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += `<div style="display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: background 0.2s;"
+                      onmouseover="this.style.background='rgba(255, 229, 0, 0.1)'"
+                      onmouseout="this.style.background='transparent'"
+                      onclick="handleCategoryClick('${nodeId}', '${escapedName}', ${hasChildren})">`;
+
+        if (hasChildren) {
+            // Expand/collapse icon
+            if (isLoading) {
+                html += `<span style="color: #4AE5FF; margin-right: 8px; font-size: 10px;">⟳</span>`;
+            } else {
+                const icon = (isExpanded || shouldAutoExpand) ? '▼' : '▶';
+                html += `<span style="color: #FFE500; margin-right: 8px; font-size: 10px;">${icon}</span>`;
+            }
+        } else {
+            // Leaf node spacer
+            html += `<span style="margin-right: 18px;"></span>`;
+        }
+
+        // Category name with ID - highlight if matches filter
+        const nameColor = hasChildren ? '#E5E5E5' : '#9A9A9A';
+        const isDirectMatch = currentFilter && nodeMatchesFilter(node, currentFilter);
+        const nameStyle = isDirectMatch ? 'background: rgba(255, 229, 0, 0.2); padding: 2px 4px; border-radius: 3px;' : '';
+        html += `<span style="color: ${nameColor}; ${nameStyle}">[${nodeId}] ${nodeName}</span>`;
+
+        html += `</div>`;
+
+        // Render children if expanded (manual or auto-expand from filter)
+        if ((isExpanded || shouldAutoExpand) && children.length > 0) {
+            html += `<div class="tree-children">`;
+            children.forEach(child => {
+                html += renderTreeNode(child, level + 1, false);
+            });
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+
+        return html;
+    }
+
+    function handleCategoryClick(categoryId, categoryName, hasChildren) {
+        // Validate category ID
+        if (!categoryId || categoryId === 'null' || categoryId === 'undefined' || categoryId === '0') {
+            console.error('Invalid category ID:', categoryId);
+            return;
+        }
+
+        if (hasChildren) {
+            // Toggle expansion - all data is already loaded
+            if (expandedNodes.has(categoryId)) {
+                expandedNodes.delete(categoryId);
+            } else {
+                expandedNodes.add(categoryId);
+            }
+            renderCategoryTree();
+        }
+
+        // Show details for the selected category
+        showCategoryDetails(categoryId, categoryName);
+    }
+
+    function findNodeById(node, targetId) {
+        if (!node) return null;
+        if (node.categoryId === targetId) return node;
+
+        const children = node.childCategoryTreeNodes || [];
+        for (const child of children) {
+            const found = findNodeById(child, targetId);
+            if (found) return found;
+        }
+
+        return null;
+    }
+
+    function showCategoryDetails(categoryId, categoryName) {
+        const detailsContainer = document.getElementById('selectedCategoryDetails');
+        const detailsContent = document.getElementById('categoryDetailsContent');
+
+        let html = `<div style="margin-bottom: 8px;"><strong style="color: #FFE500;">Category ID:</strong> ${categoryId}</div>`;
+        html += `<div style="margin-bottom: 8px;"><strong style="color: #FFE500;">Category Name:</strong> ${categoryName}</div>`;
+
+        // Find the node in the tree
+        const node = findNodeById(allCategoriesTree.categoryTreeNode, categoryId);
+        if (node) {
+            const children = node.childCategoryTreeNodes || [];
+            html += `<div style="margin-bottom: 8px;"><strong style="color: #FFE500;">Subcategories:</strong> ${children.length}</div>`;
+            html += `<div style="margin-bottom: 8px;"><strong style="color: #FFE500;">Type:</strong> ${children.length > 0 ? 'Parent Category' : 'Leaf Category'}</div>`;
+        }
+
+        detailsContent.innerHTML = html;
+        detailsContainer.style.display = 'block';
+    }
+
+    function countMatchingCategories(node, filter) {
+        if (!node || !filter) return 0;
+
+        let count = 0;
+        if (nodeMatchesFilter(node, filter)) {
+            count = 1;
+        }
+
+        const children = node.childCategoryTreeNodes || [];
+        children.forEach(child => {
+            count += countMatchingCategories(child, filter);
+        });
+
+        return count;
+    }
+
+    function handleCategoryTreeFilter(event) {
+        const query = event.target.value.trim();
+        const statusEl = document.getElementById('categorySearchStatus');
+        currentFilter = query;
+
+        if (!allCategoriesTree) return;
+
+        if (query.length === 0) {
+            // No filter, show collapsed tree
+            renderCategoryTree();
+            const totalCount = countTotalCategories(allCategoriesTree.categoryTreeNode);
+            statusEl.textContent = `Showing complete tree with ${totalCount.toLocaleString()} categories. Click ▶ to expand, type to search all levels.`;
+            statusEl.style.color = '#9A9A9A';
+        } else {
+            // Filter - searches across all levels and auto-expands matches
+            renderCategoryTree();
+            const matchCount = countMatchingCategories(allCategoriesTree.categoryTreeNode, query);
+            if (matchCount > 0) {
+                statusEl.textContent = `Found ${matchCount.toLocaleString()} matching categories for "${query}" (case-insensitive). Matching categories are highlighted.`;
+                statusEl.style.color = '#4AE5FF';
+            } else {
+                statusEl.textContent = `No categories found matching "${query}". Try a different search term.`;
+                statusEl.style.color = '#FF6B6B';
+            }
+        }
+    }
+</script>
+{% endblock %}

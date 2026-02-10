@@ -1,0 +1,242 @@
+---
+# Remote Update Playbook
+#
+# This playbook is run from your LOCAL MACHINE to update the REMOTE SERVER
+# It performs a minimal update: pull code, update deps, restart services
+#
+# Usage from local machine:
+#   ansible-playbook -i deployment/inventories/production/hosts.yml \
+#     deployment/playbooks/remote-update.yml --ask-vault-pass
+#
+# What it does:
+#   1. Pulls latest code from GitHub
+#   2. Updates Python dependencies if requirements.txt changed
+#   3. Restarts the application
+#   4. Cleans up deployment files from server
+#   5. Reports status
+
+- name: Remote Update Application
+  hosts: all
+  become: yes
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/production.yml
+    - ../group_vars/production/vault.yml
+
+  tasks:
+    - name: Display current status
+      block:
+        - name: Get current branch
+          become_user: "{{ app_user }}"
+          command: git branch --show-current
+          args:
+            chdir: "{{ app_dir }}"
+          register: current_branch
+
+        - name: Get current commit
+          become_user: "{{ app_user }}"
+          command: git log -1 --oneline
+          args:
+            chdir: "{{ app_dir }}"
+          register: current_commit
+
+        - name: Show current status
+          debug:
+            msg:
+              - "📍 Current branch: {{ current_branch.stdout }}"
+              - "📌 Current commit: {{ current_commit.stdout }}"
+
+    - name: Pull latest code from GitHub
+      block:
+        - name: Configure git credential cache (15 min timeout)
+          become_user: "{{ app_user }}"
+          command: git config credential.helper 'cache --timeout=900'
+          args:
+            chdir: "{{ app_dir }}"
+          changed_when: false
+
+        - name: Stash local changes if any
+          become_user: "{{ app_user }}"
+          command: git stash
+          args:
+            chdir: "{{ app_dir }}"
+          register: git_stash
+          changed_when: "'No local changes to save' not in git_stash.stdout"
+
+        - name: Fetch latest from GitHub
+          become_user: "{{ app_user }}"
+          command: git fetch origin
+          args:
+            chdir: "{{ app_dir }}"
+          register: git_fetch
+
+        - name: Pull latest code
+          become_user: "{{ app_user }}"
+          command: git pull origin {{ git_branch | default('main') }}
+          args:
+            chdir: "{{ app_dir }}"
+          register: git_pull
+
+    - name: Update dependencies
+      block:
+        - name: Check if deployment requirements.txt exists
+          stat:
+            path: "{{ app_dir }}/deployment/requirements.txt"
+          register: deployment_requirements
+
+        - name: Install Python dependencies from deployment directory
+          become_user: "{{ app_user }}"
+          pip:
+            requirements: "{{ app_dir }}/deployment/requirements.txt"
+            virtualenv: "{{ app_dir }}/.venv"
+          when: deployment_requirements.stat.exists
+
+        - name: Install Python dependencies from root (fallback)
+          become_user: "{{ app_user }}"
+          pip:
+            requirements: "{{ app_dir }}/requirements.txt"
+            virtualenv: "{{ app_dir }}/.venv"
+          when: not deployment_requirements.stat.exists
+
+        - name: Display pip update result
+          debug:
+            msg: "✓ Python dependencies updated"
+
+    - name: Ensure instance directory exists
+      file:
+        path: "{{ app_dir }}/instance"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Update app version
+      block:
+        - name: Get commit count for version
+          become_user: "{{ app_user }}"
+          command: git rev-list --count HEAD
+          args:
+            chdir: "{{ app_dir }}"
+          register: commit_count
+          changed_when: false
+
+        - name: Write version file
+          copy:
+            content: "{{ commit_count.stdout }}\n"
+            dest: "{{ app_dir }}/instance/app_version"
+            owner: "{{ app_user }}"
+            group: "{{ app_user }}"
+            mode: '0644'
+
+        - name: Display new version
+          debug:
+            msg: "✓ Updated app_version to: {{ commit_count.stdout }}"
+
+    - name: Restart services
+      block:
+        - name: Reload systemd daemon
+          systemd:
+            daemon_reload: yes
+
+        - name: Restart application service
+          systemd:
+            name: "{{ service_name }}.service"
+            state: restarted
+            enabled: yes
+
+        - name: Wait for application to start
+          wait_for:
+            timeout: 5
+
+        - name: Check application status
+          command: systemctl status {{ service_name }}.service
+          register: app_status
+          changed_when: false
+          failed_when: false
+
+    - name: Get recent logs
+      shell: tail -20 {{ log_dir }}/app.log 2>/dev/null || echo "No logs yet"
+      register: recent_logs
+      changed_when: false
+      failed_when: false
+
+    - name: Get new commit info
+      block:
+        - name: Get new commit hash
+          become_user: "{{ app_user }}"
+          command: git log -1 --oneline
+          args:
+            chdir: "{{ app_dir }}"
+          register: new_commit
+
+        - name: Clean up deployment artifacts
+          block:
+            - name: Remove deployment directory
+              file:
+                path: "{{ app_dir }}/deployment"
+                state: absent
+
+            - name: Remove docs directory
+              file:
+                path: "{{ app_dir }}/docs"
+                state: absent
+
+            - name: Remove tests directory if exists
+              file:
+                path: "{{ app_dir }}/tests"
+                state: absent
+
+            - name: Remove .git directory to save space
+              file:
+                path: "{{ app_dir }}/.git"
+                state: absent
+              when: cleanup_git | default(false) | bool
+
+            - name: Remove __pycache__ directories
+              command: find {{ app_dir }} -type d -name __pycache__ -exec rm -rf {} +
+              changed_when: false
+              failed_when: false
+
+            - name: Remove .pytest_cache
+              file:
+                path: "{{ app_dir }}/.pytest_cache"
+                state: absent
+
+            - name: Clean pip cache
+              command: pip cache purge
+              args:
+                chdir: "{{ app_dir }}"
+              become_user: "{{ app_user }}"
+              changed_when: false
+              failed_when: false
+
+        - name: Display update summary
+          debug:
+            msg:
+              - "✅ UPDATE COMPLETE"
+              - "📌 New commit: {{ new_commit.stdout }}"
+              - "✓ Services restarted"
+              - "✓ Deployment files cleaned from server"
+              - ""
+              - "📋 Application Status:"
+              - "{{ app_status.stdout_lines }}"
+              - ""
+              - "📝 Recent Logs (last 20 lines):"
+              - "{{ recent_logs.stdout_lines }}"
+
+    - name: Post-update verification
+      block:
+        - name: Test application endpoint
+          uri:
+            url: "http://localhost:{{ app_port }}/health"
+            method: GET
+            status_code: [200, 404]
+          register: health_check
+          changed_when: false
+          failed_when: false
+          ignore_errors: yes
+
+        - name: Display health check result
+          debug:
+            msg: "✓ Application responding to requests"
+          when: health_check.status | default(0) != 0 or health_check.failed

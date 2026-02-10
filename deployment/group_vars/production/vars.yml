@@ -1,0 +1,56 @@
+---
+# Variables applicable to all environments
+# NOTE: Sensitive values are stored in vault.yml (encrypted)
+
+# Application settings
+app_name: app_item_listing_tool
+service_name: app_item_listing_tool
+app_user: ubuntu
+app_dir: "/home/{{ app_user }}/{{ app_name }}"
+python_version: "3.10"
+
+# Git repository - MOVED TO VAULT (contains your GitHub username)
+git_repo: "{{ vault_git_repo }}"
+git_branch: main
+
+# Gunicorn settings
+gunicorn_workers: 4
+gunicorn_bind: "127.0.0.1:8000"
+gunicorn_timeout: 120
+
+# Log settings
+log_dir: /var/log/app_item_listing_tool
+log_retention_days: 20
+log_max_size: "100M"
+
+# Backup cleanup settings
+backup_cleanup_hour: "3"
+backup_cleanup_minute: "0"
+backup_retention_days: 30
+
+# AWS Configuration - MOVED TO VAULT (infrastructure details)
+aws_access_key_id: "{{ vault_aws_access_key_id }}"
+aws_secret_access_key: "{{ vault_aws_secret_access_key }}"
+aws_region: "{{ vault_aws_region }}"
+s3_bucket_name: "{{ vault_s3_bucket_name }}"
+s3_key_prefix: "{{ vault_s3_key_prefix | default('') }}"
+
+# Application credentials - MOVED TO VAULT
+app_username: "{{ vault_app_username }}"
+app_password: "{{ vault_app_password }}"
+
+# System packages
+system_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - python3-dev
+  - build-essential
+  - nginx
+  - git
+  - curl
+  - supervisor
+  - libjpeg-dev
+  - zlib1g-dev
+  - libpng-dev
+  - net-tools

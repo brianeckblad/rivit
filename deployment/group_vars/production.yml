@@ -1,0 +1,15 @@
+---
+# Production-specific variables
+
+flask_env: production
+flask_debug: false
+
+# Server configuration
+server_name: app.badartink.com
+
+# Production log level
+log_level: info
+
+# Gunicorn settings for production
+gunicorn_workers: 4
+gunicorn_timeout: 120

@@ -1,0 +1,3599 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+
+        /* Hide labels on mobile */
+        @media (max-width: 768px) {
+            .nav-label {
+                display: none;
+            }
+
+            /* Optimize working inventory table for mobile */
+            #workingInventoryTable th,
+            #workingInventoryTable td {
+                padding: 10px 8px !important;
+                font-size: 12px !important;
+            }
+
+            #workingInventoryTable th {
+                font-size: 11px !important;
+            }
+
+            /* Hide Quantity column on mobile */
+            #workingInventoryTable th:nth-child(4),
+            #workingInventoryTable td:nth-child(4) {
+                display: none;
+            }
+
+            /* Hide the table header border line on mobile */
+            #workingInventoryTable thead tr::after {
+                display: none;
+            }
+
+            /* Change Quantity header text to Qty */
+            #workingInventoryTable th[data-column="Quantity"] {
+                font-size: 0 !important;
+                letter-spacing: 0 !important;
+            }
+
+            #workingInventoryTable th[data-column="Quantity"]::before {
+                content: "QTY";
+                font-size: 11px;
+                letter-spacing: 0.5px;
+            }
+
+            /* Truncate title text on mobile */
+            #workingInventoryTable td:nth-child(2) {
+                max-width: 150px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #workingInventoryTable tr.expanded td:nth-child(2) {
+                white-space: normal;
+                word-wrap: break-word;
+                color: #FFE500 !important;
+            }
+        }
+
+        .main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 16px 40px 16px;
+        }
+
+        .page-header {
+            margin-bottom: 48px;
+        }
+
+        /* Make SKU, Quantity, Type, Price and Condition columns minimal width */
+        #workingInventoryTable th:nth-child(2),
+        #workingInventoryTable td:nth-child(2),
+        #workingInventoryTable th:nth-child(4),
+        #workingInventoryTable td:nth-child(4),
+        #workingInventoryTable th:nth-child(5),
+        #workingInventoryTable td:nth-child(5),
+        #workingInventoryTable th:nth-child(6),
+        #workingInventoryTable td:nth-child(6),
+        #workingInventoryTable th:nth-child(7),
+        #workingInventoryTable td:nth-child(7) {
+            width: 1%;
+            white-space: nowrap;
+        }
+
+        .page-header h1 {
+            font-size: 48px;
+            font-weight: 300;
+            color: #FFFFFF;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+
+        .page-header p {
+            font-size: 18px;
+            color: #9A9A9A;
+            font-weight: 300;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        .comics-count {
+            color: #FFE500;
+            font-weight: 600;
+        }
+
+        .comics-value {
+            color: #FFE500;
+            font-weight: 600;
+        }
+
+        .comics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .comic-card {
+            background: #1A1A1A;
+            border-radius: 0px;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .comic-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            border: none;
+        }
+
+        .comic-image {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            background: #2A2A2A;
+            flex-shrink: 0;
+        }
+
+        .lazy-image {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .lazy-image[src] {
+            opacity: 1;
+        }
+
+        .comic-info {
+            padding: 8px;
+        }
+
+        .comic-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+        }
+
+        .comic-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 14px;
+            color: #9A9A9A;
+        }
+
+        .comic-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Status indicator lights for eBay and WhatNot */
+        .status-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-left: auto;
+            padding-left: 8px;
+        }
+
+        .status-indicator-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-light {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 4px currentColor;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .status-light.ebay {
+            color: #00BFFF; /* Blue for eBay */
+        }
+
+        .status-light.whatnot {
+            color: #FF00FF; /* Magenta for WhatNot */
+        }
+
+        .status-light.inactive {
+            color: #3A3A3A; /* Greyed out */
+            box-shadow: none;
+            opacity: 0.5;
+        }
+
+        .status-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            transition: all 0.2s;
+        }
+
+        .status-label.ebay {
+            color: #00BFFF;
+        }
+
+        .status-label.whatnot {
+            color: #FF00FF;
+        }
+
+        .status-label.inactive {
+            color: #4A4A4A; /* Greyed out text */
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: #6B6B6B;
+            font-size: 18px;
+        }
+
+        /* Skeleton loading styles */
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .skeleton-card {
+            background: #1A1A1A;
+            border-radius: 0px;
+            overflow: hidden;
+            border: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .skeleton-image {
+            width: 100%;
+            height: 280px;
+            background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            flex-shrink: 0;
+        }
+
+        .skeleton-info {
+            padding: 8px;
+        }
+
+        .skeleton-title {
+            height: 24px;
+            background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            width: 80%;
+        }
+
+        .skeleton-meta {
+            display: flex;
+            gap: 16px;
+        }
+
+        .skeleton-meta-item {
+            height: 16px;
+            background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+            width: 60px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-state-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 24px;
+            opacity: 0.6;
+        }
+
+        .empty-state-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .empty-state h2 {
+            font-size: 32px;
+            font-weight: 300;
+            color: #6B6B6B;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 18px;
+            color: #6B6B6B;
+            margin-bottom: 32px;
+        }
+
+        .empty-state a {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #FFE500;
+            color: #1A1A1A;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .empty-state a:hover {
+            background: #F5DB00;
+            transform: translateY(-2px);
+        }
+
+        .load-more-btn {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 32px auto;
+            padding: 16px 32px;
+            background: #FFE500;
+            color: #1A1A1A;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(255, 229, 0, 0.3);
+        }
+
+        .load-more-btn:hover {
+            background: #F5DB00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 229, 0, 0.4);
+        }
+
+        .load-more-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px 20px;
+            }
+
+            .header-content {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+
+            .logo {
+                font-size: 16px;
+            }
+
+            .nav {
+                gap: 24px;
+            }
+
+            .nav a {
+                font-size: 14px;
+            }
+
+            .main {
+                padding: 20px 12px;
+            }
+
+            .page-header {
+                margin-bottom: 24px;
+            }
+
+            .page-header h1 {
+                font-size: 28px;
+            }
+
+            .page-header p {
+                font-size: 14px;
+            }
+
+            /* Left-align search box on mobile */
+            .page-header > div:first-child {
+                justify-content: flex-start !important;
+            }
+
+            .page-header input[type="text"] {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            /* Center comic cards grid */
+            #comicsContainer {
+                display: flex;
+                justify-content: center;
+            }
+
+            .comics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                width: 100%;
+                max-width: 100%;
+                margin: 0 auto;
+            }
+
+            .comic-card {
+                border-radius: 8px;
+            }
+
+            .comic-image {
+                height: 200px;
+            }
+
+            .comic-info {
+                padding: 12px;
+            }
+
+            /* Center load more buttons */
+            #loadMoreContainer {
+                display: flex;
+                justify-content: center;
+            }
+
+            .load-more-btn {
+                width: auto !important;
+                min-width: 200px;
+            }
+
+            .comic-title {
+                font-size: 14px;
+                margin-bottom: 6px;
+                -webkit-line-clamp: 2;
+            }
+
+            .comic-meta {
+                font-size: 11px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .empty-state {
+                padding: 60px 20px;
+            }
+
+            .empty-state h2 {
+                font-size: 24px;
+            }
+
+            .empty-state p {
+                font-size: 14px;
+            }
+
+            .load-more-btn {
+                max-width: 100%;
+                margin: 20px 16px;
+                font-size: 14px;
+                padding: 14px 24px;
+            }
+
+            /* Make footer buttons icon-only on mobile */
+            .grading-btn span {
+                display: none;
+            }
+
+            .add-new-btn {
+                padding: 12px !important;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            .add-new-btn:hover {
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .add-new-text {
+                display: none;
+            }
+
+            /* Change Condition header to Cond on mobile */
+            .condition-header {
+                visibility: hidden;
+                position: relative;
+            }
+
+            .condition-header::before {
+                content: "COND";
+                visibility: visible;
+                position: absolute;
+                left: 14px;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+            }
+
+            /* Mobile responsive styles */
+        .bulk-ebay-status {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .bulk-ebay-status.loading {
+            display: block;
+            background: rgba(255, 229, 0, 0.1);
+            border: 1px solid rgba(255, 229, 0, 0.3);
+            color: #FFE500;
+        }
+
+        .bulk-ebay-status.success {
+            display: block;
+            background: rgba(79, 243, 174, 0.08);
+            border: 1px solid rgba(79, 243, 174, 0.25);
+            color: #4FF3AE;
+        }
+
+        .bulk-ebay-status.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #EF4444;
+        }
+
+{% endblock %}
+
+{% block content %}
+    <main id="main-content" class="main">
+        <div class="page-header">
+            <!-- Stats Boxes -->
+            <div style="display: flex; gap: 24px; margin-bottom: 32px;">
+                <div style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; padding: 16px; flex: 1;">
+                    <div style="color: #9A9A9A; font-size: 13px; margin-bottom: 4px;">Total Comics</div>
+                    <div style="display: flex; align-items: baseline; gap: 12px;">
+                        <div id="comicsCount" style="color: #FFE500; font-size: 24px; font-weight: 600;">0</div>
+                        <div id="giveawayCount" style="color: #9A9A9A; font-size: 14px; font-weight: 400;">(0 Giveaways)</div>
+                    </div>
+                </div>
+                <div style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; padding: 16px; flex: 1;">
+                    <div style="color: #9A9A9A; font-size: 13px; margin-bottom: 4px;">Total Value</div>
+                    <div id="comicsValue" style="color: #FFE500; font-size: 24px; font-weight: 600;">$0.00</div>
+                </div>
+            </div>
+
+            <!-- Listing Type Filter Tabs with Search on the right -->
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #2A2A2A;">
+                <div style="display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex: 1;">
+                    <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid #FFE500; color: #FFE500; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                        All Comics
+                    </button>
+                    <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                        Not Listed
+                    </button>
+                    <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                        eBay
+                    </button>
+                    <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                        WhatNot
+                    </button>
+                    <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                        WN Givys
+                    </button>
+                </div>
+                <!-- Search box on the right -->
+                <div style="display: flex; align-items: center; flex-shrink: 0; padding-bottom: 8px;">
+                    <label for="searchBox" class="sr-only">Search comics</label>
+                    <input type="text" id="searchBox" placeholder="🔍 Search..." style="width: 220px; padding: 10px 14px; border: 1px solid #3A3A3A; border-radius: 8px; font-size: 14px; background: #0A0A0A; color: #E5E5E5; transition: border-color 0.2s;" onfocus="this.style.borderColor='#FFE500'" onblur="this.style.borderColor='#3A3A3A'">
+                </div>
+            </div>
+
+            <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
+            <div id="notListedSubFilters" style="display: none; margin-bottom: 24px; padding: 12px; background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 8px;">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <span style="color: #9A9A9A; font-size: 13px; font-weight: 600; margin-right: 8px;">SHOW:</span>
+                    <button id="subfilterBoth" class="subfilter-btn active" onclick="setNotListedSubFilter('both')" style="padding: 8px 16px; background: #FFE500; color: #1A1A1A; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        Missing from Both Platforms
+                    </button>
+                    <button id="subfilterEbayOnly" class="subfilter-btn" onclick="setNotListedSubFilter('ebay')" style="padding: 8px 16px; background: transparent; color: #FFE500; border: 2px solid #FFE500; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        Missing eBay Only
+                    </button>
+                    <button id="subfilterWhatnotOnly" class="subfilter-btn" onclick="setNotListedSubFilter('whatnot')" style="padding: 8px 16px; background: transparent; color: #FFE500; border: 2px solid #FFE500; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        Missing WhatNot Only
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bulk Management Buttons (shown for WhatNot and eBay tabs) -->
+            <div id="bulkManagementButtons" style="display: none; margin-bottom: 24px; padding: 12px; background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 8px;">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <span style="color: #9A9A9A; font-size: 13px; font-weight: 600; margin-right: 8px;">BULK ACTIONS:</span>
+                    <button id="bulkWhatNotBtn" onclick="openBulkWhatNotModal()" style="display: none; padding: 8px 16px; background: #FFE500; color: #1A1A1A; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        WhatNot Management
+                    </button>
+                    <button id="bulkEbayManagementBtn" onclick="openBulkEbayModal()" style="display: none; padding: 8px 16px; background: #FFE500; color: #1A1A1A; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <circle cx="9" cy="21" r="1"/>
+                            <circle cx="20" cy="21" r="1"/>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
+                        eBay Management
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="comicsContainer">
+            <div class="skeleton-grid">
+                <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-info"><div class="skeleton-title"></div><div class="skeleton-meta"><div class="skeleton-meta-item"></div><div class="skeleton-meta-item"></div></div></div></div>
+                <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-info"><div class="skeleton-title"></div><div class="skeleton-meta"><div class="skeleton-meta-item"></div><div class="skeleton-meta-item"></div></div></div></div>
+                <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-info"><div class="skeleton-title"></div><div class="skeleton-meta"><div class="skeleton-meta-item"></div><div class="skeleton-meta-item"></div></div></div></div>
+                <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-info"><div class="skeleton-title"></div><div class="skeleton-meta"><div class="skeleton-meta-item"></div><div class="skeleton-meta-item"></div></div></div></div>
+                <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-info"><div class="skeleton-title"></div><div class="skeleton-meta"><div class="skeleton-meta-item"></div><div class="skeleton-meta-item"></div></div></div></div>
+                <div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-info"><div class="skeleton-title"></div><div class="skeleton-meta"><div class="skeleton-meta-item"></div><div class="skeleton-meta-item"></div></div></div></div>
+            </div>
+        </div>
+
+        <!-- Load More button container (moved here from inside comicsContainer) -->
+        <div id="loadMoreContainer" style="margin-top: 32px; margin-bottom: 120px;"></div>
+    </main>
+
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: #1A1A1A; border-top: 1px solid #2A2A2A; padding: 16px 40px; z-index: 100;">
+        <div style="max-width: 1600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <!-- Normal buttons (shown when no items selected) -->
+            <div id="normalButtons" style="display: flex; gap: 12px; width: 100%; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button type="button" onclick="window.location.href='/ebay-listings'" style="background: transparent; border: 2px solid #3A3A3A; color: #FFE500; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px;" onmouseover="this.style.borderColor='#FFE500'" onmouseout="this.style.borderColor='#3A3A3A'" title="View eBay listings">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <span>eBay Listings</span>
+                    </button>
+                </div>
+                <a href="/add?jump=bottom" class="add-new-btn" style="background: #FFE500; color: #1A1A1A; border: none; box-shadow: 0 4px 16px rgba(255, 229, 0, 0.3); padding: 12px 40px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 10px;" onmouseover="this.style.background='#F5DB00'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(255, 229, 0, 0.4)'" onmouseout="this.style.background='#FFE500'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(255, 229, 0, 0.3)'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span class="add-new-text">Add New</span>
+                </a>
+            </div>
+
+            <!-- Delete mode buttons (shown when items are selected) -->
+            <div id="deleteButtons" style="display: none; gap: 16px; width: 100%; flex-direction: row; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <span id="selectedCount" style="color: #FFE500; font-weight: 600; font-size: 15px;">0 selected</span>
+                    <button id="bulkEditBtn" onclick="bulkEditSelected()" style="background: transparent; color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" onmouseover="this.style.background='rgba(74, 229, 255, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='transparent'; this.style.transform='translateY(0)'">Bulk Edit</button>
+                    <button id="bulkEbayListBtn" onclick="handleBulkEbayAction('list')" style="display: none; background: transparent; color: #FFE500; border: 2px solid #FFE500; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 229, 0, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='transparent'; this.style.transform='translateY(0)'">List on eBay</button>
+                    <button id="bulkEbayUpdateBtn" onclick="handleBulkEbayAction('update')" style="display: none; background: transparent; color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(74, 229, 255, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='transparent'; this.style.transform='translateY(0)'">Update eBay</button>
+                    <button id="bulkEbayEndBtn" onclick="handleBulkEbayAction('end')" style="display: none; background: transparent; color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='transparent'; this.style.transform='translateY(0)'">End eBay</button>
+                    <button id="bulkEbayUnlinkBtn" onclick="handleBulkEbayAction('unlink')" style="display: none; background: transparent; color: #FFA500; border: 2px solid rgba(255, 165, 0, 0.3); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#FFA500'; this.style.background='rgba(255, 165, 0, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 165, 0, 0.3)'; this.style.background='transparent'; this.style.transform='translateY(0)'">Unlink eBay</button>
+                    <button id="exportSelectedBtn" onclick="exportSelected()" style="background: transparent; color: #FFE500; border: 2px solid #3A3A3A; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" onmouseover="this.style.borderColor='#FFE500'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#3A3A3A'; this.style.transform='translateY(0)'">Export</button>
+                    <button id="deleteSelectedBtn" onclick="deleteSelected()" style="background: transparent; color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='transparent'; this.style.transform='translateY(0)'">Delete</button>
+                </div>
+                <button id="cancelSelectionBtn" onclick="cancelSelection()" style="background: transparent; color: #9A9A9A; border: 2px solid #3A3A3A; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#9A9A9A'; this.style.color='#E5E5E5'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#3A3A3A'; this.style.color='#9A9A9A'; this.style.transform='translateY(0)'">Exit</button>
+            </div>
+            <div id="bulkEbayStatus" class="bulk-ebay-status" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Grading Scale Modal -->
+    <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+        <div class="grading-modal-content" onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">CGC Standard Grading Scale</h2>
+                <button onclick="closeGradingModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <!-- Grading items will be added via JavaScript to keep file size smaller -->
+                <div id="gradingScaleContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Help Modal -->
+    <div id="keyboardShortcutsModal" onclick="closeShortcutsModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 700px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">⌨️ Keyboard Shortcuts</h2>
+                <button onclick="closeShortcutsModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <div style="display: grid; gap: 16px;">
+                    <div style="border-bottom: 1px solid #2A2A2A; padding-bottom: 12px;">
+                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">General</h3>
+                        <div style="display: grid; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #E5E5E5;">Show this help</span>
+                                <kbd style="background: #2A2A2A; color: #FFE500; padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid #3A3A3A;">?</kbd>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #E5E5E5;">Close modal/popup</span>
+                                <kbd style="background: #2A2A2A; color: #FFE500; padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid #3A3A3A;">ESC</kbd>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="border-bottom: 1px solid #2A2A2A; padding-bottom: 12px;">
+                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">Edit Mode</h3>
+                        <div style="display: grid; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #E5E5E5;">Exit edit mode</span>
+                                <kbd style="background: #2A2A2A; color: #FFE500; padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid #3A3A3A;">ESC</kbd>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #9A9A9A; font-size: 13px; font-style: italic;">Warns if you have unsaved changes</span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="border-bottom: 1px solid #2A2A2A; padding-bottom: 12px;">
+                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">List View</h3>
+                        <div style="display: grid; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #E5E5E5;">Single tap card</span>
+                                <span style="color: #9A9A9A;">View item</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #E5E5E5;">Double tap card</span>
+                                <span style="color: #9A9A9A;">Edit item</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #E5E5E5;">Click SKU</span>
+                                <span style="color: #9A9A9A;">Jump to edit</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">Tips</h3>
+                        <ul style="color: #9A9A9A; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+                            <li>Hover over condition acronyms to see full name</li>
+                            <li>Deleted items can be restored from Trash</li>
+                            <li>Export returns you to the list view</li>
+                            <li>Use Bulk Edit to update multiple items at once</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Edit Modal -->
+    <div id="bulkEditModal" onclick="closeBulkEditModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A;">
+                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">Bulk Edit <span id="bulkEditCount" style="color: #9A9A9A; font-size: 18px;"></span></h2>
+                <button onclick="closeBulkEditModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <form id="bulkEditForm" style="display: grid; gap: 20px;">
+                    <div>
+                        <label for="bulkCondition" style="display: block; color: #E5E5E5; font-weight: 600; margin-bottom: 8px;">Condition</label>
+                        <select id="bulkCondition" style="width: 100%; padding: 10px; background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; border-radius: 6px;">
+                            <option value="">-- No Change --</option>
+                            <option value="Gem Mint">Gem Mint (10.0)</option>
+                            <option value="Mint">Mint (9.9)</option>
+                            <option value="Near Mint/Mint">Near Mint/Mint (9.8)</option>
+                            <option value="Near Mint+">Near Mint+ (9.6)</option>
+                            <option value="Near Mint">Near Mint (9.4)</option>
+                            <option value="Near Mint-">Near Mint- (9.2)</option>
+                            <option value="Very Fine/Near Mint">Very Fine/Near Mint (9.0)</option>
+                            <option value="Very Fine+">Very Fine+ (8.5)</option>
+                            <option value="Very Fine">Very Fine (8.0)</option>
+                            <option value="Very Fine-">Very Fine- (7.5)</option>
+                            <option value="Fine/Very Fine">Fine/Very Fine (7.0)</option>
+                            <option value="Fine+">Fine+ (6.5)</option>
+                            <option value="Fine">Fine (6.0)</option>
+                            <option value="Fine-">Fine- (5.5)</option>
+                            <option value="Very Good/Fine">Very Good/Fine (5.0)</option>
+                            <option value="Very Good+">Very Good+ (4.5)</option>
+                            <option value="Very Good">Very Good (4.0)</option>
+                            <option value="Very Good-">Very Good- (3.5)</option>
+                            <option value="Good/Very Good">Good/Very Good (3.0)</option>
+                            <option value="Good+">Good+ (2.5)</option>
+                            <option value="Good">Good (2.0)</option>
+                            <option value="Good-">Good- (1.8)</option>
+                            <option value="Fair/Good">Fair/Good (1.5)</option>
+                            <option value="Fair">Fair (1.0)</option>
+                            <option value="Poor">Poor (0.5)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bulkType" style="display: block; color: #E5E5E5; font-weight: 600; margin-bottom: 8px;">Type</label>
+                        <select id="bulkType" style="width: 100%; padding: 10px; background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; border-radius: 6px;">
+                            <option value="">-- No Change --</option>
+                            <option value="For Sale">For Sale</option>
+                            <option value="Giveaway">Giveaway</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bulkPrice" style="display: block; color: #E5E5E5; font-weight: 600; margin-bottom: 8px;">Price (leave empty for no change)</label>
+                        <input type="number" id="bulkPrice" step="0.01" min="0" placeholder="e.g., 19.99" style="width: 100%; padding: 10px; background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; border-radius: 6px;">
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 12px;">
+                        <button type="button" onclick="closeBulkEditModal()" style="background: #2A2A2A; color: #9A9A9A; border: 1px solid #3A3A3A; padding: 10px 28px; border-radius: 20px; font-size: 15px; font-weight: 600; cursor: pointer;">Cancel</button>
+                        <button type="submit" style="background: #4AE5FF; color: #0A0A0A; border: none; padding: 10px 28px; border-radius: 20px; font-size: 15px; font-weight: 600; cursor: pointer;">Apply Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk WhatNot Management Modal -->
+    <div id="bulkWhatNotModal" onclick="closeBulkWhatNotModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFE500" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">WhatNot Bulk Actions</h2>
+                </div>
+                <button onclick="closeBulkWhatNotModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <div style="display: grid; gap: 16px;">
+                    <button onclick="showBulkWhatNotAction('add')" style="background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'; this.style.transform='translateY(0)'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <div>
+                            <div>Bulk Add to WhatNot</div>
+                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">List multiple items on WhatNot</div>
+                        </div>
+                    </button>
+                    <button onclick="showBulkWhatNotAction('remove')" style="background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(0)'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <div>
+                            <div>Bulk Remove from WhatNot</div>
+                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">Unlist multiple items from WhatNot</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk WhatNot Selection Modal -->
+    <div id="bulkWhatNotSelectionModal" onclick="closeBulkWhatNotSelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button onclick="closeBulkWhatNotSelectionModal(); openBulkWhatNotModal();" style="background: none; border: none; color: #9A9A9A; cursor: pointer; padding: 4px;" title="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2 id="bulkWhatNotSelectionTitle" style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
+                </div>
+                <button onclick="closeBulkWhatNotSelectionModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <button onclick="selectWhatNotOption('all')" style="flex: 1; background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'">
+                        <div id="whatnotAllLabel">All Unlisted Items</div>
+                        <div id="whatnotAllCount" style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">0 items</div>
+                    </button>
+                    <button onclick="selectWhatNotOption('selection')" style="flex: 1; background: rgba(74, 229, 255, 0.1); color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(74, 229, 255, 0.2)'" onmouseout="this.style.background='rgba(74, 229, 255, 0.1)'">
+                        <div>Select Specific Items</div>
+                        <div style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">Choose manually</div>
+                    </button>
+                </div>
+                <!-- Controls Bar - Sticky at top of scrollable area -->
+                <div id="bulkWhatNotControlsBar" style="display: none; margin-bottom: 16px; padding: 12px; background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; position: sticky; top: 0; z-index: 2;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" id="whatnotItemSearch" placeholder="Search items..." style="flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid #3A3A3A; border-radius: 6px; background: #0A0A0A; color: #E5E5E5; font-size: 13px;" oninput="filterWhatNotItems(this.value)">
+                        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                            <button onclick="toggleAllWhatNotItems()" style="background: transparent; color: #4AE5FF; border: 1px solid #4AE5FF; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Select All</button>
+                            <button onclick="proceedWithWhatNotSelection()" style="background: #FFE500; color: #1A1A1A; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Proceed (<span id="whatnotSelectedCount">0</span>)</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Scrollable Items Container -->
+                <div id="bulkWhatNotItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid #3A3A3A; border-radius: 8px; padding: 12px;">
+                    <div id="whatnotItemsContainer" style="display: grid; gap: 6px; justify-items: center;">
+                        <!-- Items will be populated here as micro cards - size based on user preferences -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk eBay Management Modal -->
+    <div id="bulkEbayModal" onclick="closeBulkEbayModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFE500" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/>
+                        <circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">eBay Bulk Actions</h2>
+                </div>
+                <button onclick="closeBulkEbayModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <div style="display: grid; gap: 16px;">
+                    <button onclick="showBulkEbayAction('add')" style="background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'; this.style.transform='translateY(0)'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <div>
+                            <div>Bulk List on eBay</div>
+                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">List multiple items on eBay</div>
+                        </div>
+                    </button>
+                    <button onclick="showBulkEbayAction('update')" style="background: rgba(74, 229, 255, 0.1); color: #4AE5FF; border: 2px solid #4AE5FF; padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.background='rgba(74, 229, 255, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(74, 229, 255, 0.1)'; this.style.transform='translateY(0)'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                        <div>
+                            <div>Bulk Update eBay Listings</div>
+                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">Update prices, descriptions, or other details</div>
+                        </div>
+                    </button>
+                    <button onclick="showBulkEbayAction('remove')" style="background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(0)'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <div>
+                            <div>Bulk End eBay Listings</div>
+                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">End multiple eBay listings</div>
+                        </div>
+                    </button>
+                    <button onclick="showBulkEbayAction('unlink')" style="background: rgba(255, 165, 0, 0.1); color: #FFA500; border: 2px solid rgba(255, 165, 0, 0.3); padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.borderColor='#FFA500'; this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 165, 0, 0.3)'; this.style.background='rgba(255, 165, 0, 0.1)'; this.style.transform='translateY(0)'">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            <line x1="2" y1="2" x2="22" y2="22"></line>
+                        </svg>
+                        <div>
+                            <div>Bulk Unlink eBay IDs</div>
+                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">Remove eBay item IDs from database (doesn't end listings)</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk eBay Selection Modal -->
+    <div id="bulkEbaySelectionModal" onclick="closeBulkEbaySelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button onclick="closeBulkEbaySelectionModal(); openBulkEbayModal();" style="background: none; border: none; color: #9A9A9A; cursor: pointer; padding: 4px;" title="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h2 id="bulkEbaySelectionTitle" style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
+                </div>
+                <button onclick="closeBulkEbaySelectionModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+            <div style="padding: 24px;">
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <button onclick="selectEbayOption('all')" style="flex: 1; background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'">
+                        <div id="ebayAllLabel">All Unlisted Items</div>
+                        <div id="ebayAllCount" style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">0 items</div>
+                    </button>
+                    <button onclick="selectEbayOption('selection')" style="flex: 1; background: rgba(74, 229, 255, 0.1); color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(74, 229, 255, 0.2)'" onmouseout="this.style.background='rgba(74, 229, 255, 0.1)'">
+                        <div>Select Specific Items</div>
+                        <div style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">Choose manually</div>
+                    </button>
+                </div>
+                <!-- Controls Bar - Sticky at top of scrollable area -->
+                <div id="bulkEbayControlsBar" style="display: none; margin-bottom: 16px; padding: 12px; background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; position: sticky; top: 0; z-index: 2;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" id="ebayItemSearch" placeholder="Search items..." style="flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid #3A3A3A; border-radius: 6px; background: #0A0A0A; color: #E5E5E5; font-size: 13px;" oninput="filterEbayItems(this.value)">
+                        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                            <button onclick="toggleAllEbayItems()" style="background: transparent; color: #4AE5FF; border: 1px solid #4AE5FF; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Select All</button>
+                            <button onclick="proceedWithEbaySelection()" style="background: #FFE500; color: #1A1A1A; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Proceed (<span id="ebaySelectedCount">0</span>)</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Scrollable Items Container -->
+                <div id="bulkEbayItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid #3A3A3A; border-radius: 8px; padding: 12px;">
+                    <div id="ebayItemsContainer" style="display: grid; gap: 6px; justify-items: center;">
+                        <!-- Items will be populated here as micro cards - size based on user preferences -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal for Bulk Actions -->
+    <div id="bulkConfirmModal" onclick="closeBulkConfirmModalOnOutside(event)" style="display: none; position: fixed; z-index: 1006; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); align-items: center; justify-content: center;">
+        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 500px; width: 90%; padding: 0;">
+            <div style="padding: 24px; border-bottom: 1px solid #2A2A2A;">
+                <h3 id="bulkConfirmTitle" style="color: #FFE500; font-size: 20px; font-weight: 600; margin: 0 0 12px 0;">Confirm Action</h3>
+                <p id="bulkConfirmMessage" style="color: #E5E5E5; margin: 0; line-height: 1.6;"></p>
+            </div>
+            <div style="padding: 20px 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                <button onclick="closeBulkConfirmModal()" style="background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3A3A3A'" onmouseout="this.style.background='#2A2A2A'">Cancel</button>
+                <button id="bulkConfirmButton" onclick="executeBulkAction()" style="background: #FFE500; color: #1A1A1A; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#F5DB00'" onmouseout="this.style.background='#FFE500'">Confirm</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+        // Helper function to convert full image URL to thumbnail URL (WebP)
+        function getThumbnailUrl(fullUrl) {
+            if (!fullUrl) return '';
+            // For S3 URLs: https://bucket.s3.amazonaws.com/production/images/1001_3.jpg
+            // Convert to: https://bucket.s3.amazonaws.com/production/images/1001_3_thumb.webp
+            const lastDot = fullUrl.lastIndexOf('.');
+            if (lastDot === -1) return fullUrl;
+            return fullUrl.substring(0, lastDot) + '_thumb.webp';
+        }
+
+        // Helper function to get condition acronym
+        function getConditionAcronym(condition) {
+            if (!condition) return '';
+            const conditionMap = {
+                'Gem Mint': 'GM',
+                'Mint': 'MT',
+                'Near Mint/Mint': 'NM/M',
+                'Near Mint+': 'NM+',
+                'Near Mint': 'NM',
+                'Near Mint-': 'NM-',
+                'Very Fine/Near Mint': 'VF/NM',
+                'Very Fine+': 'VF+',
+                'Very Fine': 'VF',
+                'Very Fine-': 'VF-',
+                'Fine/Very Fine': 'FN/VF',
+                'Fine+': 'FN+',
+                'Fine': 'FN',
+                'Fine-': 'FN-',
+                'Very Good/Fine': 'VG/FN',
+                'Very Good+': 'VG+',
+                'Very Good': 'VG',
+                'Very Good-': 'VG-',
+                'Good/Very Good': 'G/VG',
+                'Good+': 'G+',
+                'Good': 'GD',
+                'Good-': 'G-',
+                'Fair/Good': 'FR/G',
+                'Fair': 'FR',
+                'Poor': 'PR'
+            };
+            return conditionMap[condition] || condition;
+        }
+
+        // Helper function to get type abbreviation
+        function getTypeAbbreviation(type, title) {
+            if (!type) return '';
+
+            // Check if title starts with "G-" (giveaway indicator)
+            const titleUpper = (title || '').toUpperCase();
+            if (titleUpper.startsWith('G-') || titleUpper.startsWith('G -')) {
+                return 'Giv';
+            }
+
+            const typeMap = {
+                'Buy it Now': 'Buy',
+                'Auction': 'Auc'
+            };
+            return typeMap[type] || type;
+        }
+
+        // Check if browser supports WebP
+        function supportsWebP() {
+            const elem = document.createElement('canvas');
+            if (elem.getContext && elem.getContext('2d')) {
+                return elem.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+            }
+            return false;
+        }
+
+        // Pagination state
+        let currentPage = 1;
+        let totalPages = 1;
+        let isLoading = false;
+        let allComics = []; // Store all loaded comics
+        let currentSearchTerm = ''; // Track current search term
+        let searchDebounceTimer = null; // Debounce timer for search
+        let maxLoadedPage = 1; // Track the highest page we've loaded
+        let microCardSizePercent = 60; // Default to 60% (40% smaller), updated from user preferences
+
+        // Load filter from localStorage or default to 'all'
+        let currentListingTypeFilter = localStorage.getItem('listingTypeFilter') || 'all';
+        let notListedSubFilter = 'both'; // Sub-filter for "Not Listed": 'both', 'ebay', 'whatnot'
+
+        // Pagination state persistence - save and restore from sessionStorage
+        // sessionStorage persists within a single browser session and clears on logout
+        function savePaginationState() {
+            const state = {
+                maxLoadedPage: maxLoadedPage,
+                currentSearchTerm: currentSearchTerm,
+                currentListingTypeFilter: currentListingTypeFilter,
+                notListedSubFilter: notListedSubFilter, // Save sub-filter state
+                allComicsCount: allComics.length,
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem('browse_pagination_state', JSON.stringify(state));
+        }
+
+        function restorePaginationState() {
+            try {
+                const stateJson = sessionStorage.getItem('browse_pagination_state');
+                if (!stateJson) {
+                    return false;
+                }
+
+                const state = JSON.parse(stateJson);
+
+                // Restore all state variables
+                maxLoadedPage = state.maxLoadedPage || 1;
+                currentSearchTerm = state.currentSearchTerm || '';
+                currentListingTypeFilter = state.currentListingTypeFilter || 'all';
+                notListedSubFilter = state.notListedSubFilter || 'both'; // Restore sub-filter state
+
+                return true;
+            } catch (error) {
+                console.error('Error restoring pagination state:', error);
+                sessionStorage.removeItem('browse_pagination_state');
+                return false;
+            }
+        }
+
+        // Helper to get navigation URL with current filters
+        function getNavigationUrl(sku) {
+            let url = `/add?sku=${encodeURIComponent(sku)}&view=true`;
+            if (currentListingTypeFilter && currentListingTypeFilter !== 'all') {
+                url += `&listing_type=${encodeURIComponent(currentListingTypeFilter)}`;
+            }
+            if (currentSearchTerm) {
+                url += `&search=${encodeURIComponent(currentSearchTerm)}`;
+            }
+            return url;
+        }
+
+        // Lazy loading observer
+        let imageObserver;
+        function setupLazyLoading() {
+            const imageObserverOptions = {
+                root: null,
+                rootMargin: '50px',
+                threshold: 0.01
+            };
+
+            imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const src = img.dataset.src;
+                        if (src) {
+                            img.src = src;
+                            img.removeAttribute('data-src');
+                            observer.unobserve(img);
+                        }
+                    }
+                });
+            }, imageObserverOptions);
+        }
+
+        async function loadComics(page = 1, append = false) {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                // Use user preferences for perPage and sort order
+                const isMobile = window.innerWidth <= 768;
+                const perPage = isMobile
+                    ? (window.userPreferences?.mobile_per_page || 8)
+                    : (window.userPreferences?.desktop_per_page || 24);
+                const sortBy = window.userPreferences?.default_sort || 'sku_asc';
+
+                // Build API URL with optional search, listing type filter, sort order, and sub-filter
+                let url = `/api/comics?page=${page}&per_page=${perPage}&sort_by=${sortBy}`;
+                if (currentSearchTerm) {
+                    url += `&search=${encodeURIComponent(currentSearchTerm)}`;
+                }
+                if (currentListingTypeFilter && currentListingTypeFilter !== 'all') {
+                    url += `&listing_type=${encodeURIComponent(currentListingTypeFilter)}`;
+                    // Add sub-filter if "Not Listed" is active
+                    if (currentListingTypeFilter === 'Not Listed') {
+                        url += `&not_listed_subfilter=${encodeURIComponent(notListedSubFilter)}`;
+                    }
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                const container = document.getElementById('comicsContainer');
+                const countEl = document.getElementById('comicsCount');
+                const giveawayEl = document.getElementById('giveawayCount');
+                const valueEl = document.getElementById('comicsValue');
+
+                if (result.success && result.comics) {
+                    // Handle pagination and stats data
+                    if (result.pagination) {
+                        currentPage = result.pagination.page;
+                        totalPages = result.pagination.total_pages;
+                        countEl.textContent = result.pagination.total;
+                        
+                        if (giveawayEl) {
+                            giveawayEl.textContent = `(${result.pagination.giveaway_count || 0} Giveaways)`;
+                        }
+                        
+                        if (valueEl) {
+                            const totalValue = result.pagination.total_value || 0;
+                            valueEl.textContent = `$${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        }
+
+                        // Track the highest page we've loaded
+                        if (currentPage > maxLoadedPage) {
+                            maxLoadedPage = currentPage;
+                        }
+
+                        // Always save pagination state after loading a page
+                        savePaginationState();
+                    } else {
+                        // Fallback for non-paginated response
+                        countEl.textContent = result.comics.length;
+                    }
+
+                    // Add new comics to our collection
+                    if (append) {
+                        allComics = allComics.concat(result.comics);
+                    } else {
+                        allComics = result.comics;
+                    }
+
+                    // Clear or get existing grid
+                    let grid = container.querySelector('.comics-grid');
+                    if (!append || !grid) {
+                        container.innerHTML = '';
+                        grid = document.createElement('div');
+                        grid.className = 'comics-grid';
+                        container.appendChild(grid);
+                    }
+
+                    // Render new comics
+                    result.comics.forEach(comic => {
+                        const card = document.createElement('div');
+                        card.className = 'comic-card';
+                        card.dataset.sku = comic.SKU;
+
+                        // Get first image and create thumbnail URL
+                        const firstImage = comic['Image URL 1'] || '';
+                        const thumbnailUrl = getThumbnailUrl(firstImage);
+                        const imageHtml = firstImage
+                            ? `<img data-src="${thumbnailUrl}" alt="${comic.Title || 'Comic'}" class="comic-image lazy-image" style="background: #2A2A2A;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22280%22 height=%22280%22><rect width=%22280%22 height=%22280%22 fill=%22%232A2A2A%22/><text x=%2250%%22 y=%2250%%22 font-size=%2216%22 fill=%22%236B6B6B%22 text-anchor=%22middle%22 dy=%22.3em%22>No Image</text></svg>'">`
+                            : `<div class="comic-image" style="display: flex; align-items: center; justify-content: center; color: #6B6B6B;">No Image</div>`;
+
+                        const conditionAcronym = getConditionAcronym(comic.Condition);
+                        const typeAbbreviation = getTypeAbbreviation(comic.Type || 'Auction', comic.Title);
+                        const priceDisplay = comic.Price ? `<span style="color: #FFE500;">$${comic.Price}</span>` : '';
+
+                        let typeDisplay = [];
+                        if (priceDisplay) typeDisplay.push(priceDisplay);
+                        if (conditionAcronym) typeDisplay.push(`<span title="${comic.Condition || ''}">${conditionAcronym}</span>`);
+                        typeDisplay.push(typeAbbreviation);
+                        typeDisplay = typeDisplay.join(' • ');
+
+                        // Check if comic is listed on eBay or WhatNot
+                        const ebayItemId = comic['eBay Item ID'] || comic.ebay_item_id || '';
+                        const whatnotItemId = comic['WhatNot Item ID'] || comic.whatnot_item_id || '';
+                        const isListedOnEbay = ebayItemId && ebayItemId.trim();
+                        const isListedOnWhatNot = whatnotItemId === 'TRUE';
+
+                        // Build status indicators HTML - always show both, but greyed out if not listed
+                        const ebayClasses = isListedOnEbay ? 'status-light ebay' : 'status-light ebay inactive';
+                        const ebayLabelClasses = isListedOnEbay ? 'status-label ebay' : 'status-label ebay inactive';
+                        const whatnotClasses = isListedOnWhatNot ? 'status-light whatnot' : 'status-light whatnot inactive';
+                        const whatnotLabelClasses = isListedOnWhatNot ? 'status-label whatnot' : 'status-label whatnot inactive';
+
+                        const statusIndicatorsHtml = `
+                            <div class="status-indicators">
+                                <div class="status-indicator-item">
+                                    <div class="${ebayClasses}" title="${isListedOnEbay ? 'Listed on eBay' : 'Not listed on eBay'}"></div>
+                                    <span class="${ebayLabelClasses}">eBay</span>
+                                </div>
+                                <div class="status-indicator-item">
+                                    <div class="${whatnotClasses}" title="${isListedOnWhatNot ? 'Listed on WhatNot' : 'Not listed on WhatNot'}"></div>
+                                    <span class="${whatnotLabelClasses}">WhatNot</span>
+                                </div>
+                            </div>
+                        `;
+
+                        card.innerHTML = `
+                            <input type="checkbox" class="comic-checkbox" data-sku="${comic.SKU}" style="display: none;">
+                            ${imageHtml}
+                            <div class="comic-info">
+                                <div class="comic-title">${comic.Title || 'Untitled Comic'}</div>
+                                <div class="comic-meta">
+                                    <div class="comic-meta-item" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 8px;">
+                                        <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;">
+                                            <span style="flex-shrink: 0;">SKU: ${comic.SKU || 'N/A'}</span>
+                                            <span style="color: #FFE500; font-size: 11px;">${window.formatDate(comic.last_modified) || ''}</span>
+                                        </div>
+                                        ${statusIndicatorsHtml}
+                                    </div>
+                                    <div class="comic-meta-item">
+                                        <span>${typeDisplay}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        // No border styling - status indicators on cards show all listing info
+
+                        // Card click behavior depends on mode
+                        card.onclick = () => {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const mode = urlParams.get('mode');
+
+                            // If in delete, export, or ebay mode, toggle the checkbox
+                            if (mode === 'delete' || mode === 'export' || mode === 'ebay') {
+                                // Find checkbox WITHIN this card
+                                const checkbox = card.querySelector('.comic-checkbox');
+                                if (checkbox) {
+                                    checkbox.checked = !checkbox.checked;
+
+
+                                    // Apply visual feedback IMMEDIATELY with mode-specific colors
+                                    // IMPORTANT: Must set entire 'border' property, not just 'borderColor'
+                                    // because CSS has 'border: none' which overrides borderColor
+                                    if (checkbox.checked) {
+                                        if (mode === 'delete') {
+                                            card.style.border = '2px solid #ff4444';
+                                            card.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
+                                            card.style.boxShadow = '0 0 12px rgba(255, 68, 68, 0.3)';
+                                        } else {
+                                            // Yellow for export and eBay modes
+                                            card.style.border = '2px solid #FFE500';
+                                            card.style.backgroundColor = 'rgba(255, 229, 0, 0.05)';
+                                            card.style.boxShadow = '0 0 12px rgba(255, 229, 0, 0.2)';
+                                        }
+                                    } else {
+                                        // Reset to default
+                                        card.style.border = 'none';
+                                        card.style.backgroundColor = '';
+                                        card.style.boxShadow = '';
+                                    }
+
+                                    // Update selection count and button visibility
+                                    updateSelection();
+                                }
+                            } else {
+                                // Normal mode: save state and navigate to view page
+                                savePaginationState();
+                                window.location.href = getNavigationUrl(comic.SKU);
+                            }
+                        };
+
+                        // Add drag and drop functionality for images
+                        ['dragenter', 'dragover'].forEach(eventName => {
+                            card.addEventListener(eventName, (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // Only highlight if dragging files
+                                if (e.dataTransfer.types.includes('Files')) {
+                                    card.style.backgroundColor = 'rgba(255, 229, 0, 0.1)';
+                                    card.style.border = '2px solid #FFE500';
+                                }
+                            }, false);
+                        });
+
+                        ['dragleave', 'drop'].forEach(eventName => {
+                            card.addEventListener(eventName, (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // Reset styling
+                                card.style.backgroundColor = '';
+                                card.style.border = '';
+                            }, false);
+                        });
+
+                        card.addEventListener('drop', async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const files = e.dataTransfer.files;
+                            if (files && files.length > 0) {
+                                // Filter to only image files
+                                const imageFilesList = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 8);
+
+                                if (imageFilesList.length === 0) {
+                                    return; // No images to process
+                                }
+
+                                // Store images in sessionStorage
+                                const imageFiles = [];
+                                let filesProcessed = 0;
+
+                                for (let i = 0; i < imageFilesList.length; i++) {
+                                    const file = imageFilesList[i];
+                                    // Convert to base64 for storage
+                                    const reader = new FileReader();
+                                    reader.onload = function(event) {
+                                        imageFiles.push({
+                                            name: file.name,
+                                            type: file.type,
+                                            data: event.target.result
+                                        });
+
+                                        filesProcessed++;
+
+                                        // When all files are read, navigate
+                                        if (filesProcessed === imageFilesList.length) {
+                                            sessionStorage.setItem('draggedImages', JSON.stringify(imageFiles));
+                                            savePaginationState();
+                                            // Navigate directly to edit mode (don't use getNavigationUrl which adds view=true)
+                                            let url = `/add?sku=${encodeURIComponent(comic.SKU)}`;
+                                            if (currentListingTypeFilter && currentListingTypeFilter !== 'all') {
+                                                url += `&listing_type=${encodeURIComponent(currentListingTypeFilter)}`;
+                                            }
+                                            if (currentSearchTerm) {
+                                                url += `&search=${encodeURIComponent(currentSearchTerm)}`;
+                                            }
+                                            // No view=true, so it will default to edit mode
+                                            window.location.href = url;
+                                        }
+                                    };
+                                    reader.readAsDataURL(file);
+                                }
+                            }
+                        }, false);
+
+                        grid.appendChild(card);
+                    });
+
+                    // Add or update Load More button
+                    const loadMoreContainer = document.getElementById('loadMoreContainer');
+
+                    // Clear existing button first
+                    loadMoreContainer.innerHTML = '';
+
+                    if (result.pagination.has_next) {
+                        const remaining = result.pagination.total - allComics.length;
+                        const nextLoad = Math.min(perPage, remaining);
+                        const buttonText = `Load Next ${nextLoad} (${remaining} remaining)`;
+
+                        // Create new button
+                        const loadMoreBtn = document.createElement('button');
+                        loadMoreBtn.className = 'load-more-btn';
+                        loadMoreBtn.textContent = buttonText;
+                        loadMoreBtn.onclick = () => loadComics(currentPage + 1, true);
+                        loadMoreContainer.appendChild(loadMoreBtn);
+                    }
+
+                    // Setup lazy loading for images
+                    setupLazyLoading();
+                    const lazyImages = document.querySelectorAll('.lazy-image');
+                    lazyImages.forEach(img => imageObserver.observe(img));
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FFE500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="3" width="20" height="18" rx="2"/>
+                                    <path d="M8 3v18"/>
+                                    <path d="M16 3v18"/>
+                                    <path d="M2 9h6"/>
+                                    <path d="M16 9h6"/>
+                                    <path d="M2 15h6"/>
+                                    <path d="M16 15h6"/>
+                                </svg>
+                            </div>
+                            <h2>No Comics Yet</h2>
+                            <p>Start building your collection by adding your first comic.</p>
+                            <a href="/add">Add Your First Comic</a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading comics:', error);
+                const container = document.getElementById('comicsContainer');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>Error Loading Comics</h2>
+                        <p>Something went wrong. Please try again.</p>
+                    </div>
+                `;
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        // Search functionality - server-side search
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.trim();
+
+            // Clear existing debounce timer
+            if (searchDebounceTimer) {
+                clearTimeout(searchDebounceTimer);
+            }
+
+            // Debounce search by 300ms
+            searchDebounceTimer = setTimeout(() => {
+                currentSearchTerm = searchTerm;
+                currentPage = 1;
+                allComics = [];
+                loadComics(1, false);
+            }, 300);
+        });
+
+        // Load comics on page load - restore previous state if available
+        async function initializePage() {
+            // Wait for user preferences to be loaded
+            let attempts = 0;
+            while (!window.userPreferences && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                attempts++;
+            }
+
+            // Load micro card size preference
+            if (window.userPreferences && window.userPreferences.micro_card_size) {
+                microCardSizePercent = window.userPreferences.micro_card_size;
+            }
+
+            // Try to restore pagination state from previous session
+            const stateRestored = restorePaginationState();
+
+            // Restore filter tab state
+            filterByListingType(currentListingTypeFilter);
+
+            // If we're on "Not Listed" filter, make sure sub-filter UI is correct
+            if (currentListingTypeFilter === 'Not Listed') {
+                updateNotListedSubFilterUI();
+            }
+
+            if (stateRestored && maxLoadedPage > 1) {
+                // Load all pages up to the saved max page
+                for (let page = 1; page <= maxLoadedPage; page++) {
+                    await loadComics(page, page > 1);
+                }
+            } else {
+                // Normal initial load - just load page 1
+                await loadComics();
+            }
+
+            // If URL has sku parameter, auto-select that comic
+            const urlParams = new URLSearchParams(window.location.search);
+            const skuParam = urlParams.get('sku');
+            if (skuParam) {
+                // Wait a bit for comics to be rendered
+                setTimeout(() => {
+                    const checkbox = document.querySelector(`.comic-checkbox[data-sku="${skuParam}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        updateSelection();
+
+                        // Scroll to the comic in the table
+                        const row = checkbox.closest('tr');
+                        if (row) {
+                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Briefly highlight the row
+                            row.style.backgroundColor = '#FFE50033';
+                            setTimeout(() => {
+                                row.style.backgroundColor = '';
+                            }, 2000);
+                        }
+                    }
+                }, 500);
+            }
+
+            // Handle special modes (delete, export, ebay)
+            const mode = urlParams.get('mode');
+            if (mode === 'delete' || mode === 'export' || mode === 'ebay') {
+                // Show the selection buttons area immediately for these modes
+                document.getElementById('normalButtons').style.display = 'none';
+                document.getElementById('deleteButtons').style.display = 'flex';
+
+                // Set up mode-specific UI
+                if (mode === 'delete') {
+                    document.getElementById('cancelSelectionBtn').textContent = 'Exit Delete Mode';
+                    document.getElementById('selectedCount').textContent = 'Click items to select for deletion';
+                } else if (mode === 'export') {
+                    document.getElementById('cancelSelectionBtn').textContent = 'Exit Export Mode';
+                    document.getElementById('selectedCount').textContent = 'Click items to select for export';
+                } else if (mode === 'ebay') {
+                    document.getElementById('cancelSelectionBtn').textContent = 'Exit eBay Mode';
+                    document.getElementById('selectedCount').textContent = 'Click items to select for eBay actions';
+                }
+            }
+        }
+
+        // Wait for DOM to be ready before initializing
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+
+        // Handle browser resize - recalculate and reload comics
+        let resizeTimeout;
+        let lastWidth = window.innerWidth;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const newWidth = window.innerWidth;
+                // Only reload if width changed significantly (more than 50px)
+                // This avoids reloading on mobile scroll bar changes
+                if (Math.abs(newWidth - lastWidth) > 50) {
+                    lastWidth = newWidth;
+                    // Reset and reload from first page
+                    allComics = [];
+                    currentPage = 1;
+                    loadComics();
+                }
+            }, 500); // Wait 500ms after resize stops
+        });
+
+        // Grading Modal Functions
+        const gradingScaleData = [
+            {grade: "10", name: "Gem Mint", desc: "The highest grade assigned. The collectible must have no evidence of any manufacturing or handling defects."},
+            {grade: "9.9", name: "Mint", desc: "The collectible is nearly indistinguishable from a 10.0 but will have a very minor manufacturing defect. It will not have any evidence of handling defects."},
+            {grade: "9.8", name: "NM/M", desc: "A nearly perfect collectible with negligible handling or manufacturing defects."},
+            {grade: "9.6", name: "NM+", desc: "A very well-preserved collectible with several minor manufacturing or handling defects."},
+            {grade: "9.4", name: "NM", desc: "A very well-preserved collectible with minor wear and small manufacturing or handling defects."},
+            {grade: "9.2", name: "NM-", desc: "A very well-preserved collectible with some wear and small manufacturing or handling defects."},
+            {grade: "9.0", name: "VF/NM", desc: "A very well-preserved collectible with good eye appeal. There will be a number of minor handling and/or manufacturing defects."},
+            {grade: "8.5", name: "VF+", desc: "An attractive collectible with a moderate defect or a number of small defects."},
+            {grade: "8.0", name: "VF", desc: "An attractive collectible with a moderate defect or an accumulation of small defects."},
+            {grade: "7.5", name: "VF-", desc: "An above-average collectible with a moderate defect or an accumulation of small defects."},
+            {grade: "7.0", name: "FN/VF", desc: "An above-average collectible with a major defect or an accumulation of small defects."},
+            {grade: "6.5", name: "FN+", desc: "An above-average collectible with a major defect and some smaller defects, or a significant accumulation of small defects."},
+            {grade: "6.0", name: "FN", desc: "A slightly above-average collectible with a major defect and some smaller defects, or a significant accumulation of small defects."},
+            {grade: "5.5", name: "FN-", desc: "A slightly above-average collectible with several moderate defects."},
+            {grade: "5.0", name: "VG/FN", desc: "An average collectible with several moderate defects."},
+            {grade: "4.5", name: "VG+", desc: "A slightly below-average collectible with multiple moderate defects."},
+            {grade: "4.0", name: "VG", desc: "A below-average collectible with multiple moderate defects."},
+            {grade: "3.5", name: "VG-", desc: "A below-average collectible with several major defects or an accumulation of multiple moderate defects."},
+            {grade: "3.0", name: "G/VG", desc: "A collectible that shows significant evidence of handling with several moderate-to-major defects."},
+            {grade: "2.5", name: "G+", desc: "A collectible that shows extensive evidence of handling with multiple moderate-to-major defects."},
+            {grade: "2.0", name: "G", desc: "A collectible that shows extensive evidence of handling with numerous moderate-to-major defects."},
+            {grade: "1.8", name: "G-", desc: "A collectible that shows extensive evidence of handling with numerous major defects."},
+            {grade: "1.5", name: "Fa/G", desc: "A collectible that shows extensive evidence of handling with a heavy accumulation of major defects."},
+            {grade: "1.0", name: "Fa", desc: "A very poorly handled collectible with a heavy accumulation of major defects."},
+            {grade: "0.5", name: "Poor", desc: "A heavily defaced collectible with a number major defects. Some pieces will also be missing."}
+        ];
+
+        function openGradingModal() {
+            const modal = document.getElementById('gradingModal');
+            const content = document.getElementById('gradingScaleContent');
+
+            // Populate content if empty
+            if (!content.innerHTML) {
+                content.innerHTML = gradingScaleData.map(item => `
+                    <div style="display: flex; align-items: flex-start; gap: 20px; padding: 16px; margin-bottom: 12px; background: #0A0A0A; border: 1px solid #2A2A2A; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.borderColor='#FFE500'; this.style.background='#1A1A1A'" onmouseout="this.style.borderColor='#2A2A2A'; this.style.background='#0A0A0A'">
+                        <div style="min-width: 80px; text-align: center;">
+                            <div style="font-size: 32px; font-weight: 700; color: #FFE500; line-height: 1; margin-bottom: 4px;">${item.grade}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #E5E5E5; white-space: nowrap;">${item.name}</div>
+                        </div>
+                        <div style="flex: 1; color: #9A9A9A; font-size: 14px; line-height: 1.6;">${item.desc}</div>
+                    </div>
+                `).join('');
+            }
+
+            modal.style.display = 'flex';
+            document.addEventListener('keydown', handleGradingModalEscape);
+        }
+
+        function closeGradingModal() {
+            document.getElementById('gradingModal').style.display = 'none';
+        }
+        window.closeGradingModal = closeGradingModal;
+
+        function closeGradingModalOnOutsideClick(event) {
+            if (event.target.id === 'gradingModal') {
+                closeGradingModal();
+            }
+        }
+
+        function handleGradingModalEscape(event) {
+            if (event.key === 'Escape') {
+                closeGradingModal();
+            }
+        }
+
+        // Keyboard shortcuts modal functions
+        function openShortcutsModal() {
+            document.getElementById('keyboardShortcutsModal').style.display = 'flex';
+            document.addEventListener('keydown', handleShortcutsModalEscape);
+        }
+
+        function closeShortcutsModal() {
+            document.getElementById('keyboardShortcutsModal').style.display = 'none';
+            document.removeEventListener('keydown', handleShortcutsModalEscape);
+        }
+        window.closeShortcutsModal = closeShortcutsModal;
+
+        function closeShortcutsModalOnOutsideClick(event) {
+            if (event.target.id === 'keyboardShortcutsModal') {
+                closeShortcutsModal();
+            }
+        }
+
+        function handleShortcutsModalEscape(event) {
+            if (event.key === 'Escape') {
+                closeShortcutsModal();
+            }
+        }
+
+        // Global keyboard shortcut listener
+        document.addEventListener('keydown', function(e) {
+            // Don't trigger if user is typing in an input field
+            if (e.target.matches('input, textarea, select')) return;
+
+            // ? key opens shortcuts modal
+            if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+                e.preventDefault();
+                openShortcutsModal();
+            }
+        });
+
+        // ========================================================================
+        // BULK MANAGEMENT & MICRO CARD BROWSER SYSTEM
+        // ========================================================================
+        // This section handles bulk operations (add/remove/update) for both
+        // WhatNot and eBay platforms. It includes:
+        // - Modal stack management for proper ESC key navigation
+        // - Micro card browser component (reusable card display system)
+        // - User preference integration for card sizing
+        // - Selection state management across multiple containers
+        // ========================================================================
+
+        // Global variables for bulk operations
+        let bulkCurrentAction = null;
+        let bulkCurrentPlatform = null;
+        let bulkSelectedItems = [];
+        let modalStack = []; // Track modal hierarchy for ESC key navigation
+
+        // ------------------------------------------------------------------------
+        // User Preference Integration - Live Card Size Updates
+        // ------------------------------------------------------------------------
+        // Listen for preference updates
+        window.addEventListener('preferencesUpdated', (event) => {
+            if (event.detail && event.detail.preferences && event.detail.preferences.micro_card_size !== undefined) {
+                microCardSizePercent = event.detail.preferences.micro_card_size;
+
+                // Re-populate any currently visible mini card browsers
+                repopulateVisibleMiniCardBrowsers();
+            }
+        });
+
+        // Function to re-populate all currently visible mini card browsers with new size
+        function repopulateVisibleMiniCardBrowsers() {
+            // Save currently selected items
+            const previouslySelected = [...bulkSelectedItems];
+
+            // Check WhatNot container
+            const whatnotContainer = document.getElementById('whatnotItemsContainer');
+            if (whatnotContainer && whatnotContainer.offsetParent !== null && whatnotContainer.children.length > 0) {
+                populateWhatNotItems(bulkCurrentAction === 'remove');
+            }
+
+            // Check eBay container
+            const ebayContainer = document.getElementById('ebayItemsContainer');
+            if (ebayContainer && ebayContainer.offsetParent !== null && ebayContainer.children.length > 0) {
+                populateEbayItems();
+            }
+
+            // Restore selection state after a short delay
+            if (previouslySelected.length > 0) {
+                setTimeout(() => {
+                    restoreSelectionState(previouslySelected);
+                }, 100);
+            }
+        }
+
+        // Helper to restore selection state after re-populating
+        function restoreSelectionState(selectedSKUs) {
+            if (!selectedSKUs || selectedSKUs.length === 0) return;
+
+            // Restore for both containers
+            const containers = ['whatnotItemsContainer', 'ebayItemsContainer'];
+            let restoredCount = 0;
+
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                const cards = container.querySelectorAll('.bulk-selection-card');
+                cards.forEach(card => {
+                    // Get SKU from the card's SKU element
+                    const skuElement = card.querySelector('[style*="SKU:"]');
+                    if (!skuElement) return;
+
+                    const skuText = skuElement.textContent;
+                    const sku = skuText.replace('SKU:', '').trim();
+
+                    if (selectedSKUs.includes(sku)) {
+                        card.dataset.selected = 'true';
+                        const overlay = card.querySelector('.selection-overlay');
+                        if (overlay) {
+                            overlay.style.display = 'flex';
+                            // Re-apply border color based on card type
+                            const isWhatNot = card.classList.contains('whatnot-card');
+                            const isEbay = card.classList.contains('ebay-card');
+                            if (isWhatNot) {
+                                card.style.borderColor = '#FF1493';
+                            } else if (isEbay) {
+                                card.style.borderColor = '#0064D2';
+                            }
+                        }
+                        restoredCount++;
+                    }
+                });
+            });
+
+
+            // Update selection count display
+            const whatnotSelectedCount = document.getElementById('whatnotSelectedCount');
+            const ebaySelectedCount = document.getElementById('ebaySelectedCount');
+            if (whatnotSelectedCount) whatnotSelectedCount.textContent = bulkSelectedItems.length;
+            if (ebaySelectedCount) ebaySelectedCount.textContent = bulkSelectedItems.length;
+        }
+
+        // Show/hide bulk management buttons based on active tab
+        function toggleBulkButtons(listingType) {
+            const bulkContainer = document.getElementById('bulkManagementButtons');
+            const whatnotBtn = document.getElementById('bulkWhatNotBtn');
+            const ebayBtn = document.getElementById('bulkEbayManagementBtn');
+
+            if (listingType === 'WhatNot') {
+                bulkContainer.style.display = 'block';
+                whatnotBtn.style.display = 'inline-flex';
+                ebayBtn.style.display = 'none';
+            } else if (listingType === 'For Sale eBay') {
+                bulkContainer.style.display = 'block';
+                whatnotBtn.style.display = 'none';
+                ebayBtn.style.display = 'inline-flex';
+            } else {
+                bulkContainer.style.display = 'none';
+            }
+        }
+
+        // Helper function to wait for comics to finish loading
+        async function waitForComicsToLoad() {
+            const maxWaitTime = 10000; // 10 seconds max
+            const checkInterval = 100; // Check every 100ms
+            let waited = 0;
+
+            while (isLoading && waited < maxWaitTime) {
+                await new Promise(resolve => setTimeout(resolve, checkInterval));
+                waited += checkInterval;
+            }
+
+            // If comics array is still empty after loading completes, wait a bit more
+            // This handles the case where loadComics just completed but allComics hasn't been set yet
+            if (allComics.length === 0 && waited < maxWaitTime) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+
+        // ------------------------------------------------------------------------
+        // Modal Stack Management - Hierarchical ESC Key Navigation
+        // ------------------------------------------------------------------------
+        // Handles proper ESC key behavior for nested modals by tracking a stack
+        // of open modals and closing only the top-most one on ESC press
+        // ------------------------------------------------------------------------
+
+        // Generic ESC key handler for modal hierarchy
+        function handleModalEscape(event) {
+            if (event.key === 'Escape' && modalStack.length > 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                const topModal = modalStack[modalStack.length - 1];
+                topModal.closeFunc();
+            }
+        }
+
+        // Push modal to stack
+        function pushModalToStack(modalId, closeFunc) {
+            modalStack.push({ modalId, closeFunc });
+            if (modalStack.length === 1) {
+                document.addEventListener('keydown', handleModalEscape);
+            }
+        }
+
+        // Pop modal from stack
+        function popModalFromStack(modalId) {
+            modalStack = modalStack.filter(m => m.modalId !== modalId);
+            if (modalStack.length === 0) {
+                document.removeEventListener('keydown', handleModalEscape);
+            }
+        }
+
+        // ------------------------------------------------------------------------
+        // WhatNot Bulk Management Functions
+        // ------------------------------------------------------------------------
+        // Handles bulk operations for WhatNot platform:
+        // - Bulk add (unlisted items)
+        // - Bulk remove (listed items)
+        // - Givys management (giveaway items)
+        // ------------------------------------------------------------------------
+
+        function openBulkWhatNotModal() {
+            document.getElementById('bulkWhatNotModal').style.display = 'flex';
+            pushModalToStack('bulkWhatNotModal', closeBulkWhatNotModal);
+        }
+
+        function closeBulkWhatNotModal() {
+            document.getElementById('bulkWhatNotModal').style.display = 'none';
+            popModalFromStack('bulkWhatNotModal');
+        }
+
+        function closeBulkWhatNotModalOnOutside(event) {
+            if (event.target.id === 'bulkWhatNotModal') {
+                closeBulkWhatNotModal();
+            }
+        }
+
+        // WhatNot Givys Function - filters for Giveaway items
+        async function showBulkWhatNotGivysAction() {
+            bulkCurrentAction = 'givys';
+            bulkCurrentPlatform = 'whatnot';
+
+            // Hide management modal but keep it in the stack
+            document.getElementById('bulkWhatNotModal').style.display = 'none';
+
+            // Update UI for Givys
+            const titleEl = document.getElementById('bulkWhatNotSelectionTitle');
+            const allLabelEl = document.getElementById('whatnotAllLabel');
+
+            titleEl.textContent = 'WhatNot Givys Management';
+            allLabelEl.textContent = 'All Giveaway Items';
+
+            document.getElementById('bulkWhatNotSelectionModal').style.display = 'flex';
+            pushModalToStack('bulkWhatNotSelectionModal', closeBulkWhatNotSelectionModal);
+
+            // Load Giveaway items from the server
+            try {
+                const response = await fetch('/api/comics?per_page=1000&listing_type=Giveaway');
+                const result = await response.json();
+
+                if (result.success && result.comics) {
+                    // Temporarily store these comics for the bulk action
+                    window.bulkActionComics = result.comics;
+                    document.getElementById('whatnotAllCount').textContent = `${result.comics.length} items`;
+                } else {
+                    throw new Error('Failed to load giveaway comics');
+                }
+            } catch (error) {
+                console.error('Error loading giveaway comics:', error);
+                alert('Failed to load giveaway comics. Please try again.');
+                closeBulkWhatNotSelectionModal();
+            }
+        }
+
+        // ------------------------------------------------------------------------
+        // MICRO CARD BROWSER COMPONENT (Reusable)
+        // ------------------------------------------------------------------------
+        // A lightweight, scalable card display system for bulk selection interfaces
+        // Features:
+        // - Dynamic sizing based on user preferences (40%-100% scale)
+        // - Responsive grid layout with auto-fill
+        // - Selection state management with visual feedback
+        // - Thumbnail/full image support with fallback
+        // - Optimized for performance with lazy loading
+        // ------------------------------------------------------------------------
+
+        /**
+         * Creates a micro card element for bulk selection interface
+         * @param {Object} comic - Comic item data
+         * @param {string} borderColor - Color for selected card border
+         * @param {string} overlayColor - Color for selection overlay
+         * @returns {HTMLElement} Configured card element
+         */
+        function createMiniComicCard(comic, borderColor, overlayColor) {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'bulk-item bulk-selection-card';
+            cardEl.dataset.sku = comic.SKU;
+            cardEl.dataset.title = (comic.Title || '').toLowerCase();
+            cardEl.dataset.selected = 'false';
+
+            // Get the full image URL from the comic data
+            const imageUrl = comic['Image URL 1'] || '';
+            // Convert to thumbnail URL with proper path
+            const thumbnailUrl = imageUrl ? getThumbnailUrl(imageUrl) : '';
+
+            const condition = getConditionAcronym(comic.Condition);
+            const type = getTypeAbbreviation(comic.Type, comic.Title);
+            const price = parseFloat(comic.Price || 0).toFixed(2);
+
+            // Calculate sizes based on user preference (microCardSizePercent)
+            // Base sizes at 100%: width=200px, imgHeight=280px (same as browse page cards)
+            const scaleFactor = microCardSizePercent / 100;
+            const cardWidth = Math.round(200 * scaleFactor);
+            const imgHeight = Math.round(280 * scaleFactor);
+            const borderRadius = (4 * scaleFactor).toFixed(1);
+            const padding = (8 * scaleFactor).toFixed(1);
+            const badgeTop = (8 * scaleFactor).toFixed(1);
+            const badgeRight = (8 * scaleFactor).toFixed(1);
+            const badgePadding = (4 * scaleFactor).toFixed(1);
+            const badgeFontSize = (11 * scaleFactor).toFixed(1);
+            const titleFontSize = (14 * scaleFactor).toFixed(1);
+            const titleHeight = (32 * scaleFactor).toFixed(1);
+            const conditionFontSize = (12 * scaleFactor).toFixed(1);
+            const priceFontSize = (14 * scaleFactor).toFixed(1);
+            const skuFontSize = (11 * scaleFactor).toFixed(1);
+            const marginBottom = (4 * scaleFactor).toFixed(1);
+            const checkmarkSize = Math.round(40 * scaleFactor);
+
+            // Truncate title based on card size
+            const maxTitleChars = Math.max(10, Math.round(40 * scaleFactor));
+            let displayTitle = comic.Title || 'Untitled';
+            if (displayTitle.length > maxTitleChars) {
+                displayTitle = displayTitle.substring(0, maxTitleChars - 3) + '...';
+            }
+
+            cardEl.style.cssText = `
+                background: #1A1A1A;
+                border: 1px solid #3A3A3A;
+                border-radius: ${borderRadius}px;
+                overflow: hidden;
+                cursor: pointer;
+                transition: all 0.2s;
+                position: relative;
+                width: 100%;
+                max-width: ${cardWidth}px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            `;
+
+            // Determine the best image URL to use
+            let imgSrc = thumbnailUrl || imageUrl;
+            let imgFallback = imageUrl || thumbnailUrl;
+
+            // If no images available, use a data URI placeholder
+            if (!imgSrc) {
+                const placeholderText = scaleFactor < 0.5 ? 'No' : 'No Image';
+                imgSrc = `data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="${cardWidth}" height="${imgHeight}" viewBox="0 0 ${cardWidth} ${imgHeight}"%3E%3Crect fill="%232A2A2A" width="${cardWidth}" height="${imgHeight}"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="${Math.max(5, titleFontSize)}" fill="%239A9A9A" text-anchor="middle" dominant-baseline="middle"%3E${placeholderText}%3C/text%3E%3C/svg%3E`;
+                imgFallback = imgSrc;
+            }
+
+            cardEl.innerHTML = `
+                <div style="position: relative;">
+                    <img src="${imgSrc}"
+                         onerror="this.onerror=null; this.src='${imgFallback}';"
+                         alt="${(comic.Title || 'Comic').replace(/"/g, '&quot;')}"
+                         loading="lazy"
+                         style="width: 100%; height: ${imgHeight}px; object-fit: cover; background: #2A2A2A; display: block;">
+                    <div class="selection-overlay" style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: ${overlayColor};
+                        display: none;
+                        align-items: center;
+                        justify-content: center;
+                        pointer-events: none;
+                    ">
+                        <svg width="${checkmarkSize}" height="${checkmarkSize}" viewBox="0 0 24 24" fill="none" stroke="${borderColor}" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div style="position: absolute; top: ${badgeTop}px; right: ${badgeRight}px; background: rgba(0, 0, 0, 0.85); color: #FFE500; padding: ${badgePadding}px; border-radius: ${borderRadius * 0.5}px; font-size: ${badgeFontSize}px; font-weight: 700; letter-spacing: 0.1px; text-transform: uppercase;">
+                        ${type}
+                    </div>
+                </div>
+                <div style="padding: ${padding}px;">
+                    <div style="color: #FFFFFF; font-size: ${titleFontSize}px; font-weight: 600; margin-bottom: ${marginBottom}px; line-height: 1.1; height: ${titleHeight}px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(comic.Title || 'Untitled').replace(/"/g, '&quot;')}">
+                        ${displayTitle}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${marginBottom}px;">
+                        <span style="color: #9A9A9A; font-size: ${conditionFontSize}px; font-weight: 500;">${condition}</span>
+                        <span style="color: #FFE500; font-weight: 700; font-size: ${priceFontSize}px;">$${price}</span>
+                    </div>
+                    <div style="font-size: ${skuFontSize}px; color: #6A6A6A; font-weight: 500; margin-top: ${marginBottom}px;">SKU: ${comic.SKU}</div>
+                </div>
+            `;
+
+            return cardEl;
+        }
+
+        /**
+         * Populates a container with micro cards filtered and styled per configuration
+         * This is the main entry point for rendering the micro card browser
+         *
+         * @param {Object} config - Configuration object
+         * @param {string} config.containerId - ID of container element
+         * @param {string} config.countElementId - ID of element showing total count
+         * @param {string} config.selectedCountElementId - ID of element showing selected count
+         * @param {Function} config.filterFunction - Filter function for comics array
+         * @param {string} config.borderColor - Border color for selected cards
+         * @param {string} config.overlayColor - Overlay color for selected state
+         * @param {string} config.cssClass - Additional CSS class for cards
+         * @param {Array} config.comicsArray - Comics data array (defaults to allComics)
+         */
+        function populateMiniCardBrowser(config) {
+            const {
+                containerId,
+                countElementId,
+                selectedCountElementId,
+                filterFunction,
+                borderColor,
+                overlayColor,
+                cssClass,
+                comicsArray = allComics  // Default to allComics if not provided
+            } = config;
+
+            const container = document.getElementById(containerId);
+            const allCountEl = document.getElementById(countElementId);
+            const selectedCountEl = document.getElementById(selectedCountElementId);
+            container.innerHTML = '';
+            bulkSelectedItems = [];
+
+            if (selectedCountEl) {
+                selectedCountEl.textContent = '0';
+            }
+
+            // Update container grid based on current microCardSizePercent
+            // Base card width at 100% is 200px (same as browse page normal cards)
+            const scaleFactor = microCardSizePercent / 100;
+            const cardWidth = Math.round(200 * scaleFactor);
+            container.style.gridTemplateColumns = `repeat(auto-fill, minmax(${cardWidth}px, 1fr))`;
+
+            const filteredComics = comicsArray.filter(filterFunction);
+
+            allCountEl.textContent = `${filteredComics.length} items`;
+
+            filteredComics.forEach(comic => {
+                const cardEl = createMiniComicCard(comic, borderColor, overlayColor);
+                cardEl.className = `${cssClass} bulk-selection-card`;
+
+                // Click handler to toggle selection
+                cardEl.addEventListener('click', () => {
+                    const isSelected = cardEl.dataset.selected === 'true';
+                    cardEl.dataset.selected = !isSelected ? 'true' : 'false';
+
+                    const overlay = cardEl.querySelector('.selection-overlay');
+                    if (!isSelected) {
+                        cardEl.style.borderColor = borderColor;
+                        overlay.style.display = 'flex';
+                        if (!bulkSelectedItems.includes(comic.SKU)) {
+                            bulkSelectedItems.push(comic.SKU);
+                        }
+                    } else {
+                        cardEl.style.borderColor = '#3A3A3A';
+                        overlay.style.display = 'none';
+                        bulkSelectedItems = bulkSelectedItems.filter(sku => sku !== comic.SKU);
+                    }
+
+                    if (selectedCountEl) {
+                        selectedCountEl.textContent = bulkSelectedItems.length;
+                    }
+                });
+
+                // Hover effects
+                cardEl.addEventListener('mouseenter', () => {
+                    if (cardEl.dataset.selected !== 'true') {
+                        cardEl.style.borderColor = '#5A5A5A';
+                        cardEl.style.transform = 'translateY(-2px)';
+                    }
+                });
+
+                cardEl.addEventListener('mouseleave', () => {
+                    if (cardEl.dataset.selected !== 'true') {
+                        cardEl.style.borderColor = '#3A3A3A';
+                        cardEl.style.transform = 'translateY(0)';
+                    }
+                });
+
+                container.appendChild(cardEl);
+            });
+        }
+
+
+        async function showBulkWhatNotAction(action) {
+            bulkCurrentAction = action;
+            bulkCurrentPlatform = 'whatnot';
+
+            // Hide management modal but keep it in the stack
+            document.getElementById('bulkWhatNotModal').style.display = 'none';
+
+            // Update UI based on action
+            const titleEl = document.getElementById('bulkWhatNotSelectionTitle');
+            const allLabelEl = document.getElementById('whatnotAllLabel');
+
+            if (action === 'add') {
+                titleEl.textContent = 'Bulk Add to WhatNot';
+                allLabelEl.textContent = 'All Unlisted Items';
+            } else {
+                titleEl.textContent = 'Bulk Remove from WhatNot';
+                allLabelEl.textContent = 'All Listed Items';
+            }
+
+            document.getElementById('bulkWhatNotSelectionModal').style.display = 'flex';
+            pushModalToStack('bulkWhatNotSelectionModal', closeBulkWhatNotSelectionModal);
+
+            // Reset UI state - hide controls and item list until user selects an option
+            document.getElementById('bulkWhatNotControlsBar').style.display = 'none';
+            document.getElementById('bulkWhatNotItemList').style.display = 'none';
+
+            // Load fresh data from the server for the specific filter
+            const isRemoveAction = action === 'remove';
+            const listingType = isRemoveAction ? 'WhatNot' : 'Not Listed';
+            const subfilter = isRemoveAction ? '' : 'whatnot'; // For "add", get items not on WhatNot
+
+            try {
+                let url = `/api/comics?per_page=1000&listing_type=${encodeURIComponent(listingType)}`;
+                if (!isRemoveAction) {
+                    url += `&not_listed_subfilter=${subfilter}`;
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success && result.comics) {
+                    // Temporarily store these comics for the bulk action
+                    window.bulkActionComics = result.comics;
+                    document.getElementById('whatnotAllCount').textContent = `${result.comics.length} items`;
+                } else {
+                    throw new Error('Failed to load comics');
+                }
+            } catch (error) {
+                console.error('Error loading comics for bulk action:', error);
+                alert('Failed to load comics. Please try again.');
+                closeBulkWhatNotSelectionModal();
+            }
+        }
+
+        function populateWhatNotItems(listedOnly) {
+            const comicsToUse = window.bulkActionComics || allComics;
+
+            populateMiniCardBrowser({
+                containerId: 'whatnotItemsContainer',
+                countElementId: 'whatnotAllCount',
+                selectedCountElementId: 'whatnotSelectedCount',
+                comicsArray: comicsToUse,
+                filterFunction: (comic) => {
+                    // If using pre-filtered data from API, don't filter again
+                    if (window.bulkActionComics) {
+                        return true;
+                    }
+
+                    // Fallback filtering if using allComics
+                    const whatnotId = comic['WhatNot Item ID'] || '';
+                    const isListed = whatnotId.toUpperCase() === 'TRUE' || whatnotId === true || whatnotId === 'true';
+
+                    return listedOnly ? isListed : !isListed;
+                },
+                borderColor: '#FF00FF',
+                overlayColor: 'rgba(255, 0, 255, 0.3)',
+                cssClass: 'whatnot-bulk-item'
+            });
+        }
+
+        function selectWhatNotOption(option) {
+            const comicsToUse = window.bulkActionComics || allComics;
+
+            if (option === 'all') {
+                // If using pre-filtered data from API, use all of it
+                if (window.bulkActionComics) {
+                    bulkSelectedItems = comicsToUse.map(comic => comic.SKU);
+                } else {
+                    // Fallback: filter from allComics
+                    const isRemoveAction = bulkCurrentAction === 'remove';
+                    bulkSelectedItems = comicsToUse
+                        .filter(comic => {
+                            const isListed = (comic['WhatNot Item ID'] || '').toUpperCase() === 'TRUE';
+                            return isRemoveAction ? isListed : !isListed;
+                        })
+                        .map(comic => comic.SKU);
+                }
+
+                showBulkConfirmation();
+            } else {
+                // Show controls bar and item selection list, then populate cards
+                document.getElementById('bulkWhatNotControlsBar').style.display = 'block';
+                document.getElementById('bulkWhatNotItemList').style.display = 'block';
+                populateWhatNotItems(bulkCurrentAction === 'remove');
+            }
+        }
+
+        function filterWhatNotItems(searchTerm) {
+            const items = document.querySelectorAll('.whatnot-bulk-item');
+            const term = searchTerm.toLowerCase();
+
+            items.forEach(item => {
+                const title = item.dataset.title || '';
+                const sku = item.dataset.sku.toLowerCase();
+                const matchesSearch = title.includes(term) || sku.includes(term);
+                item.style.display = matchesSearch ? 'block' : 'none';
+            });
+        }
+
+        function toggleAllWhatNotItems() {
+            const items = document.querySelectorAll('.whatnot-bulk-item');
+            const selectedCountEl = document.getElementById('whatnotSelectedCount');
+            const allSelected = Array.from(items).every(item => item.dataset.selected === 'true' && item.style.display !== 'none');
+
+            items.forEach(item => {
+                // Only toggle visible items
+                if (item.style.display !== 'none') {
+                    const overlay = item.querySelector('.selection-overlay');
+                    const sku = item.dataset.sku;
+
+                    if (allSelected) {
+                        // Deselect all
+                        item.dataset.selected = 'false';
+                        item.style.borderColor = '#3A3A3A';
+                        overlay.style.display = 'none';
+                        bulkSelectedItems = bulkSelectedItems.filter(s => s !== sku);
+                    } else {
+                        // Select all
+                        item.dataset.selected = 'true';
+                        item.style.borderColor = '#FF00FF';
+                        overlay.style.display = 'flex';
+                        if (!bulkSelectedItems.includes(sku)) {
+                            bulkSelectedItems.push(sku);
+                        }
+                    }
+                }
+            });
+
+            if (selectedCountEl) {
+                selectedCountEl.textContent = bulkSelectedItems.length;
+            }
+        }
+
+        function proceedWithWhatNotSelection() {
+            if (bulkSelectedItems.length === 0) {
+                alert('Please select at least one item.');
+                return;
+            }
+            showBulkConfirmation();
+        }
+
+        function closeBulkWhatNotSelectionModal() {
+            document.getElementById('bulkWhatNotSelectionModal').style.display = 'none';
+            document.getElementById('bulkWhatNotControlsBar').style.display = 'none';
+            document.getElementById('bulkWhatNotItemList').style.display = 'none';
+            popModalFromStack('bulkWhatNotSelectionModal');
+
+            // Re-show the management modal
+            document.getElementById('bulkWhatNotModal').style.display = 'flex';
+        }
+
+        function closeBulkWhatNotSelectionModalOnOutside(event) {
+            if (event.target.id === 'bulkWhatNotSelectionModal') {
+                closeBulkWhatNotSelectionModal();
+            }
+        }
+
+        // ------------------------------------------------------------------------
+        // eBay Bulk Management Functions
+        // ------------------------------------------------------------------------
+        // Handles bulk operations for eBay platform:
+        // - Bulk list (add new listings)
+        // - Bulk update (modify existing listings)
+        // - Bulk end (terminate active listings)
+        // - Bulk unlink (remove eBay IDs)
+        // Includes filtering to exclude WhatNot Giveaway items from eBay operations
+        // ------------------------------------------------------------------------
+
+        function openBulkEbayModal() {
+            document.getElementById('bulkEbayModal').style.display = 'flex';
+            pushModalToStack('bulkEbayModal', closeBulkEbayModal);
+        }
+
+        function closeBulkEbayModal() {
+            document.getElementById('bulkEbayModal').style.display = 'none';
+            popModalFromStack('bulkEbayModal');
+        }
+
+        function closeBulkEbayModalOnOutside(event) {
+            if (event.target.id === 'bulkEbayModal') {
+                closeBulkEbayModal();
+            }
+        }
+
+        async function showBulkEbayAction(action) {
+            bulkCurrentAction = action;
+            bulkCurrentPlatform = 'ebay';
+
+            // Hide management modal but keep it in the stack
+            document.getElementById('bulkEbayModal').style.display = 'none';
+
+            // Update UI based on action
+            const titleEl = document.getElementById('bulkEbaySelectionTitle');
+            const allLabelEl = document.getElementById('ebayAllLabel');
+
+            if (action === 'add') {
+                titleEl.textContent = 'Bulk List on eBay';
+                allLabelEl.textContent = 'All Unlisted Items';
+            } else if (action === 'update') {
+                titleEl.textContent = 'Bulk Update eBay Listings';
+                allLabelEl.textContent = 'All Listed Items';
+            } else if (action === 'unlink') {
+                titleEl.textContent = 'Bulk Unlink eBay IDs';
+                allLabelEl.textContent = 'All Items with eBay IDs';
+            } else {
+                titleEl.textContent = 'Bulk End eBay Listings';
+                allLabelEl.textContent = 'All Listed Items';
+            }
+
+            document.getElementById('bulkEbaySelectionModal').style.display = 'flex';
+            pushModalToStack('bulkEbaySelectionModal', closeBulkEbaySelectionModal);
+
+            // Reset UI state - hide controls and item list until user selects an option
+            document.getElementById('bulkEbayControlsBar').style.display = 'none';
+            document.getElementById('bulkEbayItemList').style.display = 'none';
+
+            // Load fresh data from the server for the specific filter
+            try {
+                let url;
+                if (action === 'add') {
+                    // Get items not listed on eBay
+                    url = `/api/comics?per_page=1000&listing_type=Not%20Listed&not_listed_subfilter=ebay`;
+                } else {
+                    // Get items listed on eBay (for update, remove, unlink)
+                    url = `/api/comics?per_page=1000&listing_type=For%20Sale%20eBay`;
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success && result.comics) {
+                    // Temporarily store these comics for the bulk action
+                    window.bulkActionComics = result.comics;
+                    document.getElementById('ebayAllCount').textContent = `${result.comics.length} items`;
+                } else {
+                    throw new Error('Failed to load comics');
+                }
+            } catch (error) {
+                console.error('Error loading comics for bulk action:', error);
+                alert('Failed to load comics. Please try again.');
+                closeBulkEbaySelectionModal();
+            }
+        }
+
+        function populateEbayItems() {
+            const comicsToUse = window.bulkActionComics || allComics;
+
+            populateMiniCardBrowser({
+                containerId: 'ebayItemsContainer',
+                countElementId: 'ebayAllCount',
+                selectedCountElementId: 'ebaySelectedCount',
+                comicsArray: comicsToUse,
+                filterFunction: (comic) => {
+                    // If using pre-filtered data from API, don't filter again
+                    if (window.bulkActionComics) {
+                        return true;
+                    }
+
+                    // Fallback filtering if using allComics
+                    // Exclude WhatNot Giveaway items from eBay operations
+                    const listingType = comic['Listing Type'] || '';
+                    if (listingType === 'Giveaway') {
+                        return false;
+                    }
+
+                    const ebayItemId = comic['eBay Item ID'] || '';
+                    const hasEbayId = ebayItemId && ebayItemId !== '';
+
+                    if (bulkCurrentAction === 'add') {
+                        return !hasEbayId;
+                    } else if (bulkCurrentAction === 'update' || bulkCurrentAction === 'remove' || bulkCurrentAction === 'unlink') {
+                        return hasEbayId;
+                    }
+                    return false;
+                },
+                borderColor: '#FFE500',
+                overlayColor: 'rgba(255, 229, 0, 0.3)',
+                cssClass: 'ebay-bulk-item'
+            });
+        }
+
+        function selectEbayOption(option) {
+            const comicsToUse = window.bulkActionComics || allComics;
+
+            if (option === 'all') {
+                // If using pre-filtered data from API, use all of it
+                if (window.bulkActionComics) {
+                    bulkSelectedItems = comicsToUse.map(comic => comic.SKU);
+                } else {
+                    // Fallback: filter from allComics
+                    bulkSelectedItems = comicsToUse
+                        .filter(comic => {
+                            // Exclude Giveaway items (titles starting with G- or G - ) from eBay operations
+                            const title = (comic.Title || '').toUpperCase();
+                            const isGiveaway = title.startsWith('G-') || title.startsWith('G -');
+                            if (isGiveaway) {
+                                return false;
+                            }
+
+                            const ebayItemId = comic['eBay Item ID'] || '';
+                            const hasEbayId = ebayItemId && ebayItemId !== '';
+
+                            if (bulkCurrentAction === 'add') {
+                                return !hasEbayId;
+                            } else if (bulkCurrentAction === 'update' || bulkCurrentAction === 'remove' || bulkCurrentAction === 'unlink') {
+                                return hasEbayId;
+                            }
+                            return false;
+                        })
+                        .map(comic => comic.SKU);
+                }
+
+                showBulkConfirmation();
+            } else {
+                // Show controls bar and item selection list, then populate cards
+                document.getElementById('bulkEbayControlsBar').style.display = 'block';
+                document.getElementById('bulkEbayItemList').style.display = 'block';
+                populateEbayItems();
+            }
+        }
+
+        function filterEbayItems(searchTerm) {
+            const items = document.querySelectorAll('.ebay-bulk-item');
+            const term = searchTerm.toLowerCase();
+
+            items.forEach(item => {
+                const title = item.dataset.title || '';
+                const sku = item.dataset.sku.toLowerCase();
+                const matchesSearch = title.includes(term) || sku.includes(term);
+                item.style.display = matchesSearch ? 'block' : 'none';
+            });
+        }
+
+        function toggleAllEbayItems() {
+            const items = document.querySelectorAll('.ebay-bulk-item');
+            const selectedCountEl = document.getElementById('ebaySelectedCount');
+            const allSelected = Array.from(items).every(item => item.dataset.selected === 'true' && item.style.display !== 'none');
+
+            items.forEach(item => {
+                // Only toggle visible items
+                if (item.style.display !== 'none') {
+                    const overlay = item.querySelector('.selection-overlay');
+                    const sku = item.dataset.sku;
+
+                    if (allSelected) {
+                        // Deselect all
+                        item.dataset.selected = 'false';
+                        item.style.borderColor = '#3A3A3A';
+                        overlay.style.display = 'none';
+                        bulkSelectedItems = bulkSelectedItems.filter(s => s !== sku);
+                    } else {
+                        // Select all
+                        item.dataset.selected = 'true';
+                        item.style.borderColor = '#FFE500';
+                        overlay.style.display = 'flex';
+                        if (!bulkSelectedItems.includes(sku)) {
+                            bulkSelectedItems.push(sku);
+                        }
+                    }
+                }
+            });
+
+            if (selectedCountEl) {
+                selectedCountEl.textContent = bulkSelectedItems.length;
+            }
+        }
+
+        function proceedWithEbaySelection() {
+            if (bulkSelectedItems.length === 0) {
+                alert('Please select at least one item.');
+                return;
+            }
+            showBulkConfirmation();
+        }
+
+        function closeBulkEbaySelectionModal() {
+            document.getElementById('bulkEbaySelectionModal').style.display = 'none';
+            document.getElementById('bulkEbayControlsBar').style.display = 'none';
+            document.getElementById('bulkEbayItemList').style.display = 'none';
+            popModalFromStack('bulkEbaySelectionModal');
+
+            // Re-show the management modal
+            document.getElementById('bulkEbayModal').style.display = 'flex';
+        }
+
+        function closeBulkEbaySelectionModalOnOutside(event) {
+            if (event.target.id === 'bulkEbaySelectionModal') {
+                closeBulkEbaySelectionModal();
+            }
+        }
+
+        // Shared Functions
+        function showBulkConfirmation() {
+            // bulkSelectedItems is already populated by the mini card browser or "All" button
+            // No need to get selected items from checkboxes
+
+            if (bulkSelectedItems.length === 0) {
+                alert('Please select at least one item.');
+                return;
+            }
+
+            // Hide selection modals but keep them in the stack
+            const whatNotSelectionModal = document.getElementById('bulkWhatNotSelectionModal');
+            const ebaySelectionModal = document.getElementById('bulkEbaySelectionModal');
+
+            if (whatNotSelectionModal.style.display === 'flex') {
+                whatNotSelectionModal.style.display = 'none';
+            }
+            if (ebaySelectionModal.style.display === 'flex') {
+                ebaySelectionModal.style.display = 'none';
+            }
+
+            // Show confirmation modal
+            const titleEl = document.getElementById('bulkConfirmTitle');
+            const messageEl = document.getElementById('bulkConfirmMessage');
+            const confirmBtn = document.getElementById('bulkConfirmButton');
+
+            let actionText = '';
+            let warningText = '';
+
+            if (bulkCurrentPlatform === 'whatnot') {
+                if (bulkCurrentAction === 'add') {
+                    actionText = `List ${bulkSelectedItems.length} item(s) on WhatNot`;
+                    confirmBtn.textContent = 'List Items';
+                    confirmBtn.style.background = '#FF00FF';
+                    confirmBtn.style.color = '#FFF';
+                } else {
+                    actionText = `Remove ${bulkSelectedItems.length} item(s) from WhatNot`;
+                    warningText = 'This will mark these items as unlisted.';
+                    confirmBtn.textContent = 'Remove Items';
+                    confirmBtn.style.background = '#ff6b6b';
+                    confirmBtn.style.color = '#FFF';
+                }
+            } else if (bulkCurrentPlatform === 'ebay') {
+                if (bulkCurrentAction === 'add') {
+                    actionText = `List ${bulkSelectedItems.length} item(s) on eBay`;
+                    warningText = 'This will create new eBay listings with your default settings.';
+                    confirmBtn.textContent = 'List on eBay';
+                    confirmBtn.style.background = '#FFE500';
+                    confirmBtn.style.color = '#1A1A1A';
+                } else if (bulkCurrentAction === 'update') {
+                    actionText = `Update ${bulkSelectedItems.length} eBay listing(s)`;
+                    warningText = 'This will push current price and description changes to eBay.';
+                    confirmBtn.textContent = 'Update Listings';
+                    confirmBtn.style.background = '#4AE5FF';
+                    confirmBtn.style.color = '#0A0A0A';
+                } else if (bulkCurrentAction === 'unlink') {
+                    actionText = `Unlink ${bulkSelectedItems.length} eBay item ID(s)`;
+                    warningText = 'This will remove eBay item IDs from your database. The listings will remain active on eBay.';
+                    confirmBtn.textContent = 'Unlink IDs';
+                    confirmBtn.style.background = '#FFA500';
+                    confirmBtn.style.color = '#1A1A1A';
+                } else {
+                    actionText = `End ${bulkSelectedItems.length} eBay listing(s)`;
+                    warningText = 'This will terminate these listings on eBay.';
+                    confirmBtn.textContent = 'End Listings';
+                    confirmBtn.style.background = '#ff6b6b';
+                    confirmBtn.style.color = '#FFF';
+                }
+            }
+
+            titleEl.textContent = 'Confirm Bulk Action';
+            messageEl.innerHTML = `
+                <strong>${actionText}</strong><br><br>
+                ${warningText}<br><br>
+                <span style="color: #9A9A9A; font-size: 13px;">This action cannot be undone. Are you sure you want to proceed?</span>
+            `;
+
+            document.getElementById('bulkConfirmModal').style.display = 'flex';
+            pushModalToStack('bulkConfirmModal', closeBulkConfirmModal);
+        }
+
+        function closeBulkConfirmModal() {
+            document.getElementById('bulkConfirmModal').style.display = 'none';
+            popModalFromStack('bulkConfirmModal');
+
+            // Re-show the appropriate selection modal based on platform
+            if (bulkCurrentPlatform === 'whatnot') {
+                document.getElementById('bulkWhatNotSelectionModal').style.display = 'flex';
+            } else if (bulkCurrentPlatform === 'ebay') {
+                document.getElementById('bulkEbaySelectionModal').style.display = 'flex';
+            }
+        }
+
+        function closeBulkConfirmModalOnOutside(event) {
+            if (event.target.id === 'bulkConfirmModal') {
+                closeBulkConfirmModal();
+            }
+        }
+
+        // Execute the bulk action
+        async function executeBulkAction() {
+            closeBulkConfirmModal();
+
+            // Show progress notification
+            const progressNotification = document.createElement('div');
+            progressNotification.id = 'bulkProgressNotification';
+            progressNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #1A1A1A; border: 2px solid #FFE500; border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);';
+            progressNotification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="spinner" style="width: 20px; height: 20px; border: 2px solid #3A3A3A; border-top-color: #FFE500; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                    <div>
+                        <div style="color: #FFE500; font-weight: 600; margin-bottom: 4px;">Processing...</div>
+                        <div id="bulkProgressText" style="color: #9A9A9A; font-size: 13px;">0 of ${bulkSelectedItems.length} items</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(progressNotification);
+
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            // Process each item
+            for (let i = 0; i < bulkSelectedItems.length; i++) {
+                const sku = bulkSelectedItems[i];
+                const progressText = document.getElementById('bulkProgressText');
+                if (progressText) {
+                    progressText.textContent = `${i + 1} of ${bulkSelectedItems.length} items`;
+                }
+
+                try {
+                    let endpoint = '';
+                    let method = 'POST';
+                    let body = {};
+
+                    if (bulkCurrentPlatform === 'whatnot') {
+                        endpoint = `/api/comic/${sku}/whatnot/status`;
+                        method = 'POST';
+                        body = {
+                            'is_listed': bulkCurrentAction === 'add'
+                        };
+                    } else if (bulkCurrentPlatform === 'ebay') {
+                        if (bulkCurrentAction === 'add') {
+                            endpoint = `/api/comic/${sku}/ebay/list`;
+                        } else if (bulkCurrentAction === 'update') {
+                            endpoint = `/api/comic/${sku}/ebay/update`;
+                        } else if (bulkCurrentAction === 'remove') {
+                            endpoint = `/api/comic/${sku}/ebay/end`;
+                        } else if (bulkCurrentAction === 'unlink') {
+                            endpoint = `/api/comic/${sku}/ebay/item-id`;
+                            body = {
+                                'ebay_item_id': ''
+                            };
+                        }
+                    }
+
+                    const response = await fetch(endpoint, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': window.csrfToken || ''
+                        },
+                        body: JSON.stringify(body)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push({ sku, error: result.error || 'Unknown error' });
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push({ sku, error: error.message });
+                }
+
+                // Small delay between requests to avoid overwhelming the server
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Remove progress notification
+            const notification = document.getElementById('bulkProgressNotification');
+            if (notification) {
+                notification.remove();
+            }
+
+            // Show result
+            const resultColor = errorCount === 0 ? '#4FF3AE' : (successCount > 0 ? '#FFE500' : '#ff6b6b');
+            const resultNotification = document.createElement('div');
+            resultNotification.style.cssText = `position: fixed; top: 20px; right: 20px; background: #1A1A1A; border: 2px solid ${resultColor}; border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);`;
+            resultNotification.innerHTML = `
+                <div style="color: ${resultColor}; font-weight: 600; margin-bottom: 8px;">
+                    ${errorCount === 0 ? '✓ Success!' : (successCount > 0 ? '⚠ Partially Complete' : '✗ Failed')}
+                </div>
+                <div style="color: #E5E5E5; font-size: 14px;">
+                    ${successCount} succeeded, ${errorCount} failed
+                </div>
+                ${errors.length > 0 && errors.length <= 5 ? `<div style="color: #9A9A9A; font-size: 12px; margin-top: 8px;">Failed: ${errors.map(e => e.sku).join(', ')}</div>` : ''}
+            `;
+            document.body.appendChild(resultNotification);
+
+            setTimeout(() => {
+                resultNotification.remove();
+                // Reload page to reflect changes
+                window.location.reload();
+            }, 3000);
+        }
+
+        // Add CSS for spinner animation
+        const style = document.createElement('style');
+        style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+
+        // ========== END BULK MANAGEMENT FUNCTIONS ==========
+
+        // Listing Type Filter Function
+        function filterByListingType(type) {
+            const previousFilter = currentListingTypeFilter;
+            currentListingTypeFilter = type;
+
+            // Save filter to localStorage for persistence
+            localStorage.setItem('listingTypeFilter', type);
+
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.style.borderBottomColor = 'transparent';
+                tab.style.color = '#9A9A9A';
+                tab.classList.remove('active');
+            });
+
+            const activeTab = type === 'all' ? document.getElementById('filterAll') :
+                             type === 'Not Listed' ? document.getElementById('filterNotListed') :
+                             type === 'For Sale eBay' ? document.getElementById('filterForSaleEbay') :
+                             type === 'WhatNot' ? document.getElementById('filterWhatNot') :
+                             document.getElementById('filterGiveaway');
+
+            if (activeTab) {
+                activeTab.style.borderBottomColor = '#FFE500';
+                activeTab.style.color = '#FFE500';
+                activeTab.classList.add('active');
+            }
+
+            // Show/hide "Not Listed" sub-filters
+            const subFiltersContainer = document.getElementById('notListedSubFilters');
+            if (type === 'Not Listed') {
+                subFiltersContainer.style.display = 'block';
+                // Only reset to "both" if we're SWITCHING to "Not Listed" from a different filter
+                if (previousFilter !== 'Not Listed') {
+                    notListedSubFilter = 'both';
+                }
+                updateNotListedSubFilterUI();
+            } else {
+                subFiltersContainer.style.display = 'none';
+            }
+
+            // Show/hide bulk management buttons
+            toggleBulkButtons(type);
+
+            // Reset pagination and reload comics with filter
+            currentPage = 1;
+            maxLoadedPage = 1;
+            allComics = [];
+
+            // Clear existing load more button
+            document.getElementById('loadMoreContainer').innerHTML = '';
+
+            // Reload comics from page 1 with the current filter
+            loadComics(1, false);
+        }
+        window.filterByListingType = filterByListingType;
+
+        // Sub-filter function for "Not Listed"
+        function setNotListedSubFilter(subFilter) {
+            notListedSubFilter = subFilter;
+            updateNotListedSubFilterUI();
+
+            // Reload comics with new sub-filter
+            currentPage = 1;
+            maxLoadedPage = 1;
+            allComics = [];
+            document.getElementById('loadMoreContainer').innerHTML = '';
+            loadComics(1, false);
+        }
+        window.setNotListedSubFilter = setNotListedSubFilter;
+
+        // Update sub-filter button UI
+        function updateNotListedSubFilterUI() {
+            const buttons = {
+                'both': document.getElementById('subfilterBoth'),
+                'ebay': document.getElementById('subfilterEbayOnly'),
+                'whatnot': document.getElementById('subfilterWhatnotOnly')
+            };
+
+            // Reset all buttons
+            Object.values(buttons).forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.color = '#FFE500';
+                btn.style.border = '2px solid #FFE500';
+            });
+
+            // Set active button
+            const activeBtn = buttons[notListedSubFilter];
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                if (notListedSubFilter === 'both') {
+                    activeBtn.style.background = '#FFE500';
+                    activeBtn.style.color = '#1A1A1A';
+                    activeBtn.style.border = 'none';
+                } else if (notListedSubFilter === 'ebay') {
+                    activeBtn.style.background = '#FFE500';
+                    activeBtn.style.color = '#1A1A1A';
+                    activeBtn.style.border = 'none';
+                } else if (notListedSubFilter === 'whatnot') {
+                    activeBtn.style.background = '#FFE500';
+                    activeBtn.style.color = '#1A1A1A';
+                    activeBtn.style.border = 'none';
+                }
+            }
+        }
+
+        // Global ESC handler for export mode
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' || event.key === 'Esc') {
+                // Check if grading modal is open - let that handler deal with it
+                const gradingModal = document.getElementById('gradingModal');
+                if (gradingModal && gradingModal.style.display === 'flex') {
+                    return;
+                }
+
+                // Check if we're in export mode
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('mode') === 'export') {
+                    // Go back to landing page and trigger export modal
+                    window.location.href = '/?openExport=true';
+                    event.preventDefault();
+                }
+            }
+        });
+
+        // Working Inventory Table functionality
+
+        // ...existing code...
+
+        // Selection management functions
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('.comic-checkbox');
+            const checked = Array.from(checkboxes).filter(cb => cb.checked);
+            const count = checked.length;
+
+            // Determine current mode from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            const isDeleteMode = mode === 'delete';
+            const isExportMode = mode === 'export';
+            const isEbayMode = mode === 'ebay';
+
+            // Update UI based on selection
+            if (count > 0) {
+                document.getElementById('normalButtons').style.display = 'none';
+                document.getElementById('deleteButtons').style.display = 'flex';
+                document.getElementById('selectedCount').textContent = `${count} selected`;
+
+                // Reset all buttons first
+                document.getElementById('exportSelectedBtn').style.display = 'none';
+                document.getElementById('deleteSelectedBtn').style.display = 'none';
+                document.getElementById('bulkEditBtn').style.display = 'none';
+                toggleBulkEbayButtons(false);
+
+                // Show buttons based on mode
+                if (isDeleteMode) {
+                    // Delete mode: ONLY show Delete button
+                    document.getElementById('deleteSelectedBtn').style.display = 'inline-block';
+                    document.getElementById('cancelSelectionBtn').textContent = 'Exit Delete Mode';
+                } else if (isExportMode) {
+                    // Export mode: ONLY show Export button
+                    document.getElementById('exportSelectedBtn').style.display = 'inline-block';
+                    document.getElementById('cancelSelectionBtn').textContent = 'Exit Export Mode';
+                } else if (isEbayMode) {
+                    // eBay mode: ONLY show eBay buttons (no Bulk Edit)
+                    toggleBulkEbayButtons(true);
+                    document.getElementById('cancelSelectionBtn').textContent = 'Exit eBay Mode';
+                } else {
+                    // Normal mode: Show Bulk Edit and eBay buttons
+                    document.getElementById('bulkEditBtn').style.display = 'inline-block';
+                    toggleBulkEbayButtons(true);
+                    document.getElementById('cancelSelectionBtn').textContent = 'Cancel';
+                }
+            } else {
+                document.getElementById('normalButtons').style.display = 'flex';
+                document.getElementById('deleteButtons').style.display = 'none';
+                document.getElementById('exportSelectedBtn').style.display = 'none';
+                document.getElementById('deleteSelectedBtn').style.display = 'none';
+                document.getElementById('bulkEditBtn').style.display = 'none';
+
+                // Reset cancel button text
+                document.getElementById('cancelSelectionBtn').textContent = 'Cancel';
+
+                // Hide eBay bulk controls and clear status
+                toggleBulkEbayButtons(false);
+            }
+
+            // Update select all checkbox
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) {
+                selectAll.checked = count === checkboxes.length && count > 0;
+                selectAll.indeterminate = count > 0 && count < checkboxes.length;
+            }
+
+            // Update card visual states to match checkbox selection
+            checkboxes.forEach(cb => {
+                const card = document.querySelector(`.comic-card[data-sku="${cb.dataset.sku}"]`);
+                if (card) {
+                    if (cb.checked) {
+                        // In delete mode, use red highlighting
+                        if (isDeleteMode) {
+                            card.style.border = '2px solid #ff4444';
+                            card.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
+                            card.style.boxShadow = '0 0 12px rgba(255, 68, 68, 0.3)';
+                        } else {
+                            // Export and eBay modes: yellow highlighting
+                            card.style.border = '2px solid #FFE500';
+                            card.style.backgroundColor = 'rgba(255, 229, 0, 0.05)';
+                            card.style.boxShadow = '0 0 12px rgba(255, 229, 0, 0.2)';
+                        }
+                    } else {
+                        card.style.border = 'none';
+                        card.style.backgroundColor = '';
+                        card.style.boxShadow = '';
+                    }
+                }
+            });
+        }
+
+        async function exportSelected(platform = null) {
+            const btn = document.getElementById('exportSelectedBtn');
+
+            if (!btn) {
+                console.error('Export button not found in DOM');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('.comic-checkbox:checked');
+            const skus = Array.from(checkboxes).map(cb => cb.dataset.sku);
+
+            if (skus.length === 0) {
+                console.warn('No items selected for export');
+                if (window.showNotification) {
+                    window.showNotification('Please select at least one item to export', 'warning');
+                }
+                return;
+            }
+
+            if (btn.dataset.loading === 'true') {
+                return;
+            }
+
+            // Store original text OUTSIDE try block so it's accessible in finally
+            const originalText = btn.textContent;
+
+            // If no platform specified, determine it from URL or ask user
+            if (!platform) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const mode = urlParams.get('mode');
+                const platformParam = urlParams.get('platform');
+
+                // If we're in export mode with a platform parameter, use it
+                if (mode === 'export' && platformParam) {
+                    platform = platformParam;
+                } else {
+                    // Fallback: ask user which platform
+                    const platformChoice = confirm('Export for eBay? (Cancel for Whatnot)');
+                    platform = platformChoice ? 'ebay' : 'whatnot';
+                }
+            }
+
+            try {
+                btn.dataset.loading = 'true';
+                btn.style.opacity = '0.7';
+                btn.style.cursor = 'wait';
+                btn.textContent = 'Exporting...';
+
+                if (window.showNotification) {
+                    window.showNotification(`Preparing ${platform.toUpperCase()} export for ${skus.length} items...`, 'success');
+                }
+
+
+                const response = await fetch('/api/export-selected', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken || ''
+                    },
+                    body: JSON.stringify({
+                        skus: skus,
+                        platform: platform
+                    })
+                });
+
+
+                if (!response.ok) {
+                    let errorMsg = 'Failed to generate export';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.message || errorData.error || errorMsg;
+                        console.error('Server error response:', errorData);
+                    } catch (e) {
+                        // Response wasn't JSON, try text
+                        try {
+                            errorMsg = await response.text();
+                            console.error('Server error text:', errorMsg);
+                        } catch (e2) {
+                            errorMsg = `HTTP ${response.status} ${response.statusText}`;
+                        }
+                    }
+                    throw new Error(errorMsg);
+                }
+
+                const blob = await response.blob();
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${platform}_export_${skus.length}_items_${new Date().toISOString().slice(0, 10)}.csv`;
+
+
+                // Trigger download
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Wait a bit for the download to be accepted by the browser
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                window.URL.revokeObjectURL(url);
+
+                if (window.showNotification) {
+                    window.showNotification('✓ Export downloaded successfully', 'success');
+                }
+
+
+                // Return to list view after export completes
+                setTimeout(() => {
+                    window.location.href = '/browse';
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error exporting comics:', error);
+                console.error('Error stack:', error.stack);
+                if (window.showNotification) {
+                    window.showNotification(`Error: ${error.message}`, 'error');
+                } else {
+                    alert(`Export failed: ${error.message}`);
+                }
+            } finally {
+                btn.dataset.loading = 'false';
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.textContent = originalText;
+            }
+        }
+
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.comic-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+            updateSelection();
+        }
+
+        function cancelSelection() {
+            const checkboxes = document.querySelectorAll('.comic-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+
+            // Safely handle selectAllCheckbox - it may not exist on all pages
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+
+            updateSelection();
+            
+            // If in mode=delete or mode=export, exit it
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode')) {
+                window.location.href = '/browse';
+            }
+        }
+
+        // Bulk edit modal functions
+        function bulkEditSelected() {
+            const checkboxes = document.querySelectorAll('.comic-checkbox:checked');
+            const skus = Array.from(checkboxes).map(cb => cb.dataset.sku);
+
+            if (skus.length === 0) return;
+
+            document.getElementById('bulkEditCount').textContent = `(${skus.length} items)`;
+            document.getElementById('bulkEditModal').style.display = 'flex';
+            document.addEventListener('keydown', handleBulkEditModalEscape);
+        }
+
+        function closeBulkEditModal() {
+            document.getElementById('bulkEditModal').style.display = 'none';
+            document.removeEventListener('keydown', handleBulkEditModalEscape);
+            // Reset form
+            document.getElementById('bulkEditForm').reset();
+        }
+        window.closeBulkEditModal = closeBulkEditModal;
+
+        function closeBulkEditModalOnOutsideClick(event) {
+            if (event.target.id === 'bulkEditModal') {
+                closeBulkEditModal();
+            }
+        }
+
+        function handleBulkEditModalEscape(event) {
+            if (event.key === 'Escape') {
+                closeBulkEditModal();
+            }
+        }
+
+        // Bulk edit form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const bulkEditForm = document.getElementById('bulkEditForm');
+            if (bulkEditForm) {
+                bulkEditForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const checkboxes = document.querySelectorAll('.comic-checkbox:checked');
+                    const skus = Array.from(checkboxes).map(cb => cb.dataset.sku);
+
+                    if (skus.length === 0) {
+                        closeBulkEditModal();
+                        return;
+                    }
+
+                    const updates = {};
+                    const condition = document.getElementById('bulkCondition').value;
+                    const type = document.getElementById('bulkType').value;
+                    const price = document.getElementById('bulkPrice').value;
+
+                    if (condition) updates.Condition = condition;
+                    if (type) updates.Type = type;
+                    if (price) updates.Price = parseFloat(price);
+
+                    if (Object.keys(updates).length === 0) {
+                        alert('Please select at least one field to update');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/comics/bulk-update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': window.csrfToken
+                            },
+                            body: JSON.stringify({ skus: skus, updates: updates })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            if (window.showNotification) {
+                                window.showNotification(`✓ Successfully updated ${result.updated_count} item(s)`, 'success');
+                            }
+                            closeBulkEditModal();
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            throw new Error(result.error || 'Failed to update items');
+                        }
+                    } catch (error) {
+                        console.error('Error updating items:', error);
+                        if (window.showNotification) {
+                            window.showNotification(`Error: ${error.message}`, 'error');
+                        }
+                    }
+                });
+            }
+        });
+
+        // Track pending bulk delete action
+        let pendingBulkDelete = {
+            skus: []
+        };
+
+        async function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.comic-checkbox:checked');
+            const skus = Array.from(checkboxes).map(cb => cb.dataset.sku);
+
+            if (skus.length === 0) return;
+
+            pendingBulkDelete.skus = skus;
+            showBulkDeleteConfirmModal(`Are you sure you want to delete ${skus.length} comic(s)?`);
+        }
+
+        function showBulkDeleteConfirmModal(message) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 500px; padding: 24px; color: #E5E5E5;">
+                    <h2 style="margin: 0 0 16px 0; color: #FFE500;">Confirm Action</h2>
+                    <p style="color: #E5E5E5; margin-bottom: 24px; line-height: 1.6;">${message}</p>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button onclick="cancelBulkDelete()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="confirmBulkDelete()" style="padding: 10px 24px; background: #FFE500; color: #0A0A0A; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Delete</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.id = 'bulk-delete-confirm-modal';
+
+            // Add keyboard support
+            document.addEventListener('keydown', handleBulkDeleteModalKeydown);
+        }
+
+        function handleBulkDeleteModalKeydown(event) {
+            const modal = document.getElementById('bulk-delete-confirm-modal');
+            if (!modal) {
+                document.removeEventListener('keydown', handleBulkDeleteModalKeydown);
+                return;
+            }
+
+            if (event.key === 'Escape') {
+                cancelBulkDelete();
+            }
+        }
+
+        function cancelBulkDelete() {
+            const modal = document.getElementById('bulk-delete-confirm-modal');
+            if (modal) modal.remove();
+            pendingBulkDelete.skus = [];
+            document.removeEventListener('keydown', handleBulkDeleteModalKeydown);
+        }
+
+        async function confirmBulkDelete() {
+            const modal = document.getElementById('bulk-delete-confirm-modal');
+            if (modal) modal.remove();
+            document.removeEventListener('keydown', handleBulkDeleteModalKeydown);
+
+            await executeBulkDelete();
+        }
+
+        async function executeBulkDelete() {
+            const skus = pendingBulkDelete.skus;
+            const btn = document.getElementById('deleteSelectedBtn');
+
+            try {
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+                btn.textContent = 'Deleting...';
+
+                const response = await fetch('/api/comics/delete-selected', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    },
+                    body: JSON.stringify({ skus: skus })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (window.showNotification) {
+                        window.showNotification(`✓ Successfully deleted ${result.deleted_count} comic(s)`, 'success');
+                    }
+                    // Small delay to let user see notification before reload
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(result.error || 'Failed to delete comics');
+                }
+
+            } catch (error) {
+                console.error('Error deleting comics:', error);
+                if (window.showNotification) {
+                    window.showNotification(`Error: ${error.message}`, 'error');
+                }
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.textContent = 'Delete';
+            }
+            pendingBulkDelete.skus = [];
+        }
+
+        // Bulk eBay actions
+        const BULK_EBAY_BUTTON_IDS = {
+            list: 'bulkEbayListBtn',
+            update: 'bulkEbayUpdateBtn',
+            end: 'bulkEbayEndBtn',
+            unlink: 'bulkEbayUnlinkBtn'
+        };
+
+        function toggleBulkEbayButtons(shouldShow) {
+            Object.values(BULK_EBAY_BUTTON_IDS).forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.style.display = shouldShow ? 'inline-block' : 'none';
+                }
+            });
+            if (!shouldShow) {
+                setBulkEbayStatus();
+            }
+        }
+
+        function setBulkEbayButtonsDisabled(disabled, activeAction) {
+            Object.entries(BULK_EBAY_BUTTON_IDS).forEach(([action, id]) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.disabled = disabled;
+                if (disabled && action === activeAction) {
+                    btn.dataset.originalLabel = btn.dataset.originalLabel || btn.textContent;
+                    btn.textContent = `${btn.dataset.originalLabel}…`;
+                    btn.style.opacity = '0.6';
+                } else if (!disabled && btn.dataset.originalLabel) {
+                    btn.textContent = btn.dataset.originalLabel;
+                    btn.style.opacity = '1';
+                    delete btn.dataset.originalLabel;
+                }
+            });
+        }
+
+        function setBulkEbayStatus(state, message) {
+            const status = document.getElementById('bulkEbayStatus');
+            if (!status) return;
+            if (!state) {
+                status.style.display = 'none';
+                status.textContent = '';
+                status.className = 'bulk-ebay-status';
+                return;
+            }
+            status.className = `bulk-ebay-status ${state}`;
+            status.textContent = message;
+            status.style.display = 'block';
+        }
+
+        function getEbayPayloadForAction(action) {
+            const prefs = window.userPreferences || {};
+            const environment = prefs.ebay_environment || 'production';
+            if (action === 'list') {
+                return {
+                    environment,
+                    listing_mode: prefs.ebay_listing_mode || 'list'
+                };
+            }
+            if (action === 'update') {
+                return { environment, mode: 'update' };
+            }
+            if (action === 'end') {
+                return { environment, reason: 'NotAvailable' };
+            }
+            return { environment };
+        }
+
+        async function handleBulkEbayAction(action) {
+            const checkboxes = document.querySelectorAll('.comic-checkbox:checked');
+            const skus = Array.from(checkboxes).map(cb => cb.dataset.sku);
+
+            if (skus.length === 0) return;
+
+            const statusMessagePresent = action === 'list'
+                ? 'Listing'
+                : action === 'update'
+                    ? 'Updating'
+                    : action === 'end'
+                        ? 'Ending'
+                        : 'Unlinking';
+
+            const statusMessagePast = action === 'list'
+                ? 'Listed'
+                : action === 'update'
+                    ? 'Updated'
+                    : action === 'end'
+                        ? 'Ended'
+                        : 'Unlinked';
+
+            setBulkEbayButtonsDisabled(true, action);
+            setBulkEbayStatus('loading', `${statusMessagePresent} ${skus.length} item(s) on eBay…`);
+
+            const payloadTemplate = getEbayPayloadForAction(action);
+            const endpointMap = {
+                list: sku => `/api/comic/${sku}/ebay/list`,
+                update: sku => `/api/comic/${sku}/ebay/update`,
+                end: sku => `/api/comic/${sku}/ebay/end`,
+                unlink: sku => `/api/comic/${sku}/ebay/unlink`
+            };
+
+            let successCount = 0;
+            let errorCount = 0;
+            const failedSkus = [];
+
+            for (const sku of skus) {
+                try {
+                    const response = await fetch(endpointMap[action](sku), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': window.csrfToken
+                        },
+                        body: JSON.stringify(payloadTemplate)
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        failedSkus.push(sku);
+                        console.error(`eBay ${action} failed for ${sku}:`, result.error);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    failedSkus.push(sku);
+                    console.error(`eBay ${action} exception for ${sku}:`, error);
+                }
+            }
+
+            if (successCount && !errorCount) {
+                setBulkEbayStatus('success', `✓ ${statusMessagePast} ${successCount} item(s) successfully.`);
+                setTimeout(() => location.reload(), 1500);
+            } else if (successCount && errorCount) {
+                const failedPreview = failedSkus.slice(0, 5).join(', ');
+                setBulkEbayStatus('error', `${statusMessagePast} ${successCount} item(s), ${errorCount} failed${failedPreview ? ` (SKUs: ${failedPreview}${failedSkus.length > 5 ? ', …' : ''})` : ''}. Fix and retry.`);
+                setBulkEbayButtonsDisabled(false);
+            } else {
+                setBulkEbayStatus('error', `All ${statusMessagePresent.toLowerCase()} requests failed. Please retry.`);
+                setBulkEbayButtonsDisabled(false);
+            }
+
+            toggleBulkEbayButtons(skus.length > 0);
+        }
+
+        // Save pagination state when leaving the page
+        window.addEventListener('beforeunload', () => {
+            console.log('Page unloading - saving pagination state');
+            savePaginationState();
+        });
+
+        // Also use pagehide as a more reliable backup
+        window.addEventListener('pagehide', () => {
+            console.log('Page hidden - saving pagination state');
+            savePaginationState();
+        });
+
+    </script>
+{% endblock %}
+ 

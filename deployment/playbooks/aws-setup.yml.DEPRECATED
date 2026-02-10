@@ -1,0 +1,173 @@
+---
+# AWS Infrastructure Setup Playbook
+# This playbook creates S3 bucket and IAM resources
+# Note: Lightsail instance creation must still be done manually
+# Usage: ansible-playbook -i inventories/production playbooks/aws-setup.yml --ask-vault-pass
+
+- name: Setup AWS Infrastructure for Comic Listing App
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/production/vars.yml
+    - ../group_vars/production/vault.yml
+
+  vars:
+    s3_bucket_name: "{{ vault_s3_bucket_name }}"
+    aws_region: "{{ vault_aws_region }}"
+    iam_user_name: "comic-app-s3-user"
+    iam_policy_name: "ComicAppS3Access"
+
+  tasks:
+    - name: Check if AWS CLI is installed
+      command: aws --version
+      register: aws_cli_check
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if AWS CLI is not installed
+      fail:
+        msg: "AWS CLI is not installed. Install with: pip install awscli"
+      when: aws_cli_check.rc != 0
+
+    - name: Check if boto3 is installed
+      pip:
+        name: boto3
+        state: present
+      delegate_to: localhost
+
+    - name: Create S3 bucket
+      amazon.aws.s3_bucket:
+        name: "{{ s3_bucket_name }}"
+        region: "{{ aws_region }}"
+        state: present
+        aws_access_key: "{{ vault_aws_access_key_id }}"
+        aws_secret_key: "{{ vault_aws_secret_access_key }}"
+        versioning: yes
+        encryption: AES256
+        public_access:
+          block_public_acls: false
+          ignore_public_acls: false
+          block_public_policy: false
+          restrict_public_buckets: false
+      register: s3_bucket_created
+
+    - name: Set S3 bucket policy for public read
+      amazon.aws.s3_bucket_policy:
+        bucket: "{{ s3_bucket_name }}"
+        policy: |
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Sid": "PublicReadGetObject",
+                      "Effect": "Allow",
+                      "Principal": "*",
+                      "Action": "s3:GetObject",
+                      "Resource": "arn:aws:s3:::{{ s3_bucket_name }}/*"
+                  }
+              ]
+          }
+        aws_access_key: "{{ vault_aws_access_key_id }}"
+        aws_secret_key: "{{ vault_aws_secret_access_key }}"
+      when: s3_bucket_created is succeeded
+
+    - name: Configure S3 bucket CORS
+      amazon.aws.s3_cors:
+        name: "{{ s3_bucket_name }}"
+        region: "{{ aws_region }}"
+        aws_access_key: "{{ vault_aws_access_key_id }}"
+        aws_secret_key: "{{ vault_aws_secret_access_key }}"
+        rules:
+          - allowed_origins:
+              - "*"
+            allowed_methods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+            allowed_headers:
+              - "*"
+            expose_headers:
+              - ETag
+            max_age_seconds: 3000
+      when: s3_bucket_created is succeeded
+
+    - name: Create IAM policy for S3 access
+      community.aws.iam_managed_policy:
+        policy_name: "{{ iam_policy_name }}"
+        policy_description: "Grants access to comic images S3 bucket"
+        aws_access_key: "{{ vault_aws_access_key_id }}"
+        aws_secret_key: "{{ vault_aws_secret_access_key }}"
+        region: "{{ aws_region }}"
+        policy: |
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "s3:PutObject",
+                          "s3:GetObject",
+                          "s3:DeleteObject",
+                          "s3:ListBucket"
+                      ],
+                      "Resource": [
+                          "arn:aws:s3:::{{ s3_bucket_name }}",
+                          "arn:aws:s3:::{{ s3_bucket_name }}/*"
+                      ]
+                  }
+              ]
+          }
+        state: present
+      register: iam_policy_created
+
+    - name: Create IAM user for application
+      community.aws.iam_user:
+        name: "{{ iam_user_name }}"
+        aws_access_key: "{{ vault_aws_access_key_id }}"
+        aws_secret_key: "{{ vault_aws_secret_access_key }}"
+        region: "{{ aws_region }}"
+        state: present
+      register: iam_user_created
+
+    - name: Attach IAM policy to user
+      community.aws.iam_user_policy_attachment:
+        user_name: "{{ iam_user_name }}"
+        policy_arn: "{{ iam_policy_created.policy.arn }}"
+        aws_access_key: "{{ vault_aws_access_key_id }}"
+        aws_secret_key: "{{ vault_aws_secret_access_key }}"
+        region: "{{ aws_region }}"
+        state: present
+      when: iam_policy_created is succeeded and iam_user_created is succeeded
+
+    - name: Display success message
+      debug:
+        msg:
+          - "✓ S3 bucket created: {{ s3_bucket_name }}"
+          - "✓ IAM user created: {{ iam_user_name }}"
+          - "✓ IAM policy attached: {{ iam_policy_name }}"
+          - ""
+          - "Next steps:"
+          - "1. Create access keys for {{ iam_user_name }} in AWS Console"
+          - "2. Update vault with new access key credentials"
+          - "3. Run setup.yml playbook to deploy application"
+
+    - name: Warn about manual steps
+      debug:
+        msg:
+          - "⚠️  MANUAL STEPS REQUIRED:"
+          - ""
+          - "1. Create Lightsail instance (cannot be automated):"
+          - "   aws lightsail create-instances --instance-names comic-app-prod --blueprint-id ubuntu_22_04 --bundle-id medium_2_0"
+          - ""
+          - "2. Configure Lightsail firewall rules:"
+          - "   - Allow SSH (port 22) from your IP only"
+          - "   - Allow HTTP (port 80) from anywhere"
+          - "   - Allow HTTPS (port 443) from anywhere"
+          - ""
+          - "3. Create IAM access keys:"
+          - "   aws iam create-access-key --user-name {{ iam_user_name }}"
+          - ""
+          - "4. Update inventory file with Lightsail instance IP"

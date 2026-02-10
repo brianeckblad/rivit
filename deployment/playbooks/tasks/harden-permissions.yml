@@ -1,0 +1,99 @@
+---
+# Task file for consistent and secure file permissions
+# Included by setup, update, and security-hardening playbooks
+
+- name: Security Hardening - File Permissions
+  block:
+    - name: Ensure base application directory is traversable
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+      loop:
+        - "/home/{{ app_user }}"
+        - "{{ app_dir }}"
+        - "{{ app_dir }}/instance"
+        - "{{ log_dir }}"
+
+    - name: Secure .env file
+      file:
+        path: "{{ app_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      when: app_dir is defined
+
+    - name: Secure user credentials file
+      file:
+        path: "{{ app_dir }}/instance/user_preferences.json"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      ignore_errors: yes  # Might not exist yet
+
+    - name: Secure instance subdirectories
+      file:
+        path: "{{ app_dir }}/instance/{{ item }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0750'
+      loop:
+        - uploads
+        - all_comic_delete
+        - single_comic_delete
+      ignore_errors: yes
+
+    - name: Secure data files in instance
+      file:
+        path: "{{ app_dir }}/instance/{{ item }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+      loop:
+        - items.csv
+        - sku.txt
+      failed_when: false
+
+    - name: Set permissions on static files
+      file:
+        path: "{{ app_dir }}/app/static"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+        recurse: yes
+
+    - name: Find log files
+      find:
+        paths: "{{ log_dir }}"
+        patterns: "*.log"
+      register: log_files
+
+    - name: Ensure log files are not executable
+      file:
+        path: "{{ item.path }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+      loop: "{{ log_files.files }}"
+      when: log_files.matched > 0
+
+    - name: Secure scripts directory
+      file:
+        path: "{{ app_dir }}/scripts"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+        recurse: yes
+
+    - name: Secure SSH authorized_keys
+      file:
+        path: "/home/{{ app_user }}/.ssh/authorized_keys"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      ignore_errors: yes

@@ -1,0 +1,41 @@
+[Unit]
+Description=App Item Listing Tool Flask Application
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/app_item_listing_tool
+Environment="PATH=/home/ubuntu/app_item_listing_tool/.venv/bin"
+Environment="FLASK_APP=app"
+Environment="FLASK_ENV=production"
+
+# Load environment variables from .env file
+EnvironmentFile=/home/ubuntu/app_item_listing_tool/.env
+
+# Run gunicorn with proper logging
+ExecStart=/home/ubuntu/app_item_listing_tool/.venv/bin/gunicorn \
+    --bind 0.0.0.0:8000 \
+    --workers 4 \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile /var/log/app_item_listing_tool/access.log \
+    --error-logfile /var/log/app_item_listing_tool/error.log \
+    --log-level warning \
+    "app:create_app('production')"
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=append:/var/log/app_item_listing_tool/app.log
+StandardError=append:/var/log/app_item_listing_tool/app.log
+
+[Install]
+WantedBy=multi-user.target

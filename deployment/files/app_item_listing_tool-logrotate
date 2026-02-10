@@ -1,0 +1,38 @@
+/var/log/app_item_listing_tool/*.log {
+    # Rotate daily
+    daily
+
+    # Keep 20 rotated logs
+    rotate 20
+
+    # Compress old logs (gzip)
+    compress
+
+    # Delay compression until next rotation (so current .log.1 is not compressed)
+    delaycompress
+
+    # Don't rotate if log is empty
+    notifempty
+
+    # Create new log file with these permissions after rotation
+    create 0640 ubuntu ubuntu
+
+    # Don't error if log file is missing
+    missingok
+
+    # Use date as suffix for rotated files (e.g., app.log-20231225)
+    dateext
+    dateformat -%Y%m%d
+
+    # Rotate when file reaches 100MB (in addition to daily)
+    size 100M
+
+    # Run these commands after rotation
+    postrotate
+        # Reload application to pick up new log file (if needed)
+        systemctl reload app_item_listing_tool.service 2>/dev/null || true
+    endscript
+
+    # Share scripts between all log files
+    sharedscripts
+}

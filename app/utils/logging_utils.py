@@ -1,0 +1,101 @@
+"""Logging utilities for services."""
+from flask import current_app
+import logging
+
+
+def get_log_prefix():
+    """
+    Get a log prefix with user context for multi-user logging.
+
+    Returns:
+        str: Log prefix like "[User: brian] " or "" if no user context
+    """
+    try:
+        from flask import session
+        username = session.get('username', 'default')
+        if username and username != 'default':
+            return f"[User: {username}] "
+        return ""
+    except:
+        return ""
+
+
+def get_service_logger():
+    """
+    Get the appropriate logger for service operations.
+
+    Returns the service logger if available, otherwise returns the app logger.
+    Falls back to a basic logger if outside Flask context.
+
+    Returns:
+        logging.Logger: The appropriate logger for service operations
+    """
+    try:
+        # Try to get service logger from Flask app
+        if hasattr(current_app, 'service_logger'):
+            return current_app.service_logger
+        else:
+            return current_app.logger
+    except RuntimeError:
+        # Outside Flask context, return a basic logger
+        return logging.getLogger('service')
+
+
+def log_service_info(message):
+    """Log informational service message."""
+    get_service_logger().info(message)
+
+
+def log_service_warning(message):
+    """Log warning service message."""
+    get_service_logger().warning(message)
+
+
+def log_service_error(message):
+    """Log error service message."""
+    get_service_logger().error(message)
+
+
+def log_app_error(message):
+    """Log application error to app logger (not service logger)."""
+    try:
+        current_app.logger.error(message)
+    except RuntimeError:
+        logging.getLogger('app').error(message)
+
+
+def get_cleanup_logger():
+    """
+    Get the appropriate logger for cleanup operations (health check, trash cleanup, etc).
+
+    Returns the cleanup logger if available, otherwise returns the app logger.
+    Falls back to a basic logger if outside Flask context.
+
+    Returns:
+        logging.Logger: The appropriate logger for cleanup operations
+    """
+    try:
+        # Try to get cleanup logger from Flask app
+        if hasattr(current_app, 'cleanup_logger'):
+            return current_app.cleanup_logger
+        else:
+            return current_app.logger
+    except RuntimeError:
+        # Outside Flask context, return a basic logger
+        return logging.getLogger('cleanup')
+
+
+def log_cleanup_info(message):
+    """Log informational cleanup message."""
+    get_cleanup_logger().info(message)
+
+
+def log_cleanup_warning(message):
+    """Log warning cleanup message."""
+    get_cleanup_logger().warning(message)
+
+
+def log_cleanup_error(message):
+    """Log error cleanup message."""
+    get_cleanup_logger().error(message)
+
