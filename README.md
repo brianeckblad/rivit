@@ -37,42 +37,64 @@ Perfect for comic book dealers, collectors, and marketplace sellers who need pro
 
 ---
 
-## Quick Start
+## ⚠️ Important: External Services Required
 
-Get the application running in under 5 minutes:
+**This application requires AWS S3 for storage.** It is not a standalone app and will not function without:
+- ✅ **AWS Account** with S3 bucket created
+- ✅ **AWS IAM credentials** (Access Key ID and Secret Access Key)
+- ✅ **S3 bucket configured** for image storage
+
+**Optional but recommended:**
+- eBay Developer Account (for price lookup features)
+- Custom domain (for production deployment)
+
+---
+
+## Quick Start (For Those With AWS Setup)
+
+If you already have AWS S3 configured:
 
 ```bash
-# 1. Clone and setup
-git clone https://github.com/yourusername/<your-app-name>.git
-cd <your-app-name>
+# 1. Clone repository
+git clone https://github.com/yourusername/rampe.git
+cd rampe
 
-# 2. Optional: Rename the app (see deployment/DEPLOYMENT_PREP.md)
-#    Edit deployment/group_vars/all.yml to change:
-#    - app_name (technical name for paths/services)
-#    - app_display_name (display name)
-#    - app_url (your repository URL)
-
-# 3. Setup Python environment
+# 2. Create Python environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 4. Install dependencies
+# 3. Install dependencies
 pip3 install -r requirements.txt
 
-# 5. Configure environment
+# 4. Configure with YOUR credentials
 cp .env.example .env
-# Edit .env with your AWS and eBay credentials
+# Edit .env and add:
+#   - AWS_ACCESS_KEY_ID (required)
+#   - AWS_SECRET_ACCESS_KEY (required)
+#   - S3_BUCKET (required)
+#   - USERS (username:password for login)
 
-# 6. Initialize directories
-mkdir -p instance/{uploads,item_images}
+# 5. Create data directories
+mkdir -p instance/{uploads,item_images,images,exports,snapshots,trash}
 
-# 7. Run the application
+# 6. Run the application
 python runapp.py
 ```
 
-Access the application at `http://localhost:8000`
+Access at `http://localhost:8000`
 
-**Note:** Before deploying to production, configure your app identity in `deployment/group_vars/all.yml` (app_name, app_display_name, app_url). See [deployment/DEPLOYMENT_PREP.md](deployment/DEPLOYMENT_PREP.md#application-configuration) for details.
+---
+
+## First Time? Start Here
+
+**Don't have AWS S3 setup yet?** Follow the complete installation guide below ⬇️
+
+The [Installation](#installation) section will walk you through:
+1. Creating an AWS account (if needed)
+2. Setting up S3 bucket
+3. Creating IAM credentials
+4. Configuring the application
+5. Running your first deployment
 
 ---
 
@@ -214,35 +236,59 @@ Additional documentation organized by topic:
 
 ## Prerequisites
 
-### Required
-- **Python 3.8** or higher
-- **Git** for version control
-- **AWS Account** with S3 bucket created
-- **AWS IAM Credentials** (Access Key ID and Secret Access Key)
-- **eBay Developer Account** (for price lookup feature)
+### ✅ Required (App Won't Run Without These)
 
-### Optional (for deployment)
-- **AWS Lightsail** VM (Ubuntu 22.04 LTS recommended)
-- **Ansible** 2.9+ (for automated deployment)
-- **Docker** (for containerized deployment)
+**AWS Services:**
+- **AWS Account** - [Sign up here](https://aws.amazon.com)
+- **S3 Bucket** - For storing product images (create via AWS Console)
+- **IAM User Credentials** - Access Key ID and Secret Access Key with S3 permissions
+
+**Local Development:**
+- **Python 3.8+** - [Download here](https://www.python.org/downloads/)
+- **Git** - For version control
+- **Text Editor** - VS Code, Sublime, or similar
+
+### ⚙️ Optional (Enables Additional Features)
+
+- **eBay Developer Account** - For price lookup and market research features
+- **Domain Name** - For production deployment with custom URL
+- **AWS Lightsail/EC2** - For production hosting (or use any Ubuntu server)
+- **Ansible 2.9+** - For automated deployment scripts
+
+### 💰 Estimated AWS Costs
+
+- **S3 Storage**: ~$0.023/GB/month (20GB = $0.46/month)
+- **S3 Requests**: ~$0.005/1000 requests (minimal cost)
+- **Data Transfer**: First 100GB/month free
+- **EC2/Lightsail**: ~$5-15/month for small instance
+
+**Total estimated cost for small inventory: $5-10/month**
 
 ---
 
 ## Installation
 
-### Before You Begin
+### ⚠️ Before You Begin: AWS Setup Required
 
-**Important:** If you plan to rename this application or deploy to production, first configure your app identity:
+**You must complete AWS S3 setup before the app will work.** Skip to [AWS S3 Setup Guide](#aws-s3-setup-guide) if you haven't done this yet.
 
-**File:** `deployment/group_vars/all.yml`
+---
 
-```yaml
-app_name: rampe                              # Change to your app name
-app_display_name: "Rampe"                    # Change to your display name  
-app_url: "https://github.com/yourusername/rampe"  # Your repo URL
-```
+### Step 0: AWS S3 Setup (Critical - Do This First!)
 
-See [deployment/DEPLOYMENT_PREP.md](deployment/DEPLOYMENT_PREP.md#application-configuration) for complete details.
+**If you don't have AWS S3 configured, the app won't work.** Complete these steps:
+
+1. **Create AWS Account** - Go to [aws.amazon.com](https://aws.amazon.com) and sign up
+2. **Create S3 Bucket** - In AWS Console → S3 → Create Bucket
+   - Choose a globally unique name (e.g., `myname-comics-inventory`)
+   - Select region closest to you
+   - Keep default settings for now
+3. **Create IAM User** - In AWS Console → IAM → Users → Create User
+   - Give programmatic access
+   - Attach policy: `AmazonS3FullAccess` (or custom with s3:PutObject, s3:GetObject, s3:DeleteObject)
+   - Save the **Access Key ID** and **Secret Access Key** (you'll need these in Step 4)
+
+**Can't do this now?** You can't proceed until AWS S3 is ready. See [AWS S3 Setup Guide](#aws-s3-setup-guide) below for detailed instructions.
 
 ---
 
@@ -272,7 +318,9 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### Step 4: Configure Environment Variables
+### Step 4: Configure Environment Variables (REQUIRED)
+
+**This is where you add your AWS credentials from Step 0.**
 
 ```bash
 cp .env.example .env
@@ -281,34 +329,49 @@ cp .env.example .env
 Edit `.env` with your configuration:
 
 ```env
-# === Flask Configuration ===
-FLASK_ENV=development              # development or production
-SECRET_KEY=your-random-secret-key  # Use: python -c "import secrets; print(secrets.token_hex(32))"
-PORT=8000
+# ============================================
+# REQUIRED - App won't work without these
+# ============================================
 
-# === Authentication ===
-# Format: username:password,username2:password2
-USERS=admin:change_me
+# AWS S3 (from Step 0 - IAM user credentials)
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE      # From IAM user creation
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7...   # From IAM user creation
+S3_BUCKET=myname-comics-inventory            # Your S3 bucket name
 
-# === AWS Configuration ===
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_REGION=us-east-1
-S3_BUCKET=your-bucket-name
-S3_FOLDER=production
+# Authentication (create your login)
+USERS=admin:your_password_here               # Format: username:password
 
-# === eBay Configuration ===
-EBAY_PRODUCTION_APP_ID=your_ebay_app_id
+# Flask (generate a random secret)
+SECRET_KEY=your-random-secret-key            # Run: python -c "import secrets; print(secrets.token_hex(32))"
+
+# ============================================
+# OPTIONAL - App works without these
+# ============================================
+
+# AWS (these have good defaults)
+AWS_REGION=us-east-1                         # Default is fine
+S3_FOLDER=production                         # Default is fine
+
+# Flask
+FLASK_ENV=development                        # development or production
+PORT=8000                                    # Default is fine
+
+# eBay (only needed for price lookup feature)
+EBAY_PRODUCTION_APP_ID=your_ebay_app_id      # Leave blank if not using eBay
 EBAY_PRODUCTION_CERT_ID=your_ebay_cert_id
 EBAY_PRODUCTION_DEV_ID=your_ebay_dev_id
 EBAY_PRODUCTION_TOKEN=your_ebay_token
-EBAY_VERIFICATION_TOKEN=your_64_char_verification_token
-
-# === Optional Settings ===
-COMIC_IMAGE_PATH=instance/item_images
-S3_KEY_PREFIX=images/
-CLOUDFRONT_DOMAIN=your-cloudfront-domain.com
+EBAY_VERIFICATION_TOKEN=your_64_char_token
 ```
+
+**What you MUST set:**
+- `AWS_ACCESS_KEY_ID` - From your IAM user
+- `AWS_SECRET_ACCESS_KEY` - From your IAM user
+- `S3_BUCKET` - Your S3 bucket name
+- `USERS` - Your login credentials
+- `SECRET_KEY` - Generate with command shown above
+
+**Everything else has defaults or is optional.**
 
 ### Step 5: Initialize Directories
 
