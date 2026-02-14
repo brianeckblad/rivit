@@ -4,7 +4,8 @@
 # Sets up Let's Encrypt SSL certificate with automatic renewal
 #
 # Usage: sudo ./setup-ssl.sh [domain]
-#        Or run without arguments to be prompted
+#        Or run without arguments to be prompte# Application name - can be overridden with environment variable
+APP_NAME="${APP_NAME:-rampe}"
 #
 # MANUAL CERTIFICATE REUSE INSTRUCTIONS
 # ======================================
@@ -42,7 +43,7 @@
 #    sudo chown -R root:root /etc/letsencrypt/live/YOUR_DOMAIN
 #
 # 3. Verify nginx SSL config (should already be set):
-#    sudo grep ssl_certificate /etc/nginx/sites-available/app_item_listing_tool
+#    sudo grep ssl_certificate /etc/nginx/sites-available/${APP_NAME}
 #
 # 4. Test and reload:
 #    sudo nginx -t
@@ -58,7 +59,7 @@
 #    sudo chmod 644 /etc/ssl/certs/YOUR_DOMAIN.crt
 #    sudo chmod 600 /etc/ssl/private/YOUR_DOMAIN.key
 #
-# 2. Update nginx config (/etc/nginx/sites-available/app_item_listing_tool):
+# 2. Update nginx config (/etc/nginx/sites-available/${APP_NAME}):
 #    ssl_certificate /etc/ssl/certs/YOUR_DOMAIN.crt;
 #    ssl_certificate_key /etc/ssl/private/YOUR_DOMAIN.key;
 #
@@ -169,26 +170,26 @@ if [ $CERTBOT_EXIT -eq 0 ]; then
     echo "🔧 Manually configuring nginx for SSL..."
 
     # Backup current nginx config
-    cp /etc/nginx/sites-available/app_item_listing_tool /etc/nginx/sites-available/app_item_listing_tool.pre-ssl
+    cp /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-available/${APP_NAME}.pre-ssl
 
     # Get the directory where this script is located
     SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
     # Use the add-ssl-config.sh script
     if [ -f "$SCRIPT_DIR/add-ssl-config.sh" ]; then
-        bash "$SCRIPT_DIR/add-ssl-config.sh"
-    elif [ -f "/home/ubuntu/app_item_listing_tool/deployment/scripts/add-ssl-config.sh" ]; then
-        bash "/home/ubuntu/app_item_listing_tool/deployment/scripts/add-ssl-config.sh"
+        APP_NAME=${APP_NAME} bash "$SCRIPT_DIR/add-ssl-config.sh"
+    elif [ -f "/home/ubuntu/${APP_NAME}/deployment/scripts/add-ssl-config.sh" ]; then
+        APP_NAME=${APP_NAME} bash "/home/ubuntu/${APP_NAME}/deployment/scripts/add-ssl-config.sh"
     else
         echo "⚠️  Warning: SSL config script not found. Please run:"
-        echo "   sudo $SCRIPT_DIR/add-ssl-config.sh"
+        echo "   sudo APP_NAME=${APP_NAME} $SCRIPT_DIR/add-ssl-config.sh"
     fi
 
     # Ensure sites-enabled is a symlink, not a regular file
-    if [ -f "/etc/nginx/sites-enabled/app_item_listing_tool" ] && [ ! -L "/etc/nginx/sites-enabled/app_item_listing_tool" ]; then
+    if [ -f "/etc/nginx/sites-enabled/${APP_NAME}" ] && [ ! -L "/etc/nginx/sites-enabled/${APP_NAME}" ]; then
         echo "🔧 Fixing sites-enabled symlink..."
-        rm /etc/nginx/sites-enabled/app_item_listing_tool
-        ln -s /etc/nginx/sites-available/app_item_listing_tool /etc/nginx/sites-enabled/app_item_listing_tool
+        rm /etc/nginx/sites-enabled/${APP_NAME}
+        ln -s /etc/nginx/sites-available/${APP_NAME} /etc/nginx/sites-enabled/${APP_NAME}
     fi
 
     # Remove default nginx config if it exists

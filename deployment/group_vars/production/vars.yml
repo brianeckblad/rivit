@@ -3,10 +3,11 @@
 # NOTE: Sensitive values are stored in vault.yml (encrypted)
 
 # Application settings
-app_name: app_item_listing_tool
-service_name: app_item_listing_tool
-app_user: ubuntu
-app_dir: "/home/{{ app_user }}/{{ app_name }}"
+app_name: rampe
+service_name: "{{ app_name }}"
+app_user: "{{ app_name }}"                    # Dedicated app user (default: same as app_name)
+deploy_user: ubuntu                           # SSH/deployment user
+app_dir: "/home/{{ deploy_user }}/{{ app_name }}"
 python_version: "3.10"
 
 # Git repository - MOVED TO VAULT (contains your GitHub username)
@@ -19,7 +20,7 @@ gunicorn_bind: "127.0.0.1:8000"
 gunicorn_timeout: 120
 
 # Log settings
-log_dir: /var/log/app_item_listing_tool
+log_dir: "/var/log/{{ app_name }}"
 log_retention_days: 20
 log_max_size: "100M"
 

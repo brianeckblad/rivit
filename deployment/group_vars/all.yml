@@ -13,9 +13,22 @@ app_url: "https://github.com/yourusername/{{ app_name }}"  # Repository URL
 # Application Settings
 # ============================================================================
 service_name: "{{ app_name }}"               # Systemd/supervisor service name
-app_user: ubuntu                              # Linux user running the app
-app_dir: "/home/{{ app_user }}/{{ app_name }}"  # Application directory
-venv_dir: "/home/{{ app_user }}/.venv"        # Virtual environment (in user's home)
+
+# Application User Configuration
+# SECURITY: Using a dedicated application user (not ubuntu) provides:
+#   - Principle of least privilege (app runs with minimal permissions)
+#   - No SSH access (nologin shell)
+#   - Isolated from admin/deployment user
+#   - Limited blast radius if app is compromised
+#
+# CONFIGURABLE: Change app_user if you want a different username
+# Default: Uses app_name (e.g., rampe, katlo, listkit)
+# Example custom: app_user: myapp_runtime
+app_user: "{{ app_name }}"                    # App runtime user (default: same as app_name)
+deploy_user: ubuntu                           # SSH/deployment user (for ansible, git, etc)
+
+app_dir: "/home/{{ deploy_user }}/{{ app_name }}"  # App code in deploy user's home
+venv_dir: "/home/{{ deploy_user }}/.venv"     # Virtual environment (in deploy user's home)
 python_version: "3.10"
 
 # Git repository - MOVED TO VAULT (contains your GitHub username)

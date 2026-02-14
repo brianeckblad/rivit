@@ -3,26 +3,28 @@
 # NOTE: Update the DOMAIN variable below if your domain is different
 # This script is used after initial setup to enable HTTPS
 
-DOMAIN="app.badartink.com"
-NGINX_CONFIG="/etc/nginx/sites-available/app_item_listing_tool"
+# Application name - can be overridden with environment variable
+APP_NAME="${APP_NAME:-rampe}"
+DOMAIN="your-domain.com"  # UPDATE THIS to your actual domain
+NGINX_CONFIG="/etc/nginx/sites-available/${APP_NAME}"
 
 echo "Adding SSL server block to nginx config..."
 
 # Add SSL server block at the end of the file
-sudo tee -a "$NGINX_CONFIG" > /dev/null <<'EOF'
+sudo tee -a "$NGINX_CONFIG" > /dev/null <<EOF
 
 # HTTPS server block
 server {
     listen 443 ssl http2;
-    server_name app.badartink.com;
+    server_name ${DOMAIN};
 
     # SSL certificates
-    ssl_certificate /etc/letsencrypt/live/app.badartink.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.badartink.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
 
     # SSL stapling
-    ssl_trusted_certificate /etc/letsencrypt/live/app.badartink.com/chain.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/${DOMAIN}/chain.pem;
     ssl_stapling on;
     ssl_stapling_verify on;
 
@@ -50,8 +52,8 @@ server {
     proxy_read_timeout 300s;
 
     # Access and error logs
-    access_log /var/log/nginx/app_item_listing_tool_access.log;
-    error_log /var/log/nginx/app_item_listing_tool_error.log;
+    access_log /var/log/nginx/${APP_NAME}_access.log;
+    error_log /var/log/nginx/${APP_NAME}_error.log;
 
     # Deny access to hidden files
     location ~ /\. {
@@ -69,7 +71,7 @@ server {
 
     # Static files
     location /static/ {
-        alias /home/ubuntu/app_item_listing_tool/app/static/;
+        alias /home/ubuntu/${APP_NAME}/app/static/;
         expires 30d;
         add_header Cache-Control "public, immutable";
         access_log off;
@@ -170,7 +172,7 @@ server {
 # HTTP to HTTPS redirect
 server {
     listen 80;
-    server_name app.badartink.com;
+    server_name ${DOMAIN};
 
     # Allow Let's Encrypt certificate renewals
     location ^~ /.well-known/acme-challenge/ {
@@ -179,8 +181,8 @@ server {
     }
 
     location / {
-        if ($host = app.badartink.com) {
-            return 301 https://$host$request_uri;
+        if (\$host = ${DOMAIN}) {
+            return 301 https://\$host\$request_uri;
         }
         return 404;
     }
@@ -197,7 +199,7 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "Testing HTTPS..."
     sleep 2
-    curl -I https://app.badartink.com
+    curl -I https://${DOMAIN}
 else
     echo "❌ Nginx configuration test failed!"
     exit 1

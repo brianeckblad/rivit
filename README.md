@@ -250,7 +250,7 @@ See [deployment/DEPLOYMENT_PREP.md](deployment/DEPLOYMENT_PREP.md#application-co
 
 ```bash
 git clone <repository-url>
-cd app_item_listing_tool
+cd rampe
 ```
 
 ### Step 2: Create Virtual Environment

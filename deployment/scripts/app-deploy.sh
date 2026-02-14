@@ -15,6 +15,9 @@
 
 set -e
 
+# Application name - can be overridden with environment variable
+APP_NAME="${APP_NAME:-rampe}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -262,13 +265,13 @@ cmd_rollback() {
     echo "Connecting to server to perform rollback..."
     ansible -i "$INVENTORY" all \
         -m shell \
-        -a "cd /home/ubuntu/app_item_listing_tool && git checkout $COMMIT_HASH" \
+        -a "cd /home/ubuntu/${APP_NAME} && git checkout $COMMIT_HASH" \
         -u ubuntu --become
 
     # Restart service
     ansible -i "$INVENTORY" all \
         -m systemd \
-        -a "name=app_item_listing_tool state=restarted" \
+        -a "name=${APP_NAME} state=restarted" \
         -u ubuntu --become
 
     success "Rollback complete! Server is now at commit: $COMMIT_HASH"

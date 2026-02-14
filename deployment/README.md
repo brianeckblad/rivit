@@ -8,20 +8,32 @@
 
 ## ⚡ Quick Start
 
-### 1. Configure Your App (Optional)
+### 1. Configure Your App
 
-Want to rename the app? Edit this file first:
+Edit this file to configure your application:
 
 **File:** `deployment/group_vars/all.yml`
 
 ```yaml
-app_name: your_app_name                      # Change to: rampe, katlo, listkit, etc.
-app_display_name: "Your App Name"            # Display name
-app_url: "https://github.com/yourusername/your_app_name"
-venv_dir: "/home/{{ app_user }}/.venv"       # Virtual environment (in user's home)
+# Application Identity
+app_name: rampe                              # Change to: your_app_name
+app_display_name: "Rampe"                    # Display name
+app_url: "https://github.com/yourusername/rampe"
+
+# Security (Configurable)
+app_user: "{{ app_name }}"                   # Runtime user (default: same as app_name)
+deploy_user: ubuntu                          # SSH/deployment user
 ```
 
+**What's configurable:**
+- `app_name` - Technical name (affects paths, services, logs)
+- `app_display_name` - Human-readable name
+- `app_user` - Runtime user (defaults to app_name for security)
+- `deploy_user` - SSH user for deployment
+
 One change renames everything! See [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md#application-configuration) for details.
+
+**Security Note:** By default, app runs as dedicated user with no SSH access. See [SECURITY_HARDENING.md](SECURITY_HARDENING.md) for details.
 
 ### 2. Deploy Everything
 
@@ -43,26 +55,41 @@ That's it! Creates entire infrastructure + deploys app.
 - **Secret Management** → [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
 - **Troubleshooting** → [DEPLOYMENT_COMPLETE_GUIDE.md#troubleshooting](DEPLOYMENT_COMPLETE_GUIDE.md#troubleshooting)
 
-### 📚 Documentation Files (Essential 6)
+### 📚 Documentation Files
+
+#### Core Deployment (Start Here)
 
 | Document | Purpose | When to Read |
 |----------|---------|--------------|
 | **[README.md](README.md)** | Overview, quick start, architecture | Start here |
-| **[DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md)** | Prerequisites, checklist, credentials, IAM roles | Before deploying |
+| **[DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md)** | Prerequisites, configuration, credentials, security setup | Before deploying |
 | **[DEPLOYMENT_COMPLETE_GUIDE.md](DEPLOYMENT_COMPLETE_GUIDE.md)** | Complete deployment & troubleshooting | During deployment |
-| **[OPERATIONS.md](OPERATIONS.md)** | Daily ops, maintenance, security operations | Daily/weekly tasks |
-| **[SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)** | Secret rotation, vault management | Managing secrets |
-| **[MULTI_USER_SUPPORT.md](MULTI_USER_SUPPORT.md)** | Multi-user setup, user management, eBay credentials | Adding users |
-| **[PRODUCTION_NOTES.md](PRODUCTION_NOTES.md)** | Environment reference, quick commands | Production ops |
-| **[DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)** | Implementation notes, recent changes, troubleshooting | Development reference |
 
-**8 files total** - Each serves a unique purpose, zero duplication!
+#### Daily Operations
+
+| Document | Purpose | When to Read |
+|----------|---------|--------------|
+| **[OPERATIONS.md](OPERATIONS.md)** | Daily ops, maintenance, monitoring | Daily/weekly tasks |
+| **[SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)** | Secret rotation, vault management, AWS Secrets | Managing secrets |
+| **[MULTI_USER_SUPPORT.md](MULTI_USER_SUPPORT.md)** | Multi-user setup, user management, eBay credentials per user | Adding users |
+
+#### Security
+
+| Document | Purpose | When to Read |
+|----------|---------|--------------|
+| **[SECURITY_HARDENING.md](SECURITY_HARDENING.md)** | Application user isolation, systemd hardening, migration guide | Understanding security |
+
+#### Reference & Development
+
+| Document | Purpose | When to Read |
+|----------|---------|--------------|
+| **[PRODUCTION_NOTES.md](PRODUCTION_NOTES.md)** | Environment reference, quick commands | Production ops |
+| **[DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)** | Implementation notes, recent changes | Development reference |
 
 **Additional References:**
-- **Security technical details:** `/app/SECURITY.md` (technical details about `app/security.py`)
-- **Scripts documentation:** `scripts/README.md` (script reference)
-- **Instance structure:** `/instance/README.md` (directory explanation)
-- **Analysis & reviews:** `/docs/analysis/` (Multi-user implementation review, February 2026)
+- **Security implementation:** `/app/SECURITY.md` (application-level security details)
+- **Scripts documentation:** `scripts/README.md` (deployment script reference)
+- **Instance structure:** `/instance/README.md` (data directory explanation)
 
 ---
 

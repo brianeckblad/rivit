@@ -21,12 +21,35 @@
         name: "{{ system_packages }}"
         state: present
 
+    # =========================================================================
+    # SECURITY: Create dedicated application user
+    # =========================================================================
+    # This user:
+    #   - Has no shell access (nologin)
+    #   - Has no home directory
+    #   - Cannot SSH to the server
+    #   - Is a system user (UID < 1000)
+    #   - Can only run the application (via systemd)
+    # Benefits:
+    #   - Principle of least privilege
+    #   - Limited blast radius if app compromised
+    #   - Separates deployment from runtime permissions
+    - name: Create dedicated application user (no shell, no SSH)
+      user:
+        name: "{{ app_user }}"
+        comment: "{{ app_display_name }} Application User (no login)"
+        shell: /usr/sbin/nologin
+        system: yes
+        create_home: no
+        state: present
+      when: app_user != deploy_user
+
     - name: Create application directory
       file:
         path: "{{ app_dir }}"
         state: directory
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
         mode: '0755'
 
     - name: Create instance directory for data persistence
@@ -66,7 +89,7 @@
       register: app_code_exists
 
     - name: Clone application code from git
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       git:
         repo: "{{ git_repo }}"
         dest: "{{ app_dir }}"
@@ -75,13 +98,13 @@
       when: not app_code_exists.stat.exists
 
     - name: Create Python virtual environment
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       command: python3 -m venv {{ venv_dir }}
       args:
         creates: "{{ venv_dir }}/bin/activate"
 
     - name: Upgrade pip in virtual environment
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       pip:
         name: pip
         state: latest
@@ -98,23 +121,24 @@
       register: root_requirements_file
 
     - name: Install Python dependencies from deployment directory
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       pip:
         requirements: "{{ app_dir }}/deployment/requirements.txt"
         virtualenv: "{{ venv_dir }}"
       when: deployment_requirements_file.stat.exists
 
     - name: Install Python dependencies from root (fallback)
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
         virtualenv: "{{ venv_dir }}"
       when: not deployment_requirements_file.stat.exists and root_requirements_file.stat.exists
 
     - name: Install gunicorn in virtual environment
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       pip:
         name: gunicorn
+        virtualenv: "{{ venv_dir }}"
         state: present
         virtualenv: "{{ venv_dir }}"
 

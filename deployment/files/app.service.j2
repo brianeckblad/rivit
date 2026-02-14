@@ -30,11 +30,74 @@ ExecStart={{ venv_dir }}/bin/gunicorn \
 Restart=always
 RestartSec=10
 
-# Security settings
+# ============================================================================
+# Security Hardening
+# ============================================================================
+# Prevents privilege escalation
 NoNewPrivileges=true
+
+# Private /tmp directory (isolated from other services)
 PrivateTmp=true
 
+# Restrict system calls to necessary ones only
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @mount
+
+# Prevent access to /home directories (except its own working directory)
+ProtectHome=read-only
+
+# Make /usr, /boot, /etc read-only
+ProtectSystem=strict
+
+# Allow writes only to specific directories
+ReadWritePaths={{ log_dir }}
+ReadWritePaths={{ app_dir }}/instance
+
+# Restrict access to kernel logs and modules
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+
+# Prevent loading kernel modules
+LockPersonality=true
+
+# Restrict access to real-time clock
+ProtectClock=true
+
+# Private /dev (only necessary device nodes)
+PrivateDevices=true
+
+# Restrict network namespace
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Prevent access to other users' processes
+ProtectProc=invisible
+
+# No access to hostname changes
+ProtectHostname=true
+
+# Prevent gaining new privileges
+RestrictSUIDSGID=true
+
+# Memory execution protection
+MemoryDenyWriteExecute=false
+
+# Restrict namespace usage
+RestrictNamespaces=true
+
+# Remove capabilities (app doesn't need special privileges)
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# Prevent access to control groups
+ProtectControlGroups=true
+
+# Umask for created files
+UMask=0027
+
+# ============================================================================
 # Logging
+# ============================================================================
 StandardOutput=append:{{ log_dir }}/app.log
 StandardError=append:{{ log_dir }}/app.log
 

@@ -14,14 +14,14 @@
     - name: Display current status
       block:
         - name: Get current branch
-          become_user: "{{ app_user }}"
+          become_user: "{{ deploy_user }}"
           command: git branch --show-current
           args:
             chdir: "{{ app_dir }}"
           register: current_branch
 
         - name: Get current commit
-          become_user: "{{ app_user }}"
+          become_user: "{{ deploy_user }}"
           command: git log -1 --oneline
           args:
             chdir: "{{ app_dir }}"
@@ -34,14 +34,14 @@
               - "Current commit: {{ current_commit.stdout }}"
 
     - name: Configure git credential cache (15 min timeout)
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       command: git config credential.helper 'cache --timeout=900'
       args:
         chdir: "{{ app_dir }}"
       changed_when: false
 
     - name: Stash local changes if any
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       command: git stash
       args:
         chdir: "{{ app_dir }}"
@@ -49,14 +49,14 @@
       changed_when: "'No local changes to save' not in git_stash.stdout"
 
     - name: Pull latest code from git
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       command: git pull origin {{ git_branch }}
       args:
         chdir: "{{ app_dir }}"
       register: git_pull
 
     - name: Check if requirements.txt changed
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       command: git diff HEAD@{1} HEAD --name-only
       args:
         chdir: "{{ app_dir }}"
@@ -70,14 +70,14 @@
       register: deployment_requirements
 
     - name: Update Python dependencies from deployment directory
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       pip:
         requirements: "{{ app_dir }}/deployment/requirements.txt"
         virtualenv: "{{ venv_dir }}"
       when: deployment_requirements.stat.exists
 
     - name: Update Python dependencies from root (fallback)
-      become_user: "{{ app_user }}"
+      become_user: "{{ deploy_user }}"
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
         virtualenv: "{{ venv_dir }}"
@@ -134,7 +134,7 @@
     - name: Update app_version with commit count
       block:
         - name: Get commit count
-          become_user: "{{ app_user }}"
+          become_user: "{{ deploy_user }}"
           command: git rev-list --count HEAD
           args:
             chdir: "{{ app_dir }}"
