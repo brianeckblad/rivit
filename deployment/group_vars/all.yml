@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 # 1. APPLICATION IDENTITY (REQUIRED)
 # ----------------------------------------------------------------------------
-app_name: rampe                                  # ⚠️ CHANGE THIS - Your app's technical name
+app_name:                                        # ⚠️ CHANGE THIS - Your app's technical name
                                                  # Examples: myapp, comic_tracker, inventory_tool
                                                  # Used for: service name, directories, logs, etc.
 
