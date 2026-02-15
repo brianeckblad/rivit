@@ -94,7 +94,7 @@ nano group_vars/all.yml
 - `app_name` - Your application name (technical, lowercase)
 - `app_display_name` - Display name for your app
 - `server_name` - Your domain or "_" for IP-only access
-- `admin_email` - Your email for SSL certificates
+- `ssl_email` - Your email for SSL certificate notifications (only if using SSL)
 
 ### 2. Create Secrets Vault
 

@@ -4,7 +4,7 @@
 # Setup:
 # 1. Create vault password: echo 'your-secure-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
 # 2. Copy this file: cp vault.yml.example vault.yml
-# 3. Edit with your credentials: vim vault.yml
+# 3. Edit with your credentials: nano vault.yml
 # 4. Encrypt: ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
 # 5. Commit encrypted vault.yml to git (SAFE when encrypted)
 #

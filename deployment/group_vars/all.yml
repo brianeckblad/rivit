@@ -7,11 +7,11 @@
 # ----------------------------------------------------------------------------
 # 1. APPLICATION IDENTITY (REQUIRED)
 # ----------------------------------------------------------------------------
-app_name: CHANGEME                               # ⚠️ CHANGE THIS - Your app's technical name
+app_name: rampe                                  # ⚠️ CHANGE THIS - Your app's technical name
                                                  # Examples: myapp, comic_tracker, inventory_tool
                                                  # Used for: service name, directories, logs, etc.
 
-app_display_name: "CHANGE ME"                    # ⚠️ CHANGE THIS - Your app's display name
+app_display_name: "rampE Inventory Manager"      # ⚠️ CHANGE THIS - Your app's display name
                                                  # Examples: "My App", "Comic Tracker", "Inventory Tool"
                                                  # Used for: systemd service description
 
@@ -19,6 +19,10 @@ app_display_name: "CHANGE ME"                    # ⚠️ CHANGE THIS - Your app
 server_name: "_"                                 # Set to your domain: "myapp.com" or leave as "_" for IP-only
                                                  # "_" = No domain, access via IP only
                                                  # "your-domain.com" = Use domain with SSL
+
+ssl_email: "admin@example.com"                   # ⚠️ CHANGE THIS - Email for SSL certificate notifications
+                                                 # Used for Let's Encrypt certificate expiration alerts
+                                                 # Only needed if using SSL (server_name is not "_")
 
 # ----------------------------------------------------------------------------
 # 2. GIT CONFIGURATION
