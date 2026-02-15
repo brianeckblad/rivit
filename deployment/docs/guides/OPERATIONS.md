@@ -37,7 +37,7 @@ aws ec2 describe-instances --profile myapp-production
 
 **All AWS commands in this guide can use `--profile NAME` flag.**
 
-**Complete guide:** → [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md)
+**Complete guide:** → [../reference/AWS_PROFILES.md](../reference/AWS_PROFILES.md)
 
 ---
 

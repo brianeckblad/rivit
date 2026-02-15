@@ -1,0 +1,154 @@
+---
+# Complete Infrastructure Orchestration Playbook
+# This replaces infra-complete-setup.sh and orchestrates all infrastructure provisioning
+#
+# Usage: ansible-playbook playbooks/provision-complete.yml
+#
+# What it does:
+# 1. Creates IAM roles and instance profile
+# 2. Provisions EC2 instance with security group
+# 3. Sets up SSL certificates (if domain configured)
+# 4. Configures monitoring and CloudWatch
+# 5. Deploys application
+
+- name: Complete Infrastructure Provisioning
+  hosts: localhost
+  gather_facts: yes
+
+  vars_prompt:
+    - name: setup_ssl
+      prompt: "Do you want to setup SSL? (yes/no)"
+      default: "no"
+      private: no
+
+    - name: setup_monitoring
+      prompt: "Do you want to setup monitoring? (yes/no)"
+      default: "yes"
+      private: no
+
+  tasks:
+    - name: Display banner
+      debug:
+        msg:
+          - "╔══════════════════════════════════════════════════════════╗"
+          - "║                                                          ║"
+          - "║   Complete Infrastructure Provisioning                  ║"
+          - "║   {{ app_display_name }}                                ║"
+          - "║                                                          ║"
+          - "╚══════════════════════════════════════════════════════════╝"
+
+    - name: Check prerequisites
+      block:
+        - name: Check AWS credentials
+          command: aws sts get-caller-identity
+          register: aws_check
+          changed_when: false
+
+        - name: Display AWS account
+          debug:
+            msg: "AWS Account: {{ (aws_check.stdout | from_json).Account }}"
+
+        - name: Check app_name is configured
+          fail:
+            msg: "app_name must be set in group_vars/all.yml (currently: {{ app_name }})"
+          when: app_name == "CHANGEME" or app_name is not defined
+
+        - name: Check S3 bucket is configured
+          fail:
+            msg: "s3_bucket_name must be set in group_vars/production/vault.yml"
+          when: s3_bucket_name is not defined or s3_bucket_name == ""
+
+# ========================================
+# Phase 1: Create S3 Bucket
+# ========================================
+
+- name: Create S3 Bucket
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Create S3 bucket for application data
+      amazon.aws.s3_bucket:
+        name: "{{ s3_bucket_name }}"
+        region: "{{ aws_region }}"
+        state: present
+        versioning: yes
+        tags:
+          Application: "{{ app_name }}"
+          ManagedBy: Ansible
+      register: s3_result
+
+    - name: Display S3 bucket info
+      debug:
+        msg: "✓ S3 Bucket created: {{ s3_bucket_name }}"
+
+# ========================================
+# Phase 2: Provision Infrastructure
+# ========================================
+
+- name: Provision Infrastructure
+  import_playbook: provision-infrastructure.yml
+
+# ========================================
+# Phase 3: Deploy Application
+# ========================================
+
+- name: Deploy Application
+  import_playbook: setup.yml
+
+# ========================================
+# Phase 4: Setup SSL (Optional)
+# ========================================
+
+- name: Setup SSL Certificate
+  import_playbook: setup-ssl.yml
+  when: hostvars['localhost']['setup_ssl'] | bool
+
+# ========================================
+# Phase 5: Setup Monitoring (Optional)
+# ========================================
+
+- name: Setup Monitoring
+  import_playbook: setup-monitoring.yml
+  when: hostvars['localhost']['setup_monitoring'] | bool
+
+# ========================================
+# Summary
+# ========================================
+
+- name: Display Summary
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Load instance info
+      slurp:
+        src: "{{ playbook_dir }}/../instance-info.txt"
+      register: instance_info_file
+      ignore_errors: yes
+
+    - name: Display completion summary
+      debug:
+        msg:
+          - "╔══════════════════════════════════════════════════════════╗"
+          - "║                                                          ║"
+          - "║   Infrastructure Provisioning Complete!                 ║"
+          - "║                                                          ║"
+          - "╚══════════════════════════════════════════════════════════╝"
+          - ""
+          - "Resources Created:"
+          - "  ✓ S3 Bucket: {{ s3_bucket_name }}"
+          - "  ✓ IAM Role: {{ app_name }}-ec2-role"
+          - "  ✓ EC2 Instance: {{ app_name }}"
+          - "  ✓ Security Group: {{ app_name }}-sg"
+          - "  ✓ SSH Key: ~/.ssh/{{ app_name }}-key.pem"
+          - ""
+          - "Application deployed and running!"
+          - ""
+          - "Next Steps:"
+          - "  1. Test application: curl http://INSTANCE_IP"
+          - "  2. View logs: ssh ubuntu@INSTANCE_IP 'sudo journalctl -u {{ app_name }}'"
+          - "  3. Setup domain (if needed): Update DNS to point to instance"
+          - ""
+          - "Instance info saved to: deployment/instance-info.txt"
+

@@ -1,0 +1,183 @@
+---
+# Playbook to create and configure AWS WAF (Web Application Firewall)
+# Protects application from common web exploits
+#
+# Usage: ansible-playbook playbooks/setup-waf.yml
+
+- name: Setup AWS WAF
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Create WAF IP set for rate limiting
+      command: >
+        aws wafv2 create-ip-set
+        --name {{ app_name }}-rate-limit-ips
+        --scope REGIONAL
+        --ip-address-version IPV4
+        --addresses []
+        --region {{ aws_region }}
+      register: ipset_result
+      failed_when: false
+      changed_when: ipset_result.rc == 0
+
+    - name: Create WAF Web ACL
+      command: >
+        aws wafv2 create-web-acl
+        --name {{ app_name }}-web-acl
+        --scope REGIONAL
+        --default-action Allow={}
+        --rules '[
+          {
+            "Name": "RateLimitRule",
+            "Priority": 1,
+            "Statement": {
+              "RateBasedStatement": {
+                "Limit": 2000,
+                "AggregateKeyType": "IP"
+              }
+            },
+            "Action": {
+              "Block": {}
+            },
+            "VisibilityConfig": {
+              "SampledRequestsEnabled": true,
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "{{ app_name }}RateLimitRule"
+            }
+          },
+          {
+            "Name": "AWSManagedRulesCommonRuleSet",
+            "Priority": 2,
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesCommonRuleSet"
+              }
+            },
+            "OverrideAction": {
+              "None": {}
+            },
+            "VisibilityConfig": {
+              "SampledRequestsEnabled": true,
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "{{ app_name }}CommonRuleSet"
+            }
+          },
+          {
+            "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+            "Priority": 3,
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesKnownBadInputsRuleSet"
+              }
+            },
+            "OverrideAction": {
+              "None": {}
+            },
+            "VisibilityConfig": {
+              "SampledRequestsEnabled": true,
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "{{ app_name }}BadInputsRuleSet"
+            }
+          },
+          {
+            "Name": "AWSManagedRulesSQLiRuleSet",
+            "Priority": 4,
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesSQLiRuleSet"
+              }
+            },
+            "OverrideAction": {
+              "None": {}
+            },
+            "VisibilityConfig": {
+              "SampledRequestsEnabled": true,
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "{{ app_name }}SQLiRuleSet"
+            }
+          }
+        ]'
+        --visibility-config SampledRequestsEnabled=true,CloudWatchMetricsEnabled=true,MetricName={{ app_name }}WebACL
+        --region {{ aws_region }}
+      register: waf_result
+      failed_when: false
+      changed_when: waf_result.rc == 0
+
+    - name: Parse WAF Web ACL info
+      set_fact:
+        waf_data: "{{ waf_result.stdout | from_json }}"
+      when: waf_result.rc == 0
+
+    - name: Get Application Load Balancer ARN (if exists)
+      command: >
+        aws elbv2 describe-load-balancers
+        --names {{ app_name }}-alb
+        --query 'LoadBalancers[0].LoadBalancerArn'
+        --output text
+        --region {{ aws_region }}
+      register: alb_arn
+      failed_when: false
+      changed_when: false
+
+    - name: Associate WAF with ALB
+      command: >
+        aws wafv2 associate-web-acl
+        --web-acl-arn {{ waf_data.Summary.ARN }}
+        --resource-arn {{ alb_arn.stdout }}
+        --region {{ aws_region }}
+      when:
+        - waf_data is defined
+        - alb_arn.rc == 0
+        - alb_arn.stdout != ""
+      register: associate_result
+      failed_when: false
+
+    - name: Display WAF information
+      debug:
+        msg:
+          - "✓ AWS WAF configured!"
+          - "Web ACL Name: {{ app_name }}-web-acl"
+          - "Web ACL ARN: {{ waf_data.Summary.ARN }}"
+          - ""
+          - "Protection enabled:"
+          - "  ✓ Rate limiting (2000 requests per 5 minutes per IP)"
+          - "  ✓ AWS Managed Rules - Common Rule Set"
+          - "  ✓ AWS Managed Rules - Known Bad Inputs"
+          - "  ✓ AWS Managed Rules - SQL Injection"
+          - ""
+          - "CloudWatch Metrics: {{ app_name }}WebACL"
+          - ""
+          - "To associate with ALB/CloudFront:"
+          - "aws wafv2 associate-web-acl --web-acl-arn {{ waf_data.Summary.ARN }} --resource-arn YOUR_RESOURCE_ARN"
+      when: waf_data is defined
+
+    - name: Save WAF info
+      copy:
+        content: |
+          AWS WAF Configuration
+          Created: {{ ansible_date_time.iso8601 }}
+          
+          Web ACL Name: {{ app_name }}-web-acl
+          Web ACL ARN: {{ waf_data.Summary.ARN }}
+          Region: {{ aws_region }}
+          
+          Rules Enabled:
+          - Rate limiting: 2000 req/5min per IP
+          - Common Rule Set (OWASP Top 10)
+          - Known Bad Inputs
+          - SQL Injection Protection
+          
+          CloudWatch Metrics: {{ app_name }}WebACL
+          
+          Associate with resource:
+          aws wafv2 associate-web-acl \
+            --web-acl-arn {{ waf_data.Summary.ARN }} \
+            --resource-arn YOUR_ALB_OR_CLOUDFRONT_ARN \
+            --region {{ aws_region }}
+        dest: "{{ playbook_dir }}/../waf-info.txt"
+      when: waf_data is defined
+

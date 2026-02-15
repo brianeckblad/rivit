@@ -1,0 +1,32 @@
+---
+# Playbook to create SSH key pair for EC2 access
+# Single purpose: Create SSH key pair and save locally
+#
+# Usage: ansible-playbook playbooks/create-ssh-key.yml
+
+- name: Create SSH Key Pair
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Create SSH key pair in AWS
+      amazon.aws.ec2_key:
+        name: "{{ app_name }}-key"
+        region: "{{ aws_region }}"
+      register: key_pair
+
+    - name: Save private key locally
+      copy:
+        content: "{{ key_pair.key.private_key }}"
+        dest: "~/.ssh/{{ app_name }}-key.pem"
+        mode: '0400'
+      when: key_pair.changed
+
+    - name: Display SSH key info
+      debug:
+        msg:
+          - "✓ SSH key pair created successfully"
+          - "Key name: {{ app_name }}-key"
+          - "Private key: ~/.ssh/{{ app_name }}-key.pem"
+          - "SSH command: ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@INSTANCE_IP"
+

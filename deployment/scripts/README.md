@@ -168,125 +168,58 @@ cd deployment
 
 ---
 
-## Secret Management Scripts
+## Secret Management
 
-### `secret-sync-vault.sh`
-**Purpose:** Sync Ansible Vault to AWS Secrets Manager  
-**When to use:** After editing vault, before deployment  
-**Usage:**
+**Secret management now uses Ansible playbooks (not shell scripts)**
+
+**Location:** `deployment/playbooks/`
+
+### Rotate Secret
 ```bash
 cd deployment
-./scripts/secret-sync-vault.sh
+ansible-playbook playbooks/secret-rotate.yml -e secret_key=YOUR_KEY
 ```
+**Creates AWSPENDING version for zero-downtime rotation**
 
-### `secret-rotate.sh`
-**Purpose:** Create AWSPENDING version for rotation  
-**Process:** Zero-downtime secret rotation  
-**Usage:**
+### Promote Secret
 ```bash
 cd deployment
-./scripts/secret-rotate.sh <secret-key>
-
-# Example:
-./scripts/secret-rotate.sh ebay_production_token
+ansible-playbook playbooks/secret-promote.yml -e secret_key=YOUR_KEY
 ```
+**Promotes AWSPENDING → AWSCURRENT after testing**
 
-### `secret-promote.sh`
-**Purpose:** Promote AWSPENDING to AWSCURRENT  
-**When to use:** After testing new secret  
-**Usage:**
+### Sync Secrets
 ```bash
 cd deployment
-./scripts/secret-promote.sh [version-id]
+ansible-playbook playbooks/secret-sync.yml
 ```
+**Syncs all vault secrets to AWS Secrets Manager**
 
-### `secret-upload-to-aws.sh`
-**Purpose:** Upload secrets from file to AWS Secrets Manager  
-**Usage:**
-```bash
-cd deployment
-./scripts/secret-upload-to-aws.sh [secrets-file]
-```
-
-### `secret-migrate-to-vault.sh`
-**Purpose:** Convert secrets.env to encrypted vault.yml  
-**Usage:**
-```bash
-cd deployment
-./scripts/secret-migrate-to-vault.sh [secrets.env]
-```
+**See:** [SECRET_MANAGEMENT.md](../SECRET_MANAGEMENT.md) for detailed workflow
 
 ---
 
-## SSL/Certificate Scripts
+## Application Maintenance Scripts
 
-### `ssl-setup.sh`
-**Purpose:** Setup SSL certificate with Let's Encrypt  
-**Requirements:** DNS must point to server  
-**Usage:**
-```bash
-cd deployment
-./scripts/ssl-setup.sh
-```
+**Application utility scripts have been moved to `app/scripts/`**
 
-### `ssl-add-config.sh`
-**Purpose:** Add SSL configuration to existing Nginx setup  
-**Usage:**
-```bash
-cd deployment
-./scripts/ssl-add-config.sh
-```
+These scripts are for application maintenance (image processing, data validation, etc.) and should run on the server, not during deployment.
 
----
+**See:** [app/scripts/README.md](../../app/scripts/README.md)
 
-## Utility Scripts
-
-### `util-generate-ebay-token.sh`
-**Purpose:** Generate eBay OAuth token  
-**Usage:**
-```bash
-cd deployment/scripts
-./util-generate-ebay-token.sh
-```
-
-### `util-check-comic-images.py`
-**Purpose:** Check image URLs for specific SKU  
-**Usage:**
-```bash
-cd deployment/scripts
-./util-check-comic-images.py <SKU>
-```
-
-### `util-fix-missing-thumbnails.py`
-**Purpose:** Fix missing thumbnail images  
-**Usage:**
-```bash
-cd deployment/scripts
-./util-fix-missing-thumbnails.py
-```
-
-### `util-generate-page-images.py`
-**Purpose:** Generate page mockup images for analytics  
-**Usage:**
-```bash
-cd deployment/scripts
-./util-generate-page-images.py
-```
-
-### `util-validate-csv-schema.py`
-**Purpose:** Validate CSV schema and data  
-**Usage:**
-```bash
-cd deployment/scripts
-./util-validate-csv-schema.py
-```
+**Moved scripts:**
+- `util-generate-ebay-token.sh` → `app/scripts/`
+- `util-check-comic-images.py` → `app/scripts/`
+- `util-fix-missing-thumbnails.py` → `app/scripts/`
+- `util-generate-page-images.py` → `app/scripts/`
+- `util-validate-csv-schema.py` → `app/scripts/`
 
 ---
 
 ## Quick Reference
 
-| Task | Script |
-|------|--------|
+| Task | Command |
+|------|---------|
 | **Complete AWS setup** | `infra-complete-setup.sh` |
 | **Deploy application** | `app-deploy.sh setup` |
 | **Update code** | `app-deploy.sh update` |
@@ -295,9 +228,10 @@ cd deployment/scripts
 | **Sync secrets** | `secret-sync-vault.sh` |
 | **Rotate secret** | `secret-rotate.sh <key>` then `secret-promote.sh` |
 | **Setup SSL** | `ssl-setup.sh` |
+| **App maintenance** | See [app/scripts/README.md](../../app/scripts/README.md) |
 
 ---
 
-**Version:** 5.0  
-**Last Updated:** February 8, 2026
+**Version:** 6.0  
+**Last Updated:** February 15, 2026
 

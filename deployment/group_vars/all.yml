@@ -15,6 +15,11 @@ app_display_name: "CHANGE ME"                    # ⚠️ CHANGE THIS - Your app
                                                  # Examples: "My App", "Comic Tracker", "Inventory Tool"
                                                  # Used for: systemd service description
 
+# Domain name for SSL/HTTPS (OPTIONAL)
+server_name: "_"                                 # Set to your domain: "myapp.com" or leave as "_" for IP-only
+                                                 # "_" = No domain, access via IP only
+                                                 # "your-domain.com" = Use domain with SSL
+
 # ----------------------------------------------------------------------------
 # 2. GIT CONFIGURATION
 # ----------------------------------------------------------------------------
@@ -25,7 +30,7 @@ app_display_name: "CHANGE ME"                    # ⚠️ CHANGE THIS - Your app
 git_branch: main                                 # Git branch to deploy (usually: main or master)
 
 # ----------------------------------------------------------------------------
-# 3. APPLICATION USER (OPTIONAL - defaults are secure)
+# 3. USERS (OPTIONAL - defaults are secure)
 # ----------------------------------------------------------------------------
 # SECURITY: Using a dedicated app user (not ubuntu) provides:
 #   - Principle of least privilege
@@ -36,8 +41,9 @@ git_branch: main                                 # Git branch to deploy (usually
 # CUSTOM: Uncomment and set if you want different username
 # app_user: myapp_runtime
 
-app_user: "{{ app_name }}"                       # Leave as-is unless you need custom username
-deploy_user: ubuntu                              # SSH user (don't change unless using different AMI)
+admin_user: ubuntu                               # Admin/SSH user for deployment (default for Ubuntu AMI)
+app_user: "{{ app_name }}"                       # Application runtime user (restricted, no SSH access)
+deploy_user: "{{ admin_user }}"                  # Alias for admin_user (for compatibility)
 
 # ----------------------------------------------------------------------------
 # 4. PERFORMANCE SETTINGS (OPTIONAL)

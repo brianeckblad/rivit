@@ -1,0 +1,152 @@
+---
+# Playbook to create and configure CloudFront distribution
+# For CDN and edge caching of static assets
+#
+# Usage: ansible-playbook playbooks/setup-cloudfront.yml
+
+- name: Setup CloudFront Distribution
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    cloudfront_price_class: "PriceClass_100"  # US, Canada, Europe
+
+  tasks:
+    - name: Get S3 bucket info
+      command: >
+        aws s3api get-bucket-location
+        --bucket {{ s3_bucket_name }}
+      register: bucket_location
+      changed_when: false
+
+    - name: Parse bucket region
+      set_fact:
+        bucket_region: "{{ (bucket_location.stdout | from_json).LocationConstraint or 'us-east-1' }}"
+
+    - name: Create CloudFront origin access identity
+      command: >
+        aws cloudfront create-cloud-front-origin-access-identity
+        --cloud-front-origin-access-identity-config
+        CallerReference={{ app_name }}-{{ ansible_date_time.epoch }},Comment="OAI for {{ app_name }}"
+      register: oai_result
+      failed_when: false
+      changed_when: oai_result.rc == 0
+
+    - name: Parse OAI ID
+      set_fact:
+        oai_id: "{{ (oai_result.stdout | from_json).CloudFrontOriginAccessIdentity.Id }}"
+      when: oai_result.rc == 0
+
+    - name: Update S3 bucket policy for CloudFront access
+      command: >
+        aws s3api put-bucket-policy
+        --bucket {{ s3_bucket_name }}
+        --policy '{
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity {{ oai_id }}"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::{{ s3_bucket_name }}/*"
+          }]
+        }'
+      when: oai_id is defined
+
+    - name: Create CloudFront distribution configuration
+      copy:
+        content: |
+          {
+            "CallerReference": "{{ app_name }}-{{ ansible_date_time.epoch }}",
+            "Comment": "CDN for {{ app_display_name }}",
+            "Enabled": true,
+            "Origins": {
+              "Quantity": 1,
+              "Items": [{
+                "Id": "S3-{{ s3_bucket_name }}",
+                "DomainName": "{{ s3_bucket_name }}.s3.{{ bucket_region }}.amazonaws.com",
+                "S3OriginConfig": {
+                  "OriginAccessIdentity": "origin-access-identity/cloudfront/{{ oai_id }}"
+                }
+              }]
+            },
+            "DefaultCacheBehavior": {
+              "TargetOriginId": "S3-{{ s3_bucket_name }}",
+              "ViewerProtocolPolicy": "redirect-to-https",
+              "AllowedMethods": {
+                "Quantity": 2,
+                "Items": ["GET", "HEAD"],
+                "CachedMethods": {
+                  "Quantity": 2,
+                  "Items": ["GET", "HEAD"]
+                }
+              },
+              "Compress": true,
+              "MinTTL": 0,
+              "DefaultTTL": 86400,
+              "MaxTTL": 31536000,
+              "ForwardedValues": {
+                "QueryString": false,
+                "Cookies": {"Forward": "none"}
+              }
+            },
+            "PriceClass": "{{ cloudfront_price_class }}",
+            "ViewerCertificate": {
+              "CloudFrontDefaultCertificate": true
+            }
+          }
+        dest: /tmp/cloudfront-config.json
+
+    - name: Create CloudFront distribution
+      command: >
+        aws cloudfront create-distribution
+        --distribution-config file:///tmp/cloudfront-config.json
+      register: distribution_result
+      failed_when: false
+
+    - name: Parse distribution info
+      set_fact:
+        distribution_data: "{{ distribution_result.stdout | from_json }}"
+      when: distribution_result.rc == 0
+
+    - name: Display CloudFront information
+      debug:
+        msg:
+          - "✓ CloudFront distribution created!"
+          - "Distribution ID: {{ distribution_data.Distribution.Id }}"
+          - "Domain Name: {{ distribution_data.Distribution.DomainName }}"
+          - "Status: {{ distribution_data.Distribution.Status }}"
+          - ""
+          - "⏳ Distribution is deploying (takes 15-20 minutes)"
+          - ""
+          - "Update your application to use CloudFront:"
+          - "CDN_URL=https://{{ distribution_data.Distribution.DomainName }}"
+          - ""
+          - "Check status:"
+          - "aws cloudfront get-distribution --id {{ distribution_data.Distribution.Id }}"
+      when: distribution_data is defined
+
+    - name: Save CloudFront info
+      copy:
+        content: |
+          CloudFront Distribution
+          Created: {{ ansible_date_time.iso8601 }}
+          
+          Distribution ID: {{ distribution_data.Distribution.Id }}
+          Domain Name: {{ distribution_data.Distribution.DomainName }}
+          OAI ID: {{ oai_id }}
+          
+          Status: Check with:
+          aws cloudfront get-distribution --id {{ distribution_data.Distribution.Id }}
+          
+          Use in application:
+          CDN_URL=https://{{ distribution_data.Distribution.DomainName }}
+        dest: "{{ playbook_dir }}/../cloudfront-info.txt"
+      when: distribution_data is defined
+
+    - name: Cleanup temp file
+      file:
+        path: /tmp/cloudfront-config.json
+        state: absent
+

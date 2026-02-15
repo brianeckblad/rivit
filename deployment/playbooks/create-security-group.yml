@@ -1,0 +1,44 @@
+---
+# Playbook to create security group for EC2 instance
+# Single purpose: Create security group with ports 22, 80, 443
+#
+# Usage: ansible-playbook playbooks/create-security-group.yml
+
+- name: Create Security Group
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Create security group
+      amazon.aws.ec2_security_group:
+        name: "{{ app_name }}-sg"
+        description: "Security group for {{ app_display_name }}"
+        region: "{{ aws_region }}"
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+            rule_desc: "SSH"
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+            rule_desc: "HTTP"
+          - proto: tcp
+            from_port: 443
+            to_port: 443
+            cidr_ip: 0.0.0.0/0
+            rule_desc: "HTTPS"
+        tags:
+          Application: "{{ app_name }}"
+          Environment: production
+          ManagedBy: Ansible
+
+    - name: Display security group info
+      debug:
+        msg:
+          - "✓ Security group created successfully"
+          - "Name: {{ app_name }}-sg"
+          - "Ports: 22 (SSH), 80 (HTTP), 443 (HTTPS)"
+

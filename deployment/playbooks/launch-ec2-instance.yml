@@ -1,0 +1,106 @@
+---
+# Playbook to launch EC2 instance
+# Single purpose: Launch EC2 instance with existing IAM role, security group, and SSH key
+#
+# Prerequisites:
+#   - IAM role created (create-iam-role.yml)
+#   - Security group created (create-security-group.yml)
+#   - SSH key created (create-ssh-key.yml)
+#
+# Usage: ansible-playbook playbooks/launch-ec2-instance.yml
+
+- name: Launch EC2 Instance
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    instance_type: "{{ ec2_instance_type | default('t3.micro') }}"
+    ami_owner: "099720109477"  # Canonical (Ubuntu)
+    ami_name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
+
+  tasks:
+    - name: Get latest Ubuntu 22.04 AMI
+      amazon.aws.ec2_ami_info:
+        region: "{{ aws_region }}"
+        owners: "{{ ami_owner }}"
+        filters:
+          name: "{{ ami_name }}"
+      register: amis
+
+    - name: Set AMI ID (latest)
+      set_fact:
+        ami_id: "{{ amis.images | sort(attribute='creation_date') | last | map(attribute='image_id') | first }}"
+
+    - name: Launch EC2 instance
+      amazon.aws.ec2_instance:
+        name: "{{ app_name }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami_id }}"
+        region: "{{ aws_region }}"
+        key_name: "{{ app_name }}-key"
+        security_group: "{{ app_name }}-sg"
+        iam_instance_profile: "{{ app_name }}-instance-profile"
+        wait: yes
+        wait_timeout: 300
+        tags:
+          Name: "{{ app_name }}"
+          Application: "{{ app_name }}"
+          Environment: production
+          ManagedBy: Ansible
+      register: ec2
+
+    - name: Get instance public IP
+      set_fact:
+        instance_ip: "{{ ec2.instances[0].public_ip_address }}"
+        instance_id: "{{ ec2.instances[0].instance_id }}"
+
+    - name: Wait for SSH to become available
+      wait_for:
+        host: "{{ instance_ip }}"
+        port: 22
+        delay: 30
+        timeout: 300
+        state: started
+
+    - name: Display instance information
+      debug:
+        msg:
+          - "✓ EC2 instance launched successfully"
+          - "Instance ID: {{ instance_id }}"
+          - "Public IP: {{ instance_ip }}"
+          - "Instance Type: {{ instance_type }}"
+          - "SSH: ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}"
+          - ""
+          - "Next: Update deployment/inventories/production/hosts.yml with IP"
+
+    - name: Save instance information to file
+      copy:
+        content: |
+          EC2 Instance Information
+          Created: {{ ansible_date_time.iso8601 }}
+          
+          Instance ID: {{ instance_id }}
+          Public IP: {{ instance_ip }}
+          Instance Type: {{ instance_type }}
+          AMI: {{ ami_id }}
+          SSH Key: ~/.ssh/{{ app_name }}-key.pem
+          Security Group: {{ app_name }}-sg
+          IAM Role: {{ app_name }}-ec2-role
+          
+          SSH Command:
+          ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}
+          
+          Next Steps:
+          1. Update deployment/inventories/production/hosts.yml
+          2. Set: ansible_host: {{ instance_ip }}
+          3. Run: ansible-playbook -i inventories/production playbooks/setup.yml
+        dest: "{{ playbook_dir }}/../instance-info.txt"
+
+    - name: Update inventory file automatically
+      lineinfile:
+        path: "{{ playbook_dir }}/../inventories/production/hosts.yml"
+        regexp: '^\s*ansible_host:'
+        line: "          ansible_host: {{ instance_ip }}"
+        state: present
+      failed_when: false
+
