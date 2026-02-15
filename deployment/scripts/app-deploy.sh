@@ -64,10 +64,10 @@ Examples:
   $0 status                          # Check status
   $0 rollback abc1234                # Rollback to commit abc1234
 
-For more info, see: deployment/REMOTE_DEPLOYMENT_STRATEGY.md
+For more info, see: deployment/docs/guides/MANUAL_DEPLOYMENT.md
 
 ${YELLOW}WARNING:${NC} Make sure you have:
-  1. Vault password set up: ./deployment/scripts/create-vault.sh
+  1. Vault password set up: echo 'password' > ~/.vault_pass && chmod 600 ~/.vault_pass
   2. Hosts configured: deployment/inventories/production/hosts.yml
   3. Code pushed to GitHub: git push origin main
 
@@ -109,8 +109,8 @@ check_prerequisites() {
     success "Inventory file found"
 
     if [[ ! -f "$VAULT_FILE" ]]; then
-        warning "Vault file not found. You may need to run:"
-        warning "  ./deployment/scripts/create-vault.sh"
+        warning "Vault file not found. Create it with:"
+        warning "  ansible-vault create deployment/group_vars/production/vault.yml"
     else
         success "Vault file found"
     fi

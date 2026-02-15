@@ -219,7 +219,7 @@ aws secretsmanager put-secret-value \
 echo "✓ New secret version created (AWSPENDING)"
 echo "  Test your application with the new secret"
 echo "  If successful, promote to AWSCURRENT:"
-echo "  ./scripts/secret-promote.sh"
+echo "  ansible-playbook playbooks/secret-promote.yml -e secret_key=YOUR_KEY"
 ```
 
 ---
@@ -428,14 +428,14 @@ ansible-vault edit deployment/group_vars/production/vault.yml \
   --vault-password-file ~/.vault_pass
 # Add: vault_ebay_production_token_new: "..."
 
-# 3. Deploy with rotation
-./scripts/rotate-secrets.sh ebay_production_token
+# 3. Rotate secret
+ansible-playbook playbooks/secret-rotate.yml -e secret_key=ebay_production_token
 
 # 4. Test application
 curl https://yourdomain.com/api/ebay/test
 
 # 5. If successful, promote
-./scripts/secret-promote.sh
+ansible-playbook playbooks/secret-promote.yml -e secret_key=ebay_production_token
 
 # 6. Clean up vault
 ansible-vault edit deployment/group_vars/production/vault.yml

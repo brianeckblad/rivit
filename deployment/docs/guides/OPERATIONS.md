@@ -646,7 +646,7 @@ git push
 
 ```bash
 # Create new version in AWS (doesn't affect production yet)
-./scripts/secret-rotate.sh ebay_production_token
+ansible-playbook playbooks/secret-rotate.yml -e secret_key=ebay_production_token
 ```
 
 **What happens:**
@@ -670,7 +670,7 @@ aws ssm start-session --target i-xxxxxxxxxxxxx
 
 If tests successful:
 ```bash
-./scripts/secret-promote.sh
+ansible-playbook playbooks/secret-promote.yml -e secret_key=ebay_production_token
 ```
 
 **What happens:**

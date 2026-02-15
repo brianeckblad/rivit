@@ -1,19 +1,17 @@
 ---
 # Example vault file for production secrets
 #
-# RECOMMENDED: Use the interactive script
-# Run: ./scripts/create-vault.sh
-# This will prompt for credentials and encrypt automatically
+# Setup:
+# 1. Create vault password: echo 'your-secure-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
+# 2. Copy this file: cp vault.yml.example vault.yml
+# 3. Edit with your credentials: vim vault.yml
+# 4. Encrypt: ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
+# 5. Commit encrypted vault.yml to git (SAFE when encrypted)
 #
-# Manual method:
-# 1. Copy this file to vault.yml
-# 2. Fill in your actual credentials
-# 3. Encrypt: ansible-vault encrypt group_vars/production/vault.yml
-# 4. Commit encrypted vault.yml to git (SAFE when encrypted)
-# 5. Run playbook: ansible-playbook site.yml --ask-vault-pass
+# Or create directly:
+#   ansible-vault create vault.yml --vault-password-file ~/.vault_pass
 #
 # NOTE: Encrypted vault.yml should be committed to git for reusable deployments.
-# Only skip encryption if you're testing locally and don't want to deal with passwords.
 
 # Git Repository (contains your GitHub username/org - keep private)
 vault_git_repo: "https://github.com/yourusername/app_item_listing_tool.git"

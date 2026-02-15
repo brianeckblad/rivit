@@ -331,12 +331,20 @@ App User ({app_name})
 ```
 deployment/
 ├── playbooks/              # Ansible playbooks
-│   ├── provision-ec2.yml
+│   ├── create-s3-bucket.yml
+│   ├── create-iam-role.yml
+│   ├── create-security-group.yml
+│   ├── create-ssh-key.yml
+│   ├── launch-ec2-instance.yml
+│   ├── provision-infrastructure.yml
 │   ├── provision-complete.yml
 │   ├── setup.yml
 │   ├── update.yml
 │   ├── setup-ssl.yml
 │   ├── setup-monitoring.yml
+│   ├── setup-cloudfront.yml
+│   ├── setup-waf.yml
+│   ├── setup-secrets-manager.yml
 │   └── secret-*.yml
 │
 ├── templates/              # Jinja2 templates
