@@ -5,7 +5,7 @@
 **Version:** 5.0  
 **Last Updated:** February 8, 2026
 
-> **Note:** This documentation uses `rampe` as the default application name in examples. The actual app name is configurable in `deployment/group_vars/all.yml` via the `app_name` variable. If you've customized your app name, replace `rampe` with your configured name in all commands and paths.
+> **Note:** Commands in this guide use `{app_name}` as a placeholder for your configured application name (set in `deployment/group_vars/all.yml`). Replace `{app_name}` with your actual app name when running commands and referencing paths.
 
 ---
 
@@ -194,7 +194,7 @@ POST /admin?id=1' OR '1'='1 HTTP/1.1
 **Application Logs:**
 ```bash
 # Security events logged to main application log
-tail -f /var/log/rampe/app.log | grep "🚫\|🚨\|⚠️"
+tail -f /var/log/{app_name}/app.log | grep "🚫\|🚨\|⚠️"
 ```
 
 **Log Examples:**

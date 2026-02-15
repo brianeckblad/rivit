@@ -1,292 +1,327 @@
-# Pre-Deployment Checklist - Start Fresh
+# Pre-Deployment Checklist
 
-**Date:** February 14, 2026  
-**Purpose:** Ensure everything is configured correctly before manual deployment
-
----
-
-## ✅ Configuration Items to Update
-
-### 1. Application Identity
-
-**File:** `deployment/group_vars/all.yml`
-
-```yaml
-# UPDATE THESE:
-app_name: rampe                                        # ✅ Set to your app name
-app_display_name: "Rampe"                              # ✅ Set to display name
-app_url: "https://github.com/YOUR_USERNAME/rampe"      # ⚠️ CHANGE YOUR_USERNAME
-```
-
-**Action Required:**
-- [ ] Change `app_url` from `yourusername` to your actual GitHub username
+**Use this before deploying** - Either automated or manual deployment.
 
 ---
 
-### 2. AWS Configuration
+## Quick Check: Are You Ready?
 
-**File:** `deployment/group_vars/production/vault.yml` (encrypted)
-
-You'll need to create/edit this vault file with:
+Run these commands. If any fail, see [Fix It](#fix-it) section:
 
 ```bash
-# Decrypt vault (or create new)
-ansible-vault edit deployment/group_vars/production/vault.yml
+# AWS configured?
+aws sts get-caller-identity
+
+# Tools installed?
+python3 --version  # Need 3.8+
+ansible --version  # Need 2.9+
+
+# Configuration ready?
+ls deployment/group_vars/all.yml
+ls deployment/group_vars/production/vault.yml
 ```
 
-**Required variables:**
+**All working?** → You're ready! Skip to [Configuration Check](#configuration-check)
+
+**Something failed?** → See [Fix It](#fix-it) below
+
+---
+
+## Fix It
+
+### AWS CLI Not Configured
+
+```bash
+# Install AWS CLI
+pip install awscli
+
+# Configure
+aws configure
+# Enter: Access Key ID, Secret Access Key, Region (us-east-1), Format (json)
+```
+
+**Don't have AWS keys?** → Create IAM user:
+```bash
+# In AWS Console:
+# 1. IAM → Users → Create User
+# 2. Name: {app_name}-deploy (e.g., myapp-deploy)
+# 3. Attach policy: AdministratorAccess
+# 4. Create Access Key → Save credentials
+```
+
+### Python/Ansible Not Installed
+
+```bash
+# macOS
+brew install python3 ansible
+
+# Ubuntu/Debian
+sudo apt update
+sudo apt install python3 python3-pip ansible
+
+# Verify
+python3 --version  # Should be 3.8+
+ansible --version
+```
+
+### Configuration Files Missing
+
+**1. Configure app settings:**
+
+Edit `deployment/group_vars/all.yml`:
 ```yaml
-vault_git_repo: "https://github.com/YOUR_USERNAME/rampe.git"
+app_name: your_app_name                      # Your app name (e.g., myapp, inventory_tool, etc.)
+app_display_name: "Your App"                 # Display name
+app_url: "https://github.com/YOUR_USERNAME/your_app_name"  # ← Change YOUR_USERNAME and app_name
+```
+
+**2. Create secrets vault:**
+
+```bash
+# Create vault password file (one-time)
+echo "your-secure-password-here" > ~/.vault_pass
+chmod 600 ~/.vault_pass
+
+# Create vault
+cd deployment
+ansible-vault create group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+```
+
+Add this content to the vault:
+```yaml
+---
+# Git Repository
+vault_git_repo: "https://github.com/YOUR_USERNAME/your_app_name.git"  # ← Your repo
+
+# AWS
 vault_aws_region: "us-east-1"
-vault_s3_bucket_name: "your-unique-bucket-name"
+vault_s3_bucket_name: "your-unique-bucket-name"  # ← Must be globally unique
 vault_s3_folder: "production"
+
+# App Credentials
 vault_app_username: "admin"
-vault_app_password: "your_secure_password"
-vault_sns_topic_arn: ""  # Optional
-```
+vault_app_password: "your-secure-password"  # ← Change this
 
-**Action Required:**
-- [ ] Set your actual GitHub repository URL
-- [ ] Choose a unique S3 bucket name
-- [ ] Set a secure admin password
+# SNS (optional)
+vault_sns_topic_arn: ""
+
+# eBay (optional - leave blank if not using)
+vault_ebay_app_id: ""
+vault_ebay_cert_id: ""
+vault_ebay_dev_id: ""
+vault_ebay_token: ""
+```
 
 ---
 
-### 3. Local Environment File (Development Only)
+## Configuration Check
 
-**File:** `.env.example` → Copy to `.env` for local development
+Verify your configuration before deploying:
+
+### 1. App Configuration
 
 ```bash
-cp .env.example .env
+grep "app_url:" deployment/group_vars/all.yml
+# Should show YOUR GitHub username, not "yourusername"
 ```
 
-Then edit `.env`:
-
-```dotenv
-# UPDATE THESE:
-SECRET_KEY=change-this-to-a-random-secret-key         # ⚠️ GENERATE RANDOM
-USERS=admin:your_secure_password                      # ⚠️ CHANGE PASSWORD
-AWS_REGION=us-east-1                                  # ✅ Already updated
-S3_BUCKET=your-s3-bucket-name                         # ⚠️ CHANGE THIS
-```
-
-**Action Required:**
-- [ ] Generate random SECRET_KEY
-- [ ] Set secure password
-- [ ] Update S3 bucket name
-
----
-
-### 4. SSL/Domain Configuration (If Using Custom Domain)
-
-**File:** `deployment/scripts/ssl-add-config.sh`
+### 2. Vault Configuration
 
 ```bash
-# Line 8 - UPDATE THIS:
-DOMAIN="your-domain.com"  # ⚠️ CHANGE to your actual domain
+ansible-vault view deployment/group_vars/production/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
+# Should show YOUR repository URL
 ```
 
-**Action Required:**
-- [ ] Update DOMAIN variable to your actual domain (or leave as placeholder if using IP only)
+### 3. S3 Bucket Name
 
----
-
-### 5. eBay Token Generator (If Using eBay Integration)
-
-**File:** `deployment/scripts/util-generate-ebay-token.sh`
-
-The script now uses generic placeholders. You'll need to:
-
-**Action Required:**
-- [ ] Update domain references when you generate eBay tokens
-- [ ] Set eBay redirect URI in eBay developer portal to your actual domain
-
----
-
-## ✅ Files Already Cleaned Up
-
-### ✅ No Hardcoded Values Found In:
-
-- [ ] ✅ Python application code (`app/**/*.py`) - Clean!
-- [ ] ✅ Ansible playbooks (`deployment/playbooks/*.yml`) - Uses variables!
-- [ ] ✅ Systemd templates (`deployment/files/*.j2`) - Uses variables!
-- [ ] ✅ Most shell scripts - Uses `APP_NAME` variable!
-
-### ✅ Generic Placeholders Set:
-
-- [ ] ✅ `.env.example` - Uses generic placeholders
-- [ ] ✅ `ssl-add-config.sh` - Uses `DOMAIN` variable
-- [ ] ✅ `util-generate-ebay-token.sh` - Generic domain placeholder
-
----
-
-## 📋 Pre-Deployment Verification
-
-### Configuration Check
+The bucket name must be **globally unique** across all AWS:
 
 ```bash
-# 1. Check app_name is set
-grep "^app_name:" deployment/group_vars/all.yml
-# Should show: app_name: rampe (or your custom name)
+ansible-vault view deployment/group_vars/production/vault.yml --vault-password-file ~/.vault_pass | grep vault_s3_bucket_name
+# Should NOT be: your-bucket-name, your_app_name, or anything common
+# Should BE: something unique like: yourname-yourapp-comics-2026
+```
 
-# 2. Check for any remaining hardcoded domains
-grep -r "badartink" deployment/ --exclude-dir=.git
-# Should return: (empty)
+**Test if bucket name is available:**
+```bash
+aws s3 ls s3://your-chosen-bucket-name 2>&1
+# Should show: "NoSuchBucket" (good - it's available!)
+# If shows content: Choose a different name
+```
 
-# 3. Check for any remaining hardcoded buckets
-grep -r "badart-listing-tool" . --exclude-dir=.git --exclude-dir=.venv
-# Should return: (empty)
+### 4. Domain (if using SSL)
 
-# 4. Verify vault file exists
-ls -la deployment/group_vars/production/vault.yml
-# Should exist (encrypted)
+If you want SSL/custom domain:
+
+```bash
+grep "DOMAIN=" deployment/scripts/ssl-setup.sh
+# Should show your actual domain, not "your-domain.com"
 ```
 
 ---
 
-## 🚀 Ready to Deploy Checklist
+## AWS Setup (Required)
 
-### Before You Start:
-
-- [ ] **AWS Account Setup**
-  - [ ] AWS account created
-  - [ ] IAM user with admin access
-  - [ ] AWS CLI configured (`aws configure`)
-  
-- [ ] **GitHub Repository**
-  - [ ] Repository created
-  - [ ] Code pushed to GitHub
-  - [ ] Repository is private/public as intended
-  
-- [ ] **Configuration Files**
-  - [ ] `app_url` updated with your GitHub username
-  - [ ] Vault file created/updated with your values
-  - [ ] `.env` created for local development
-  - [ ] S3 bucket name chosen (must be globally unique)
-  
-- [ ] **Domain/SSL (Optional)**
-  - [ ] Domain purchased and DNS configured
-  - [ ] DOMAIN variable updated in `ssl-add-config.sh`
-  
-- [ ] **eBay Integration (Optional)**
-  - [ ] eBay developer account created
-  - [ ] eBay app registered
-  - [ ] Redirect URIs configured
-
----
-
-## 🛠️ Quick Fixes Applied
-
-### What Was Updated:
-
-1. **`.env.example`**
-   - ✅ Removed hardcoded bucket name `badart-listing-tool`
-   - ✅ Changed region from `us-east-2` to `us-east-1`
-   - ✅ Added generic placeholder `your-s3-bucket-name`
-
-2. **`deployment/scripts/ssl-add-config.sh`**
-   - ✅ Removed hardcoded domain `app.badartink.com`
-   - ✅ Added `DOMAIN` variable with placeholder `your-domain.com`
-   - ✅ Updated all SSL certificate paths to use `${DOMAIN}`
-   - ✅ Updated curl test to use `${DOMAIN}`
-
-3. **`deployment/scripts/util-generate-ebay-token.sh`**
-   - ✅ Removed hardcoded domain `app.badartink.com`
-   - ✅ Added generic placeholder `your-domain.com`
-
-4. **All Other Files**
-   - ✅ Already using variables (app_name, app_user, etc.)
-   - ✅ No hardcoded application names found
-   - ✅ Deployment playbooks use proper variable substitution
-
----
-
-## 📝 Configuration Summary
-
-### What's Configurable:
-
-| Variable | Location | Default | Action |
-|----------|----------|---------|--------|
-| `app_name` | `group_vars/all.yml` | `rampe` | ✅ OK or customize |
-| `app_url` | `group_vars/all.yml` | Has placeholder | ⚠️ UPDATE |
-| `vault_git_repo` | `vault.yml` | Encrypted | ⚠️ UPDATE |
-| `vault_s3_bucket_name` | `vault.yml` | Encrypted | ⚠️ UPDATE |
-| `vault_app_password` | `vault.yml` | Encrypted | ⚠️ UPDATE |
-| `DOMAIN` | `ssl-add-config.sh` | `your-domain.com` | ⚠️ UPDATE if using SSL |
-| `S3_BUCKET` | `.env.example` | Placeholder | ⚠️ UPDATE for dev |
-
-### What's Already Good:
-
-| Item | Status |
-|------|--------|
-| App user security | ✅ Configured |
-| Variable usage | ✅ All using variables |
-| CSV storage | ✅ No database needed |
-| AWS IAM roles | ✅ Configured for EC2 |
-| Systemd hardening | ✅ 20+ security features |
-| Documentation | ✅ Organized |
-
----
-
-## 🎯 Next Steps
-
-### 1. Update Required Values
+### Create S3 Bucket
 
 ```bash
-# 1. Update app_url in group_vars/all.yml
-vim deployment/group_vars/all.yml
-# Change: yourusername → your_actual_username
-
-# 2. Create/edit vault file
-ansible-vault edit deployment/group_vars/production/vault.yml
-# Set: vault_git_repo, vault_s3_bucket_name, vault_app_password
-
-# 3. Update domain (if using SSL)
-vim deployment/scripts/ssl-add-config.sh
-# Change: your-domain.com → your.actual-domain.com
+# Replace with your unique bucket name
+aws s3 mb s3://yourname-yourapp-comics-2026 --region us-east-1
 ```
 
-### 2. Verify Configuration
+### For Manual Deployment: Create EC2 Instance
+
+**Only if doing manual deployment** (automated deployment creates this for you):
 
 ```bash
-# Run verification checks
+# Launch Ubuntu 22.04 instance
+# Instance type: t3.micro (or t3.nano for cheapest)
+# Security group: Allow ports 22, 80, 443
+# Key pair: Create and download .pem file
+```
+
+**Automated deployment?** Skip this - the script handles it.
+
+---
+
+## Final Checklist
+
+Before running deployment, verify:
+
+### Required (Must Have)
+- [ ] AWS CLI configured (`aws sts get-caller-identity` works)
+- [ ] Python 3.8+ installed
+- [ ] Ansible installed
+- [ ] `deployment/group_vars/all.yml` configured (app_url updated)
+- [ ] `deployment/group_vars/production/vault.yml` created and configured
+- [ ] `~/.vault_pass` file created
+- [ ] S3 bucket created in AWS
+- [ ] S3 bucket name is globally unique
+
+### For Manual Deployment Only
+- [ ] EC2 instance running Ubuntu 22.04
+- [ ] SSH access to EC2 instance
+- [ ] Instance IP added to `deployment/inventories/production/hosts`
+
+### For Automated Deployment Only
+- [ ] IAM user has `AdministratorAccess` policy
+- [ ] Ready to wait 15-20 minutes for full setup
+
+### Optional (Can Skip)
+- [ ] Domain name ready (for SSL)
+- [ ] Domain updated in `deployment/scripts/ssl-setup.sh`
+- [ ] eBay credentials (if using price lookup)
+
+---
+
+## Common Mistakes
+
+### ❌ Using Default Bucket Name
+
+```yaml
+# DON'T:
+vault_s3_bucket_name: "your_app_name"
+vault_s3_bucket_name: "your-bucket-name"
+
+# DO:
+vault_s3_bucket_name: "yourname-yourapp-comics-2026"
+```
+
+### ❌ Not Updating app_url
+
+```yaml
+# DON'T:
+app_url: "https://github.com/yourusername/your_app_name"
+
+# DO:
+app_url: "https://github.com/brian/your_app_name"  # Your actual username
+```
+
+### ❌ Not Updating vault_git_repo
+
+```yaml
+# DON'T:
+vault_git_repo: "https://github.com/yourusername/your_app_name.git"
+
+# DO:
+vault_git_repo: "https://github.com/brian/your_app_name.git"  # Your actual repo
+```
+
+### ❌ Forgetting vault password
+
+If you lose `~/.vault_pass`:
+- You can't decrypt vault.yml
+- You'll need to recreate it from scratch
+- **Keep ~/.vault_pass backed up!**
+
+---
+
+## Verification Commands
+
+Run these before deploying to catch issues:
+
+```bash
+# 1. AWS works
+aws s3 ls
+# Should list buckets (even if empty list)
+
+# 2. S3 bucket exists
+aws s3 ls s3://your-bucket-name/
+# Should work (even if empty)
+
+# 3. Vault can be read
+ansible-vault view deployment/group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+# Should show your secrets
+
+# 4. Config has your username
 grep "yourusername" deployment/group_vars/all.yml
-# Should return: (empty after you update it)
+# Should return nothing (means you updated it)
 
-grep "your-domain.com" deployment/scripts/ssl-add-config.sh
-# Should return: your actual domain after update
-
-# Check vault is configured
-ansible-vault view deployment/group_vars/production/vault.yml
-# Should show your actual values
+# 5. Ansible can find inventory (manual deployment only)
+ansible-inventory -i deployment/inventories/production --list
+# Should show your EC2 instance
 ```
 
-### 3. Deploy!
+---
+
+## What If I Skip This?
+
+**If you skip this checklist:**
+- Deployment will fail
+- You'll waste 10-15 minutes
+- You'll have to debug and re-run
+- Might create AWS resources you need to clean up
+
+**5 minutes checking now = saves 30 minutes later** ✅
+
+---
+
+## Ready to Deploy?
+
+### For Automated Deployment
 
 ```bash
 cd deployment
 ./scripts/infra-complete-setup.sh
 ```
 
+→ See [README.md#quick-deploy-automated](README.md#quick-deploy-automated)
+
+### For Manual Deployment
+
+```bash
+cd deployment
+ansible-playbook -i inventories/production playbooks/setup.yml
+```
+
+→ See [README.md#manual-deploy-step-by-step](README.md#manual-deploy-step-by-step)
+
 ---
 
-## 📞 Support
+## Need Help?
 
-If you encounter issues:
-
-1. **Configuration:** See `deployment/DEPLOYMENT_PREP.md`
-2. **Deployment:** See `deployment/DEPLOYMENT_COMPLETE_GUIDE.md`
-3. **Operations:** See `deployment/OPERATIONS.md`
-4. **Security:** See `deployment/SECURITY_HARDENING.md`
-
----
-
-## Summary
-
-✅ **Cleaned up all hardcoded values**  
-✅ **Everything uses variables**  
-⚠️ **Need to update 3-4 configuration values**  
-⚠️ **Then ready to deploy!**
-
-**The app is 95% ready - just need your specific values (GitHub username, S3 bucket name, passwords).**
+- **Can't configure AWS?** → [AWS Account Setup](#aws-setup-required)
+- **Don't understand vault?** → [Fix It → Configuration Files Missing](#configuration-files-missing)
+- **Deployment failed?** → [README.md#troubleshooting](README.md#troubleshooting)
+- **Something else?** → Check [OPERATIONS.md](OPERATIONS.md) or create GitHub issue
 

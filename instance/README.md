@@ -4,7 +4,7 @@
 **Purpose:** Application runtime data and persistent storage  
 **Created:** Automatically during deployment
 
-**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml` (default: `rampe`)
+**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml`
 
 ---
 
@@ -506,7 +506,7 @@ df -h /home/ubuntu
 ### Commands
 ```bash
 # Set your app directory (configured in deployment/group_vars/all.yml)
-APP_DIR="/home/ubuntu/<app_name>"  # Replace <app_name> with actual name (e.g., rampe)
+APP_DIR="/home/ubuntu/<app_name>"  # Replace <app_name> with actual name from group_vars/all.yml
 
 # View recent logs
 tail -f $APP_DIR/instance/app.log
@@ -608,7 +608,7 @@ cd $APP_DIR
 /home/ubuntu/<app_name>/instance/
 ```
 
-**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml` (default: `rampe`)
+**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml`
 
 **Logs (also at):**
 ```

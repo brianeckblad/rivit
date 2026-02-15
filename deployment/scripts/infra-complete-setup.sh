@@ -11,6 +11,12 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source the app name getter function
+source "$SCRIPT_DIR/lib/get_app_name.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -93,8 +99,10 @@ if [ -z "$S3_BUCKET_NAME" ]; then
 fi
 
 if [ -z "$INSTANCE_NAME" ]; then
-    read -p "Instance Name (default: rampe): " INSTANCE_NAME
-    INSTANCE_NAME=${INSTANCE_NAME:-rampe}
+    # Try to get from config first
+    DEFAULT_NAME=$(get_app_name 2>/dev/null || echo "app_name")
+    read -p "Instance Name (default from config: $DEFAULT_NAME): " INSTANCE_NAME
+    INSTANCE_NAME=${INSTANCE_NAME:-$DEFAULT_NAME}
 fi
 
 if [ -z "$INSTANCE_TYPE" ]; then

@@ -4,8 +4,20 @@
 # Sets up Let's Encrypt SSL certificate with automatic renewal
 #
 # Usage: sudo ./setup-ssl.sh [domain]
-#        Or run without arguments to be prompte# Application name - can be overridden with environment variable
-APP_NAME="${APP_NAME:-rampe}"
+#        Or run without arguments to be prompted
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source the app name getter function
+source "$SCRIPT_DIR/lib/get_app_name.sh"
+
+# Get app name from config (or use environment variable override)
+if [ -z "$APP_NAME" ]; then
+    APP_NAME=$(get_app_name) || exit 1
+fi
+
+echo "Setting up SSL for application: $APP_NAME"
 #
 # MANUAL CERTIFICATE REUSE INSTRUCTIONS
 # ======================================

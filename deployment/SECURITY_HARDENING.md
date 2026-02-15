@@ -14,14 +14,14 @@
 ```yaml
 # deployment/group_vars/all.yml
 
-app_name: rampe           # Your app name
-app_user: "{{ app_name }}"    # Runtime user (defaults to app_name)
-deploy_user: ubuntu       # SSH/deployment user
+app_name: your_app_name           # Your app name (e.g., myapp, inventory_tool, comic_tracker)
+app_user: "{{ app_name }}"        # Runtime user (defaults to app_name)
+deploy_user: ubuntu               # SSH/deployment user
 ```
 
 ### What This Means
 
-**Runtime User (`rampe`):**
+**Runtime User (`{app_name}`):**
 - **Runs:** Application process (Gunicorn)
 - **Shell:** ❌ None (`/usr/sbin/nologin`)
 - **SSH:** ❌ No
@@ -40,23 +40,23 @@ deploy_user: ubuntu       # SSH/deployment user
 
 ```bash
 # Check user configuration
-getent passwd rampe
+getent passwd {app_name}
 # Should show: /usr/sbin/nologin
 
 # Check running process
 ps aux | grep gunicorn
-# Should show: rampe as user
+# Should show: {app_name} as user
 
 # Test isolation (should fail - good!)
-sudo -u rampe touch /home/ubuntu/rampe/test.txt
+sudo -u {app_name} touch /home/ubuntu/{app_name}/test.txt
 # Should fail: Permission denied
 
 # Verify security
-systemd-analyze security rampe
+systemd-analyze security {app_name}
 # Should show: MEDIUM or better
 
 # Check logs
-journalctl -u rampe -n 50
+journalctl -u {app_name} -n 50
 ```
 
 ### Security Score
@@ -94,20 +94,20 @@ This deployment uses a **dedicated, non-privileged application user** with no SS
 │     ├── sudo: ✅ YES (via Ansible)                      │
 │     ├── Purpose: Deployment, git, system management     │
 │     └── Home: /home/ubuntu/                             │
-│          ├── rampe/ (application code)                  │
+│          ├── {app_name}/ (application code)             │
 │          └── .venv/ (Python virtual environment)        │
 │                                                          │
-│  👤 rampe (app_user)                                    │
+│  👤 {app_name} (app_user)                               │
 │     ├── SSH Access: ❌ NO                               │
 │     ├── Shell: /usr/sbin/nologin                        │
 │     ├── sudo: ❌ NO                                     │
 │     ├── Home: ❌ NONE (system user)                     │
 │     ├── Purpose: Run application ONLY                   │
 │     └── Permissions:                                    │
-│          ├── READ: /home/ubuntu/rampe/* (code)          │
+│          ├── READ: /home/ubuntu/{app_name}/* (code)     │
 │          ├── READ: /home/ubuntu/.venv/* (dependencies)  │
-│          ├── WRITE: /var/log/rampe/* (logs)             │
-│          └── WRITE: /home/ubuntu/rampe/instance/* (data)│
+│          ├── WRITE: /var/log/{app_name}/* (logs)        │
+│          └── WRITE: /home/ubuntu/{app_name}/instance/* (data)│
 │                                                          │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -125,7 +125,7 @@ This deployment uses a **dedicated, non-privileged application user** with no SS
 - **Limited Capabilities:** Systemd removes all unnecessary Linux capabilities
 
 ### 3. **Isolation**
-- **Separate from Admin:** Deployment user (ubuntu) is isolated from runtime user (rampe)
+- **Separate from Admin:** Deployment user (ubuntu) is isolated from runtime user ({app_name} or your configured app_user)
 - **Private Temp:** Application has its own /tmp directory
 - **Protected Home:** Cannot access other users' home directories
 
@@ -149,8 +149,8 @@ ProtectSystem=strict
 ProtectHome=read-only
 
 # Only these directories are writable
-ReadWritePaths=/var/log/rampe
-ReadWritePaths=/home/ubuntu/rampe/instance
+ReadWritePaths=/var/log/{app_name}
+ReadWritePaths=/home/ubuntu/{app_name}/instance
 
 # Protect kernel
 ProtectKernelLogs=true
@@ -199,7 +199,7 @@ These require application-level security:
 # File: deployment/group_vars/all.yml
 
 # Application user (runs the app, no SSH)
-app_user: rampe                    # Defaults to app_name
+app_user: your_app_name            # Defaults to app_name
                                    # - Created automatically
                                    # - No shell (/usr/sbin/nologin)
                                    # - No home directory
@@ -212,9 +212,9 @@ deploy_user: ubuntu                # Standard EC2/Lightsail user
                                    # - Manages code and dependencies
 
 # Paths
-app_dir: /home/ubuntu/rampe        # Code owned by deploy_user
+app_dir: /home/ubuntu/{app_name}   # Code owned by deploy_user
 venv_dir: /home/ubuntu/.venv       # Python venv owned by deploy_user
-log_dir: /var/log/rampe            # Logs owned by app_user
+log_dir: /var/log/{app_name}       # Logs owned by app_user
 ```
 
 ### How It Works
@@ -225,26 +225,26 @@ log_dir: /var/log/rampe            # Logs owned by app_user
    ssh ubuntu@server
    
    # Pulls code, installs dependencies
-   cd /home/ubuntu/rampe
+   cd /home/ubuntu/{app_name}
    git pull
    source ~/.venv/bin/activate
    pip install -r requirements.txt
    ```
 
-2. **Runtime (as `rampe`):**
+2. **Runtime (as `{app_name}`):**
    ```bash
-   # Systemd starts service as rampe (app_user)
-   systemctl start rampe
+   # Systemd starts service as {app_name} (app_user)
+   systemctl start {app_name}
    
    # Process runs as:
-   User=rampe
-   Group=rampe
-   WorkingDirectory=/home/ubuntu/rampe
+   User={app_name}
+   Group={app_name}
+   WorkingDirectory=/home/ubuntu/{app_name}
    
    # Can only:
    # - Read code files
-   # - Write to /var/log/rampe/
-   # - Write to /home/ubuntu/rampe/instance/
+   # - Write to /var/log/{app_name}/
+   # - Write to /home/ubuntu/{app_name}/instance/
    ```
 
 ## Verification
@@ -253,23 +253,23 @@ log_dir: /var/log/rampe            # Logs owned by app_user
 
 ```bash
 # Verify app user exists and has no shell
-getent passwd rampe
-# Output: rampe:x:999:999:Rampe Application User (no login):/:/usr/sbin/nologin
+getent passwd {app_name}
+# Output: {app_name}:x:999:999:Application User (no login):/:/usr/sbin/nologin
 
 # Verify user cannot login
-su - rampe
+su - {app_name}
 # Output: This account is currently not available.
 
 # Check process ownership
 ps aux | grep gunicorn
-# Output: rampe  1234  0.5  2.3  ...  gunicorn
+# Output: {app_name}  1234  0.5  2.3  ...  gunicorn
 ```
 
 ### Test Systemd Security
 
 ```bash
 # Check systemd security analysis
-systemd-analyze security rampe
+systemd-analyze security {app_name}
 
 # Should show SAFE or MEDIUM ratings for most checks
 # Example output:
@@ -284,15 +284,15 @@ systemd-analyze security rampe
 
 ```bash
 # App user should NOT be able to write to code directory
-sudo -u rampe touch /home/ubuntu/rampe/test.txt
+sudo -u {app_name} touch /home/ubuntu/{app_name}/test.txt
 # Should fail: Permission denied
 
 # App user SHOULD be able to write logs
-sudo -u rampe touch /var/log/rampe/test.log
+sudo -u {app_name} touch /var/log/{app_name}/test.log
 # Should succeed
 
 # App user SHOULD be able to write instance data
-sudo -u rampe touch /home/ubuntu/rampe/instance/test.json
+sudo -u {app_name} touch /home/ubuntu/{app_name}/instance/test.json
 # Should succeed
 ```
 
@@ -317,12 +317,12 @@ Home=/home/ubuntu       # Full access to all deployment files
 # - Can access git credentials
 ```
 
-### After (Running as rampe)
+### After (Running as {app_name})
 
 ```bash
 # ✅ SECURE: Application runs as dedicated user
 
-User=rampe              # Dedicated app user
+User={app_name}         # Dedicated app user
 Shell=/usr/sbin/nologin # No shell access
 sudo=NO                 # No privilege escalation
 SSH=NO                  # Cannot SSH
@@ -383,14 +383,14 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
 1. **Backup instance data**
    ```bash
    ssh ubuntu@your-server
-   cd /home/ubuntu/rampe
+   cd /home/ubuntu/{app_name}
    tar -czf ~/instance-backup-$(date +%Y%m%d-%H%M%S).tar.gz instance/
    ```
 
 2. **Pull latest code**
    ```bash
    ssh ubuntu@your-server
-   cd /home/ubuntu/rampe && git pull
+   cd /home/ubuntu/{app_name} && git pull
    ```
 
 3. **Run setup playbook** (creates dedicated user)
@@ -405,34 +405,34 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
    ssh ubuntu@your-server
    
    # Code directory (deploy_user owns)
-   sudo chown -R ubuntu:ubuntu /home/ubuntu/rampe
+   sudo chown -R ubuntu:ubuntu /home/ubuntu/{app_name}
    
    # Log directory (app_user owns)
-   sudo chown -R rampe:rampe /var/log/rampe
+   sudo chown -R {app_name}:{app_name} /var/log/{app_name}
    
    # Instance directory (app_user owns)
-   sudo chown -R rampe:rampe /home/ubuntu/rampe/instance
+   sudo chown -R {app_name}:{app_name} /home/ubuntu/{app_name}/instance
    ```
 
 5. **Restart service**
    ```bash
    ssh ubuntu@your-server
    sudo systemctl daemon-reload
-   sudo systemctl restart rampe
+   sudo systemctl restart {app_name}
    ```
 
 6. **Verify**
    ```bash
    # User exists with no shell
-   getent passwd rampe
+   getent passwd {app_name}
    # Should show: /usr/sbin/nologin
    
-   # Process runs as rampe
+   # Process runs as {app_name}
    ps aux | grep gunicorn
-   # Should show: rampe
+   # Should show: {app_name}
    
    # Security score
-   systemd-analyze security rampe
+   systemd-analyze security {app_name}
    # Should show: MEDIUM or better
    ```
 
@@ -456,34 +456,34 @@ deploy_user: ubuntu
 ```bash
 # Problem: App cannot read code files
 # Solution: Ensure deploy_user owns code directory
-sudo chown -R ubuntu:ubuntu /home/ubuntu/rampe
+sudo chown -R ubuntu:ubuntu /home/ubuntu/{app_name}
 
 # Problem: App cannot write logs
 # Solution: Ensure app_user owns log directory
-sudo chown -R rampe:rampe /var/log/rampe
-sudo chmod 755 /var/log/rampe
+sudo chown -R {app_name}:{app_name} /var/log/{app_name}
+sudo chmod 755 /var/log/{app_name}
 
 # Problem: App cannot write instance data
 # Solution: Ensure app_user owns instance directory
-sudo chown -R rampe:rampe /home/ubuntu/rampe/instance
-sudo chmod 755 /home/ubuntu/rampe/instance
+sudo chown -R {app_name}:{app_name} /home/ubuntu/{app_name}/instance
+sudo chmod 755 /home/ubuntu/{app_name}/instance
 ```
 
 ### Service Won't Start
 
 ```bash
 # Check systemd status
-systemctl status rampe
+systemctl status {app_name}
 
 # Check if user exists
-getent passwd rampe
+getent passwd {app_name}
 
 # Check permissions
-namei -l /home/ubuntu/rampe
-namei -l /var/log/rampe
+namei -l /home/ubuntu/{app_name}
+namei -l /var/log/{app_name}
 
 # View detailed logs
-journalctl -u rampe -n 50 --no-pager
+journalctl -u {app_name} -n 50 --no-pager
 ```
 
 ### Systemd Security Warnings

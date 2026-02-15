@@ -4,6 +4,39 @@
 
 ---
 
+## 🔧 How Configuration Works
+
+**All scripts automatically read `app_name` from your configuration file.**
+
+### Quick Start
+1. Set your app name once:
+   ```bash
+   vim deployment/group_vars/all.yml
+   # Set: app_name: myapp
+   ```
+
+2. Run any script - it automatically uses your `app_name`:
+   ```bash
+   ./app-deploy.sh update        # Uses "myapp"
+   ./ssl-setup.sh                # Uses "myapp"  
+   ./app-hard-restart.sh         # Uses "myapp"
+   ```
+
+### How It Works
+- **Config File:** `group_vars/all.yml` (single source of truth)
+- **Helper:** `scripts/lib/get_app_name.sh` (reads YAML config)
+- **All Scripts:** Automatically source the helper and read app_name
+
+### Validation
+Scripts fail with helpful message if `app_name` not configured:
+```bash
+ERROR: app_name not set in deployment/group_vars/all.yml (currently: CHANGEME)
+```
+
+**No manual script updates needed!** ✅
+
+---
+
 ## Script Naming Convention
 
 All scripts follow a consistent prefix-based naming convention:

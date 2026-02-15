@@ -830,8 +830,8 @@ sudo systemctl restart app_item_listing_tool
 # Log directory (configurable via app_name)
 /var/log/<app_name>/
 
-# Default structure:
-/var/log/rampe/
+# Example structure:
+/var/log/{app_name}/
 ├── app.log              # Application logs (Python/Flask)
 ├── error.log            # Error logs (critical issues)
 ├── access.log           # Gunicorn access logs

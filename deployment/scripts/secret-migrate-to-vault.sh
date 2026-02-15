@@ -17,6 +17,12 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Source the app name getter function
+source "$SCRIPT_DIR/lib/get_app_name.sh"
+
+# Get app name from config (use as default if not in secrets file)
+DEFAULT_APP_NAME=$(get_app_name 2>/dev/null || echo "app_name")
+
 SECRETS_FILE="${1:-$DEPLOYMENT_DIR/secrets.env}"
 VAULT_FILE="$DEPLOYMENT_DIR/group_vars/production/vault.yml"
 VAULT_PASS_FILE="${VAULT_PASSWORD_FILE:-$HOME/.vault_pass}"
@@ -127,7 +133,7 @@ vault_cloudfront_domain: "${CLOUDFRONT_DOMAIN:-}"
 vault_cloudfront_distribution_id: "${CLOUDFRONT_DISTRIBUTION_ID:-}"
 
 # Instance Name
-vault_instance_name: "${INSTANCE_NAME:-rampe}"
+vault_instance_name: "${INSTANCE_NAME:-$DEFAULT_APP_NAME}"
 EOF
 
 echo -e "${GREEN}✓ Vault content created${NC}"

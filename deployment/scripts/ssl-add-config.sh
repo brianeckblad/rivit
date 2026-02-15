@@ -3,10 +3,22 @@
 # NOTE: Update the DOMAIN variable below if your domain is different
 # This script is used after initial setup to enable HTTPS
 
-# Application name - can be overridden with environment variable
-APP_NAME="${APP_NAME:-rampe}"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source the app name getter function
+source "$SCRIPT_DIR/lib/get_app_name.sh"
+
+# Get app name from config (or use environment variable override)
+if [ -z "$APP_NAME" ]; then
+    APP_NAME=$(get_app_name) || exit 1
+fi
+
 DOMAIN="your-domain.com"  # UPDATE THIS to your actual domain
 NGINX_CONFIG="/etc/nginx/sites-available/${APP_NAME}"
+
+echo "Adding SSL configuration for: $APP_NAME"
+echo "Domain: $DOMAIN"
 
 echo "Adding SSL server block to nginx config..."
 

@@ -58,8 +58,8 @@ def _setup_service_logger(app, config_name):
     try:
         # Determine log path based on environment
         if config_name == 'production':
-            # Get app name from environment, default to 'rampe'
-            app_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+            # Get app name from environment (required in production)
+            app_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'app'))
             log_dir = Path(f'/var/log/{app_name}')
         else:
             log_dir = Path(app.instance_path)
@@ -109,8 +109,8 @@ def _setup_cleanup_logger(app, config_name):
     try:
         # Determine log path based on environment
         if config_name == 'production':
-            # Get app name from environment, default to 'rampe'
-            app_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+            # Get app name from environment (required in production)
+            app_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'app'))
             log_dir = Path(f'/var/log/{app_name}')
         else:
             log_dir = Path(app.instance_path)
@@ -175,8 +175,8 @@ def create_app(config_name='development'):
         # In production, try to log to /var/log/<app_name>/app.log
         # The directory should be created by deployment scripts
         try:
-            # Get app name from environment, default to 'rampe'
-            app_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+            # Get app name from environment (required in production)
+            app_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'app'))
             log_file = Path(f'/var/log/{app_name}/app.log')
 
             # Only set up file logging if directory exists and is writable

@@ -3,7 +3,7 @@
 # NOTE: Sensitive values are stored in vault.yml (encrypted)
 
 # Application settings
-app_name: rampe
+app_name: CHANGEME                            # ⚠️ SET THIS in group_vars/all.yml
 service_name: "{{ app_name }}"
 app_user: "{{ app_name }}"                    # Dedicated app user (default: same as app_name)
 deploy_user: ubuntu                           # SSH/deployment user

@@ -1,12 +1,21 @@
-o#!/bin/bash
+#!/bin/bash
 # Force hard restart and cache clearing script for production
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Application name - can be overridden with environment variable
-APP_NAME="${APP_NAME:-rampe}"
+# Source the app name getter function
+source "$SCRIPT_DIR/lib/get_app_name.sh"
+
+# Get app name from config (or use environment variable override)
+if [ -z "$APP_NAME" ]; then
+    APP_NAME=$(get_app_name) || exit 1
+fi
 
 echo "🔄 FORCE RESTART WITH CACHE CLEARING"
 echo "======================================"
+echo "Application: $APP_NAME"
+echo ""
 
 cd ~/${APP_NAME}
 

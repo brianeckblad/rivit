@@ -3,11 +3,13 @@
 # NOTE: Sensitive values are stored in vault.yml (encrypted)
 
 # ============================================================================
-# Application Identity - CHANGE THESE TO RENAME YOUR APP
+# Application Identity - SET YOUR APP NAME HERE
 # ============================================================================
-app_name: rampe                                  # Technical name (used for paths, services)
-app_display_name: "Rampe"                        # Human-readable name (used in docs, UI)
-app_url: "https://github.com/yourusername/{{ app_name }}"  # Repository URL
+# REQUIRED: Set your application name (lowercase, use underscores/hyphens only)
+# Examples: myapp, comic_tracker, inventory_tool
+app_name: CHANGEME                               # ⚠️ CHANGE THIS - Your app's technical name
+app_display_name: "CHANGE ME"                    # ⚠️ CHANGE THIS - Your app's display name
+app_url: "https://github.com/CHANGEME/{{ app_name }}"  # ⚠️ CHANGE THIS - Your repository URL
 
 # ============================================================================
 # Application Settings
@@ -22,7 +24,7 @@ service_name: "{{ app_name }}"               # Systemd/supervisor service name
 #   - Limited blast radius if app is compromised
 #
 # CONFIGURABLE: Change app_user if you want a different username
-# Default: Uses app_name (e.g., rampe, katlo, listkit)
+# Default: Uses app_name (e.g., myapp, inventory_tool, comic_tracker)
 # Example custom: app_user: myapp_runtime
 app_user: "{{ app_name }}"                    # App runtime user (default: same as app_name)
 deploy_user: ubuntu                           # SSH/deployment user (for ansible, git, etc)

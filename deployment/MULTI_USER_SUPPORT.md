@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** February 9, 2026
 
-> **Note:** This documentation uses `rampe` as the default application name in examples. The actual app name is configurable in `deployment/group_vars/all.yml` via the `app_name` variable. If you've customized your app name, replace `rampe` with your configured name in all commands.
+> **Note:** Commands in this guide use `{app_name}` as a placeholder for your configured application name (set in `deployment/group_vars/all.yml`). Replace `{app_name}` with your actual app name when running commands.
 
 ---
 
@@ -413,7 +413,7 @@ If a user completely forgets their password, admin must reset it:
 USERS=brian:newpassword123
 
 # Restart app
-sudo systemctl restart rampe
+sudo systemctl restart {app_name}
 
 # Remove from .env after user logs in and changes password
 ```
@@ -424,7 +424,7 @@ sudo systemctl restart rampe
 aws ssm start-session --target i-xxxxxxxxxxxxx
 
 # Run password reset script
-cd /home/ubuntu/rampe
+cd /home/ubuntu/{app_name}
 source ~/.venv/bin/activate
 python3 << 'EOF'
 from app.models.user import user_manager
@@ -443,13 +443,13 @@ EOF
 NEW_HASH=$(python3 -c "from werkzeug.security import generate_password_hash; print(generate_password_hash('TempPass123'))")
 
 # Edit user_preferences.json
-cd /home/ubuntu/rampe/instance
+cd /home/ubuntu/{app_name}/instance
 cp user_preferences.json user_preferences.json.bak
 # Manually update the password_hash for the user
 nano user_preferences.json
 
 # Restart app
-sudo systemctl restart rampe
+sudo systemctl restart {app_name}
 ```
 
 **Best Practices:**
@@ -601,7 +601,7 @@ echo ""
 
 # Connect to server and add user
 ssh ubuntu@your-server.com << EOF
-cd /home/ubuntu/rampe
+cd /home/ubuntu/{app_name}
 source ~/.venv/bin/activate
 
 python3 << PYTHON
@@ -715,7 +715,7 @@ rm users-to-add.txt
 USERS=existing_user:pass,new_user:TempPass123
 
 # Restart app
-sudo systemctl restart rampe
+sudo systemctl restart {app_name}
 
 # IMPORTANT: Remove from .env after users are created!
 # Users are now stored in user_preferences.json
@@ -1058,7 +1058,7 @@ The payload includes `userId` to identify which user's item was affected.
 
 For issues or questions:
 1. Check `deployment/OPERATIONS.md` for operational procedures
-2. Check logs: `/var/log/rampe/app.log`
+2. Check logs: `/var/log/{app_name}/app.log`
 3. Check AWS Secrets Manager for credential issues
 4. Check IAM role permissions
 

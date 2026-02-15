@@ -1,452 +1,126 @@
-# Deployment Documentation
+# Deployment Guide
 
-**Production Infrastructure:** AWS EC2 + CloudFront + WAF + Secrets Manager  
-**Version:** 5.0  
-**Last Updated:** February 8, 2026
+**Last Updated:** February 14, 2026
 
 ---
 
-## ⚡ Quick Start
+## What Do You Want to Do?
 
-### 1. Configure Your App
+### 🚀 I Want to Deploy This App
 
-Edit this file to configure your application:
+**Choose your deployment method:**
 
-**File:** `deployment/group_vars/all.yml`
+| Method | Time | Skill Level | Link |
+|--------|------|-------------|------|
+| **Automated** | 15-20 min | Beginner | → [AUTOMATED_DEPLOYMENT.md](AUTOMATED_DEPLOYMENT.md) |
+| **Manual** | 1-2 hours | Intermediate | → [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md) |
+| **Local Dev** | 5 min | Any | → [../README.md](../README.md#quick-local-setup) |
 
-```yaml
-# Application Identity
-app_name: rampe                              # Change to: your_app_name
-app_display_name: "Rampe"                    # Display name
-app_url: "https://github.com/yourusername/rampe"
+**Not sure which?** Choose **Automated** - it's easier and faster.
 
-# Security (Configurable)
-app_user: "{{ app_name }}"                   # Runtime user (default: same as app_name)
-deploy_user: ubuntu                          # SSH/deployment user
-```
+---
 
-**What's configurable:**
-- `app_name` - Technical name (affects paths, services, logs)
-- `app_display_name` - Human-readable name
-- `app_user` - Runtime user (defaults to app_name for security)
-- `deploy_user` - SSH user for deployment
+### ⚙️ I Already Have It Running
 
-One change renames everything! See [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md#application-configuration) for details.
+**Common tasks:**
 
-**Security Note:** By default, app runs as dedicated user with no SSH access. See [SECURITY_HARDENING.md](SECURITY_HARDENING.md) for details.
+| What You Need | Where to Go |
+|---------------|-------------|
+| Update code, restart app | [OPERATIONS.md](OPERATIONS.md) |
+| Add users, manage accounts | [MULTI_USER_SUPPORT.md](MULTI_USER_SUPPORT.md) |
+| Rotate secrets/credentials | [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md) |
+| View logs, troubleshoot | [OPERATIONS.md#troubleshooting](OPERATIONS.md#troubleshooting) |
+| Understand security | [SECURITY_HARDENING.md](SECURITY_HARDENING.md) |
 
-### 2. Deploy Everything
+---
+
+## Requirements Summary
+
+**Before deploying, you'll need:**
+
+- ✅ AWS Account (with admin access)
+- ✅ AWS CLI installed and configured
+- ✅ Python 3.8+ and Ansible
+- ✅ GitHub repository with your code
+
+**Don't have these?** Each deployment guide has detailed prerequisites section.
+
+---
+
+## Documentation Structure
+
+| File | Purpose |
+|------|---------|
+| **README.md** ← You are here | Roadmap - choose what you want to do |
+| **[AUTOMATED_DEPLOYMENT.md](AUTOMATED_DEPLOYMENT.md)** | One-command automated setup |
+| **[MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md)** | Step-by-step manual deployment |
+| **[PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md)** | Verify you're ready (used by guides) |
+| **[OPERATIONS.md](OPERATIONS.md)** | Daily operations after deployment |
+| **[SECURITY_HARDENING.md](SECURITY_HARDENING.md)** | Security architecture details |
+| **[MULTI_USER_SUPPORT.md](MULTI_USER_SUPPORT.md)** | Multi-user feature guide |
+| **[SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)** | Managing credentials |
+
+---
+
+## Quick Reference
+
+### Common Commands
 
 ```bash
-cd deployment
-./scripts/infra-complete-setup.sh
-```
-
-That's it! Creates entire infrastructure + deploys app.
-
----
-
-## 📖 Quick Navigation
-
-### 🚀 Getting Started
-
-- **New Deployment** → [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md) then [DEPLOYMENT_COMPLETE_GUIDE.md](DEPLOYMENT_COMPLETE_GUIDE.md)
-- **Daily Operations** → [OPERATIONS.md](OPERATIONS.md)
-- **Secret Management** → [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
-- **Troubleshooting** → [DEPLOYMENT_COMPLETE_GUIDE.md#troubleshooting](DEPLOYMENT_COMPLETE_GUIDE.md#troubleshooting)
-
-### 📚 Documentation Files
-
-#### Core Deployment (Start Here)
-
-| Document | Purpose | When to Read |
-|----------|---------|--------------|
-| **[README.md](README.md)** | Overview, quick start, architecture | Start here |
-| **[DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md)** | Prerequisites, configuration, credentials, security setup | Before deploying |
-| **[DEPLOYMENT_COMPLETE_GUIDE.md](DEPLOYMENT_COMPLETE_GUIDE.md)** | Complete deployment & troubleshooting | During deployment |
-
-#### Daily Operations
-
-| Document | Purpose | When to Read |
-|----------|---------|--------------|
-| **[OPERATIONS.md](OPERATIONS.md)** | Daily ops, maintenance, monitoring | Daily/weekly tasks |
-| **[SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)** | Secret rotation, vault management, AWS Secrets | Managing secrets |
-| **[MULTI_USER_SUPPORT.md](MULTI_USER_SUPPORT.md)** | Multi-user setup, user management, eBay credentials per user | Adding users |
-
-#### Security
-
-| Document | Purpose | When to Read |
-|----------|---------|--------------|
-| **[SECURITY_HARDENING.md](SECURITY_HARDENING.md)** | Application user isolation, systemd hardening, migration guide | Understanding security |
-
-#### Reference & Development
-
-| Document | Purpose | When to Read |
-|----------|---------|--------------|
-| **[PRODUCTION_NOTES.md](PRODUCTION_NOTES.md)** | Environment reference, quick commands | Production ops |
-| **[DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)** | Implementation notes, recent changes | Development reference |
-
-**Additional References:**
-- **Security implementation:** `/app/SECURITY.md` (application-level security details)
-- **Scripts documentation:** `scripts/README.md` (deployment script reference)
-- **Instance structure:** `/instance/README.md` (data directory explanation)
-
----
-
-## 🏗️ Architecture Overview
-
-```
-User Traffic
-    ↓
-CloudFront CDN (DDoS Protection + Caching)
-    ↓
-AWS WAF (Rate Limiting + Security Rules)
-    ↓
-EC2 Instance (Ubuntu 22.04, t3.nano/micro)
-    ├→ Nginx (HTTP server + static files)
-    ├→ Gunicorn (WSGI server, 2 workers)
-    └→ Flask (your application)
-         ↓
-    IAM Role (no AWS credentials needed!)
-         ↓
-    ┌────┴────┐
-    ↓         ↓
-S3 Bucket   AWS Secrets Manager
-(images)    (all credentials)
-```
-
-### Stack Layers (No Redundancy!)
-
-Each layer serves a unique purpose:
-
-1. **CloudFront** - Global CDN, DDoS protection (AWS Shield), edge caching
-2. **AWS WAF** - Rate limiting (2000 req/5min), SQL/XSS protection, managed rules
-3. **Nginx** - HTTP server, static file serving, reverse proxy (industry standard)
-4. **Gunicorn** - WSGI server for Flask (required for production)
-5. **Flask** - Your application framework
-
-**Why all layers?** Each is necessary - removing any would break functionality or violate production best practices.
-
-### Key Features
-
-**Security & Infrastructure:**
-- ✅ **CloudFront CDN** - Global edge caching, DDoS protection (AWS Shield)
-- ✅ **AWS WAF** - Rate limiting (2000 req/5min), SQL injection/XSS protection
-- ✅ **Application Security** - IP blocking, attack detection (30+ patterns), rate limiting (100 req/min)
-- ✅ **Zero Secrets on Disk** - AWS Secrets Manager + IAM roles
-- ✅ **Encrypted Vault** - Ansible Vault in git (safe to commit!)
-- ✅ **SSM Access** - No SSH keys needed
-
-**Multi-User Support (NEW):**
-- ✅ **Complete Data Isolation** - Per-user CSV files, images, backups, exports
-- ✅ **User-Specific eBay Credentials** - Each user manages own API keys
-- ✅ **Per-User S3 Prefixes** - `/users/{username}/` for all data
-
-**Monitoring & Alerting (NEW):**
-- ✅ **CloudWatch Metrics** - Custom app metrics (requests, response time, errors)
-- ✅ **Pre-Configured Alarms** - High CPU, low disk, errors, slow responses
-- ✅ **SNS Email Alerts** - Instant notifications for critical events
-
-**Storage & Data Protection (NEW):**
-- ✅ **S3 Versioning** - Recover deleted files (configurable retention)
-- ✅ **Always Online** - Files never move to Glacier (instant access 24/7)
-- ✅ **Configurable App Name** - Single variable controls all AWS resource names
-
-**Cost:** ~$30/month (t3.nano + monitoring)
-
----
-
-## 🚀 Quick Start
-
-### New Deployment (15-20 minutes)
-
-```bash
-# 1. Install prerequisites
-pip install awscli boto3 ansible
-brew install jq  # macOS, or: sudo apt-get install jq
-
-# 2. Create secrets vault
-cd deployment
-ansible-vault create group_vars/production/vault.yml --vault-password-file ~/.vault_pass
-# Use template from DEPLOYMENT_PREP.md
-
-# 3. Run complete automated setup
-./scripts/infra-complete-setup.sh
-
-# 4. Update DNS to CloudFront domain (shown in output)
-
-# Done! Application is live.
-```
-
-### Update Existing Application
-
-```bash
-# After code changes
-git add . && git commit -m "Your changes" && git push
-
 # Deploy
-cd deployment
-./scripts/app-deploy.sh update
+./scripts/infra-complete-setup.sh        # Automated deployment
+ansible-playbook -i inventories/production playbooks/setup.yml  # Manual deployment
+
+# Manage
+sudo systemctl status {app_name}         # Check status
+sudo systemctl restart {app_name}        # Restart
+sudo journalctl -u {app_name} -f         # View logs
+
+# Update
+ansible-playbook -i inventories/production playbooks/update.yml
 ```
+
+### Cost Estimate
+
+- **Free tier:** ~$2/month (first year)
+- **After free tier:** ~$10-15/month (t3.micro + S3)
 
 ---
 
-## 📋 Common Operations
+## Architecture Overview
 
-### Deploy Code Updates
-
-```bash
-cd deployment
-./scripts/app-deploy.sh update
+```
+User → Nginx (HTTPS) → Gunicorn (Flask App) → CSV Files + AWS S3
 ```
 
-### View Application Logs
+**Components:**
+- Nginx: Web server, SSL, reverse proxy
+- Gunicorn: WSGI server (4 workers)
+- Flask: Your application
+- CSV: Local inventory storage
+- S3: Cloud image storage
 
-```bash
-./scripts/app-deploy.sh logs
+**Security:**
+- Dedicated app user (no SSH)
+- 20+ systemd hardening features
+- Firewall configured
+- IAM roles (no credentials on disk)
 
-# Or live logs via SSM
-aws ssm start-session --target i-xxxxxxxxxxxxx
-sudo tail -f /var/log/{{ app_name }}/error.log
-```
-
-### Check Application Status
-
-```bash
-./scripts/app-deploy.sh status
-```
-
-### Restart Application
-
-```bash
-./scripts/app-deploy.sh restart
-```
-
-### Access Server
-
-```bash
-# Method 1: SSM (no SSH key needed)
-aws ssm start-session --target i-xxxxxxxxxxxxx
-
-# Method 2: SSH (if key exists)
-ssh -i ~/.ssh/app-item-listing-tool_ec2 ubuntu@YOUR_IP
-```
-
-### Rotate Secrets (Zero Downtime)
-
-```bash
-# 1. Edit vault, add _new secret
-ansible-vault edit group_vars/production/vault.yml --vault-password-file ~/.vault_pass
-
-# 2. Create pending version
-./scripts/secret-rotate.sh ebay_production_token
-
-# 3. Test, then promote
-./scripts/secret-promote.sh
-```
-
-**Full procedures:** [OPERATIONS.md](OPERATIONS.md)
-
-### Invalidate CloudFront Cache
-
-```bash
-aws cloudfront create-invalidation \
-  --distribution-id E123456EXAMPLE \
-  --paths "/*"
-```
+**Full details:** → [SECURITY_HARDENING.md](SECURITY_HARDENING.md)
 
 ---
 
-## 🔒 Security
+## Need Help?
 
-### Multiple Protection Layers
-
-1. **CloudFront** - DDoS protection, TLS 1.2+
-2. **WAF** - Rate limiting, SQL injection/XSS prevention
-3. **Network** - CloudFront IPs only, no direct EC2 access
-4. **Application** - Origin header validation
-5. **Secrets** - AWS Secrets Manager, no disk storage
-6. **System** - UFW firewall, Fail2ban, auto-updates
-
-### Secret Management
-
-- **Source of Truth:** Ansible Vault (encrypted, in git)
-- **Runtime:** AWS Secrets Manager (IAM role access)
-- **Server:** No .env file, no secrets on disk
-- **Rotation:** Zero-downtime with AWSPENDING/AWSCURRENT
-
-**Details:** [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
+1. **Deployment issues:** Check the deployment guide you're using
+2. **After deployment:** See [OPERATIONS.md](OPERATIONS.md)
+3. **Other questions:** [GitHub Issues](../../issues)
 
 ---
 
-## 📊 Monitoring
+<div align="center">
 
-### CloudWatch Dashboard
+**Ready to deploy?** Choose [Automated](AUTOMATED_DEPLOYMENT.md) or [Manual](MANUAL_DEPLOYMENT.md) above ⬆️
 
-AWS Console → CloudWatch → Dashboards → app-item-listing-tool
-
-**Metrics:**
-- CloudFront requests/errors
-- WAF allowed/blocked requests  
-- EC2 CPU/memory/disk
-- Application custom metrics
-
-### Alarms Setup
-
-```bash
-./scripts/cloudwatch-alarms-setup.sh your-email@example.com
-```
-
-**Alerts for:**
-- High error rate
-- High request rate
-- WAF blocking spike
-- EC2 resource usage
-- Disk space
-
-### Logs
-
-**CloudWatch:** `/aws/cloudfront/...`, `/aws/waf/...`  
-**Server:** `/var/log/{{ app_name }}/*.log`
-
----
-
-## 🆘 Quick Troubleshooting
-
-| Issue | Quick Fix |
-|-------|-----------|
-| CloudFront 502 | Check EC2 status, restart app |
-| Secrets not loading | Verify IAM role, check Secrets Manager |
-| WAF blocking traffic | Review WAF logs, adjust rules |
-| Cannot connect SSM | Restart SSM agent, check IAM role |
-| High costs | Review CloudWatch costs, optimize cache |
-
-**Full guide:** [DEPLOYMENT_COMPLETE_GUIDE.md#troubleshooting](DEPLOYMENT_COMPLETE_GUIDE.md#troubleshooting)
-
----
-
-## 📅 Maintenance Schedule
-
-**Daily:** Monitor dashboard, check logs  
-**Weekly:** Review WAF blocks, verify backups  
-**Monthly:** Update dependencies, review costs  
-**Quarterly:** Rotate secrets, test DR
-
-**Detailed schedule:** [OPERATIONS.md#maintenance-schedule](OPERATIONS.md#maintenance-schedule)
-
----
-
-## 🔧 Key Scripts Reference
-
-```bash
-# Infrastructure
-./scripts/infra-complete-setup.sh       # Complete setup (one command)
-
-# Deployment
-./scripts/app-deploy.sh setup      # Initial deployment
-./scripts/app-deploy.sh update     # Update application
-./scripts/app-deploy.sh restart    # Restart app
-./scripts/app-deploy.sh logs       # View logs
-./scripts/app-deploy.sh status     # Check status
-
-# Secrets
-./scripts/secret-sync-vault.sh    # Sync vault to AWS
-./scripts/secret-rotate.sh <key>      # Rotate secret
-./scripts/secret-promote.sh           # Promote rotation
-./scripts/migrate-to-vault.sh         # Convert secrets.env
-
-# Monitoring
-./scripts/cloudwatch-alarms-setup.sh  # Setup alerts
-```
-
----
-
-## 💰 Cost Estimate
-
-```
-EC2 t3.nano (reserved):  $1.90/month
-S3 Storage:              $1-2/month
-CloudFront:              $5-10/month
-AWS WAF:                 $8-12/month
-Secrets Manager:         $4/month
-CloudWatch:              $1-2/month
-──────────────────────────────────
-Total:                   $21-31/month
-```
-
-**Optimization:** Use t3.nano reserved instance (1yr) for lowest cost
-
----
-
-## ✅ Deployment Checklist
-
-See [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md) for complete prerequisites checklist.
-
-### Quick Checklist
-
-**Before Deploying:**
-- [ ] AWS CLI configured
-- [ ] Ansible installed
-- [ ] Vault password file created
-- [ ] All secrets in vault.yml
-
-**After Deploying:**
-- [ ] Application accessible via CloudFront
-- [ ] Direct IP blocked (403)
-- [ ] Secrets in AWS Secrets Manager
-- [ ] Monitoring active
-
-
----
-
-## 📞 Getting Help
-
-### Documentation
-
-1. **Prerequisites** → [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md)
-2. **Deployment** → [DEPLOYMENT_COMPLETE_GUIDE.md](DEPLOYMENT_COMPLETE_GUIDE.md)
-3. **Daily Ops** → [OPERATIONS.md](OPERATIONS.md)
-4. **Secrets** → [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
-
-### External Resources
-
-- [AWS CloudFront Docs](https://docs.aws.amazon.com/cloudfront/)
-- [AWS WAF Docs](https://docs.aws.amazon.com/waf/)
-- [AWS Secrets Manager Docs](https://docs.aws.amazon.com/secretsmanager/)
-- [AWS SSM Docs](https://docs.aws.amazon.com/systems-manager/)
-
-### Tools
-
-- [AWS Pricing Calculator](https://calculator.aws/)
-- [SSL Labs](https://www.ssllabs.com/ssltest/)
-- [Security Headers](https://securityheaders.com/)
-
----
-
-## 🎯 Next Steps
-
-### For New Deployments
-
-1. Read [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md)
-2. Gather all prerequisites
-3. Follow [DEPLOYMENT_COMPLETE_GUIDE.md](DEPLOYMENT_COMPLETE_GUIDE.md)
-4. Learn [OPERATIONS.md](OPERATIONS.md) for daily tasks
-
-### For Existing Deployments
-
-1. Review [OPERATIONS.md](OPERATIONS.md) for daily procedures
-2. Set up monitoring and alerts
-3. Test secret rotation process
-4. Document any custom configurations
-
----
-
-**Ready to deploy?** → [DEPLOYMENT_PREP.md](DEPLOYMENT_PREP.md)  
-**Need to operate?** → [OPERATIONS.md](OPERATIONS.md)  
-**Managing secrets?** → [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
-
----
-
-**Version:** 6.0  
-**Last Updated:** February 9, 2026
+</div>
 

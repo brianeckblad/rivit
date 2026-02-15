@@ -7,6 +7,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Source the app name getter function
+source "$SCRIPT_DIR/lib/get_app_name.sh"
+
+# Get app name from config
+DEFAULT_APP_NAME=$(get_app_name 2>/dev/null || echo "app_name")
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -163,7 +169,7 @@ if [ -z "$EXISTING_TOPIC" ]; then
     echo -e "${YELLOW}Creating new SNS topic...${NC}"
 
     TOPIC_ARN=$(aws sns create-topic \
-        --name ${INSTANCE_NAME:-rampe}-alerts \
+        --name ${INSTANCE_NAME:-$DEFAULT_APP_NAME}-alerts \
         --region "$AWS_REGION" \
         --query 'TopicArn' \
         --output text)

@@ -643,7 +643,7 @@ def restart_application():
 
     # Get service name from environment or use default
     # This should match the service name configured in deployment/group_vars/all.yml
-    service_name = os.environ.get('APP_SERVICE_NAME', 'rampe')
+    service_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'your_app_name'))
 
     try:
         # Send restart command
