@@ -244,7 +244,8 @@ cd deployment
 
 # 1. Configure app identity
 vim group_vars/all.yml
-# Set: app_name, app_display_name, app_url
+# Set: app_name, app_display_name
+# Note: Git repo URL is in vault.yml (vault_git_repo)
 
 # 2. Setup monitoring
 ./scripts/setup-monitoring.sh

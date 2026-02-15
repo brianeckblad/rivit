@@ -182,8 +182,9 @@ Edit `deployment/group_vars/all.yml`:
 ```yaml
 app_name: your_app_name          # Your app name (e.g., myapp, inventory_tool, comic_tracker)
 app_display_name: "Your App"     # Display name
-app_url: "https://github.com/YOUR_USERNAME/your_app_name"  # Change YOUR_USERNAME and app_name
 ```
+
+**Note:** Git repository URL is configured in vault.yml as `vault_git_repo`
 
 ### Create Secrets Vault
 

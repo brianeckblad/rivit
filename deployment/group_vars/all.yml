@@ -1,76 +1,93 @@
 ---
-# Variables applicable to all environments
-# NOTE: Sensitive values are stored in vault.yml (encrypted)
+# ============================================================================
+# ⚠️ USER CONFIGURATION - CHANGE THESE VALUES ⚠️
+# ============================================================================
+# Everything below this section is auto-configured based on these values
 
-# ============================================================================
-# Application Identity - SET YOUR APP NAME HERE
-# ============================================================================
-# REQUIRED: Set your application name (lowercase, use underscores/hyphens only)
-# Examples: myapp, comic_tracker, inventory_tool
+# ----------------------------------------------------------------------------
+# 1. APPLICATION IDENTITY (REQUIRED)
+# ----------------------------------------------------------------------------
 app_name: CHANGEME                               # ⚠️ CHANGE THIS - Your app's technical name
+                                                 # Examples: myapp, comic_tracker, inventory_tool
+                                                 # Used for: service name, directories, logs, etc.
+
 app_display_name: "CHANGE ME"                    # ⚠️ CHANGE THIS - Your app's display name
-app_url: "https://github.com/CHANGEME/{{ app_name }}"  # ⚠️ CHANGE THIS - Your repository URL
+                                                 # Examples: "My App", "Comic Tracker", "Inventory Tool"
+                                                 # Used for: systemd service description
 
-# ============================================================================
-# Application Settings
-# ============================================================================
-service_name: "{{ app_name }}"               # Systemd/supervisor service name
+# ----------------------------------------------------------------------------
+# 2. GIT CONFIGURATION
+# ----------------------------------------------------------------------------
+# Your GitHub repository URL is in vault.yml (vault_git_repo)
+# This keeps your GitHub username private
+# Example: https://github.com/YOUR_USERNAME/your_app_name.git
 
-# Application User Configuration
-# SECURITY: Using a dedicated application user (not ubuntu) provides:
-#   - Principle of least privilege (app runs with minimal permissions)
+git_branch: main                                 # Git branch to deploy (usually: main or master)
+
+# ----------------------------------------------------------------------------
+# 3. APPLICATION USER (OPTIONAL - defaults are secure)
+# ----------------------------------------------------------------------------
+# SECURITY: Using a dedicated app user (not ubuntu) provides:
+#   - Principle of least privilege
 #   - No SSH access (nologin shell)
 #   - Isolated from admin/deployment user
-#   - Limited blast radius if app is compromised
 #
-# CONFIGURABLE: Change app_user if you want a different username
-# Default: Uses app_name (e.g., myapp, inventory_tool, comic_tracker)
-# Example custom: app_user: myapp_runtime
-app_user: "{{ app_name }}"                    # App runtime user (default: same as app_name)
-deploy_user: ubuntu                           # SSH/deployment user (for ansible, git, etc)
+# DEFAULT: Uses app_name (recommended)
+# CUSTOM: Uncomment and set if you want different username
+# app_user: myapp_runtime
 
-app_dir: "/home/{{ deploy_user }}/{{ app_name }}"  # App code in deploy user's home
-venv_dir: "/home/{{ deploy_user }}/.venv"     # Virtual environment (in deploy user's home)
-python_version: "3.10"
+app_user: "{{ app_name }}"                       # Leave as-is unless you need custom username
+deploy_user: ubuntu                              # SSH user (don't change unless using different AMI)
 
-# Git repository - MOVED TO VAULT (contains your GitHub username)
-git_repo: "{{ vault_git_repo }}"
-git_branch: main
+# ----------------------------------------------------------------------------
+# 4. PERFORMANCE SETTINGS (OPTIONAL)
+# ----------------------------------------------------------------------------
+gunicorn_workers: 4                              # Number of worker processes (2-4 x CPU cores)
+gunicorn_timeout: 120                            # Request timeout in seconds
+python_version: "3.10"                           # Python version (don't change unless needed)
 
-# Gunicorn settings
-gunicorn_workers: 4
+# ----------------------------------------------------------------------------
+# 5. LOG RETENTION (OPTIONAL)
+# ----------------------------------------------------------------------------
+log_retention_days: 20                           # Days to keep logs before rotation
+log_max_size: "10M"                              # Max size per log file before rotation
+
+# ----------------------------------------------------------------------------
+# 6. BACKUP SETTINGS (OPTIONAL)
+# ----------------------------------------------------------------------------
+backup_cleanup_hour: "3"                         # Hour to run cleanup (0-23, UTC)
+backup_cleanup_minute: "0"                       # Minute to run cleanup (0-59)
+backup_retention_days: 30                        # Days to keep backups before deletion
+s3_version_retention_days: 30                    # Days to keep old S3 versions
+
+# ============================================================================
+# ⚠️ END USER CONFIGURATION ⚠️
+# ============================================================================
+# Everything below is auto-configured - no changes needed
+# ============================================================================
+
+# Computed values (do not edit)
+service_name: "{{ app_name }}"
+app_dir: "/home/{{ deploy_user }}/{{ app_name }}"
+venv_dir: "/home/{{ deploy_user }}/.venv"
+log_dir: "/var/log/{{ app_name }}"
 gunicorn_bind: "127.0.0.1:8000"
-gunicorn_timeout: 120
 
-# Log settings
-log_dir: "/var/log/{{ app_name }}"           # Log directory (uses app_name)
-log_retention_days: 20
-log_max_size: "10M"
+# Git repository from vault
+git_repo: "{{ vault_git_repo }}"
 
-# Backup cleanup settings
-backup_cleanup_hour: "3"
-backup_cleanup_minute: "0"
-backup_retention_days: 30
-
-# AWS Configuration
-# Note: EC2 instances use IAM roles for AWS access (no credentials needed!)
-# These values are for Secrets Manager and S3 bucket names only
+# AWS Configuration from vault
 aws_region: "{{ vault_aws_region | default('us-east-1') }}"
 s3_bucket_name: "{{ vault_s3_bucket_name }}"
 s3_folder: "{{ vault_s3_folder | default('production') }}"
-secret_name: "{{ app_name }}/production"     # Automatically uses app_name
-
-# S3 versioning retention (in days) - configurable
-s3_version_retention_days: 30  # Keep old versions for 30 days
-
-# SNS topic for alerts (optional)
+secret_name: "{{ app_name }}/production"
 sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
 
-# Application credentials - MOVED TO VAULT
+# Application credentials from vault
 app_username: "{{ vault_app_username }}"
 app_password: "{{ vault_app_password }}"
 
-# System packages
+# System packages (auto-configured)
 system_packages:
   - python3
   - python3-pip

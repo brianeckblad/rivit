@@ -92,10 +92,9 @@ Edit `deployment/group_vars/all.yml`:
 # Required: Update these
 app_name: your_app_name                      # Your app name (e.g., myapp, inventory_tool, comic_tracker)
 app_display_name: "Your App Name"            # Display name  
-app_url: "https://github.com/YOUR_USERNAME/your_app_name"  # ← Change YOUR_USERNAME and app_name
 ```
 
-**Important:** Change `YOUR_USERNAME` to your actual GitHub username!
+**Note:** Git repository URL is configured in vault.yml (step 2)
 
 ### Step 2: Create Secrets Vault
 
@@ -141,13 +140,14 @@ vault_sns_topic_arn: ""
 ### Step 3: Verify Configuration
 
 ```bash
-# Check app_url was updated
-grep "yourusername" deployment/group_vars/all.yml
-# Should return nothing (means you changed it)
+# Check app_name was set
+grep "app_name:" deployment/group_vars/all.yml
+# Should show your app name, not "CHANGEME"
 
-# Check vault is readable
-ansible-vault view deployment/group_vars/production/vault.yml --vault-password-file ~/.vault_pass | head -5
-# Should show your configuration
+# Test vault can be read
+ansible-vault view group_vars/production/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
+# Should show YOUR repository URL
+```
 ```
 
 ### Step 4: Run Automated Deployment

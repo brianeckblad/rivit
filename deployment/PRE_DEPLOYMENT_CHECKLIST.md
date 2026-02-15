@@ -438,8 +438,9 @@ Edit `deployment/group_vars/all.yml`:
 ```yaml
 app_name: your_app_name                      # Your app name (e.g., myapp, inventory_tool, etc.)
 app_display_name: "Your App"                 # Display name
-app_url: "https://github.com/YOUR_USERNAME/your_app_name"  # ← Change YOUR_USERNAME and app_name
 ```
+
+**Note:** Git repository URL is configured in vault.yml as `vault_git_repo` (see step 2 below)
 
 **2. Create secrets vault:**
 
@@ -484,11 +485,11 @@ vault_ebay_token: ""
 
 Verify your configuration before deploying:
 
-### 1. App Configuration
+### 1. App Name Configuration
 
 ```bash
-grep "app_url:" deployment/group_vars/all.yml
-# Should show YOUR GitHub username, not "yourusername"
+grep "app_name:" deployment/group_vars/all.yml
+# Should show your actual app name, not "CHANGEME"
 ```
 
 ### 2. Vault Configuration
@@ -559,8 +560,8 @@ Before running deployment, verify:
 - [ ] Python 3.8+ installed
 - [ ] Ansible installed
 - [ ] **Deployment requirements installed** (`pip3 install -r deployment/requirements.txt`)
-- [ ] `deployment/group_vars/all.yml` configured (app_url updated)
-- [ ] `deployment/group_vars/production/vault.yml` created and configured
+- [ ] `deployment/group_vars/all.yml` configured (app_name set)
+- [ ] `deployment/group_vars/production/vault.yml` created and configured (vault_git_repo set)
 - [ ] `~/.vault_pass` file created
 - [ ] S3 bucket created in AWS
 - [ ] S3 bucket name is globally unique
@@ -594,15 +595,6 @@ vault_s3_bucket_name: "your-bucket-name"
 vault_s3_bucket_name: "yourname-yourapp-comics-2026"
 ```
 
-### ❌ Not Updating app_url
-
-```yaml
-# DON'T:
-app_url: "https://github.com/yourusername/your_app_name"
-
-# DO:
-app_url: "https://github.com/brian/your_app_name"  # Your actual username
-```
 
 ### ❌ Not Updating vault_git_repo
 
@@ -640,9 +632,9 @@ aws s3 ls s3://your-bucket-name/
 ansible-vault view deployment/group_vars/production/vault.yml --vault-password-file ~/.vault_pass
 # Should show your secrets
 
-# 4. Config has your username
-grep "yourusername" deployment/group_vars/all.yml
-# Should return nothing (means you updated it)
+# 4. Vault has your GitHub repo
+ansible-vault view deployment/group_vars/production/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
+# Should show YOUR repository URL with your username
 
 # 5. Ansible can find inventory (manual deployment only)
 ansible-inventory -i deployment/inventories/production --list
