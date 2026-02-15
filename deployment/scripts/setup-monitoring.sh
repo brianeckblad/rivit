@@ -47,7 +47,7 @@ fi
 # Load variables from vault
 echo -e "${YELLOW}Loading configuration from vault...${NC}"
 BUCKET_NAME=$(ansible-vault view "$DEPLOYMENT_DIR/group_vars/production/vault.yml" --vault-password-file ~/.vault_pass 2>/dev/null | grep 'vault_s3_bucket_name:' | awk '{print $2}' | tr -d '"')
-AWS_REGION=$(ansible-vault view "$DEPLOYMENT_DIR/group_vars/production/vault.yml" --vault-password-file ~/.vault_pass 2>/dev/null | grep 'vault_aws_region:' | awk '{print $2}' | tr -d '"' || echo "us-east-1")
+AWS_REGION=$(ansible-vault view "$DEPLOYMENT_DIR/group_vars/production/vault.yml" --vault-password-file ~/.vault_pass 2>/dev/null | grep 'vault_aws_region:' | awk '{print $2}' | tr -d '"' || echo "us-east-2")
 
 # Load retention days from all.yml
 S3_VERSION_RETENTION=$(grep 's3_version_retention_days:' "$DEPLOYMENT_DIR/group_vars/all.yml" | awk '{print $2}' || echo "30")

@@ -1,0 +1,63 @@
+---
+# Playbook to setup monitoring and CloudWatch integration
+# This replaces setup-monitoring.sh
+
+- name: Setup Application Monitoring
+  hosts: production
+  become: yes
+
+  tasks:
+    - name: Install CloudWatch agent
+      apt:
+        name: amazon-cloudwatch-agent
+        state: present
+        update_cache: yes
+
+    - name: Create CloudWatch agent config
+      template:
+        src: ../templates/cloudwatch-config.json.j2
+        dest: /opt/aws/amazon-cloudwatch-agent/etc/config.json
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Start CloudWatch agent
+      systemd:
+        name: amazon-cloudwatch-agent
+        state: started
+        enabled: yes
+
+    - name: Create log monitoring script
+      template:
+        src: ../templates/log-monitor.sh.j2
+        dest: /usr/local/bin/{{ app_name }}-log-monitor.sh
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Setup log rotation for application logs
+      template:
+        src: ../templates/logrotate.conf.j2
+        dest: /etc/logrotate.d/{{ app_name }}
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create monitoring cron job
+      cron:
+        name: "{{ app_name }} log monitoring"
+        job: "/usr/local/bin/{{ app_name }}-log-monitor.sh"
+        minute: "*/5"
+        user: root
+
+    - name: Display monitoring information
+      debug:
+        msg:
+          - "Monitoring setup complete!"
+          - "CloudWatch agent: Running"
+          - "Log rotation: Configured ({{ log_retention_days }} days)"
+          - "Log monitoring: Every 5 minutes"
+          - ""
+          - "View logs: sudo journalctl -u {{ app_name }} -f"
+          - "CloudWatch: Check AWS Console → CloudWatch → Logs"
+

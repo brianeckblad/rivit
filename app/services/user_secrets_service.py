@@ -16,7 +16,7 @@ class UserSecretsService:
 
     def __init__(self):
         """Initialize the secrets service."""
-        self.region_name = os.environ.get('AWS_REGION', 'us-east-1')
+        self.region_name = os.environ.get('AWS_REGION', 'us-east-2')
         self.client = None
 
     def _get_client(self):

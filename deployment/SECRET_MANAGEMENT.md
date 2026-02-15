@@ -238,7 +238,7 @@ vault_secret_key: "64-char-hex-string-here"
 vault_app_secret_token: "32-char-hex-string-here"
 
 # AWS Configuration
-vault_aws_region: "us-east-1"
+vault_aws_region: "us-east-2"
 vault_s3_bucket_name: "your-bucket-name"
 
 # eBay Production Credentials

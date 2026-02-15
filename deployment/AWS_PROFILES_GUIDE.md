@@ -45,7 +45,7 @@ aws s3 ls --profile myapp-production
 aws configure --profile myapp-production
 AWS Access Key ID [None]: AKIA...           # Production IAM user
 AWS Secret Access Key [None]: secret...     # Production secret
-Default region name [None]: us-east-1       # Production region
+Default region name [None]: us-east-2       # Production region
 Default output format [None]: json
 
 # Configure staging account
@@ -87,11 +87,11 @@ aws_secret_access_key = secret...
 **Config file:** `~/.aws/config`
 ```ini
 [default]
-region = us-east-1
+region = us-east-2
 output = json
 
 [profile myapp-production]
-region = us-east-1
+region = us-east-2
 output = json
 
 [profile myapp-staging]
@@ -269,7 +269,7 @@ aws_secret_access_key = ...
 ```ini
 # ~/.aws/config
 [profile myapp-us-east]
-region = us-east-1
+region = us-east-2
 aws_access_key_id = AKIA...
 
 [profile myapp-us-west]
@@ -396,7 +396,7 @@ aws configure set region us-west-2 --profile myapp-production
 # Production environment
 aws configure --profile myapp-production
 # Enter production account credentials
-# Region: us-east-1
+# Region: us-east-2
 
 # Staging environment (optional)
 aws configure --profile myapp-staging

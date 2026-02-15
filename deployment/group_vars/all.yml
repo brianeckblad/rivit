@@ -68,8 +68,13 @@ s3_version_retention_days: 30                    # Days to keep old S3 versions
 
 # Computed values (do not edit)
 service_name: "{{ app_name }}"
-app_dir: "/home/{{ deploy_user }}/{{ app_name }}"
-venv_dir: "/home/{{ deploy_user }}/.venv"
+app_dir: "/home/{{ admin_user }}/{{ app_name }}"
+
+# SECURITY: Virtual environment is OUTSIDE app folder
+# Why: Prevents accidental exposure via web server misconfiguration
+# Location: /home/ubuntu/.venv (sibling to app, not inside)
+venv_dir: "/home/{{ admin_user }}/.venv"
+
 log_dir: "/var/log/{{ app_name }}"
 gunicorn_bind: "127.0.0.1:8000"
 
@@ -77,7 +82,7 @@ gunicorn_bind: "127.0.0.1:8000"
 git_repo: "{{ vault_git_repo }}"
 
 # AWS Configuration from vault
-aws_region: "{{ vault_aws_region | default('us-east-1') }}"
+aws_region: "{{ vault_aws_region | default('us-east-2') }}"
 s3_bucket_name: "{{ vault_s3_bucket_name }}"
 s3_folder: "{{ vault_s3_folder | default('production') }}"
 secret_name: "{{ app_name }}/production"

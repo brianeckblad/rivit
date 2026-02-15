@@ -16,7 +16,7 @@
 
 app_name: your_app_name           # Your app name (e.g., myapp, inventory_tool, comic_tracker)
 app_user: "{{ app_name }}"        # Runtime user (defaults to app_name)
-deploy_user: ubuntu               # SSH/deployment user
+admin_user: ubuntu               # SSH/deployment user
 ```
 
 ### What This Means
@@ -88,7 +88,7 @@ This deployment uses a **dedicated, non-privileged application user** with no SS
 │ Server (EC2/Lightsail)                                  │
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
-│  👤 ubuntu (deploy_user)                                │
+│  👤 ubuntu (admin_user)                                │
 │     ├── SSH Access: ✅ YES                              │
 │     ├── Shell: /bin/bash                                │
 │     ├── sudo: ✅ YES (via Ansible)                      │
@@ -206,14 +206,14 @@ app_user: your_app_name            # Defaults to app_name
                                    # - System user (UID < 1000)
 
 # Deployment user (SSH, git, ansible)
-deploy_user: ubuntu                # Standard EC2/Lightsail user
+admin_user: ubuntu                # Standard EC2/Lightsail user
                                    # - Has SSH access
                                    # - Has sudo (for ansible)
                                    # - Manages code and dependencies
 
 # Paths
-app_dir: /home/ubuntu/{app_name}   # Code owned by deploy_user
-venv_dir: /home/ubuntu/.venv       # Python venv owned by deploy_user
+app_dir: /home/ubuntu/{app_name}   # Code owned by admin_user
+venv_dir: /home/ubuntu/.venv       # Python venv owned by admin_user
 log_dir: /var/log/{app_name}       # Logs owned by app_user
 ```
 
@@ -221,7 +221,7 @@ log_dir: /var/log/{app_name}       # Logs owned by app_user
 
 1. **Deployment (as `ubuntu`):**
    ```bash
-   # Ansible connects as ubuntu (deploy_user)
+   # Ansible connects as ubuntu (admin_user)
    ssh ubuntu@server
    
    # Pulls code, installs dependencies
@@ -362,7 +362,7 @@ Keep using `ubuntu` user by not changing the config:
 ```yaml
 # deployment/group_vars/production/vars.yml
 app_user: ubuntu
-deploy_user: ubuntu
+admin_user: ubuntu
 ```
 
 ---
@@ -404,7 +404,7 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
    ```bash
    ssh ubuntu@your-server
    
-   # Code directory (deploy_user owns)
+   # Code directory (admin_user owns)
    sudo chown -R ubuntu:ubuntu /home/ubuntu/{app_name}
    
    # Log directory (app_user owns)
@@ -442,7 +442,7 @@ To continue using ubuntu user:
 ```yaml
 # deployment/group_vars/production/vars.yml
 app_user: ubuntu
-deploy_user: ubuntu
+admin_user: ubuntu
 ```
 
 **Note:** This is less secure but requires no changes.
@@ -455,7 +455,7 @@ deploy_user: ubuntu
 
 ```bash
 # Problem: App cannot read code files
-# Solution: Ensure deploy_user owns code directory
+# Solution: Ensure admin_user owns code directory
 sudo chown -R ubuntu:ubuntu /home/ubuntu/{app_name}
 
 # Problem: App cannot write logs

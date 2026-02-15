@@ -1,6 +1,50 @@
 # Deployment Scripts Reference
 
-**Last Updated:** February 8, 2026
+**Last Updated:** February 14, 2026
+
+---
+
+## 📝 Manual Deployment Helpers
+
+**These scripts generate configuration files with proper variable substitution for manual deployment:**
+
+### `manual-generate-systemd.sh`
+**Generate systemd service file**
+
+```bash
+cd deployment/scripts
+./manual-generate-systemd.sh
+```
+
+**What it does:**
+- Reads your `app_name` from `deployment/group_vars/all.yml`
+- Generates `deployment/{app_name}.service` with ALL variables substituted
+- Includes security hardening (NoNewPrivileges, ProtectSystem, etc.)
+- Provides exact commands to copy and install on server
+
+**Output:** Ready-to-use systemd service file
+
+**Why:** Manual deployment had placeholders like `{app_name}` that users had to replace manually (error-prone!)
+
+### `manual-generate-nginx.sh`
+**Generate nginx configuration file**
+
+```bash
+cd deployment/scripts
+./manual-generate-nginx.sh
+# Enter domain name (or press Enter for IP-based access)
+```
+
+**What it does:**
+- Reads your `app_name` and `admin_user` from configuration
+- Prompts for domain name (optional)
+- Generates `deployment/{app_name}-nginx.conf` with ALL variables substituted
+- Includes rate limiting, security headers, static files, proxy settings
+- Provides exact commands to copy and install on server
+
+**Output:** Ready-to-use nginx configuration file
+
+**Why:** Nginx config had many placeholders - this ensures nothing is missed
 
 ---
 

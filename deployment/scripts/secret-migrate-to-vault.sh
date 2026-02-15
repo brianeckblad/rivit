@@ -104,7 +104,7 @@ vault_secret_key: "${SECRET_KEY:-}"
 vault_app_secret_token: "${APP_SECRET_TOKEN:-}"
 
 # AWS Configuration
-vault_aws_region: "${AWS_REGION:-us-east-1}"
+vault_aws_region: "${AWS_REGION:-us-east-2}"
 vault_s3_bucket_name: "${S3_BUCKET_NAME:-}"
 
 # eBay Production Credentials

@@ -42,14 +42,14 @@
         system: yes
         create_home: no
         state: present
-      when: app_user != deploy_user
+      when: app_user != admin_user
 
     - name: Create application directory
       file:
         path: "{{ app_dir }}"
         state: directory
-        owner: "{{ deploy_user }}"
-        group: "{{ deploy_user }}"
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
         mode: '0755'
 
     - name: Create instance directory for data persistence
@@ -89,7 +89,7 @@
       register: app_code_exists
 
     - name: Clone application code from git
-      become_user: "{{ deploy_user }}"
+      become_user: "{{ admin_user }}"
       git:
         repo: "{{ git_repo }}"
         dest: "{{ app_dir }}"
@@ -98,13 +98,13 @@
       when: not app_code_exists.stat.exists
 
     - name: Create Python virtual environment
-      become_user: "{{ deploy_user }}"
+      become_user: "{{ admin_user }}"
       command: python3 -m venv {{ venv_dir }}
       args:
         creates: "{{ venv_dir }}/bin/activate"
 
     - name: Upgrade pip in virtual environment
-      become_user: "{{ deploy_user }}"
+      become_user: "{{ admin_user }}"
       pip:
         name: pip
         state: latest
@@ -121,21 +121,21 @@
       register: root_requirements_file
 
     - name: Install Python dependencies from deployment directory
-      become_user: "{{ deploy_user }}"
+      become_user: "{{ admin_user }}"
       pip:
         requirements: "{{ app_dir }}/deployment/requirements.txt"
         virtualenv: "{{ venv_dir }}"
       when: deployment_requirements_file.stat.exists
 
     - name: Install Python dependencies from root (fallback)
-      become_user: "{{ deploy_user }}"
+      become_user: "{{ admin_user }}"
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
         virtualenv: "{{ venv_dir }}"
       when: not deployment_requirements_file.stat.exists and root_requirements_file.stat.exists
 
     - name: Install gunicorn in virtual environment
-      become_user: "{{ deploy_user }}"
+      become_user: "{{ admin_user }}"
       pip:
         name: gunicorn
         virtualenv: "{{ venv_dir }}"

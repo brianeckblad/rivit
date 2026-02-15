@@ -79,236 +79,619 @@ pip3 install -r deployment/requirements.txt
 
 ---
 
-### What You Need
+### Prerequisites
 
-**Complete ALL of these before starting:**
+**You'll need:**
 
-### 1. AWS Resources Created
-- [ ] AWS account with admin access
-- [ ] S3 bucket created
-- [ ] EC2 instance running Ubuntu 22.04
-- [ ] Security group allows ports 22, 80, 443
+**1. AWS Resources (Created in Step 1)**
+- AWS account with admin access
+- SSH key pair
+- Security group
+- S3 bucket
+- EC2 instance running Ubuntu 22.04
 
-### 2. Local Tools Ready
-- [ ] AWS CLI configured (`aws sts get-caller-identity` works)
-- [ ] Python 3.8+ installed
-- [ ] Ansible 2.9+ installed
-- [ ] **Deployment requirements installed** (`pip3 install -r deployment/requirements.txt`)
-- [ ] SSH access to your server
-- [ ] Git installed and configured
+**2. Local Tools**
+- AWS CLI configured
+- Python 3.8+ installed
+- Ansible 2.9+ installed
+- Deployment requirements installed (`pip3 install -r deployment/requirements.txt`)
+- Git installed and configured
 
-### 3. Configuration Complete
-- [ ] `deployment/group_vars/all.yml` configured
-- [ ] `deployment/group_vars/production/vault.yml` created
-- [ ] Vault password at `~/.vault_pass`
-- [ ] Inventory file has your server IP
+**3. Configuration Files**
+- `deployment/group_vars/all.yml` configured (app_name set)
+- `deployment/group_vars/production/vault.yml` created
+- Vault password at `~/.vault_pass`
+- Inventory file with your server IP
 
-**Not ready?** → Complete [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md) first
+**Not ready?** → [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md)
 
 ---
 
-## Step 1: AWS Setup
+## Step 0: Clone Repository
 
-### Create S3 Bucket
+**⚠️ DO THIS FIRST - Everything else requires these files!**
+
+**On your local machine:**
 
 ```bash
-# Choose a globally unique name
-aws s3 mb s3://yourname-yourapp-2026 --region us-east-1
+# 1. Choose a directory for your project
+cd ~  # Or cd ~/Projects, or wherever you keep code
 
-# Verify
-aws s3 ls | grep yourapp
+# 2. Clone your repository
+git clone https://github.com/YOUR_USERNAME/your_app_name.git
+# Replace YOUR_USERNAME with your GitHub username
+# Replace your_app_name with your repository name
+
+# 3. Enter the repository
+cd your_app_name
+
+# 4. Verify you have the deployment files
+ls deployment/
+# Should show: group_vars/, playbooks/, scripts/, templates/, etc.
+
+# 5. Install deployment requirements
+pip3 install -r deployment/requirements.txt
+# This installs: ansible, boto3, awscli, and other tools
+
+# 6. Verify installation
+pip3 list | grep -E "ansible|boto3|awscli"
+# Should show all three packages with version numbers
 ```
+
+**✅ Checkpoint:** You should now be in the repository directory with all files present.
+
+**From now on, all commands assume you're in this directory!**
+
+---
+
+## Step 1: Provision AWS Infrastructure
+
+**⚠️ On your LOCAL machine, in the repository directory**
+
+### Option 1: Use Ansible Playbook (Recommended)
+
+```bash
+cd deployment
+
+# Create S3 bucket
+aws s3 mb s3://yourname-yourapp-2026 --region us-east-2
+
+# Provision EC2 instance (creates security group, SSH key, EC2)
+ansible-playbook playbooks/provision-ec2.yml
+
+# Instance info saved to: deployment/instance-info.txt
+# SSH key saved to: ~/.ssh/{app_name}-key.pem
+```
+
+**Output shows:**
+- Instance ID
+- Public IP address
+- SSH command
+- Next steps
+
+### Option 2: Use AWS CLI/Console Manually
+
+If you prefer manual control:
+
+**Create S3 Bucket:**
+```bash
+aws s3 mb s3://yourname-yourapp-2026 --region us-east-2
+```
+
+**Create SSH Key Pair:**
+
+**Option 1: AWS Console**
+1. Go to EC2 → Network & Security → Key Pairs
+2. Click **Create key pair**
+3. Name: `{app_name}-key`
+4. Type: RSA
+5. Format: .pem
+6. Click **Create key pair** (downloads automatically)
+7. Move to SSH directory:
+   ```bash
+   mv ~/Downloads/{app_name}-key.pem ~/.ssh/
+   chmod 400 ~/.ssh/{app_name}-key.pem
+   ```
+
+**Option 2: AWS CLI**
+```bash
+# Create key pair
+aws ec2 create-key-pair \
+  --key-name {app_name}-key \
+  --query 'KeyMaterial' \
+  --output text > ~/.ssh/{app_name}-key.pem
+
+# Set correct permissions
+chmod 400 ~/.ssh/{app_name}-key.pem
+```
+
+### Create Security Group
+
+**Option 1: AWS Console**
+1. Go to EC2 → Network & Security → Security Groups
+2. Click **Create security group**
+3. Name: `{app_name}-sg`
+4. Description: "Security group for {app_name}"
+5. Add inbound rules:
+   - SSH: Port 22, Source: Your IP (or 0.0.0.0/0 for anywhere)
+   - HTTP: Port 80, Source: 0.0.0.0/0
+   - HTTPS: Port 443, Source: 0.0.0.0/0
+6. Click **Create security group**
+
+**Option 2: AWS CLI**
+```bash
+# Create security group
+aws ec2 create-security-group \
+  --group-name {app_name}-sg \
+  --description "Security group for {app_name}"
+
+# Add SSH rule (replace YOUR_IP with your IP address)
+aws ec2 authorize-security-group-ingress \
+  --group-name {app_name}-sg \
+  --protocol tcp \
+  --port 22 \
+  --cidr YOUR_IP/32
+
+# Add HTTP rule
+aws ec2 authorize-security-group-ingress \
+  --group-name {app_name}-sg \
+  --protocol tcp \
+  --port 80 \
+  --cidr 0.0.0.0/0
+
+# Add HTTPS rule
+aws ec2 authorize-security-group-ingress \
+  --group-name {app_name}-sg \
+  --protocol tcp \
+  --port 443 \
+  --cidr 0.0.0.0/0
+```
+
+**Tip:** Get your current IP: `curl ifconfig.me`
 
 ### Launch EC2 Instance
 
-```bash
-# Option 1: AWS Console
-# 1. EC2 → Launch Instance
-# 2. Ubuntu 22.04 LTS
-# 3. t3.micro (or t3.nano for cheapest)
-# 4. Create key pair, download .pem
-# 5. Security group: Allow 22, 80, 443
-# 6. Launch
+**Option 1: AWS Console**
+1. Go to EC2 → Instances
+2. Click **Launch Instance**
+3. **Name:** `{app_name}`
+4. **AMI:** Ubuntu Server 22.04 LTS
+5. **Instance type:** t3.micro (or t3.nano for cheapest)
+6. **Key pair:** Select `{app_name}-key` (created above)
+7. **Network settings:** 
+   - Click "Select existing security group"
+   - Select `{app_name}-sg` (created above)
+8. **Storage:** 8 GB (default is fine)
+9. Click **Launch instance**
+10. Wait 2-3 minutes for instance to start
 
-# Option 2: AWS CLI
+**Option 2: AWS CLI**
+```bash
+# Get Ubuntu 22.04 AMI ID for us-east-2
+AMI_ID=$(aws ec2 describe-images \
+  --owners 099720109477 \
+  --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*" \
+  --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+  --output text)
+
+# Launch instance
 aws ec2 run-instances \
-  --image-id ami-0c55b159cbfafe1f0 \
+  --image-id $AMI_ID \
   --instance-type t3.micro \
   --key-name {app_name}-key \
   --security-groups {app_name}-sg \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value={app_name}}]'
+  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value={app_name}}]"
+```
+
+**Get your instance IP:**
+```bash
+# Using AWS CLI
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values={app_name}" \
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  --output text
+
+# Or check AWS Console: EC2 → Instances → Select your instance → Copy "Public IPv4 address"
 ```
 
 **Save your instance IP!** You'll need it for the next steps.
 
-### Create IAM Role for EC2 (Optional but Recommended)
-
-```bash
-# Create role
-aws iam create-role --role-name {app_name}-ec2-role \
-  --assume-role-policy-document file://trust-policy.json
-
-# Attach S3 policy
-aws iam attach-role-policy --role-name {app_name}-ec2-role \
-  --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
-
-# Attach role to instance
-aws ec2 associate-iam-instance-profile \
-  --instance-id i-xxxxx \
-  --iam-instance-profile Name={app_name}-ec2-role
-```
 
 ---
 
 ## Step 2: Configure Deployment
 
-### Update Inventory
+**⚠️ On your LOCAL machine, in the repository directory**
 
-Edit `deployment/inventories/production/hosts`:
+### Update Inventory File
 
-```ini
-[production]
-your-server-ip ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/{app_name}-key.pem
+**File to edit:** `deployment/inventories/production/hosts.yml` ← Note: .yml extension!
+
+```bash
+# Open the file
+vim deployment/inventories/production/hosts.yml
+# Or use your preferred editor: nano, code, etc.
 ```
 
-Replace:
-- `your-server-ip` with your EC2 instance IP
-- `{app_name}-key.pem` with your key file name
+**Find this line:**
+```yaml
+ansible_host: localhost
+```
 
-### Configure Application
+**Replace with your EC2 instance IP:**
+```yaml
+ansible_host: 3.145.123.45  # Your actual EC2 IP from Step 1
+```
 
-Edit `deployment/group_vars/all.yml`:
+**Complete example:**
+```yaml
+---
+all:
+  children:
+    production:
+      hosts:
+        prod:
+          ansible_host: 3.145.123.45  # ← YOUR EC2 IP HERE
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ~/.ssh/{app_name}-key.pem  # ← YOUR KEY NAME
+
+      vars:
+        env_name: production
+        ansible_python_interpreter: /usr/bin/python3
+```
+
+**Save and close** the file.
+
+### Configure Application Settings
+
+**File to edit:** `deployment/group_vars/all.yml`
+
+**File to edit:** `deployment/group_vars/all.yml`
+
+```bash
+# Open the file
+vim deployment/group_vars/all.yml
+```
+
+**Find the USER CONFIGURATION section at the top:**
 
 ```yaml
-app_name: your_app_name          # Your app name (e.g., myapp, inventory_tool, comic_tracker)
-app_display_name: "Your App"     # Display name
+# Change these two lines:
+app_name: CHANGEME                    # ← Your app name: myapp, comictracker, etc.
+app_display_name: "CHANGE ME"         # ← Display name: "My App", "Comic Tracker"
 ```
 
-**Note:** Git repository URL is configured in vault.yml as `vault_git_repo`
+**Example:**
+```yaml
+app_name: myapp
+app_display_name: "My Application"
+```
+
+**Save and close** the file. Everything else in this file is auto-configured!
 
 ### Create Secrets Vault
 
-```bash
-cd deployment
+**⚠️ Still on your LOCAL machine**
 
-# Create vault password (one-time)
-echo "your-secure-password" > ~/.vault_pass
+The vault stores sensitive information (passwords, AWS details, GitHub URL).
+
+**Step 1: Create vault password file**
+
+```bash
+# Create password file in your home directory
+echo "your-super-secret-vault-password" > ~/.vault_pass
+
+# Replace "your-super-secret-vault-password" with a strong password
+# Example: echo "MyV4ultP@ssw0rd2026!" > ~/.vault_pass
+
+# Set secure permissions
 chmod 600 ~/.vault_pass
 
-# Create vault
+# Verify
+ls -la ~/.vault_pass
+# Should show: -rw------- (only you can read/write)
+```
+
+**Step 2: Create the vault file**
+
+```bash
+# Make sure you're in the repository directory
+cd deployment
+
+# Create encrypted vault file
 ansible-vault create group_vars/production/vault.yml --vault-password-file ~/.vault_pass
 ```
 
-Add configuration:
+**This opens an editor. Add this content:**
 
 ```yaml
 ---
-vault_git_repo: "https://github.com/YOUR_USERNAME/your_app_name.git"
-vault_aws_region: "us-east-1"
-vault_s3_bucket_name: "yourname-yourapp-2026"
+# Git Repository (REQUIRED)
+vault_git_repo: "https://github.com/YOUR_GITHUB_USERNAME/your_repository_name.git"
+# ↑ Replace YOUR_GITHUB_USERNAME with your actual GitHub username
+# ↑ Replace your_repository_name with your actual repository name
+# Example: "https://github.com/john/myapp.git"
+
+# AWS Configuration (REQUIRED)
+vault_aws_region: "us-east-2"
+vault_s3_bucket_name: "yourname-yourapp-2026"  # ← Your S3 bucket from Step 1
 vault_s3_folder: "production"
-vault_app_username: "admin"
-vault_app_password: "STRONG-PASSWORD-HERE"
+
+# Application Credentials (REQUIRED)
+# These are for YOUR app's admin login - make them up!
+vault_app_username: "admin"  # ← Can be anything you want
+vault_app_password: "MAKE-UP-A-STRONG-PASSWORD"  # ← CREATE a strong password
+
+# eBay API Credentials (OPTIONAL - only if using eBay features)
+# Leave as empty strings "" if you don't have eBay API access
+vault_ebay_app_id: ""
+vault_ebay_cert_id: ""
+vault_ebay_dev_id: ""
+vault_ebay_token: ""
+
+# SNS Topic (OPTIONAL - for alerts)
+vault_sns_topic_arn: ""  # Leave empty for now
 ```
+
+**Important notes:**
+- **vault_git_repo:** Your repository URL (get from GitHub repo page)
+- **vault_s3_bucket_name:** The S3 bucket you created in Step 1
+- **vault_app_username/password:** YOU make these up! This is for logging into YOUR app
+- **eBay fields:** Leave as `""` if you're not using eBay API features
+- **Make STRONG passwords!** Not "password123"
+
+**Save and close** the editor (in vim: press Esc, type `:wq`, press Enter).
+
+**Step 3: Verify vault was created**
+
+```bash
+# Check file exists
+ls -la group_vars/production/vault.yml
+# Should show the file
+
+# Test you can read it (should prompt for password)
+ansible-vault view group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+# Should show your configuration
+
+# Go back to repository root
+cd ..
+```
+
+**✅ Checkpoint:** You now have:
+- Repository cloned ✓
+- Inventory configured with your server IP ✓
+- Application name set ✓
+- Vault created with secrets ✓
 
 ---
 
 ## Step 3: Test Connection
 
+**⚠️ On your LOCAL machine**
+
+Before deploying, verify you can connect to your server.
+
+### Test SSH Access
+
 ```bash
-# Test SSH access
+# Replace YOUR_SERVER_IP with your EC2 instance IP from Step 1
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
-# Test Ansible connection
-cd deployment
-ansible -i inventories/production all -m ping
-# Should return: pong
+# Example: ssh -i ~/.ssh/myapp-key.pem ubuntu@3.145.123.45
+
+# You should see Ubuntu welcome message
+# If successful, type: exit
 ```
 
-**Connection failed?** Check:
-- Security group allows port 22
-- Key file permissions: `chmod 400 ~/.ssh/{app_name}-key.pem`
-- Correct instance IP in inventory
+**SSH Connection Issues?**
+- **Permission denied:** Check key permissions: `chmod 400 ~/.ssh/{app_name}-key.pem`
+- **Connection timeout:** Check security group allows port 22
+- **Host key verification:** Type `yes` when prompted first time
+
+### Test Ansible Connection
+
+```bash
+# Make sure you're in the repository directory
+cd ~/your_app_name  # Or wherever you cloned the repo
+
+# Test Ansible can connect
+ansible -i deployment/inventories/production all -m ping
+
+# Should see:
+# prod | SUCCESS => {
+#     "changed": false,
+#     "ping": "pong"
+# }
+```
+
+**Ansible Connection Failed?**
+- **No hosts matched:** Check inventory file has correct IP
+- **Permission denied:** Check key path in inventory file
+- **unreachable:** Check server is running: `aws ec2 describe-instances --instance-ids i-xxxxx`
+
+**✅ Checkpoint:** If ping returns "pong", you're ready to deploy!
 
 ---
 
 ## Step 4: Run Deployment
 
+**⚠️ On your LOCAL machine, from the repository directory**
+
 ### Deploy Application
 
 ```bash
-cd deployment
-ansible-playbook -i inventories/production playbooks/setup.yml
+# Make sure you're in the repository root (not deployment/ subdirectory)
+cd ~/your_app_name  # Adjust to your actual path
+
+# Run the deployment playbook
+ansible-playbook -i deployment/inventories/production deployment/playbooks/setup.yml
+
+# This will take 10-15 minutes
+# You'll see lots of output - this is normal!
+# Look for "PLAY RECAP" at the end
 ```
 
-**Using AWS Profiles?** (Multiple accounts or regions)
+**Using AWS Profiles?** (If managing multiple AWS accounts)
 ```bash
-# Deploy to production account
-AWS_PROFILE=myapp-production ansible-playbook -i inventories/production playbooks/setup.yml
+# Deploy with specific AWS profile
+AWS_PROFILE=myapp-production ansible-playbook -i deployment/inventories/production deployment/playbooks/setup.yml
 
-# Or set for session
+# Or set for entire session
 export AWS_PROFILE=myapp-production
-ansible-playbook -i inventories/production playbooks/setup.yml
+ansible-playbook -i deployment/inventories/production deployment/playbooks/setup.yml
 ```
 
 **See:** [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md) for profile setup details.
 
-**This playbook will:**
-1. Update system packages
-2. Install Python 3.10
-3. Create dedicated app user (no SSH access)
-4. Create virtual environment
-5. Install application dependencies
-6. Configure Nginx web server
-7. Configure Gunicorn WSGI server
-8. Set up systemd service
-9. Start application
+### What The Playbook Does
+
+**This will:**
+1. ✅ Update system packages on server
+2. ✅ Install Python 3.10 and dependencies
+3. ✅ Create dedicated app user (no SSH access)
+4. ✅ Clone your GitHub repository to server
+5. ✅ Create Python virtual environment
+6. ✅ Install application dependencies (pip install -r requirements.txt)
+7. ✅ Configure Nginx web server
+8. ✅ Configure Gunicorn WSGI server
+9. ✅ Set up systemd service
+10. ✅ Apply security hardening
+11. ✅ Start application
 
 **Duration:** 10-15 minutes
 
-### Verify Deployment
-
-```bash
-# On your local machine
-curl http://YOUR_SERVER_IP
-# Should show your app
-
-# Check service on server
-ssh ubuntu@YOUR_SERVER_IP
-sudo systemctl status {app_name}
-# Should show: active (running)
+**Expected output at end:**
+```
+PLAY RECAP *************************************************
+prod     : ok=45   changed=32   unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
 ```
 
----
+**✅ Success** if `failed=0` and `unreachable=0`
 
-## Step 5: Configure Domain & SSL (Optional)
+**❌ Failed?** See [Troubleshooting](#troubleshooting) section below
 
-If you have a custom domain:
+### Verify Deployment
 
-### Update DNS
+**On your LOCAL machine:**
 
-In your DNS provider:
-- Create A record: `your-domain.com` → Your server IP
-- Wait for DNS propagation (5-30 minutes)
+```bash
+# Test the application
+curl http://YOUR_SERVER_IP
+# Should return HTML (your app's homepage)
 
-### Install SSL Certificate
+# Example: curl http://3.145.123.45
+```
+
+**Check service on server:**
 
 ```bash
 # SSH to server
-ssh ubuntu@YOUR_SERVER_IP
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
-# Navigate to scripts
-cd /home/ubuntu/{app_name}/deployment/scripts
+# Check application status
+sudo systemctl status {app_name}
+# Should show: "active (running)" in green
 
-# Edit SSL setup script
-vim ssl-setup.sh
-# Line 8: Change DOMAIN="your-domain.com"
+# Check nginx status  
+sudo systemctl status nginx
+# Should show: "active (running)" in green
 
-# Run SSL setup
-./ssl-setup.sh
+# Exit server
+exit
 ```
 
-**Done!** Your app now has HTTPS.
+**✅ Checkpoint:** Application is now running!
+
+---
+
+## Step 5: Configure Domain & SSL
+
+**⚠️ Only if you have a custom domain name**
+
+If you don't have a domain, you can access your app via IP address and skip to [Step 6](#step-6-final-verification).
+
+### Update DNS Records
+
+**In your DNS provider (Namecheap, GoDaddy, Cloudflare, etc.):**
+
+1. Log into your DNS provider
+2. Find your domain's DNS settings
+3. Create an **A record:**
+   - **Name/Host:** `@` (or blank, or `your-domain.com`)
+   - **Value/Points to:** Your EC2 instance IP
+   - **TTL:** 300 (5 minutes) or Auto
+4. Save changes
+5. Wait 5-30 minutes for DNS propagation
+
+**Test DNS propagation:**
+```bash
+# On your local machine
+nslookup your-domain.com
+# Should show your server IP
+
+# Or use:
+dig your-domain.com +short
+# Should show your server IP
+```
+
+**Wait until DNS propagation completes before continuing!**
+
+### Install SSL Certificate (Let's Encrypt)
+
+**⚠️ This section runs ON THE SERVER**
+
+```bash
+# 1. SSH to your server (FROM YOUR LOCAL MACHINE)
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+
+# 2. Navigate to scripts directory (NOW ON THE SERVER)
+cd /home/ubuntu/{app_name}/deployment/scripts
+
+# 3. Edit the SSL setup script
+nano ssl-setup.sh
+# Or use: vim ssl-setup.sh
+
+# 4. Find this line (around line 8):
+# DOMAIN="your-domain.com"
+
+# 5. Change to your actual domain:
+# DOMAIN="myactualwebsite.com"
+
+# 6. Save and exit:
+# nano: Press Ctrl+X, then Y, then Enter
+# vim: Press Esc, type :wq, press Enter
+
+# 7. Run the SSL setup script
+sudo ./ssl-setup.sh
+
+# 8. Follow the prompts:
+# - Enter your email address (for certificate expiration notices)
+# - Agree to terms of service: Y
+# - Share email with EFF (optional): Y or N
+
+# 9. Script will automatically:
+# - Install certbot
+# - Request SSL certificate from Let's Encrypt
+# - Configure nginx for HTTPS
+# - Set up automatic renewal
+# - Restart nginx
+
+# 10. Exit back to your local machine
+exit
+```
+
+**✅ Done!** Your app now has HTTPS.
+
+**Test SSL:**
+```bash
+# On your local machine
+curl https://your-domain.com
+# Should show your app over HTTPS
+
+# Check in browser:
+# https://your-domain.com
+# Should show lock icon 🔒
+```
 
 ---
 
@@ -317,34 +700,36 @@ vim ssl-setup.sh
 ### Test Application
 
 ```bash
-# Without SSL
+# Without SSL (using IP)
 curl http://YOUR_SERVER_IP
 
-# With SSL
+# With SSL (using domain)
 curl https://your-domain.com
+
+# Or open in browser
+# http://YOUR_SERVER_IP or https://your-domain.com
 ```
 
 ### Check Logs
 
 ```bash
-ssh ubuntu@YOUR_SERVER_IP
+# SSH to server
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Application logs
 sudo journalctl -u {app_name} -n 50
 
-# Nginx logs
-sudo tail -f /var/log/nginx/error.log
+# Nginx access logs
+sudo tail -f /var/log/nginx/{app_name}_access.log
+
+# Nginx error logs
+sudo tail -f /var/log/nginx/{app_name}_error.log
+
+# Exit server
+exit
 ```
 
-### Test Image Upload
-
-1. Access app in browser
-2. Login (credentials from vault)
-3. Go to `/add`
-4. Upload a test image
-5. Check S3 bucket: `aws s3 ls s3://your-bucket-name/`
-
-**Images should appear in S3!**
+**✅ Deployment complete!** Your application is now running.
 
 ---
 
@@ -363,7 +748,7 @@ sudo tail -f /var/log/nginx/error.log
 
 ### Users Created
 
-- **ubuntu** (deploy_user): Has SSH, runs git/ansible
+- **ubuntu** (admin_user): Has SSH, runs git/ansible
 - **{app_name}** (app_user): No SSH, no shell, runs application only
 
 ### Services Running
@@ -478,22 +863,24 @@ sudo ufw status
 
 ### Images Not Uploading
 
-**Check S3 bucket:**
+**Check S3 bucket exists:**
 ```bash
 aws s3 ls s3://your-bucket-name
 ```
 
-**Check IAM role (if using):**
+**Check application logs for S3 errors:**
 ```bash
-ssh ubuntu@YOUR_SERVER_IP
-curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
-# Should show role name if attached
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+sudo tail -f /var/log/{app_name}/app.log | grep -i s3
+# Look for S3-related errors
+exit
 ```
 
-**Check logs:**
+**Check S3 bucket configuration:**
 ```bash
-sudo tail -f /var/log/{app_name}/app.log
-# Look for S3-related errors
+# Verify bucket region matches your configuration
+aws s3api get-bucket-location --bucket your-bucket-name
+# Should show: us-east-2 (or your configured region)
 ```
 
 **More help:** → [OPERATIONS.md#troubleshooting](OPERATIONS.md#troubleshooting)
@@ -548,63 +935,84 @@ sudo chown {app_name}:{app_name} /home/ubuntu/{app_name}/instance
 
 ### 6. Configure Systemd
 
-Create `/etc/systemd/system/{app_name}.service`:
-
-```ini
-[Unit]
-Description={App Name} Flask Application
-After=network.target
-
-[Service]
-Type=simple
-User={app_name}
-Group={app_name}
-WorkingDirectory=/home/ubuntu/{app_name}
-Environment="PATH=/home/ubuntu/.venv/bin"
-EnvironmentFile=/home/ubuntu/{app_name}/.env
-ExecStart=/home/ubuntu/.venv/bin/gunicorn \
-    --bind 127.0.0.1:8000 \
-    --workers 4 \
-    --timeout 120 \
-    "app:create_app('production')"
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+**Generate the service file with proper variables:**
 
 ```bash
+# On your LOCAL machine, in the repository
+cd deployment/scripts
+./manual-generate-systemd.sh
+
+# This creates: deployment/{app_name}.service
+# with all variables properly substituted
+```
+
+**Copy to server and install:**
+
+```bash
+# Copy to server (replace YOUR_SERVER_IP)
+scp -i ~/.ssh/{app_name}-key.pem ../myapp.service ubuntu@YOUR_SERVER_IP:/tmp/
+
+# SSH to server
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+
+# Install service file
+sudo mv /tmp/{app_name}.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable {app_name}
 sudo systemctl start {app_name}
+
+# Verify it's running
+sudo systemctl status {app_name}
+
+# Exit server
+exit
 ```
 
 ### 7. Configure Nginx
 
-Create `/etc/nginx/sites-available/{app_name}`:
-
-```nginx
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+**Generate the nginx configuration with proper variables:**
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/{app_name} /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+# On your LOCAL machine, in the repository
+cd deployment/scripts
+./manual-generate-nginx.sh
+
+# Script will ask for your domain name
+# Press Enter to use IP-based access (no domain)
+# Or enter your domain: example.com
+
+# This creates: deployment/{app_name}-nginx.conf
+# with all variables properly substituted
 ```
 
-**Done!** App should be accessible at your server IP.
+**Copy to server and install:**
+
+```bash
+# Copy to server (replace YOUR_SERVER_IP)
+scp -i ~/.ssh/{app_name}-key.pem ../{app_name}-nginx.conf ubuntu@YOUR_SERVER_IP:/tmp/
+
+# SSH to server
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+
+# Install nginx config
+sudo mv /tmp/{app_name}-nginx.conf /etc/nginx/sites-available/{app_name}
+sudo ln -s /etc/nginx/sites-available/{app_name} /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test configuration
+sudo nginx -t
+
+# Restart nginx
+sudo systemctl restart nginx
+
+# Verify it's running
+sudo systemctl status nginx
+
+# Exit server
+exit
+```
+
+**Done!** App should be accessible at your server IP or domain.
 
 ---
 
@@ -621,11 +1029,11 @@ sudo systemctl restart nginx
 ## Summary
 
 ✅ **What you did:**
-- Manually created AWS infrastructure
+- Created AWS infrastructure (S3, EC2, Security Group, SSH Key)
 - Deployed application step-by-step
 - Configured Nginx and Gunicorn
 - Set up systemd service
-- Optionally added SSL
+- Added SSL (if using custom domain)
 
 ✅ **What you have:**
 - Full control over every component

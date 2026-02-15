@@ -117,7 +117,7 @@ Add this content to the vault:
 vault_git_repo: "https://github.com/YOUR_USERNAME/your_app_name.git"  # Your repo
 
 # AWS
-vault_aws_region: "us-east-1"
+vault_aws_region: "us-east-2"
 vault_s3_bucket_name: "yourname-yourapp-2026"  # Must be globally unique!
 vault_s3_folder: "production"
 
@@ -196,14 +196,17 @@ curl https://your-domain.com
 
 ---
 
-## Optional: SSL Setup
+## SSL Setup (If Using Custom Domain)
+
+**⚠️ Skip this if accessing via IP address only**
 
 If you have a custom domain:
 
 ### Step 1: Point DNS to Server
 
-In your DNS provider (Namecheap, GoDaddy, etc.):
+In your DNS provider (Namecheap, GoDaddy, Cloudflare, etc.):
 - Create A record: `your-domain.com` → Your server IP
+- Wait 5-30 minutes for DNS propagation
 
 ### Step 2: Run SSL Setup
 
@@ -215,11 +218,12 @@ ssh ubuntu@YOUR_SERVER_IP
 cd /home/ubuntu/{app_name}/deployment/scripts
 
 # Edit SSL script
-vim ssl-setup.sh
+nano ssl-setup.sh
 # Change line 8: DOMAIN="your-domain.com"
+# Save: Ctrl+X, Y, Enter
 
 # Run SSL setup
-./ssl-setup.sh
+sudo ./ssl-setup.sh
 ```
 
 **Done!** Your app now has HTTPS with Let's Encrypt certificate.
@@ -369,7 +373,7 @@ sudo apt install awscli
 **Configure:**
 ```bash
 aws configure
-# Enter: Access Key ID, Secret Access Key, Region (us-east-1), Format (json)
+# Enter: Access Key ID, Secret Access Key, Region (us-east-2), Format (json)
 ```
 
 **Don't have AWS keys?** Create IAM user:
@@ -430,24 +434,11 @@ ansible --version  # Should be 2.9+
 
 ---
 
-## Summary
+## Next Steps
 
-✅ **What you did:**
-- Created AWS infrastructure automatically
-- Deployed application with security hardening
-- Set up monitoring and logging
-- Got a production-ready system in 15-20 minutes
-
-✅ **What you have:**
-- Running application accessible via web
-- S3 bucket for images
-- Secure server with hardening
-- Automated backups to S3
-
-✅ **What's next:**
-- Learn daily operations: [OPERATIONS.md](OPERATIONS.md)
-- Add more users: [MULTI_USER_SUPPORT.md](MULTI_USER_SUPPORT.md)
-- Understand security: [SECURITY_HARDENING.md](SECURITY_HARDENING.md)
+- **Daily Operations:** [OPERATIONS.md](OPERATIONS.md) - Updates, backups, monitoring
+- **Multi-User Setup:** [MULTI_USER_SUPPORT.md](MULTI_USER_SUPPORT.md) - Add users if needed
+- **Security Details:** [SECURITY_HARDENING.md](SECURITY_HARDENING.md) - Understand security features
 
 ---
 

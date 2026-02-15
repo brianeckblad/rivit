@@ -219,7 +219,7 @@ USERS=username:password
 SECRET_KEY=random-secret-here
 
 # Optional (have defaults)
-AWS_REGION=us-east-1
+AWS_REGION=us-east-2
 FLASK_ENV=development
 PORT=8000
 ```

@@ -181,7 +181,7 @@ class S3Service:
         if self._client is None:
             aws_key = _get_config('AWS_ACCESS_KEY_ID')
             aws_secret = _get_config('AWS_SECRET_ACCESS_KEY')
-            aws_region = _get_config('AWS_REGION', 'us-east-1')
+            aws_region = _get_config('AWS_REGION', 'us-east-2')
 
             if aws_key and aws_secret:
                 # Use explicit credentials if provided

@@ -69,7 +69,7 @@ HOST=0.0.0.0
 # AWS Secrets Manager Configuration
 # EC2 instance uses IAM role to access Secrets Manager (no AWS credentials!)
 SECRET_NAME=app-item-listing-tool/production
-AWS_REGION=us-east-1
+AWS_REGION=us-east-2
 
 # S3 Configuration  
 # EC2 instance uses IAM role to access S3 (no AWS credentials!)
@@ -119,7 +119,7 @@ EBAY_VERIFICATION_TOKEN=<generated-once-64-chars>
 ```json
 {
   "SECRET_KEY": "<from .env>",
-  "AWS_REGION": "us-east-1",
+  "AWS_REGION": "us-east-2",
   "S3_BUCKET_NAME": "your-bucket-name",
   "S3_FOLDER": "production",
   "EBAY_PRODUCTION_APP_ID": "YourApp-YourApp-PRD-...",

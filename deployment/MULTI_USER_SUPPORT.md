@@ -540,8 +540,8 @@ Update the EC2 IAM role to allow access to user secrets:
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "arn:aws:secretsmanager:us-east-1:*:secret:app-item-listing-tool/production-*",
-        "arn:aws:secretsmanager:us-east-1:*:secret:*/production-*"
+        "arn:aws:secretsmanager:us-east-2:*:secret:app-item-listing-tool/production-*",
+        "arn:aws:secretsmanager:us-east-2:*:secret:*/production-*"
       ]
     }
   ]
