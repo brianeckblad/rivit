@@ -57,11 +57,18 @@ aws sts get-caller-identity    # AWS CLI configured
 python3 --version              # Python 3.8+
 ansible --version              # Ansible 2.9+
 git --version                  # Git installed
+pip3 list | grep boto3         # Deployment requirements
 ```
 
 **All commands work?** ✅ You're ready!
 
 **Any command fails?** ❌ See [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md) for detailed installation instructions.
+
+**Missing boto3/deployment tools?** Install them:
+```bash
+cd your_app_name
+pip3 install -r deployment/requirements.txt
+```
 
 **Managing multiple AWS accounts or regions?** 
 - See [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md) for setting up named profiles
