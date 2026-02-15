@@ -16,6 +16,10 @@ aws sts get-caller-identity
 python3 --version  # Need 3.8+
 ansible --version  # Need 2.9+
 
+# Deployment requirements installed?
+pip3 list | grep -E "ansible|boto3|awscli"
+# Should show all three packages
+
 # Configuration ready?
 ls deployment/group_vars/all.yml
 ls deployment/group_vars/production/vault.yml
@@ -261,6 +265,41 @@ Ansible doesn't run natively on Windows. Options:
    ```
 
 3. **Control from Linux VM or Mac** (easiest for beginners)
+
+#### Step 3: Install Deployment Requirements
+
+After installing Python and Ansible, install the project's deployment dependencies:
+
+```bash
+# Clone the repository first (if you haven't already)
+git clone https://github.com/YOUR_USERNAME/your_app_name.git
+cd your_app_name
+
+# Install deployment requirements
+pip3 install -r deployment/requirements.txt
+
+# This installs:
+# - ansible (if not already installed system-wide)
+# - boto3 (AWS SDK for Python)
+# - awscli (if not already installed)
+# - Other deployment tools
+```
+
+**Verify installation:**
+```bash
+# Check installed packages
+pip3 list | grep -E "ansible|boto3|awscli"
+
+# Should show:
+# ansible         2.15.0 (or higher)
+# boto3           1.28.0 (or higher)
+# awscli          1.29.0 (or higher)
+```
+
+**Troubleshooting:**
+- **Permission denied:** Use `pip3 install --user -r deployment/requirements.txt`
+- **pip not found:** Install pip: `sudo apt install python3-pip` (Linux) or `brew install python3` (macOS)
+- **Old versions:** Upgrade pip: `pip3 install --upgrade pip`
 
 ### Git Not Installed/Configured
 
@@ -519,6 +558,7 @@ Before running deployment, verify:
 - [ ] AWS CLI configured (`aws sts get-caller-identity` works)
 - [ ] Python 3.8+ installed
 - [ ] Ansible installed
+- [ ] **Deployment requirements installed** (`pip3 install -r deployment/requirements.txt`)
 - [ ] `deployment/group_vars/all.yml` configured (app_url updated)
 - [ ] `deployment/group_vars/production/vault.yml` created and configured
 - [ ] `~/.vault_pass` file created

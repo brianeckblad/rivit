@@ -57,11 +57,21 @@ ansible --version
 # Git configured?
 git config --list | grep user
 # Should show: user.name and user.email
+
+# Deployment requirements installed?
+pip3 list | grep -E "ansible|boto3|awscli"
+# Should show all three packages
 ```
 
 **All commands work?** ✅ Continue to deployment steps below.
 
 **Any command fails?** ❌ Go to [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md)
+
+**Missing deployment requirements?** Install them:
+```bash
+cd your_app_name
+pip3 install -r deployment/requirements.txt
+```
 
 **Managing multiple AWS accounts or regions?**
 - See [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md) for setting up named profiles
@@ -83,6 +93,7 @@ git config --list | grep user
 - [ ] AWS CLI configured (`aws sts get-caller-identity` works)
 - [ ] Python 3.8+ installed
 - [ ] Ansible 2.9+ installed
+- [ ] **Deployment requirements installed** (`pip3 install -r deployment/requirements.txt`)
 - [ ] SSH access to your server
 - [ ] Git installed and configured
 
