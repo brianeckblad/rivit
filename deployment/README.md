@@ -79,6 +79,49 @@ aws configure
 
 ---
 
+## Configuration (Required Before Deployment)
+
+**⚠️ You must configure variables before deploying:**
+
+### 1. Edit Configuration File
+
+```bash
+cd deployment
+vim group_vars/all.yml
+```
+
+**Required variables to change:**
+- `app_name` - Your application name (technical, lowercase)
+- `app_display_name` - Display name for your app
+- `server_name` - Your domain or "_" for IP-only access
+- `admin_email` - Your email for SSL certificates
+
+### 2. Create Secrets Vault
+
+```bash
+# Create vault password file
+echo "your-secure-password" > ~/.vault_pass
+chmod 600 ~/.vault_pass
+
+# Create encrypted secrets file
+ansible-vault create group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+```
+
+**Add your secrets:**
+```yaml
+---
+vault_git_repo: "https://github.com/YOUR_USERNAME/your_app.git"
+vault_aws_region: "us-east-2"
+vault_s3_bucket_name: "yourname-yourapp-2026"
+vault_s3_folder: "production"
+vault_app_username: "admin"
+vault_app_password: "strong-password-here"
+```
+
+**Detailed instructions:** → [docs/guides/QUICKSTART.md#prerequisites](docs/guides/QUICKSTART.md#prerequisites)
+
+---
+
 ## Deployment Options
 
 ### Option 1: Automated (Recommended)
