@@ -65,7 +65,7 @@ git config --global user.email "your.email@example.com"
 cd deployment
 
 # 1. Edit app configuration
-vim group_vars/all.yml
+nano group_vars/all.yml
 # Set: app_name: your_app_name
 # Set: app_display_name: "Your App Name"
 
@@ -240,7 +240,7 @@ echo "SSH: ssh -i ~/.ssh/{app_name}-key.pem ubuntu@$INSTANCE_IP"
 cd deployment
 
 # Update inventory with server IP (if not done)
-vim inventories/production/hosts.yml
+nano inventories/production/hosts.yml
 # Set: ansible_host: YOUR_SERVER_IP
 
 # Deploy application
@@ -390,7 +390,7 @@ curl http://YOUR_SERVER_IP
 cd deployment
 
 # 1. Configure domain in group_vars/all.yml
-vim group_vars/all.yml
+nano group_vars/all.yml
 # Set: server_name: "your-domain.com"
 
 # 2. Run SSL playbook
