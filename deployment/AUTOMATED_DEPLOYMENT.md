@@ -21,6 +21,27 @@ This guide walks you through **automated deployment** where one command creates:
 
 ## Prerequisites
 
+**⚠️ IMPORTANT: This guide assumes nothing is configured. Follow these steps completely.**
+
+### Before You Begin
+
+If you have **never used AWS, Git, or Ansible before**, start here:
+
+**Complete setup guide:** → [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md)
+
+This checklist walks through:
+- Creating AWS account from scratch
+- Installing and configuring AWS CLI  
+- Installing Python and Ansible
+- Installing and configuring Git
+- Setting up GitHub authentication
+- Creating IAM users and access keys
+- Verifying everything works
+
+**Already have everything installed and configured?** Continue below.
+
+---
+
 **Before starting, you need:**
 
 ### 1. AWS Account
@@ -28,14 +49,23 @@ This guide walks you through **automated deployment** where one command creates:
 - Credit card registered (free tier available)
 
 ### 2. Local Tools Installed
+
+**Quick check:**
 ```bash
 # Check if you have these:
 aws sts get-caller-identity    # AWS CLI configured
 python3 --version              # Python 3.8+
 ansible --version              # Ansible 2.9+
+git --version                  # Git installed
 ```
 
-**Missing something?** → See [Prerequisites Setup](#prerequisites-setup) below
+**All commands work?** ✅ You're ready!
+
+**Any command fails?** ❌ See [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md) for detailed installation instructions.
+
+**Managing multiple AWS accounts or regions?** 
+- See [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md) for setting up named profiles
+- Deploy with: `AWS_PROFILE=myapp-production ./scripts/infra-complete-setup.sh`
 
 ### 3. GitHub Repository
 - Your code pushed to GitHub
@@ -119,6 +149,18 @@ ansible-vault view deployment/group_vars/production/vault.yml --vault-password-f
 cd deployment
 ./scripts/infra-complete-setup.sh
 ```
+
+**Using AWS Profiles?** (Multiple accounts or regions)
+```bash
+# Deploy to production account
+AWS_PROFILE=myapp-production ./scripts/infra-complete-setup.sh
+
+# Or set for session
+export AWS_PROFILE=myapp-production
+./scripts/infra-complete-setup.sh
+```
+
+**See:** [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md) for profile setup details.
 
 **This script will:**
 1. Create EC2 instance (t3.micro)

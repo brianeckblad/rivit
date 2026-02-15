@@ -20,6 +20,27 @@
 
 ---
 
+## 🔧 AWS CLI Profiles
+
+**Managing Multiple AWS Accounts/Regions**
+
+If you manage multiple AWS accounts (dev/staging/production) or regions, use AWS CLI profiles:
+
+```bash
+# Set profile for session
+export AWS_PROFILE=myapp-production
+
+# Or use with each command
+aws s3 ls --profile myapp-production
+aws ec2 describe-instances --profile myapp-production
+```
+
+**All AWS commands in this guide can use `--profile NAME` flag.**
+
+**Complete guide:** → [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md)
+
+---
+
 ## Daily Operations
 
 ### Daily Operations Checklist

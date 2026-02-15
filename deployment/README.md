@@ -34,7 +34,7 @@
 
 ---
 
-## Requirements Summary
+## Prerequisites Summary
 
 **Before deploying, you'll need:**
 
@@ -42,6 +42,8 @@
 - ✅ AWS CLI installed and configured
 - ✅ Python 3.8+ and Ansible
 - ✅ GitHub repository with your code
+
+**Managing multiple AWS accounts or regions?** → [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md)
 
 **Don't have these?** Each deployment guide has detailed prerequisites section.
 

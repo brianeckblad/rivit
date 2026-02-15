@@ -31,37 +31,364 @@ ls deployment/group_vars/production/vault.yml
 
 ### AWS CLI Not Configured
 
-```bash
-# Install AWS CLI
-pip install awscli
+#### Step 1: Create AWS Account (If You Don't Have One)
 
-# Configure
-aws configure
-# Enter: Access Key ID, Secret Access Key, Region (us-east-1), Format (json)
+1. Go to [aws.amazon.com](https://aws.amazon.com)
+2. Click "Create an AWS Account"
+3. Follow the registration process (credit card required)
+4. Verify your email and phone number
+5. Choose "Basic Support - Free"
+
+#### Step 2: Create IAM User for Deployment
+
+1. Log into [AWS Console](https://console.aws.amazon.com)
+2. Go to **IAM** service (search in top bar)
+3. Click **Users** in left sidebar
+4. Click **Create User** button
+5. **User name:** `{app_name}-deploy` (e.g., `myapp-deploy`)
+6. Click **Next**
+7. **Permissions:** Select "Attach policies directly"
+8. Search for and check: **AdministratorAccess**
+9. Click **Next**, then **Create user**
+
+#### Step 3: Create Access Keys
+
+1. Click on the user you just created
+2. Click **Security credentials** tab
+3. Scroll to **Access keys** section
+4. Click **Create access key**
+5. Select **Command Line Interface (CLI)**
+6. Check "I understand..." and click **Next**
+7. (Optional) Add description tag
+8. Click **Create access key**
+9. **IMPORTANT:** Copy both:
+   - Access key ID: `AKIA...`
+   - Secret access key: `wJalr...`
+   - Or click **Download .csv file**
+
+**Keep these credentials safe!** You'll need them in the next step.
+
+#### Step 4: Install AWS CLI
+
+**macOS:**
+```bash
+# Using Homebrew (recommended)
+brew install awscli
+
+# Or using pip
+pip3 install awscli
+
+# Verify installation
+aws --version
+# Should show: aws-cli/2.x.x or higher
 ```
 
-**Don't have AWS keys?** → Create IAM user:
+**Ubuntu/Debian Linux:**
 ```bash
-# In AWS Console:
-# 1. IAM → Users → Create User
-# 2. Name: {app_name}-deploy (e.g., myapp-deploy)
-# 3. Attach policy: AdministratorAccess
-# 4. Create Access Key → Save credentials
+# Install AWS CLI
+sudo apt update
+sudo apt install awscli
+
+# Or use pip for latest version
+pip3 install awscli --upgrade --user
+
+# Verify installation
+aws --version
+```
+
+**Windows:**
+1. Download installer from [aws.amazon.com/cli](https://aws.amazon.com/cli/)
+2. Run the MSI installer
+3. Open Command Prompt or PowerShell
+4. Run: `aws --version`
+
+#### Step 5: Configure AWS CLI
+
+**Basic Configuration (Single Account):**
+```bash
+aws configure
+
+# You'll be prompted for:
+AWS Access Key ID [None]: AKIA...          # Paste your Access Key ID
+AWS Secret Access Key [None]: wJalr...     # Paste your Secret Access Key
+Default region name [None]: us-east-1      # Enter: us-east-1
+Default output format [None]: json         # Enter: json
+```
+
+**What these mean:**
+- **Access Key ID:** Your IAM user identifier (starts with AKIA)
+- **Secret Access Key:** Your password (long string of random characters)
+- **Region:** AWS datacenter location (us-east-1 = US East, Virginia)
+- **Output format:** How AWS CLI shows results (json is most common)
+
+**Managing Multiple Accounts/Regions?**
+
+If you need to work with multiple AWS accounts or regions (e.g., separate dev/staging/production), use **named profiles**:
+
+```bash
+# Configure production account
+aws configure --profile myapp-production
+# Enter production credentials and region
+
+# Configure staging account
+aws configure --profile myapp-staging
+# Enter staging credentials and region
+
+# Use a specific profile
+aws s3 ls --profile myapp-production
+```
+
+**Full guide:** → [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md)
+
+#### Step 6: Verify AWS CLI Configuration
+
+```bash
+# Test AWS CLI is configured correctly
+aws sts get-caller-identity
+
+# Should output something like:
+# {
+#     "UserId": "AIDAI...",
+#     "Account": "123456789012",
+#     "Arn": "arn:aws:iam::123456789012:user/myapp-deploy"
+# }
+```
+
+**If you see this output, AWS CLI is configured correctly!** ✅
+
+**If you get an error:**
+- `Unable to locate credentials`: Run `aws configure` again
+- `InvalidClientTokenId`: Check your Access Key ID is correct
+- `SignatureDoesNotMatch`: Check your Secret Access Key is correct
+
+#### Troubleshooting AWS Configuration
+
+**Where are credentials stored?**
+```bash
+# View your credentials file
+cat ~/.aws/credentials
+
+# Should show:
+# [default]
+# aws_access_key_id = AKIA...
+# aws_secret_access_key = wJalr...
+```
+
+**To reconfigure:**
+```bash
+# Reconfigure AWS CLI (overwrites existing)
+aws configure
+
+# Or manually edit
+nano ~/.aws/credentials
+nano ~/.aws/config
 ```
 
 ### Python/Ansible Not Installed
 
-```bash
-# macOS
-brew install python3 ansible
+#### Step 1: Install Python 3.8+
 
-# Ubuntu/Debian
-sudo apt update
-sudo apt install python3 python3-pip ansible
+**macOS:**
+```bash
+# Using Homebrew (recommended)
+brew install python3
 
 # Verify
-python3 --version  # Should be 3.8+
+python3 --version
+# Should show: Python 3.8 or higher
+```
+
+**Ubuntu/Debian Linux:**
+```bash
+# Update package list
+sudo apt update
+
+# Install Python 3
+sudo apt install python3 python3-pip python3-venv
+
+# Verify
+python3 --version
+# Should show: Python 3.8 or higher
+```
+
+**Windows:**
+1. Download from [python.org/downloads](https://www.python.org/downloads/)
+2. Run installer
+3. **IMPORTANT:** Check "Add Python to PATH" during installation
+4. Open Command Prompt
+5. Run: `python --version`
+
+#### Step 2: Install Ansible
+
+**macOS:**
+```bash
+# Using Homebrew
+brew install ansible
+
+# Verify
 ansible --version
+# Should show: ansible [core 2.9+]
+```
+
+**Ubuntu/Debian Linux:**
+```bash
+# Install Ansible
+sudo apt update
+sudo apt install ansible
+
+# Or use pip for latest version
+pip3 install ansible
+
+# Verify
+ansible --version
+```
+
+**Windows:**
+Ansible doesn't run natively on Windows. Options:
+1. **WSL (Windows Subsystem for Linux)** - Recommended:
+   ```bash
+   # In PowerShell (as Administrator)
+   wsl --install
+   # Restart computer
+   # Then in WSL Ubuntu:
+   sudo apt update
+   sudo apt install ansible
+   ```
+
+2. **Use from Docker:**
+   ```bash
+   docker run --rm -it -v ${PWD}:/ansible ansible/ansible:latest
+   ```
+
+3. **Control from Linux VM or Mac** (easiest for beginners)
+
+### Git Not Installed/Configured
+
+#### Step 1: Install Git
+
+**macOS:**
+```bash
+# Using Homebrew
+brew install git
+
+# Or use Xcode Command Line Tools
+xcode-select --install
+
+# Verify
+git --version
+```
+
+**Ubuntu/Debian Linux:**
+```bash
+# Install git
+sudo apt update
+sudo apt install git
+
+# Verify
+git --version
+```
+
+**Windows:**
+1. Download from [git-scm.com](https://git-scm.com/download/win)
+2. Run installer
+3. Use default settings (or "Use Git from Git Bash only")
+4. Verify: Open Git Bash and run `git --version`
+
+#### Step 2: Configure Git (First Time Setup)
+
+```bash
+# Set your name (will appear in commits)
+git config --global user.name "Your Name"
+
+# Set your email (should match GitHub email)
+git config --global user.email "your.email@example.com"
+
+# Verify configuration
+git config --list | grep user
+# Should show:
+# user.name=Your Name
+# user.email=your.email@example.com
+```
+
+#### Step 3: Set Up Git Authentication for GitHub
+
+**Option 1: Personal Access Token (Recommended)**
+
+1. Go to [GitHub Settings](https://github.com/settings/tokens)
+2. Click **Developer settings** → **Personal access tokens** → **Tokens (classic)**
+3. Click **Generate new token** → **Generate new token (classic)**
+4. **Note:** "Deployment token"
+5. **Expiration:** Choose expiration (90 days or custom)
+6. **Scopes:** Check:
+   - `repo` (full control of private repositories)
+7. Click **Generate token**
+8. **COPY THE TOKEN** (you won't see it again!)
+
+**Use the token when cloning:**
+```bash
+# When prompted for password, use the token (not your GitHub password)
+git clone https://github.com/YOUR_USERNAME/your_app_name.git
+Username: YOUR_USERNAME
+Password: ghp_...  # Paste your token here
+```
+
+**Store credentials (so you don't have to enter token every time):**
+```bash
+# Cache credentials for 1 hour
+git config --global credential.helper 'cache --timeout=3600'
+
+# Or store permanently (less secure)
+git config --global credential.helper store
+```
+
+**Option 2: SSH Key (More Secure)**
+
+1. **Generate SSH key:**
+   ```bash
+   ssh-keygen -t ed25519 -C "your.email@example.com"
+   # Press Enter for default location (~/.ssh/id_ed25519)
+   # Enter passphrase (or press Enter for none)
+   ```
+
+2. **Copy public key:**
+   ```bash
+   # macOS/Linux
+   cat ~/.ssh/id_ed25519.pub | pbcopy  # macOS
+   cat ~/.ssh/id_ed25519.pub           # Linux (copy manually)
+   
+   # Windows
+   type %USERPROFILE%\.ssh\id_ed25519.pub
+   ```
+
+3. **Add to GitHub:**
+   - Go to [GitHub SSH Settings](https://github.com/settings/keys)
+   - Click **New SSH key**
+   - Title: "Deployment key"
+   - Paste your public key
+   - Click **Add SSH key**
+
+4. **Test connection:**
+   ```bash
+   ssh -T git@github.com
+   # Should show: Hi YOUR_USERNAME! You've successfully authenticated...
+   ```
+
+5. **Clone using SSH:**
+   ```bash
+   git clone git@github.com:YOUR_USERNAME/your_app_name.git
+   ```
+
+#### Step 4: Verify Git is Working
+
+```bash
+# Clone a test repository
+git clone https://github.com/YOUR_USERNAME/your_app_name.git
+cd your_app_name
+
+# Check status
+git status
+
+# If this works, Git is configured correctly!
 ```
 
 ### Configuration Files Missing

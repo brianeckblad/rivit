@@ -16,6 +16,61 @@ This guide provides **full manual deployment** with complete control over each s
 
 ## Prerequisites
 
+**⚠️ IMPORTANT: This guide assumes nothing is configured. Follow these steps completely.**
+
+### Before You Begin
+
+If you have **never used AWS, Git, or Ansible before**, start here:
+
+**Complete setup guide:** → [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md)
+
+This checklist walks through:
+- Creating AWS account from scratch
+- Installing and configuring AWS CLI
+- Installing Python and Ansible
+- Installing and configuring Git
+- Setting up GitHub authentication
+- Creating IAM users and access keys
+- Verifying everything works
+
+**Already have everything installed and configured?** Continue below.
+
+---
+
+### Quick Verification
+
+Run these commands to verify you're ready:
+
+```bash
+# AWS CLI configured?
+aws sts get-caller-identity
+# Should show your AWS account details
+
+# Python installed?
+python3 --version
+# Should show: Python 3.8 or higher
+
+# Ansible installed?
+ansible --version
+# Should show: ansible [core 2.9+]
+
+# Git configured?
+git config --list | grep user
+# Should show: user.name and user.email
+```
+
+**All commands work?** ✅ Continue to deployment steps below.
+
+**Any command fails?** ❌ Go to [PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md)
+
+**Managing multiple AWS accounts or regions?**
+- See [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md) for setting up named profiles
+- Use with ansible: `AWS_PROFILE=myapp-production ansible-playbook ...`
+
+---
+
+### What You Need
+
 **Complete ALL of these before starting:**
 
 ### 1. AWS Resources Created
@@ -29,6 +84,7 @@ This guide provides **full manual deployment** with complete control over each s
 - [ ] Python 3.8+ installed
 - [ ] Ansible 2.9+ installed
 - [ ] SSH access to your server
+- [ ] Git installed and configured
 
 ### 3. Configuration Complete
 - [ ] `deployment/group_vars/all.yml` configured
@@ -172,6 +228,18 @@ ansible -i inventories/production all -m ping
 cd deployment
 ansible-playbook -i inventories/production playbooks/setup.yml
 ```
+
+**Using AWS Profiles?** (Multiple accounts or regions)
+```bash
+# Deploy to production account
+AWS_PROFILE=myapp-production ansible-playbook -i inventories/production playbooks/setup.yml
+
+# Or set for session
+export AWS_PROFILE=myapp-production
+ansible-playbook -i inventories/production playbooks/setup.yml
+```
+
+**See:** [AWS_PROFILES_GUIDE.md](AWS_PROFILES_GUIDE.md) for profile setup details.
 
 **This playbook will:**
 1. Update system packages
