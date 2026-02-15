@@ -32,6 +32,7 @@ cd deployment
 | Reference | Description |
 |-----------|-------------|
 | **[ARCHITECTURE](docs/reference/ARCHITECTURE.md)** | System architecture & design decisions |
+| **[PLAYBOOKS](docs/reference/PLAYBOOKS.md)** | All playbooks and their purposes |
 | **[AWS_PROFILES](docs/reference/AWS_PROFILES.md)** | Manage multiple AWS accounts |
 | **[SECURITY](docs/reference/SECURITY.md)** | Security hardening details |
 
