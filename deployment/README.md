@@ -87,7 +87,7 @@ aws configure
 
 ```bash
 cd deployment
-vim group_vars/all.yml
+nano group_vars/all.yml
 ```
 
 **Required variables to change:**

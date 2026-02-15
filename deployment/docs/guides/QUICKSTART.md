@@ -24,7 +24,7 @@ pip3 install -r deployment/requirements.txt
 cd deployment
 
 # Edit configuration
-vim group_vars/all.yml
+nano group_vars/all.yml
 ```
 
 **Change these:**
@@ -81,7 +81,7 @@ aws s3 mb s3://yourname-yourapp-2026 --region us-east-2
 ansible-playbook playbooks/provision-infrastructure.yml
 
 # 3. Update inventory with IP from output
-vim inventories/production/hosts.yml
+nano inventories/production/hosts.yml
 # Set: ansible_host: YOUR_INSTANCE_IP
 
 # 4. Deploy application
@@ -104,7 +104,7 @@ ansible-playbook -i inventories/production playbooks/setup.yml
 nslookup your-domain.com
 
 # 3. Update configuration
-vim deployment/group_vars/all.yml
+nano deployment/group_vars/all.yml
 # Set: server_name: "your-domain.com"
 
 # 4. Setup SSL
