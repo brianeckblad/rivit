@@ -13,16 +13,27 @@
 #
 # NOTE: Encrypted vault.yml should be committed to git for reusable deployments.
 
-# Git Repository (contains your GitHub username/org - keep private)
-vault_git_repo: "https://github.com/yourusername/app_item_listing_tool.git"
+# ============================================================================
+# Git Repository (REQUIRED)
+# ============================================================================
+# Contains your GitHub username/org - keep private
+vault_git_repo: "https://github.com/YOUR_USERNAME/YOUR_APP_NAME.git"
 
-# AWS Credentials
-vault_aws_access_key_id: "AKIAXXXXXXXXXXXXXXXX"
-vault_aws_secret_access_key: "your-secret-access-key-here"
+# ============================================================================
+# AWS Configuration (REQUIRED)
+# ============================================================================
+# NOTE: AWS credentials (access keys) are NOT stored here!
+# The EC2 instance uses an IAM role for authentication (more secure)
 vault_aws_region: "us-east-2"
-vault_s3_bucket_name: "your-bucket-name"
-vault_s3_key_prefix: ""  # Optional: prefix for S3 keys (e.g., "prod/")
+vault_s3_bucket_name: "your-unique-bucket-name"
+vault_s3_folder: "production"                    # S3 folder/prefix for this environment
 
-# Application Credentials
-vault_app_username: "your-admin-username"
-vault_app_password: "your-secure-password"
+# SNS Topic ARN (OPTIONAL - for monitoring/alerts)
+# vault_sns_topic_arn: "arn:aws:sns:us-east-2:123456789012:your-topic-name"
+
+# ============================================================================
+# Application Credentials (REQUIRED)
+# ============================================================================
+# These are used for the web application login
+vault_app_username: "admin"
+vault_app_password: "change-this-to-a-strong-password"

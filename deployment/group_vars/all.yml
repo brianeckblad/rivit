@@ -7,11 +7,11 @@
 # ----------------------------------------------------------------------------
 # 1. APPLICATION IDENTITY (REQUIRED)
 # ----------------------------------------------------------------------------
-app_name:                                        # ⚠️ CHANGE THIS - Your app's technical name
+app_name: "myapp"                                # ⚠️ CHANGE THIS - Your app's technical name
                                                  # Examples: myapp, comic_tracker, inventory_tool
                                                  # Used for: service name, directories, logs, etc.
 
-app_display_name: "rampE Inventory Manager"      # ⚠️ CHANGE THIS - Your app's display name
+app_display_name: "My Application"               # ⚠️ CHANGE THIS - Your app's display name
                                                  # Examples: "My App", "Comic Tracker", "Inventory Tool"
                                                  # Used for: systemd service description
 

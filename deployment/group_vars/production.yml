@@ -3,8 +3,9 @@
 # ⚠️ USER CONFIGURATION - PRODUCTION ENVIRONMENT ⚠️
 # ============================================================================
 
-# Server domain name (if you have one)
-server_name: app.badartink.com               # ⚠️ CHANGE THIS to your domain or leave as-is
+# Server domain name (override if different from all.yml)
+# Leave commented to use value from all.yml
+# server_name: "your-domain.com"               # ⚠️ Uncomment and change if different from all.yml
 
 # ============================================================================
 # AUTO-CONFIGURED (DO NOT EDIT)
