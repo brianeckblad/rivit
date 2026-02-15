@@ -136,7 +136,7 @@ vault_ebay_token: ""
 vault_sns_topic_arn: ""
 ```
 
-**Save and exit** (`:wq` in vim)
+**Save and exit** - Type :wq in vim
 
 ### Step 3: Verify Configuration
 
