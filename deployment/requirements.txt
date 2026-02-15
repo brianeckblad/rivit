@@ -7,7 +7,7 @@ ansible>=2.15.0
 
 # AWS SDK for infrastructure provisioning (EC2, S3, CloudFront, WAF, Secrets Manager)
 boto3>=1.28.0
-botocore>=1.31.0
+botocore[crt]>=1.31.0
 
 # AWS CLI (if not installed system-wide)
 awscli>=1.29.0
