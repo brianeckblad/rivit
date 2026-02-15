@@ -23,6 +23,7 @@ cd deployment
 |-------|-------------|------|
 | **[QUICKSTART](docs/guides/QUICKSTART.md)** | Deploy fast with automation | 15-20 min |
 | **[MANUAL_DEPLOYMENT](docs/guides/MANUAL_DEPLOYMENT.md)** | Step-by-step with CLI & playbooks | 1-2 hours |
+| **[LOCAL_DEVELOPMENT](docs/guides/LOCAL_DEVELOPMENT.md)** | Keep your configs private (never commit secrets) | 5 min |
 | **[OPERATIONS](docs/guides/OPERATIONS.md)** | Daily operations, updates, backups | Reference |
 | **[MULTI_USER](docs/guides/MULTI_USER.md)** | Add multiple users | 10 min |
 | **[SECRET_MANAGEMENT](docs/guides/SECRET_MANAGEMENT.md)** | Rotate secrets safely | 5 min |
@@ -80,6 +81,24 @@ aws configure
 ---
 
 ## Configuration (Required Before Deployment)
+
+**⚠️ IMPORTANT: Keep Your Configs Private!**
+
+Your personal deployment settings should **NEVER** be committed to Git. Use local override files:
+
+```bash
+# Create local config files (automatically ignored by Git)
+cd deployment
+./scripts/local-dev-setup.sh
+```
+
+This creates:
+- `group_vars/all.local.yml` - Your personal settings
+- `group_vars/production/vault.yml` - Your secrets
+
+**Learn more:** → [docs/guides/LOCAL_DEVELOPMENT.md](docs/guides/LOCAL_DEVELOPMENT.md)
+
+---
 
 **⚠️ You must configure variables before deploying:**
 

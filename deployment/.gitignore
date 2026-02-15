@@ -11,15 +11,37 @@
 /tmp/ansible_facts/
 ansible_facts/
 
-# Vault password files (never commit!)
+# ============================================================================
+# Local Configuration Override Files (NEVER COMMIT!)
+# ============================================================================
+# These contain your personal deployment settings
+# Ansible automatically loads them and merges with base configs
+*.local.yml
+group_vars/*.local.yml
+group_vars/**/*.local.yml
+
+# Unencrypted vault files (personal secrets - NEVER COMMIT!)
+# NOTE: Encrypted vault.yml files (with ansible-vault) CAN be committed safely
+# To encrypt: ansible-vault encrypt group_vars/production/vault.yml
+group_vars/**/vault.yml
+!group_vars/**/vault.yml.example
+
+# Vault password files (NEVER COMMIT!)
 .vault_pass
 .vault_password
 vault_pass.txt
+**/vault_pass
+**/vault_password
 
-# NOTE: vault.yml files are NOT ignored by default
-# Encrypted vault.yml files SHOULD be committed to git for reusable deployments
-# If you create an unencrypted vault.yml for local testing, add it manually:
-#   git update-index --skip-worktree group_vars/production/vault.yml
+# Deployment state/summary files
+.deployment-config
+aws-setup-summary.txt
+deployment-summary.txt
+.secret-rotation-info
+
+# ============================================================================
+# Ansible Runtime Files
+# ============================================================================
 
 # Backup files
 *.bak

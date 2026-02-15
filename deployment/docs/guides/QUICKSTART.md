@@ -18,13 +18,29 @@ ansible --version              # Ansible 2.9+
 pip3 install -r deployment/requirements.txt
 ```
 
-### 2. Configure Application
+### 2. Setup Local Development (Recommended)
+
+**Keep your personal configs out of Git:**
 
 ```bash
 cd deployment
 
-# Edit configuration
-nano group_vars/all.yml
+# Create local override files (automatically ignored by Git)
+./scripts/local-dev-setup.sh
+
+# Install pre-commit hook (prevents accidentally committing secrets)
+./scripts/install-git-hook.sh
+```
+
+**Learn more:** [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+
+### 3. Configure Application
+
+```bash
+cd deployment
+
+# Edit YOUR local config (ignored by Git)
+nano group_vars/all.local.yml
 ```
 
 **Change these:**
@@ -32,9 +48,10 @@ nano group_vars/all.yml
 app_name: myapp                    # Your app name
 app_display_name: "My App"         # Display name
 server_name: "_"                   # Domain or "_" for IP-only
+ssl_email: "you@example.com"       # Email for SSL notifications
 ```
 
-### 3. Create Secrets Vault
+### 4. Create Secrets Vault
 
 ```bash
 # Create vault password
