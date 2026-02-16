@@ -68,18 +68,21 @@ Thumbs.db
 **/vault_password
 
 # ============================================================================
-# Deployment - Local Configuration Override Files
+# Deployment - User Configuration Files (NEVER COMMIT!)
 # ============================================================================
-# These files contain your personal deployment settings and should NEVER be committed
-# Use these to override the default configs in all.yml and production.yml
+# Users copy .example files to create their actual config files
+# Example: cp all.yml.example all.yml
+#
+# .example files = Templates (IN GIT, get updates)
+# Real files     = User configs (IGNORED BY GIT, stay private)
 
-# Local override files (highest priority in Ansible)
-deployment/group_vars/*.local.yml
-deployment/group_vars/**/*.local.yml
-
-# Unencrypted vault files (if you're working with unencrypted secrets locally)
+# User's actual configuration files (copied from .example files)
+deployment/group_vars/all.yml
+deployment/group_vars/production.yml
 deployment/group_vars/**/vault.yml
-!deployment/group_vars/**/vault.yml.example
+
+# Keep .example template files (these ARE tracked in Git)
+!deployment/group_vars/**/*.example
 
 # Deployment state/summary files
 deployment/.deployment-config

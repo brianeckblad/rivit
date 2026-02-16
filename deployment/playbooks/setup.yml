@@ -11,6 +11,7 @@
     - ../group_vars/production/vault.yml
 
   tasks:
+
     - name: Update apt cache
       apt:
         update_cache: yes

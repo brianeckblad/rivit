@@ -24,6 +24,7 @@
     - ../group_vars/production/vault.yml
 
   tasks:
+
     - name: Display current status
       block:
         - name: Get current branch

@@ -12,19 +12,23 @@
 ansible_facts/
 
 # ============================================================================
-# Local Configuration Override Files (NEVER COMMIT!)
+# User Configuration Files (NEVER COMMIT!)
 # ============================================================================
-# These contain your personal deployment settings
-# Ansible automatically loads them and merges with base configs
-*.local.yml
-group_vars/*.local.yml
-group_vars/**/*.local.yml
+# Standard .example file pattern:
+#   - .example files are templates (tracked in Git, receive updates)
+#   - Real files are user configs (ignored by Git, stay private)
+#   - User workflow: cp all.yml.example all.yml
+#
+# This is the industry-standard configuration pattern
 
-# Unencrypted vault files (personal secrets - NEVER COMMIT!)
-# NOTE: Encrypted vault.yml files (with ansible-vault) CAN be committed safely
-# To encrypt: ansible-vault encrypt group_vars/production/vault.yml
+# User's actual configuration files
+group_vars/all.yml
+group_vars/production.yml
 group_vars/**/vault.yml
-!group_vars/**/vault.yml.example
+
+# Keep .example template files in Git
+!group_vars/**/*.example
+!group_vars/**/*.yml.example
 
 # Vault password files (NEVER COMMIT!)
 .vault_pass

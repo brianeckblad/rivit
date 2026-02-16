@@ -17,6 +17,7 @@
     - ../group_vars/production/vault.yml
 
   tasks:
+
     - name: Display cleanup status
       debug:
         msg:

@@ -1,0 +1,33 @@
+---
+# ============================================================================
+# EXAMPLE CONFIGURATION FILE - PRODUCTION ENVIRONMENT
+# ============================================================================
+# This is a template. Copy it to create your actual config:
+#   cp production.yml.example production.yml
+#   nano production.yml
+#
+# The real production.yml file is ignored by Git (your settings stay private)
+# Updates to this template will be tracked in Git
+# ============================================================================
+
+# ============================================================================
+# ⚠️ USER CONFIGURATION - PRODUCTION ENVIRONMENT ⚠️
+# ============================================================================
+
+# Server domain name (override if different from all.yml)
+# Leave commented to use value from all.yml
+# server_name: "your-domain.com"               # ⚠️ Uncomment and change if different from all.yml
+
+# ============================================================================
+# AUTO-CONFIGURED (DO NOT EDIT)
+# ============================================================================
+
+# Environment settings
+flask_env: production
+flask_debug: false
+log_level: info
+
+# Performance (override in group_vars/all.yml if needed)
+gunicorn_workers: "{{ gunicorn_workers | default(4) }}"
+gunicorn_timeout: "{{ gunicorn_timeout | default(120) }}"
+

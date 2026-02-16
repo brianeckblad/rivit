@@ -1,6 +1,6 @@
 #!/bin/bash
-# Setup local development configuration
-# This creates local override files that are ignored by Git
+# Setup local development configuration using .example file pattern
+# This is the standard industry pattern for configuration management
 
 set -e
 
@@ -10,25 +10,34 @@ GROUP_VARS_DIR="$DEPLOYMENT_DIR/group_vars"
 PRODUCTION_DIR="$GROUP_VARS_DIR/production"
 
 echo "=================================================="
-echo "Local Development Configuration Setup"
+echo "Configuration Setup (.example pattern)"
 echo "=================================================="
 echo ""
-echo "This will create local override files that are"
-echo "automatically ignored by Git."
+echo "This will create your configuration files from"
+echo ".example templates."
+echo ""
+echo "Pattern:"
+echo "  .example files = Templates (tracked in Git)"
+echo "  Real files     = Your configs (ignored by Git)"
 echo ""
 
 # Check if we're in the right directory
-if [ ! -f "$GROUP_VARS_DIR/all.yml" ]; then
-    echo "❌ Error: Cannot find group_vars/all.yml"
+if [ ! -f "$GROUP_VARS_DIR/all.yml.example" ]; then
+    echo "❌ Error: Cannot find group_vars/all.yml.example"
     echo "   Please run this script from: deployment/scripts/"
     exit 1
 fi
 
-# Function to create local override file
-create_local_override() {
-    local source_file="$1"
+# Function to create config from example
+create_from_example() {
+    local example_file="$1"
     local dest_file="$2"
     local file_description="$3"
+
+    if [ ! -f "$example_file" ]; then
+        echo "⚠️  $example_file not found, skipping..."
+        return
+    fi
 
     if [ -f "$dest_file" ]; then
         echo "⚠️  $dest_file already exists"
@@ -41,42 +50,36 @@ create_local_override() {
     fi
 
     echo "📝 Creating $file_description..."
-    cp "$source_file" "$dest_file"
+    cp "$example_file" "$dest_file"
     echo "   ✅ Created: $dest_file"
 }
 
-# Create all.local.yml
+# Create all.yml from all.yml.example
 echo ""
-echo "Step 1: Create all.local.yml (main config override)"
+echo "Step 1: Create all.yml (main configuration)"
 echo "-----------------------------------------------------"
-create_local_override \
+create_from_example \
+    "$GROUP_VARS_DIR/all.yml.example" \
     "$GROUP_VARS_DIR/all.yml" \
-    "$GROUP_VARS_DIR/all.local.yml" \
-    "main config override"
+    "main configuration"
 
-# Create production.local.yml (optional)
+# Create production.yml from production.yml.example
 echo ""
-echo "Step 2: Create production.local.yml (environment override)"
+echo "Step 2: Create production.yml (environment config)"
 echo "-----------------------------------------------------"
-if [ -f "$GROUP_VARS_DIR/production.yml" ]; then
-    create_local_override \
-        "$GROUP_VARS_DIR/production.yml" \
-        "$GROUP_VARS_DIR/production.local.yml" \
-        "production environment override"
-fi
+create_from_example \
+    "$GROUP_VARS_DIR/production.yml.example" \
+    "$GROUP_VARS_DIR/production.yml" \
+    "production environment configuration"
 
-# Create vault.yml from example
+# Create vault.yml from vault.yml.example
 echo ""
 echo "Step 3: Create vault.yml (secrets file)"
 echo "-----------------------------------------------------"
-if [ -f "$PRODUCTION_DIR/vault.yml.example" ]; then
-    create_local_override \
-        "$PRODUCTION_DIR/vault.yml.example" \
-        "$PRODUCTION_DIR/vault.yml" \
-        "secrets vault file"
-else
-    echo "⚠️  vault.yml.example not found, skipping..."
-fi
+create_from_example \
+    "$PRODUCTION_DIR/vault.yml.example" \
+    "$PRODUCTION_DIR/vault.yml" \
+    "secrets vault file"
 
 # Summary
 echo ""
@@ -84,16 +87,16 @@ echo "=================================================="
 echo "✅ Setup Complete!"
 echo "=================================================="
 echo ""
-echo "Local override files created (ignored by Git):"
+echo "Configuration files created (ignored by Git):"
 echo ""
 
-if [ -f "$GROUP_VARS_DIR/all.local.yml" ]; then
-    echo "  📄 group_vars/all.local.yml"
+if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
+    echo "  📄 group_vars/all.yml"
     echo "     → Edit this for your app name, domain, etc."
 fi
 
-if [ -f "$GROUP_VARS_DIR/production.local.yml" ]; then
-    echo "  📄 group_vars/production.local.yml"
+if [ -f "$GROUP_VARS_DIR/production.yml" ]; then
+    echo "  📄 group_vars/production.yml"
     echo "     → Edit this for production-specific settings"
 fi
 
@@ -103,12 +106,18 @@ if [ -f "$PRODUCTION_DIR/vault.yml" ]; then
 fi
 
 echo ""
+echo "Template files (tracked in Git, receive updates):"
+echo ""
+echo "  📄 group_vars/all.yml.example"
+echo "  📄 group_vars/production.yml.example"
+echo "  📄 group_vars/production/vault.yml.example"
+echo ""
 echo "Next Steps:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "1. Edit your local config files:"
+echo "1. Edit your configuration files:"
 echo "   cd $DEPLOYMENT_DIR"
-echo "   nano group_vars/all.local.yml"
+echo "   nano group_vars/all.yml"
 echo "   nano group_vars/production/vault.yml"
 echo ""
 echo "2. Create vault password file:"
@@ -120,13 +129,11 @@ echo "   cd $DEPLOYMENT_DIR"
 echo "   ansible-vault encrypt group_vars/production/vault.yml \\"
 echo "     --vault-password-file ~/.vault_pass"
 echo ""
-echo "4. Verify nothing is staged for commit:"
+echo "4. Verify Git ignores your configs:"
 echo "   git status"
-echo "   # Should show: nothing to commit"
+echo "   # Should show: nothing to commit (or only .example files)"
 echo ""
 echo "5. Deploy your application:"
 echo "   ./scripts/infra-complete-setup.sh"
-echo ""
-echo "📚 Documentation: docs/guides/LOCAL_DEVELOPMENT.md"
 echo ""
 

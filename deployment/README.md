@@ -23,7 +23,6 @@ cd deployment
 |-------|-------------|------|
 | **[QUICKSTART](docs/guides/QUICKSTART.md)** | Deploy fast with automation | 15-20 min |
 | **[MANUAL_DEPLOYMENT](docs/guides/MANUAL_DEPLOYMENT.md)** | Step-by-step with CLI & playbooks | 1-2 hours |
-| **[LOCAL_DEVELOPMENT](docs/guides/LOCAL_DEVELOPMENT.md)** | Keep your configs private (never commit secrets) | 5 min |
 | **[OPERATIONS](docs/guides/OPERATIONS.md)** | Daily operations, updates, backups | Reference |
 | **[MULTI_USER](docs/guides/MULTI_USER.md)** | Add multiple users | 10 min |
 | **[SECRET_MANAGEMENT](docs/guides/SECRET_MANAGEMENT.md)** | Rotate secrets safely | 5 min |
@@ -84,19 +83,24 @@ aws configure
 
 **⚠️ IMPORTANT: Keep Your Configs Private!**
 
-Your personal deployment settings should **NEVER** be committed to Git. Use local override files:
+Your personal deployment settings should **NEVER** be committed to Git. Use the standard `.example` file pattern:
 
 ```bash
-# Create local config files (automatically ignored by Git)
+# Create your config files from templates
 cd deployment
 ./scripts/local-dev-setup.sh
 ```
 
 This creates:
-- `group_vars/all.local.yml` - Your personal settings
-- `group_vars/production/vault.yml` - Your secrets
+- `group_vars/all.yml` - Your personal settings (from all.yml.example)
+- `group_vars/production.yml` - Your environment config (from production.yml.example)  
+- `group_vars/production/vault.yml` - Your secrets (from vault.yml.example)
 
-**Learn more:** → [docs/guides/LOCAL_DEVELOPMENT.md](docs/guides/LOCAL_DEVELOPMENT.md)
+**How it works:**
+- `.example` files = Templates (tracked in Git, receive updates)
+- Real files = Your configs (ignored by Git, stay private)
+
+**Standard pattern used by npm, docker, and most tools.**
 
 ---
 
@@ -106,6 +110,9 @@ This creates:
 
 ```bash
 cd deployment
+
+# Create your config from template
+cp group_vars/all.yml.example group_vars/all.yml
 nano group_vars/all.yml
 ```
 
@@ -122,8 +129,9 @@ nano group_vars/all.yml
 echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
-# Create encrypted secrets file
-ansible-vault create group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+# Create secrets file from template
+cp group_vars/production/vault.yml.example group_vars/production/vault.yml
+nano group_vars/production/vault.yml
 ```
 
 **Add your secrets:**
@@ -135,6 +143,11 @@ vault_s3_bucket_name: "yourname-yourapp-2026"
 vault_s3_folder: "production"
 vault_app_username: "admin"
 vault_app_password: "strong-password-here"
+```
+
+**Or use the setup script:**
+```bash
+./scripts/local-dev-setup.sh  # Creates all files automatically
 ```
 
 **Detailed instructions:** → [docs/guides/QUICKSTART.md#prerequisites](docs/guides/QUICKSTART.md#prerequisites)

@@ -18,29 +18,35 @@ ansible --version              # Ansible 2.9+
 pip3 install -r deployment/requirements.txt
 ```
 
-### 2. Setup Local Development (Recommended)
+### 2. Setup Configuration Files
 
-**Keep your personal configs out of Git:**
+**Use the standard `.example` file pattern:**
 
 ```bash
 cd deployment
 
-# Create local override files (automatically ignored by Git)
+# Automatic setup (recommended)
 ./scripts/local-dev-setup.sh
 
-# Install pre-commit hook (prevents accidentally committing secrets)
-./scripts/install-git-hook.sh
+# This creates your config files from templates:
+#   all.yml.example       → all.yml (your config)
+#   production.yml.example → production.yml (your environment)
+#   vault.yml.example     → vault.yml (your secrets)
 ```
 
-**Learn more:** [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+**How it works:**
+- `.example` files = Templates (in Git, get updates)
+- Real files = Your settings (ignored by Git, stay private)
+
+**Standard pattern used by npm, docker, and most tools.**
 
 ### 3. Configure Application
 
 ```bash
 cd deployment
 
-# Edit YOUR local config (ignored by Git)
-nano group_vars/all.local.yml
+# Edit YOUR config file (ignored by Git)
+nano group_vars/all.yml
 ```
 
 **Change these:**
@@ -58,8 +64,8 @@ ssl_email: "you@example.com"       # Email for SSL notifications
 echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
-# Create encrypted secrets
-ansible-vault create group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+# Edit your secrets file (created by local-dev-setup.sh)
+nano group_vars/production/vault.yml
 ```
 
 **Add this:**
@@ -71,6 +77,11 @@ vault_s3_bucket_name: "yourname-yourapp-2026"
 vault_s3_folder: "production"
 vault_app_username: "admin"
 vault_app_password: "strong-password-here"
+```
+
+**(Optional) Encrypt it:**
+```bash
+ansible-vault encrypt group_vars/production/vault.yml --vault-password-file ~/.vault_pass
 ```
 
 ---
