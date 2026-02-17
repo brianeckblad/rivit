@@ -20,23 +20,23 @@
 
 | Playbook | Purpose | Usage |
 |----------|---------|-------|
-| `setup.yml` | Deploy application | `ansible-playbook -i inventories/production playbooks/setup.yml` |
-| `update.yml` | Update application | `ansible-playbook -i inventories/production playbooks/update.yml` |
-| `remote-update.yml` | Remote update | `ansible-playbook -i inventories/production playbooks/remote-update.yml` |
+| `setup.yml` | Deploy application | `ansible-playbook -i inventories playbooks/setup.yml` |
+| `update.yml` | Update application | `ansible-playbook -i inventories playbooks/update.yml` |
+| `remote-update.yml` | Remote update | `ansible-playbook -i inventories playbooks/remote-update.yml` |
 
 ## Security Playbooks
 
 | Playbook | Purpose | Usage |
 |----------|---------|-------|
-| `setup-ssl.yml` | Install SSL certificate | `ansible-playbook -i inventories/production playbooks/setup-ssl.yml` |
+| `setup-ssl.yml` | Install SSL certificate | `ansible-playbook -i inventories playbooks/setup-ssl.yml` |
 | `setup-waf.yml` | Configure AWS WAF | `ansible-playbook playbooks/setup-waf.yml` |
-| `security-hardening.yml` | Apply OS hardening | `ansible-playbook -i inventories/production playbooks/security-hardening.yml` |
+| `security-hardening.yml` | Apply OS hardening | `ansible-playbook -i inventories playbooks/security-hardening.yml` |
 
 ## Monitoring & CDN Playbooks
 
 | Playbook | Purpose | Usage |
 |----------|---------|-------|
-| `setup-monitoring.yml` | Configure CloudWatch | `ansible-playbook -i inventories/production playbooks/setup-monitoring.yml` |
+| `setup-monitoring.yml` | Configure CloudWatch | `ansible-playbook -i inventories playbooks/setup-monitoring.yml` |
 | `setup-cloudfront.yml` | Create CloudFront CDN | `ansible-playbook playbooks/setup-cloudfront.yml` |
 
 ## Secret Management Playbooks
@@ -52,7 +52,7 @@
 
 | Playbook | Purpose | Usage |
 |----------|---------|-------|
-| `cleanup-server.yml` | Remove application | `ansible-playbook -i inventories/production playbooks/cleanup-server.yml` |
+| `cleanup-server.yml` | Remove application | `ansible-playbook -i inventories playbooks/cleanup-server.yml` |
 
 ---
 
@@ -61,17 +61,17 @@
 **First deployment:**
 ```bash
 ansible-playbook playbooks/provision-infrastructure.yml
-ansible-playbook -i inventories/production playbooks/setup.yml
+ansible-playbook -i inventories playbooks/setup.yml
 ```
 
 **Update application:**
 ```bash
-ansible-playbook -i inventories/production playbooks/update.yml
+ansible-playbook -i inventories playbooks/update.yml
 ```
 
 **Add SSL:**
 ```bash
-ansible-playbook -i inventories/production playbooks/setup-ssl.yml
+ansible-playbook -i inventories playbooks/setup-ssl.yml
 ```
 
 ---

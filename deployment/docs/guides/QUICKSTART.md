@@ -30,7 +30,6 @@ cd deployment
 
 # This creates your config files from templates:
 #   all.yml.example       → all.yml (your config)
-#   production.yml.example → production.yml (your environment)
 #   vault.yml.example     → vault.yml (your secrets)
 ```
 
@@ -65,7 +64,7 @@ echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
 # Edit your secrets file (created by local-dev-setup.sh)
-nano group_vars/production/vault.yml
+nano group_vars/vault.yml
 ```
 
 **Add this:**
@@ -74,14 +73,14 @@ nano group_vars/production/vault.yml
 vault_git_repo: "https://github.com/YOUR_USERNAME/your_app.git"
 vault_aws_region: "us-east-2"
 vault_s3_bucket_name: "yourname-yourapp-2026"
-vault_s3_folder: "production"
+vault_s3_folder: "data"
 vault_app_username: "admin"
 vault_app_password: "strong-password-here"
 ```
 
 **(Optional) Encrypt it:**
 ```bash
-ansible-vault encrypt group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
 ```
 
 ---
@@ -109,11 +108,11 @@ aws s3 mb s3://yourname-yourapp-2026 --region us-east-2
 ansible-playbook playbooks/provision-infrastructure.yml
 
 # 3. Update inventory with IP from output
-nano inventories/production/hosts.yml
+nano inventories/hosts.yml
 # Set: ansible_host: YOUR_INSTANCE_IP
 
 # 4. Deploy application
-ansible-playbook -i inventories/production playbooks/setup.yml
+ansible-playbook -i inventories playbooks/setup.yml
 ```
 
 **Done!** Application running at `http://YOUR_INSTANCE_IP`
@@ -136,7 +135,7 @@ nano deployment/group_vars/all.yml
 # Set: server_name: "your-domain.com"
 
 # 4. Setup SSL
-ansible-playbook -i inventories/production playbooks/setup-ssl.yml
+ansible-playbook -i inventories playbooks/setup-ssl.yml
 ```
 
 **Done!** Application at `https://your-domain.com`
@@ -174,7 +173,7 @@ sudo journalctl -u myapp -n 50
 
 ## Next Steps
 
-- **Update app:** `ansible-playbook -i inventories/production playbooks/update.yml`
+- **Update app:** `ansible-playbook -i inventories playbooks/update.yml`
 - **View logs:** `ssh ubuntu@IP` then `sudo journalctl -u myapp`
 - **Add users:** See [MULTI_USER.md](MULTI_USER.md)
 - **Operations:** See [OPERATIONS.md](OPERATIONS.md)
@@ -209,5 +208,5 @@ sudo journalctl -u myapp -n 100
 ✅ **Secure configuration**  
 ✅ **SSL-ready (if domain provided)**  
 
-**Welcome to production!** 🎉
+**Your application is running!** 🎉
 

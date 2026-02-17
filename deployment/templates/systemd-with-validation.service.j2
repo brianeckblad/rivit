@@ -11,7 +11,7 @@ WorkingDirectory={{ app_dir }}
 # Environment
 Environment="PATH={{ venv_dir }}/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="PYTHONUNBUFFERED=1"
-Environment="SECRET_NAME={{ secret_name | default(app_name ~ '/production') }}"
+Environment="SECRET_NAME={{ secret_name | default(app_name ~ '/secrets') }}"
 Environment="AWS_REGION={{ aws_region | default('us-east-1') }}"
 # Optional: Load additional variables from .env file if it exists
 # The '-' prefix makes this optional (won't fail if file doesn't exist)

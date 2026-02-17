@@ -55,7 +55,7 @@
 
         - name: Check S3 bucket is configured
           fail:
-            msg: "s3_bucket_name must be set in group_vars/production/vault.yml"
+            msg: "s3_bucket_name must be set in group_vars/vault.yml"
           when: s3_bucket_name is not defined or s3_bucket_name == ""
 
 # ========================================

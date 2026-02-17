@@ -344,7 +344,7 @@ Home=NONE              # No home directory
 No action needed! The secure user is created automatically during setup:
 
 ```bash
-ansible-playbook -i inventories/production playbooks/setup.yml
+ansible-playbook -i inventories playbooks/setup.yml
 ```
 
 ### For Existing Deployments
@@ -360,7 +360,7 @@ If you're already running with `app_user: ubuntu`, you can migrate:
 **Option 2: Keep Existing (Less Secure)**
 Keep using `ubuntu` user by not changing the config:
 ```yaml
-# deployment/group_vars/production/vars.yml
+# deployment/group_vars/all.yml
 app_user: ubuntu
 admin_user: ubuntu
 ```
@@ -397,7 +397,7 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
    ```bash
    # On your local machine
    cd deployment
-   ansible-playbook -i inventories/production playbooks/setup.yml
+   ansible-playbook -i inventories playbooks/setup.yml
    ```
 
 4. **Fix permissions**
@@ -440,7 +440,7 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
 
 To continue using ubuntu user:
 ```yaml
-# deployment/group_vars/production/vars.yml
+# deployment/group_vars/all.yml
 app_user: ubuntu
 admin_user: ubuntu
 ```
@@ -549,5 +549,5 @@ ProtectSystem=strict with ReadWritePaths
 - Cannot escalate privileges or access system
 - Limited blast radius
 
-**This is production-grade security following industry best practices.**
+**This is enterprise-grade security following industry best practices.**
 

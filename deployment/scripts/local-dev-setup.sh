@@ -7,7 +7,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"
 GROUP_VARS_DIR="$DEPLOYMENT_DIR/group_vars"
-PRODUCTION_DIR="$GROUP_VARS_DIR/production"
 
 echo "=================================================="
 echo "Configuration Setup (.example pattern)"
@@ -63,22 +62,13 @@ create_from_example \
     "$GROUP_VARS_DIR/all.yml" \
     "main configuration"
 
-# Create production.yml from production.yml.example
-echo ""
-echo "Step 2: Create production.yml (environment config)"
-echo "-----------------------------------------------------"
-create_from_example \
-    "$GROUP_VARS_DIR/production.yml.example" \
-    "$GROUP_VARS_DIR/production.yml" \
-    "production environment configuration"
-
 # Create vault.yml from vault.yml.example
 echo ""
-echo "Step 3: Create vault.yml (secrets file)"
+echo "Step 2: Create vault.yml (secrets file)"
 echo "-----------------------------------------------------"
 create_from_example \
-    "$PRODUCTION_DIR/vault.yml.example" \
-    "$PRODUCTION_DIR/vault.yml" \
+    "$GROUP_VARS_DIR/vault.yml.example" \
+    "$GROUP_VARS_DIR/vault.yml" \
     "secrets vault file"
 
 # Summary
@@ -95,13 +85,8 @@ if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
     echo "     → Edit this for your app name, domain, etc."
 fi
 
-if [ -f "$GROUP_VARS_DIR/production.yml" ]; then
-    echo "  📄 group_vars/production.yml"
-    echo "     → Edit this for production-specific settings"
-fi
-
-if [ -f "$PRODUCTION_DIR/vault.yml" ]; then
-    echo "  📄 group_vars/production/vault.yml"
+if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+    echo "  📄 group_vars/vault.yml"
     echo "     → Edit this for your secrets (Git repo, S3, passwords)"
 fi
 
@@ -109,8 +94,7 @@ echo ""
 echo "Template files (tracked in Git, receive updates):"
 echo ""
 echo "  📄 group_vars/all.yml.example"
-echo "  📄 group_vars/production.yml.example"
-echo "  📄 group_vars/production/vault.yml.example"
+echo "  📄 group_vars/vault.yml.example"
 echo ""
 echo "Next Steps:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -118,7 +102,7 @@ echo ""
 echo "1. Edit your configuration files:"
 echo "   cd $DEPLOYMENT_DIR"
 echo "   nano group_vars/all.yml"
-echo "   nano group_vars/production/vault.yml"
+echo "   nano group_vars/vault.yml"
 echo ""
 echo "2. Create vault password file:"
 echo "   echo 'your-secure-password' > ~/.vault_pass"
@@ -126,7 +110,7 @@ echo "   chmod 600 ~/.vault_pass"
 echo ""
 echo "3. (Optional) Encrypt your vault:"
 echo "   cd $DEPLOYMENT_DIR"
-echo "   ansible-vault encrypt group_vars/production/vault.yml \\"
+echo "   ansible-vault encrypt group_vars/vault.yml \\"
 echo "     --vault-password-file ~/.vault_pass"
 echo ""
 echo "4. Verify Git ignores your configs:"

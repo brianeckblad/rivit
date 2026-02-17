@@ -22,7 +22,7 @@ This document describes the complete secret management workflow using:
 └─────────────────────────────────────────────────────────────┘
 
 Developer's Machine:
-  ├── group_vars/production/vault.yml (Ansible Vault encrypted)
+  ├── group_vars/vault.yml (Ansible Vault encrypted)
   ├── .vault_pass (never commit!)
   └── git commit (encrypted vault is safe)
        ↓
@@ -46,7 +46,7 @@ Production:
 
 ### 1. Ansible Vault (Source of Truth)
 
-**File:** `deployment/group_vars/production/vault.yml`
+**File:** `deployment/group_vars/vault.yml`
 
 **Contains:**
 - All production secrets
@@ -88,13 +88,13 @@ echo "your-secure-vault-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
 # 2. Create encrypted vault file
-ansible-vault create deployment/group_vars/production/vault.yml \
+ansible-vault create deployment/group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 
 # 3. Add secrets (see template below)
 
 # 4. Commit to git (encrypted)
-git add deployment/group_vars/production/vault.yml
+git add deployment/group_vars/vault.yml
 git commit -m "Add encrypted secrets"
 git push
 ```
@@ -103,11 +103,11 @@ git push
 
 ```bash
 # Edit encrypted vault
-ansible-vault edit deployment/group_vars/production/vault.yml \
+ansible-vault edit deployment/group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 
 # After saving, commit changes
-git add deployment/group_vars/production/vault.yml
+git add deployment/group_vars/vault.yml
 git commit -m "Update secrets"
 git push
 ```
@@ -196,7 +196,7 @@ SECRET_KEY="$1"
 SECRET_NAME="app-item-listing-tool/production"
 
 # 1. Get new value from vault
-NEW_VALUE=$(ansible-vault view group_vars/production/vault.yml \
+NEW_VALUE=$(ansible-vault view group_vars/vault.yml \
   --vault-password-file ~/.vault_pass | \
   grep "vault_${SECRET_KEY}_new:" | \
   cut -d: -f2- | tr -d ' ')
@@ -226,12 +226,12 @@ echo "  ansible-playbook playbooks/secret-promote.yml -e secret_key=YOUR_KEY"
 
 ## Vault File Template
 
-**File:** `deployment/group_vars/production/vault.yml`
+**File:** `deployment/group_vars/vault.yml`
 
 ```yaml
 ---
 # Production Secrets (Ansible Vault Encrypted)
-# Edit with: ansible-vault edit group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+# Edit with: ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 
 # Application Secrets
 vault_secret_key: "64-char-hex-string-here"
@@ -293,7 +293,7 @@ The deployment script now:
   hosts: production
   become: yes
   vars_files:
-    - ../group_vars/production/vault.yml
+    - ../group_vars/vault.yml
   
   tasks:
     - name: Upload secrets to AWS Secrets Manager
@@ -369,7 +369,7 @@ aws logs filter-log-events \
 
 ```bash
 # 1. Vault file is in git (encrypted)
-git log deployment/group_vars/production/vault.yml
+git log deployment/group_vars/vault.yml
 
 # 2. Export from Secrets Manager
 aws secretsmanager get-secret-value \
@@ -385,7 +385,7 @@ gpg --encrypt --recipient your@email.com secrets-backup-*.json
 
 ```bash
 # 1. From git (if vault file lost)
-git checkout deployment/group_vars/production/vault.yml
+git checkout deployment/group_vars/vault.yml
 
 # 2. From backup
 aws secretsmanager put-secret-value \
@@ -401,14 +401,14 @@ aws secretsmanager put-secret-value \
 
 ```bash
 # 1. Edit vault
-ansible-vault edit deployment/group_vars/production/vault.yml \
+ansible-vault edit deployment/group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 
 # Add new secret:
 # vault_new_api_key: "your-new-api-key"
 
 # 2. Commit
-git add deployment/group_vars/production/vault.yml
+git add deployment/group_vars/vault.yml
 git commit -m "Add new API key"
 git push
 
@@ -424,7 +424,7 @@ cd deployment
 NEW_TOKEN="v^1.1#i^1#...new-token..."
 
 # 2. Add to vault as _new
-ansible-vault edit deployment/group_vars/production/vault.yml \
+ansible-vault edit deployment/group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 # Add: vault_ebay_production_token_new: "..."
 
@@ -438,11 +438,11 @@ curl https://yourdomain.com/api/ebay/test
 ansible-playbook playbooks/secret-promote.yml -e secret_key=ebay_production_token
 
 # 6. Clean up vault
-ansible-vault edit deployment/group_vars/production/vault.yml
+ansible-vault edit deployment/group_vars/vault.yml
 # Move _new to main, remove _new suffix
 
 # 7. Commit
-git add deployment/group_vars/production/vault.yml
+git add deployment/group_vars/vault.yml
 git commit -m "Rotate eBay production token"
 git push
 ```
@@ -459,7 +459,7 @@ echo "received-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
 # 3. Test access
-ansible-vault view deployment/group_vars/production/vault.yml \
+ansible-vault view deployment/group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 ```
 
@@ -477,7 +477,7 @@ ansible-vault view deployment/group_vars/production/vault.yml \
 cat ~/.vault_pass
 
 # Try with prompt
-ansible-vault view deployment/group_vars/production/vault.yml
+ansible-vault view deployment/group_vars/vault.yml
 ```
 
 ### "Secret not found in Secrets Manager"
@@ -487,7 +487,7 @@ ansible-vault view deployment/group_vars/production/vault.yml
 **Fix:**
 ```bash
 # Manually upload
-./scripts/secrets-manager-setup.sh deployment/group_vars/production/vault.yml
+./scripts/secrets-manager-setup.sh deployment/group_vars/vault.yml
 ```
 
 ### "Application can't fetch secrets"
@@ -514,7 +514,7 @@ If you currently use `secrets.env`:
 ./scripts/migrate-to-vault.sh secrets.env
 
 # 2. Verify vault contents
-ansible-vault view deployment/group_vars/production/vault.yml \
+ansible-vault view deployment/group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 
 # 3. Deploy with vault

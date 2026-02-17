@@ -122,13 +122,13 @@ Each user has their own eBay developer account:
 
 ```
 AWS Secrets Manager:
-  brian/production
+  brian/secrets
     ├── EBAY_PRODUCTION_APP_ID
     ├── EBAY_PRODUCTION_CERT_ID
     ├── EBAY_PRODUCTION_DEV_ID
     └── EBAY_PRODUCTION_TOKEN
 
-  sarah/production
+  sarah/secrets
     ├── EBAY_PRODUCTION_APP_ID
     ├── EBAY_PRODUCTION_CERT_ID
     ├── EBAY_PRODUCTION_DEV_ID
@@ -141,7 +141,7 @@ All users share one eBay developer account. Items are tracked by username in CSV
 
 ```
 AWS Secrets Manager:
-  app-item-listing-tool/production
+  app-item-listing-tool/secrets
     ├── EBAY_PRODUCTION_APP_ID    # Shared by all users
     ├── EBAY_PRODUCTION_CERT_ID
     ├── EBAY_PRODUCTION_DEV_ID
@@ -334,7 +334,7 @@ When admin creates user "sarah":
 3. User updates their password
 4. User goes to `/account` → eBay Settings (optional)
 5. User enters their eBay API credentials
-6. System stores credentials in AWS Secrets Manager: `sarah/production`
+6. System stores credentials in AWS Secrets Manager: `sarah/secrets`
 
 **Option C: Direct Edit (Advanced)**
 ```bash
@@ -503,7 +503,7 @@ Each user can configure their own credentials:
 ```bash
 # Create secret for brian
 aws secretsmanager create-secret \
-  --name brian/production \
+  --name brian/secrets \
   --secret-string '{
     "EBAY_PRODUCTION_APP_ID": "brian-app-id",
     "EBAY_PRODUCTION_CERT_ID": "brian-cert-id",
@@ -513,7 +513,7 @@ aws secretsmanager create-secret \
 
 # Create secret for sarah
 aws secretsmanager create-secret \
-  --name sarah/production \
+  --name sarah/secrets \
   --secret-string '{
     "EBAY_PRODUCTION_APP_ID": "sarah-app-id",
     "EBAY_PRODUCTION_CERT_ID": "sarah-cert-id",
@@ -524,7 +524,7 @@ aws secretsmanager create-secret \
 
 **For Shared Credentials:**
 
-Keep the existing `app-item-listing-tool/production` secret. All users will use it automatically if their user-specific secret doesn't exist.
+Keep the existing `app-item-listing-tool/secrets` secret. All users will use it automatically if their user-specific secret doesn't exist.
 
 ### 3. Grant IAM Permissions
 
@@ -540,7 +540,7 @@ Update the EC2 IAM role to allow access to user secrets:
         "secretsmanager:GetSecretValue"
       ],
       "Resource": [
-        "arn:aws:secretsmanager:us-east-2:*:secret:app-item-listing-tool/production-*",
+        "arn:aws:secretsmanager:us-east-2:*:secret:app-item-listing-tool/secrets-*",
         "arn:aws:secretsmanager:us-east-2:*:secret:*/production-*"
       ]
     }
@@ -973,13 +973,13 @@ chmod 644 instance/data/brian-items.csv
 
 **Check:**
 1. User has credentials in Secrets Manager: `{username}/production`
-2. Or app-level credentials exist: `app-item-listing-tool/production`
+2. Or app-level credentials exist: `app-item-listing-tool/secrets`
 3. IAM role has permissions
 
 **Fix:**
 ```bash
 # Check if user secret exists
-aws secretsmanager describe-secret --secret-id brian/production
+aws secretsmanager describe-secret --secret-id brian/secrets
 
 # If not, create it or use shared credentials
 ```

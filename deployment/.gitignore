@@ -23,8 +23,7 @@ ansible_facts/
 
 # User's actual configuration files
 group_vars/all.yml
-group_vars/production.yml
-group_vars/**/vault.yml
+group_vars/vault.yml
 
 # Keep .example template files in Git
 !group_vars/**/*.example

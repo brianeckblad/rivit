@@ -1,14 +1,13 @@
 ---
 # Initial server setup and application deployment
-# Usage: ansible-playbook -i inventories/production playbooks/setup.yml
+# Usage: ansible-playbook -i inventories playbooks/setup.yml
 
 - name: Configure Listing App Server
   hosts: all
   become: yes
   vars_files:
     - ../group_vars/all.yml
-    - ../group_vars/production.yml
-    - ../group_vars/production/vault.yml
+    - ../group_vars/vault.yml
 
   tasks:
 

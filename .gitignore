@@ -78,8 +78,7 @@ Thumbs.db
 
 # User's actual configuration files (copied from .example files)
 deployment/group_vars/all.yml
-deployment/group_vars/production.yml
-deployment/group_vars/**/vault.yml
+deployment/group_vars/vault.yml
 
 # Keep .example template files (these ARE tracked in Git)
 !deployment/group_vars/**/*.example

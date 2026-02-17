@@ -625,7 +625,7 @@ sudo reboot
 ```bash
 # Edit encrypted vault
 cd deployment
-ansible-vault edit group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 ```
 
 Add new secret with `_new` suffix:
@@ -637,7 +637,7 @@ vault_ebay_production_token_new: "v^1.1#i^1#...NEW-TOKEN-HERE..."  # Add this
 
 Save and commit (encrypted vault is safe):
 ```bash
-git add group_vars/production/vault.yml
+git add group_vars/vault.yml
 git commit -m "Prepare eBay token rotation"
 git push
 ```
@@ -682,7 +682,7 @@ ansible-playbook playbooks/secret-promote.yml -e secret_key=ebay_production_toke
 #### Step 5: Clean Up Vault
 
 ```bash
-ansible-vault edit group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 ```
 
 Update vault:
@@ -694,7 +694,7 @@ vault_ebay_production_token: "v^1.1#i^1#...NEW-TOKEN-HERE..."  # Updated
 
 Commit:
 ```bash
-git add group_vars/production/vault.yml
+git add group_vars/vault.yml
 git commit -m "Complete eBay token rotation"
 git push
 ```

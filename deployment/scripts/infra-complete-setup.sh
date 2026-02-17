@@ -50,7 +50,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "Next steps:"
 echo "  1. Check instance-info.txt for server details"
-echo "  2. Update inventories/production/hosts.yml with IP"
-echo "  3. Run: ansible-playbook -i inventories/production playbooks/setup.yml"
+echo "  2. Update inventories/hosts.yml with IP"
+echo "  3. Run: ansible-playbook -i inventories playbooks/setup.yml"
 echo ""
 

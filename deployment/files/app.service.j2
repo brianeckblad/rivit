@@ -9,7 +9,6 @@ Group={{ app_user }}
 WorkingDirectory={{ app_dir }}
 Environment="PATH={{ venv_dir }}/bin"
 Environment="FLASK_APP=app"
-Environment="FLASK_ENV=production"
 Environment="APP_SERVICE_NAME={{ service_name }}"
 
 # Load environment variables from .env file
@@ -24,7 +23,7 @@ ExecStart={{ venv_dir }}/bin/gunicorn \
     --access-logfile {{ log_dir }}/access.log \
     --error-logfile {{ log_dir }}/error.log \
     --log-level warning \
-    "app:create_app('production')"
+    "app:create_app()"
 
 # Restart policy
 Restart=always

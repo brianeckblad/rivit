@@ -5,7 +5,7 @@
 # It performs a minimal update: pull code, update deps, restart services
 #
 # Usage from local machine:
-#   ansible-playbook -i deployment/inventories/production/hosts.yml \
+#   ansible-playbook -i deployment/inventories/hosts.yml \
 #     deployment/playbooks/remote-update.yml --ask-vault-pass
 #
 # What it does:
@@ -20,8 +20,7 @@
   become: yes
   vars_files:
     - ../group_vars/all.yml
-    - ../group_vars/production.yml
-    - ../group_vars/production/vault.yml
+    - ../group_vars/vault.yml
 
   tasks:
 

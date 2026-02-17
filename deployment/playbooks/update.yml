@@ -1,14 +1,13 @@
 ---
 # Update deployed application
-# Usage: ansible-playbook -i inventories/production playbooks/update.yml
+# Usage: ansible-playbook -i inventories playbooks/update.yml
 
 - name: Update Listing App
   hosts: all
   become: yes
   vars_files:
     - ../group_vars/all.yml
-    - ../group_vars/production.yml
-    - ../group_vars/production/vault.yml
+    - ../group_vars/vault.yml
 
   tasks:
 

@@ -179,7 +179,7 @@ Scripts can detect `AWS_PROFILE` environment variable automatically:
 
 ```bash
 # Production deployment
-AWS_PROFILE=myapp-production ansible-playbook -i inventories/production playbooks/setup.yml
+AWS_PROFILE=myapp-production ansible-playbook -i inventories playbooks/setup.yml
 
 # Staging deployment
 AWS_PROFILE=myapp-staging ansible-playbook -i inventories/staging playbooks/setup.yml
@@ -187,7 +187,7 @@ AWS_PROFILE=myapp-staging ansible-playbook -i inventories/staging playbooks/setu
 
 ### Option 3: Hardcode in Inventory (Advanced)
 
-**File:** `deployment/inventories/production/hosts`
+**File:** `deployment/inventories/hosts`
 ```ini
 [production]
 your-server-ip ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/prod-key.pem

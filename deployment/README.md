@@ -40,7 +40,7 @@ cd deployment
 
 ## What This Does
 
-**Creates a production-ready deployment:**
+**Creates a complete deployment:**
 
 - ✅ AWS EC2 instance (Ubuntu 22.04)
 - ✅ Application with Gunicorn + Nginx
@@ -93,8 +93,7 @@ cd deployment
 
 This creates:
 - `group_vars/all.yml` - Your personal settings (from all.yml.example)
-- `group_vars/production.yml` - Your environment config (from production.yml.example)  
-- `group_vars/production/vault.yml` - Your secrets (from vault.yml.example)
+- `group_vars/vault.yml` - Your secrets (from vault.yml.example)
 
 **How it works:**
 - `.example` files = Templates (tracked in Git, receive updates)
@@ -130,8 +129,8 @@ echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
 # Create secrets file from template
-cp group_vars/production/vault.yml.example group_vars/production/vault.yml
-nano group_vars/production/vault.yml
+cp group_vars/vault.yml.example group_vars/vault.yml
+nano group_vars/vault.yml
 ```
 
 **Add your secrets:**
@@ -140,7 +139,7 @@ nano group_vars/production/vault.yml
 vault_git_repo: "https://github.com/YOUR_USERNAME/your_app.git"
 vault_aws_region: "us-east-2"
 vault_s3_bucket_name: "yourname-yourapp-2026"
-vault_s3_folder: "production"
+vault_s3_folder: "data"
 vault_app_username: "admin"
 vault_app_password: "strong-password-here"
 ```
@@ -193,13 +192,13 @@ ansible-playbook playbooks/create-ssh-key.yml
 ansible-playbook playbooks/launch-ec2-instance.yml
 
 # 2. Deploy application
-ansible-playbook -i inventories/production playbooks/setup.yml
+ansible-playbook -i inventories playbooks/setup.yml
 
 # 3. Add SSL (optional)
-ansible-playbook -i inventories/production playbooks/setup-ssl.yml
+ansible-playbook -i inventories playbooks/setup-ssl.yml
 
 # 4. Add monitoring (optional)
-ansible-playbook -i inventories/production playbooks/setup-monitoring.yml
+ansible-playbook -i inventories playbooks/setup-monitoring.yml
 
 # 5. Add CloudFront CDN (optional)
 ansible-playbook playbooks/setup-cloudfront.yml
@@ -243,7 +242,7 @@ cd deployment
 
 ```bash
 cd deployment
-ansible-playbook -i inventories/production playbooks/update.yml
+ansible-playbook -i inventories playbooks/update.yml
 ```
 → [docs/guides/OPERATIONS.md#updates](docs/guides/OPERATIONS.md#updates)
 
@@ -251,7 +250,7 @@ ansible-playbook -i inventories/production playbooks/update.yml
 
 ```bash
 cd deployment
-ansible-playbook -i inventories/production playbooks/setup-ssl.yml
+ansible-playbook -i inventories playbooks/setup-ssl.yml
 ```
 → [docs/guides/MANUAL_DEPLOYMENT.md#step-3-configure-ssl-optional](docs/guides/MANUAL_DEPLOYMENT.md#step-3-configure-ssl-optional)
 
@@ -296,10 +295,10 @@ sudo journalctl -u myapp -n 50
 | Task | Command |
 |------|---------|
 | **Deploy** | `./scripts/infra-complete-setup.sh` |
-| **Update** | `ansible-playbook -i inventories/production playbooks/update.yml` |
+| **Update** | `ansible-playbook -i inventories playbooks/update.yml` |
 | **Logs** | `ssh ubuntu@IP` → `sudo journalctl -u myapp` |
 | **Restart** | `ssh ubuntu@IP` → `sudo systemctl restart myapp` |
-| **SSL** | `ansible-playbook -i inventories/production playbooks/setup-ssl.yml` |
+| **SSL** | `ansible-playbook -i inventories playbooks/setup-ssl.yml` |
 | **Status** | `./scripts/app-deploy.sh status` |
 
 ---
@@ -312,5 +311,5 @@ sudo journalctl -u myapp -n 50
 2. **Detailed:** → [docs/guides/MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) (1-2 hours)
 3. **Help:** → [docs/guides/OPERATIONS.md](docs/guides/OPERATIONS.md)
 
-**Welcome to production!** 🎉
+**Your application is deployed!** 🎉
 

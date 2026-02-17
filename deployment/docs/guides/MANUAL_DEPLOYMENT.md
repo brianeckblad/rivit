@@ -56,7 +56,7 @@ git config --global user.email "your.email@example.com"
 
 ### Configuration Ready
 - `deployment/group_vars/all.yml` - Set `app_name` and `app_display_name`
-- `deployment/group_vars/production/vault.yml` - Create encrypted secrets vault
+- `deployment/group_vars/vault.yml` - Create encrypted secrets vault
 - `~/.vault_pass` - Vault password file
 
 **Setup configuration:**
@@ -74,7 +74,7 @@ echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
 # 3. Create encrypted vault
-ansible-vault create group_vars/production/vault.yml --vault-password-file ~/.vault_pass
+ansible-vault create group_vars/vault.yml --vault-password-file ~/.vault_pass
 # Add your secrets (git repo, S3 bucket, app password, etc.)
 ```
 
@@ -211,7 +211,7 @@ echo "Instance IP: $INSTANCE_IP"
 echo "SSH: ssh -i ~/.ssh/{app_name}-key.pem ubuntu@$INSTANCE_IP"
 
 # 9. Update inventory file
-# Edit deployment/inventories/production/hosts.yml
+# Edit deployment/inventories/hosts.yml
 # Set: ansible_host: $INSTANCE_IP
 ```
 
@@ -222,7 +222,7 @@ echo "SSH: ssh -i ~/.ssh/{app_name}-key.pem ubuntu@$INSTANCE_IP"
 
 **Duration:** 5-10 minutes (manual steps)
 
-**Next:** Update `deployment/inventories/production/hosts.yml` with instance IP
+**Next:** Update `deployment/inventories/hosts.yml` with instance IP
 
 [Back to top](#table-of-contents)
 
@@ -240,11 +240,11 @@ echo "SSH: ssh -i ~/.ssh/{app_name}-key.pem ubuntu@$INSTANCE_IP"
 cd deployment
 
 # Update inventory with server IP (if not done)
-nano inventories/production/hosts.yml
+nano inventories/hosts.yml
 # Set: ansible_host: YOUR_SERVER_IP
 
 # Deploy application
-ansible-playbook -i inventories/production playbooks/setup.yml
+ansible-playbook -i inventories playbooks/setup.yml
 ```
 
 **What it does:**
@@ -394,7 +394,7 @@ nano group_vars/all.yml
 # Set: server_name: "your-domain.com"
 
 # 2. Run SSL playbook
-ansible-playbook -i inventories/production playbooks/setup-ssl.yml
+ansible-playbook -i inventories playbooks/setup-ssl.yml
 ```
 
 **What it does:**
@@ -472,7 +472,7 @@ curl https://your-domain.com
 cd deployment
 
 # Run monitoring playbook
-ansible-playbook -i inventories/production playbooks/setup-monitoring.yml
+ansible-playbook -i inventories playbooks/setup-monitoring.yml
 ```
 
 **What it does:**

@@ -5,7 +5,7 @@
 # It keeps ONLY the application code and instance data
 #
 # Usage from local machine:
-#   ansible-playbook -i deployment/inventories/production/hosts.yml \
+#   ansible-playbook -i deployment/inventories/hosts.yml \
 #     deployment/playbooks/cleanup-server.yml --ask-vault-pass
 
 - name: Clean up server for security
@@ -13,8 +13,7 @@
   become: yes
   vars_files:
     - ../group_vars/all.yml
-    - ../group_vars/production.yml
-    - ../group_vars/production/vault.yml
+    - ../group_vars/vault.yml
 
   tasks:
 

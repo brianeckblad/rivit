@@ -100,5 +100,5 @@
           - "Instance info saved to: deployment/instance-info.txt"
           - ""
           - "Next: Deploy application"
-          - "ansible-playbook -i inventories/production playbooks/setup.yml"
+          - "ansible-playbook -i inventories playbooks/setup.yml"
 

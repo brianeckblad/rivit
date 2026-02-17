@@ -37,8 +37,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEPLOYMENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INVENTORY="${DEPLOYMENT_DIR}/inventories/production/hosts.yml"
-VAULT_FILE="${DEPLOYMENT_DIR}/group_vars/production/vault.yml"
+INVENTORY="${DEPLOYMENT_DIR}/inventories/hosts.yml"
+VAULT_FILE="${DEPLOYMENT_DIR}/group_vars/vault.yml"
 
 # Functions
 usage() {
@@ -68,7 +68,7 @@ For more info, see: deployment/docs/guides/MANUAL_DEPLOYMENT.md
 
 ${YELLOW}WARNING:${NC} Make sure you have:
   1. Vault password set up: echo 'password' > ~/.vault_pass && chmod 600 ~/.vault_pass
-  2. Hosts configured: deployment/inventories/production/hosts.yml
+  2. Hosts configured: deployment/inventories/hosts.yml
   3. Code pushed to GitHub: git push origin main
 
 EOF
@@ -110,7 +110,7 @@ check_prerequisites() {
 
     if [[ ! -f "$VAULT_FILE" ]]; then
         warning "Vault file not found. Create it with:"
-        warning "  ansible-vault create deployment/group_vars/production/vault.yml"
+        warning "  ansible-vault create deployment/group_vars/vault.yml"
     else
         success "Vault file found"
     fi

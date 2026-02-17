@@ -105,8 +105,8 @@ git_repo: "{{ vault_git_repo }}"
 # AWS Configuration from vault
 aws_region: "{{ vault_aws_region | default('us-east-2') }}"
 s3_bucket_name: "{{ vault_s3_bucket_name }}"
-s3_folder: "{{ vault_s3_folder | default('production') }}"
-secret_name: "{{ app_name }}/production"
+s3_folder: "{{ vault_s3_folder | default('data') }}"
+secret_name: "{{ app_name }}/secrets"
 sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
 
 # Application credentials from vault

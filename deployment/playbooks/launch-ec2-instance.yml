@@ -71,7 +71,7 @@
           - "Instance Type: {{ instance_type }}"
           - "SSH: ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}"
           - ""
-          - "Next: Update deployment/inventories/production/hosts.yml with IP"
+          - "Next: Update deployment/inventories/hosts.yml with IP"
 
     - name: Save instance information to file
       copy:
@@ -91,14 +91,14 @@
           ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}
           
           Next Steps:
-          1. Update deployment/inventories/production/hosts.yml
+          1. Update deployment/inventories/hosts.yml
           2. Set: ansible_host: {{ instance_ip }}
-          3. Run: ansible-playbook -i inventories/production playbooks/setup.yml
+          3. Run: ansible-playbook -i inventories playbooks/setup.yml
         dest: "{{ playbook_dir }}/../instance-info.txt"
 
     - name: Update inventory file automatically
       lineinfile:
-        path: "{{ playbook_dir }}/../inventories/production/hosts.yml"
+        path: "{{ playbook_dir }}/../inventories/hosts.yml"
         regexp: '^\s*ansible_host:'
         line: "          ansible_host: {{ instance_ip }}"
         state: present
