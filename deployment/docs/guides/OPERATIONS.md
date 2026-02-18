@@ -11,12 +11,24 @@
 1. [Daily Operations](#daily-operations)
 2. [Weekly Maintenance](#weekly-maintenance)
 3. [Monthly Tasks](#monthly-tasks)
-4. [Secret Rotation](#secret-rotation)
-5. [Deployment Procedures](#deployment-procedures)
-6. [Monitoring](#monitoring)
-7. [Backup & Recovery](#backup--recovery)
-8. [Incident Response](#incident-response)
-9. [Cost Management](#cost-management)
+4. [Updating Application](#updating-application)
+5. [Secret Rotation](#secret-rotation)
+6. [Deployment Procedures](#deployment-procedures)
+7. [Monitoring](#monitoring)
+8. [Backup & Recovery](#backup--recovery)
+9. [SSL Certificate Renewal](#ssl-certificate-renewal)
+10. [Server Decommissioning](#server-decommissioning)
+11. [Incident Response](#incident-response)
+12. [Cost Management](#cost-management)
+
+---
+
+## Quick Links to Detailed Guides
+
+- **Application Updates** → [UPDATING_APPLICATION.md](UPDATING_APPLICATION.md)
+- **Security Hardening** → [SECURITY_HARDENING.md](SECURITY_HARDENING.md)
+- **WAF Configuration** → [WAF_CONFIGURATION.md](WAF_CONFIGURATION.md)
+- **CloudFront CDN** → [CLOUDFRONT_CDN.md](CLOUDFRONT_CDN.md)
 
 ---
 
@@ -1709,6 +1721,163 @@ aws ec2 start-instances --instance-ids i-xxxxxxxxxxxxx
 - **On-Call Engineer:** [Phone/Email]
 - **AWS Support:** [Support Plan Details]
 - **Escalation Path:** [Management Contact]
+
+---
+
+## Updating Application
+
+**For deploying code changes, see:** → [UPDATING_APPLICATION.md](UPDATING_APPLICATION.md)
+
+Quick reference:
+
+```bash
+cd deployment
+
+# Deploy latest code from Git
+ansible-playbook -i inventories playbooks/update.yml
+```
+
+---
+
+## SSL Certificate Renewal
+
+**Let's Encrypt certificates expire after 90 days**
+
+### Check Certificate Expiry
+
+```bash
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+
+# Check when certificate expires
+sudo certbot certificates
+
+# Expected output shows expiration date
+
+# If less than 30 days away, renew
+exit
+```
+
+### Automatic Renewal (Recommended)
+
+Deployed by default, runs automatically:
+
+```bash
+# Verify it's configured
+sudo systemctl list-timers | grep certbot
+
+# Should show certbot-renew timer (runs daily)
+
+# Manual test (don't use on production frequently)
+sudo certbot renew --dry-run
+```
+
+### Manual Renewal
+
+```bash
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+
+# Renew certificate
+sudo certbot renew
+
+# If that fails
+sudo certbot renew --force-renewal
+
+# Restart Nginx to load new cert
+sudo systemctl restart nginx
+
+# Verify
+curl https://your-domain.com
+# Should show no certificate warnings
+
+exit
+```
+
+---
+
+## Server Decommissioning
+
+**Safely remove server and clean up resources**
+
+### Before Decommissioning
+
+```
+Checklist:
+  [ ] Backup all data
+  [ ] Export database
+  [ ] Save logs (archive old logs)
+  [ ] Document configuration
+  [ ] Notify users
+  [ ] Plan maintenance window
+  [ ] Test recovery on new server
+```
+
+### Backup Everything
+
+```bash
+# Download application files
+scp -r -i ~/.ssh/{app_name}-key.pem \
+  ubuntu@YOUR_SERVER_IP:/home/ubuntu/{app_name} \
+  ./backup-{app_name}-$(date +%Y%m%d)/
+
+# Backup logs
+scp -r -i ~/.ssh/{app_name}-key.pem \
+  ubuntu@YOUR_SERVER_IP:/var/log/{app_name} \
+  ./backup-logs-$(date +%Y%m%d)/
+
+# Backup configuration
+scp -i ~/.ssh/{app_name}-key.pem \
+  ubuntu@YOUR_SERVER_IP:/home/ubuntu/.env \
+  ./backup-config-$(date +%Y%m%d)/.env
+```
+
+### Stop Services
+
+```bash
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+
+# Stop application
+sudo systemctl stop {app_name}
+sudo systemctl disable {app_name}
+
+# Stop Nginx
+sudo systemctl stop nginx
+sudo systemctl disable nginx
+
+# Verify all stopped
+sudo systemctl status {app_name}
+sudo systemctl status nginx
+
+exit
+```
+
+### Delete AWS Resources
+
+```bash
+# CAUTION: This deletes everything!
+
+# Delete EC2 instance
+aws ec2 terminate-instances --instance-ids i-xxxxxxxxxxxxx
+
+# Delete elastic IP (if used)
+aws ec2 release-address --allocation-id eipalloc-xxxxx
+
+# Delete security group (wait 5 minutes after instance deletion)
+aws ec2 delete-security-group --group-id sg-xxxxx
+
+# Delete SSH key pair
+aws ec2 delete-key-pair --key-name {app_name}-key
+
+# Delete S3 bucket (if empty)
+aws s3 rb s3://your-bucket-name
+
+# Delete IAM role
+aws iam remove-role-from-instance-profile \
+  --instance-profile-name {app_name}-ec2-role \
+  --role-name {app_name}-ec2-role
+
+aws iam delete-instance-profile --instance-profile-name {app_name}-ec2-role
+aws iam delete-role --role-name {app_name}-ec2-role
+```
 
 ---
 

@@ -36,6 +36,15 @@
 | **[MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)** | Learn by doing, step-by-step | 1-2 hours |
 | **[INFRASTRUCTURE.md](docs/guides/INFRASTRUCTURE.md)** | Just AWS resources (no app) | 15 min |
 
+### After Deployment
+
+| Guide | Purpose | Time |
+|-------|---------|------|
+| **[UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md)** | Deploy code changes and updates | 1-10 min |
+| **[SECURITY_HARDENING.md](docs/guides/SECURITY_HARDENING.md)** | Verify hardening is applied | Reference |
+| **[WAF_CONFIGURATION.md](docs/guides/WAF_CONFIGURATION.md)** | Set up Web Application Firewall | 10 min |
+| **[CLOUDFRONT_CDN.md](docs/guides/CLOUDFRONT_CDN.md)** | Speed up with global CDN | 5 min |
+
 ### Operations & Maintenance
 
 | Guide | Purpose |
