@@ -449,6 +449,12 @@ ansible-playbook -i inventories playbooks/setup-monitoring.yml
 - AWS Console → CloudWatch → Logs
 - Look for `/{app_name}/`
 
+**Create Dashboards & Alarms (Recommended):**
+
+Now that logs are being collected, create alarms to detect problems and dashboards to monitor health.
+
+→ **[MONITORING.md](MONITORING.md)** - Full guide to set up alarms for errors, high CPU, disk space, and attacks
+
 ---
 
 ## Verification Checklist

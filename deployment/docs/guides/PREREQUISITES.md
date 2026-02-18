@@ -51,9 +51,10 @@
    - `AmazonS3FullAccess` - Create/manage S3 buckets
    - `IAMFullAccess` - Create/manage IAM roles
    - `SecretsManagerReadWrite` - Manage secrets
-   - `CloudWatchLogsFullAccess` - Write application logs and metrics
+   - `CloudWatchLogsFullAccess` - Application logs
+   - `CloudWatchAlarmFullAccess` - Create alarms (optional but recommended)
    
-   **About CloudWatchLogsFullAccess:** This allows your application to send logs to CloudWatch. It's specifically for Logs, not dashboards/alarms. That's perfect for what we need. See [CloudWatch Explanation](#what-is-cloudwatchlogsfullaccesss) below.
+   **Recommended addition:** `CloudWatchAlarmFullAccess` lets you create alarms to detect attacks, high errors, or resource issues. See [CloudWatch Explanation](#what-is-cloudwatchlogsfullaccesss) below.
 
 8. Click **Next: Tags** (skip)
 9. Click **Create user**
@@ -64,26 +65,55 @@
 - **Centralized log storage** - All your app logs in one place
 - **Searchable** - Find errors across days of logs instantly
 - **Metrics** - Track performance (response time, errors, requests)
+- **Alarms** - Automated alerts when something goes wrong
+- **Dashboards** - Visual monitoring of key metrics
 
-**CloudWatchLogsFullAccess specifically allows:**
-- ✅ Write logs (your app sends logs here)
-- ✅ Create log groups (organize logs by app)
-- ✅ View logs (search and read them)
+**Three separate capabilities:**
 
-**It does NOT allow:**
-- ❌ Create alarms (automated alerts)
-- ❌ Create dashboards (visual monitoring)
+1. **Logs** (CloudWatchLogsFullAccess)
+   - ✅ Write application logs to CloudWatch
+   - ✅ Create log groups (organize logs)
+   - ✅ View/search logs
+   - What it does: Application automatically sends logs → You can view them anytime
+   - Required: **YES** - for application to send logs
 
-**That's fine** - those are optional features. Your app will send logs and metrics to CloudWatch automatically. You can view them in the AWS Console whenever you want.
+2. **Alarms** (CloudWatchAlarmFullAccess)
+   - ✅ Create automated alarms
+   - ✅ Send notifications (email, SNS, etc.)
+   - ✅ Alert you to attacks, failures, high CPU/memory
+   - What it does: Monitor metrics 24/7 → Alert you automatically if problems detected
+   - Required: **NO** - but HIGHLY RECOMMENDED
+   - Examples:
+     - High error rate (someone attacking?)
+     - High CPU (traffic spike or runaway process?)
+     - Multiple failed logins (brute force attempt?)
+     - S3 access denied errors (permission issue?)
+
+3. **Dashboards** (CloudWatchDashboardsFullAccess)
+   - ✅ Create visual dashboards
+   - ✅ Display metrics, logs, alarms
+   - ✅ Custom widgets and layouts
+   - What it does: Pretty visualizations of your app health
+   - Required: **NO** - optional but useful for status at a glance
+
+**Deployment includes:**
+- ✅ CloudWatch agent (sends logs automatically)
+- ✅ Basic log rotation (keeps logs manageable)
+- ❌ Alarms (you create these)
+- ❌ Dashboards (you create these)
+
+**Recommendation:**
+Add `CloudWatchAlarmFullAccess` so you can create alarms. It costs nothing and alerts you to problems.
 
 **How logs flow:**
 1. Your application runs on EC2
 2. Application writes to `/var/log/{app_name}/`
-3. CloudWatch agent (installed during deployment) reads those logs
+3. CloudWatch agent (installed during deployment) reads those logs automatically
 4. Logs sent to CloudWatch Logs service
-5. You view them in AWS Console → CloudWatch → Logs → `/{app_name}/`
-
-**No additional configuration needed** - the deployment playbook sets up everything. You just need this permission to allow it.
+5. You can:
+   - View them in AWS Console → CloudWatch → Logs → `/{app_name}/`
+   - Create alarms based on log patterns ("alert me if 5xx errors spike")
+   - Create dashboards showing error counts, request rates, etc.
 
 ### Step 3: Save Access Keys
 

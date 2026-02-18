@@ -40,6 +40,7 @@
 
 | Guide | Purpose |
 |-------|---------|
+| **[MONITORING.md](docs/guides/MONITORING.md)** | Create dashboards and alarms |
 | **[OPERATIONS.md](docs/guides/OPERATIONS.md)** | Updates, backups, scaling |
 | **[MULTI_USER.md](docs/guides/MULTI_USER.md)** | Add additional users |
 | **[SECRET_MANAGEMENT.md](docs/guides/SECRET_MANAGEMENT.md)** | Rotate secrets safely |
