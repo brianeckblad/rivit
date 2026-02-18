@@ -51,7 +51,7 @@
    - `AmazonS3FullAccess` - Create/manage S3 buckets
    - `IAMFullAccess` - Create/manage IAM roles
    - `SecretsManagerReadWrite` - Manage secrets
-   - `CloudWatchFullAccess` - View logs and metrics
+   - `CloudWatchLogsFullAccess` - View logs and metrics
 8. Click **Next: Tags** (skip)
 9. Click **Create user**
 
