@@ -51,9 +51,39 @@
    - `AmazonS3FullAccess` - Create/manage S3 buckets
    - `IAMFullAccess` - Create/manage IAM roles
    - `SecretsManagerReadWrite` - Manage secrets
-   - `CloudWatchLogsFullAccess` - View logs and metrics
+   - `CloudWatchLogsFullAccess` - Write application logs and metrics
+   
+   **About CloudWatchLogsFullAccess:** This allows your application to send logs to CloudWatch. It's specifically for Logs, not dashboards/alarms. That's perfect for what we need. See [CloudWatch Explanation](#what-is-cloudwatchlogsfullaccesss) below.
+
 8. Click **Next: Tags** (skip)
 9. Click **Create user**
+
+#### What is CloudWatchLogsFullAccess?
+
+**CloudWatch** is AWS's logging and monitoring service. Think of it as:
+- **Centralized log storage** - All your app logs in one place
+- **Searchable** - Find errors across days of logs instantly
+- **Metrics** - Track performance (response time, errors, requests)
+
+**CloudWatchLogsFullAccess specifically allows:**
+- ✅ Write logs (your app sends logs here)
+- ✅ Create log groups (organize logs by app)
+- ✅ View logs (search and read them)
+
+**It does NOT allow:**
+- ❌ Create alarms (automated alerts)
+- ❌ Create dashboards (visual monitoring)
+
+**That's fine** - those are optional features. Your app will send logs and metrics to CloudWatch automatically. You can view them in the AWS Console whenever you want.
+
+**How logs flow:**
+1. Your application runs on EC2
+2. Application writes to `/var/log/{app_name}/`
+3. CloudWatch agent (installed during deployment) reads those logs
+4. Logs sent to CloudWatch Logs service
+5. You view them in AWS Console → CloudWatch → Logs → `/{app_name}/`
+
+**No additional configuration needed** - the deployment playbook sets up everything. You just need this permission to allow it.
 
 ### Step 3: Save Access Keys
 
