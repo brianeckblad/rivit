@@ -4,100 +4,119 @@
 
 ---
 
-## Quick Start
+## 🚀 Getting Started
 
-**Deploy in 15-20 minutes** → [docs/guides/QUICKSTART.md](docs/guides/QUICKSTART.md)
+### New to this deployment? Start here:
 
-```bash
-cd deployment
-./scripts/infra-complete-setup.sh
-```
+1. **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)** (30 min)
+   - AWS account setup
+   - AWS CLI configuration
+   - Local tools installation
+   - Configuration files
 
----
-
-## Documentation Structure
-
-### 📚 Guides (How-To)
-
-| Guide | Description | Time |
-|-------|-------------|------|
-| **[QUICKSTART](docs/guides/QUICKSTART.md)** | Deploy fast with automation | 15-20 min |
-| **[MANUAL_DEPLOYMENT](docs/guides/MANUAL_DEPLOYMENT.md)** | Step-by-step with CLI & playbooks | 1-2 hours |
-| **[OPERATIONS](docs/guides/OPERATIONS.md)** | Daily operations, updates, backups | Reference |
-| **[MULTI_USER](docs/guides/MULTI_USER.md)** | Add multiple users | 10 min |
-| **[SECRET_MANAGEMENT](docs/guides/SECRET_MANAGEMENT.md)** | Rotate secrets safely | 5 min |
-
-### 📖 Reference (Technical Details)
-
-| Reference | Description |
-|-----------|-------------|
-| **[ARCHITECTURE](docs/reference/ARCHITECTURE.md)** | System architecture & design decisions |
-| **[PLAYBOOKS](docs/reference/PLAYBOOKS.md)** | All playbooks and their purposes |
-| **[AWS_PROFILES](docs/reference/AWS_PROFILES.md)** | Manage multiple AWS accounts |
-| **[SECURITY](docs/reference/SECURITY.md)** | Security hardening details |
+2. **Then choose your deployment method:**
+   - **Fast?** → [QUICKSTART.md](docs/guides/QUICKSTART.md) (15-20 min)
+   - **Learn?** → [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) (1-2 hours)
 
 ---
 
-## What This Does
+## 📚 Documentation Guide
 
-**Creates a complete deployment:**
+### Start Here
+
+| Document | Purpose | Time |
+|----------|---------|------|
+| **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)** | Setup AWS account, CLI, tools | 30 min |
+
+### Deployment Methods
+
+| Guide | Best For | Time |
+|-------|----------|------|
+| **[QUICKSTART.md](docs/guides/QUICKSTART.md)** | Fast deployment with automation | 15-20 min |
+| **[MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)** | Learn by doing, step-by-step | 1-2 hours |
+| **[INFRASTRUCTURE.md](docs/guides/INFRASTRUCTURE.md)** | Just AWS resources (no app) | 15 min |
+
+### Operations & Maintenance
+
+| Guide | Purpose |
+|-------|---------|
+| **[OPERATIONS.md](docs/guides/OPERATIONS.md)** | Updates, backups, scaling |
+| **[MULTI_USER.md](docs/guides/MULTI_USER.md)** | Add additional users |
+| **[SECRET_MANAGEMENT.md](docs/guides/SECRET_MANAGEMENT.md)** | Rotate secrets safely |
+
+### Reference & Architecture
+
+| Reference | Purpose |
+|-----------|---------|
+| **[ARCHITECTURE.md](docs/reference/ARCHITECTURE.md)** | System design & decisions |
+| **[PLAYBOOKS.md](docs/reference/PLAYBOOKS.md)** | All playbooks documented |
+| **[AWS_PROFILES.md](docs/reference/AWS_PROFILES.md)** | Multiple AWS accounts |
+| **[SECURITY.md](docs/reference/SECURITY.md)** | Security hardening details |
+
+---
+
+## What Gets Deployed
+
+**Complete production-ready setup:**
 
 - ✅ AWS EC2 instance (Ubuntu 22.04)
-- ✅ Application with Gunicorn + Nginx
-- ✅ Systemd service (auto-restart)
-- ✅ S3 storage for images
-- ✅ IAM role (no credentials on server)
-- ✅ SSL/HTTPS with Let's Encrypt (optional)
-- ✅ CloudWatch monitoring (optional)
-- ✅ Security hardening built-in
+- ✅ Application server (Gunicorn + Nginx)
+- ✅ Auto-restart service (Systemd)
+- ✅ Cloud storage (S3 bucket)
+- ✅ Permissions (IAM role, no credentials on server)
+- ✅ SSL/HTTPS (Let's Encrypt, optional)
+- ✅ Monitoring (CloudWatch, optional)
+- ✅ Security hardening (built-in)
 
 **Cost:** ~$10-15/month (~$2/month on AWS free tier)
 
 ---
 
-## Prerequisites
+## Quick Reference
 
-### What You Need
+### Configuration Files
+
+Your personal settings are **NOT** committed to Git (for security):
 
 ```bash
-# Check if you have these
-aws sts get-caller-identity    # AWS CLI configured
-python3 --version              # Python 3.8+
-ansible --version              # Ansible 2.9+
+cd deployment
+
+# Create your config files from templates
+./scripts/local-dev-setup.sh
+
+# Or manual copy
+cp group_vars/all.yml.example group_vars/all.yml
+cp group_vars/vault.yml.example group_vars/vault.yml
 ```
 
-**If any command fails:**
+**Files created:**
+- `group_vars/all.yml` - Your deployment settings
+- `group_vars/vault.yml` - Your secrets (encrypted)
+
+**These are ignored by Git** - safe to commit your personal settings locally!
+
+### Fast Deploy (If Already Configured)
+
 ```bash
-# Install deployment tools
-pip3 install -r requirements.txt
+cd deployment
 
-# Configure AWS
-aws configure
+# Option 1: Automated (everything)
+ansible-playbook playbooks/provision-infrastructure.yml
+ansible-playbook -i inventories playbooks/setup.yml
+
+# Option 2: Just the app (EC2 already running)
+ansible-playbook -i inventories playbooks/setup.yml
 ```
-
-**Need detailed setup?** → [docs/guides/QUICKSTART.md#prerequisites](docs/guides/QUICKSTART.md#prerequisites)
 
 ---
 
-## Configuration (Required Before Deployment)
+## First Time?
 
-**⚠️ IMPORTANT: Keep Your Configs Private!**
+**Not done setup yet?** → [PREREQUISITES.md](docs/guides/PREREQUISITES.md)
 
-Your personal deployment settings should **NEVER** be committed to Git. Use the standard `.example` file pattern:
-
-```bash
-# Create your config files from templates
-cd deployment
-./scripts/local-dev-setup.sh
-```
-
-This creates:
-- `group_vars/all.yml` - Your personal settings (from all.yml.example)
-- `group_vars/vault.yml` - Your secrets (from vault.yml.example)
-
-**How it works:**
-- `.example` files = Templates (tracked in Git, receive updates)
-- Real files = Your configs (ignored by Git, stay private)
+**Everything ready?** Choose one:
+- ⚡ Fast → [QUICKSTART.md](docs/guides/QUICKSTART.md)
+- 📖 Educational → [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)
 
 **Standard pattern used by npm, docker, and most tools.**
 
