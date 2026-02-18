@@ -14,16 +14,36 @@ After deployment, your application automatically sends logs to CloudWatch. Now y
 
 ## Prerequisites
 
-**You need this IAM permission:**
-- `CloudWatchAlarmFullAccess` (to create alarms)
+**You need permissions to create CloudWatch alarms:**
 
-If you don't have it:
-1. Go to [IAM Console](https://console.aws.amazon.com/iam/home#/users)
+Since there's no AWS managed policy for alarms, you need to create an inline policy:
+
+1. Go to [IAM Users](https://console.aws.amazon.com/iam/home#/users)
 2. Find your user (e.g., `{app_name}-deployer`)
-3. Click **Add permissions** → **Attach policies directly**
-4. Search for `CloudWatchAlarmFullAccess`
-5. Attach it
-6. Done - can now create alarms
+3. Click **Add inline policy**
+4. Choose **JSON** tab and paste:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": [
+           "cloudwatch:PutMetricAlarm",
+           "cloudwatch:DeleteAlarms",
+           "cloudwatch:DescribeAlarms",
+           "cloudwatch:GetMetricStatistics",
+           "cloudwatch:ListMetrics"
+         ],
+         "Resource": "*"
+       }
+     ]
+   }
+   ```
+5. Name it: `CloudWatchAlarmPolicy`
+6. Click **Create policy**
+
+**Done!** You can now create alarms
 
 ---
 

@@ -52,9 +52,9 @@
    - `IAMFullAccess` - Create/manage IAM roles
    - `SecretsManagerReadWrite` - Manage secrets
    - `CloudWatchLogsFullAccess` - Application logs
-   - `CloudWatchAlarmFullAccess` - Create alarms (optional but recommended)
    
-   **Recommended addition:** `CloudWatchAlarmFullAccess` lets you create alarms to detect attacks, high errors, or resource issues. See [CloudWatch Explanation](#what-is-cloudwatchlogsfullaccesss) below.
+   **Optional but recommended for production:**
+   - Create an inline policy for CloudWatch alarms (see [Alarms section](#what-is-cloudwatchlogsfullaccesss) below for details)
 
 8. Click **Next: Tags** (skip)
 9. Click **Create user**
@@ -70,26 +70,50 @@
 
 **Three separate capabilities:**
 
-1. **Logs** (CloudWatchLogsFullAccess)
+1. **Logs** (CloudWatchLogsFullAccess - AWS Managed Policy) ✅ REQUIRED
    - ✅ Write application logs to CloudWatch
    - ✅ Create log groups (organize logs)
    - ✅ View/search logs
    - What it does: Application automatically sends logs → You can view them anytime
    - Required: **YES** - for application to send logs
 
-2. **Alarms** (CloudWatchAlarmFullAccess)
+2. **Alarms** (Custom inline policy needed - no AWS managed policy) ⚠️ OPTIONAL
    - ✅ Create automated alarms
    - ✅ Send notifications (email, SNS, etc.)
    - ✅ Alert you to attacks, failures, high CPU/memory
    - What it does: Monitor metrics 24/7 → Alert you automatically if problems detected
-   - Required: **NO** - but HIGHLY RECOMMENDED
-   - Examples:
-     - High error rate (someone attacking?)
-     - High CPU (traffic spike or runaway process?)
-     - Multiple failed logins (brute force attempt?)
-     - S3 access denied errors (permission issue?)
+   - Required: **NO** - but HIGHLY RECOMMENDED for production
+   - AWS managed policy: **NONE EXISTS** - Create inline policy instead
+   
+   **To add alarm permissions, create inline policy:**
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": [
+           "cloudwatch:PutMetricAlarm",
+           "cloudwatch:DeleteAlarms",
+           "cloudwatch:DescribeAlarms",
+           "cloudwatch:GetMetricStatistics",
+           "cloudwatch:ListMetrics"
+         ],
+         "Resource": "*"
+       }
+     ]
+   }
+   ```
+   
+   How to attach:
+   1. Go to [IAM Users](https://console.aws.amazon.com/iam/home#/users)
+   2. Select your user
+   3. Click **Add inline policy**
+   4. Choose **JSON** and paste above policy
+   5. Name it: `CloudWatchAlarmPolicy`
+   6. Click **Create policy**
 
-3. **Dashboards** (CloudWatchDashboardsFullAccess)
+3. **Dashboards** (CloudWatchDashboardsFullAccess - part of CloudWatchFullAccess)
    - ✅ Create visual dashboards
    - ✅ Display metrics, logs, alarms
    - ✅ Custom widgets and layouts
@@ -99,11 +123,14 @@
 **Deployment includes:**
 - ✅ CloudWatch agent (sends logs automatically)
 - ✅ Basic log rotation (keeps logs manageable)
-- ❌ Alarms (you create these)
-- ❌ Dashboards (you create these)
+- ❌ Alarms (you create these with inline policy)
+- ❌ Dashboards (you create these manually)
 
-**Recommendation:**
-Add `CloudWatchAlarmFullAccess` so you can create alarms. It costs nothing and alerts you to problems.
+**What you get with required permissions:**
+- `CloudWatchLogsFullAccess` = Application logs automatically collected and searchable
+
+**What you need to add for production:**
+- Inline policy for alarms (see above) = 24/7 automated monitoring and alerts
 
 **How logs flow:**
 1. Your application runs on EC2

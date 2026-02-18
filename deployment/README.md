@@ -128,6 +128,32 @@ ansible-playbook -i inventories playbooks/setup.yml
 - ⚡ Fast → [QUICKSTART.md](docs/guides/QUICKSTART.md)
 - 📖 Educational → [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)
 
+---
+
+## Documentation Maintenance
+
+**Help keep documentation accurate and up-to-date:**
+
+### For Users
+- **Have feedback?** → [FEEDBACK_FORM.md](../FEEDBACK_FORM.md)
+- **Found an error?** → Create GitHub issue with label `documentation`
+- **Have a suggestion?** → Open GitHub discussion in #documentation
+
+### For Maintainers
+- **Quarterly review?** → [MAINTENANCE_CHECKLIST.md](docs/MAINTENANCE_CHECKLIST.md)
+- **Need to update docs?** → [SYNC_GUIDE.md](docs/SYNC_GUIDE.md)
+- **Want to validate?** → `bash docs/validate-docs.sh`
+- **Track changes?** → [CHANGELOG.md](docs/CHANGELOG.md)
+
+### Documentation Quality
+- ✅ All 21 playbooks documented
+- ✅ Complete prerequisites guide
+- ✅ Multiple deployment options
+- ✅ Step-by-step procedures
+- ✅ Troubleshooting guides
+- ✅ Best practices
+- ✅ Cost/time estimates
+
 **Standard pattern used by npm, docker, and most tools.**
 
 ---
