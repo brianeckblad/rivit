@@ -54,12 +54,12 @@
    - `CloudWatchLogsFullAccess` - Application logs
    
    **Optional but recommended for production:**
-   - Create an inline policy for CloudWatch alarms (see [Alarms section](#what-is-cloudwatchlogsfullaccesss) below for details)
+   - Create an inline policy for CloudWatch alarms (see [Alarms section](#alarms-required-for-cloudwatch-alarms) below for details)
 
 8. Click **Next: Tags** (skip)
 9. Click **Create user**
 
-#### What is CloudWatchLogsFullAccess?
+#### Alarms: Required for CloudWatch Alarms
 
 **CloudWatch** is AWS's logging and monitoring service. Think of it as:
 - **Centralized log storage** - All your app logs in one place
