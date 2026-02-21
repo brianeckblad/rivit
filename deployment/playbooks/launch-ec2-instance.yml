@@ -40,6 +40,21 @@
         key_name: "{{ app_name }}-key"
         security_group: "{{ app_name }}-sg"
         iam_instance_profile: "{{ app_name }}-instance-profile"
+        # EBS Block Device Mapping (optional)
+        volumes:
+          - device_name: /dev/xvda
+            ebs:
+              volume_size: 20
+              volume_type: gp3
+              delete_on_termination: true
+              encrypted: true
+          - device_name: "{{ ebs_device_name }}"
+            ebs:
+              volume_size: "{{ ebs_volume_size }}"
+              volume_type: "{{ ebs_volume_type }}"
+              delete_on_termination: true
+              encrypted: "{{ ebs_volume_encrypted }}"
+              snapshot_id: "{{ ebs_volume_snapshot_id if ebs_volume_snapshot_id else omit }}"
         wait: yes
         wait_timeout: 300
         tags:
@@ -47,7 +62,9 @@
           Application: "{{ app_name }}"
           Environment: production
           ManagedBy: Ansible
+          EBSVolume: "{{ 'Attached' if enable_ebs_volume else 'None' }}"
       register: ec2
+      when: enable_ebs_volume | bool
 
     - name: Get instance public IP
       set_fact:

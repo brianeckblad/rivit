@@ -101,6 +101,37 @@ s3_version_retention_days: 30                    # Days to keep old S3 versions
 ec2_instance_type: "t3.micro"                   # Keep as t3.micro for free tier
                                                  # Change for production: t3.small or larger
 
+# EBS Volume Attachment (OPTIONAL)
+# Add persistent block storage to your EC2 instance
+# Default: Disabled (uses instance root volume only)
+# To enable: Uncomment below and set enable_ebs_volume: true
+#
+# ebs_volume_size: 100                           # Size in GB (default: 100)
+#                                                 # Minimum: 1 GB
+#                                                 # Maximum: 16,384 GB
+#                                                 # Cost: ~$0.10/GB/month for gp3
+#
+# ebs_volume_type: "gp3"                         # Volume type (default: gp3)
+#                                                 # gp3: General Purpose (fast, cost-effective)
+#                                                 # gp2: General Purpose (older, 3 IOPS/GB)
+#                                                 # io1: High IOPS (expensive)
+#                                                 # st1: Throughput optimized (for big data)
+#
+# ebs_volume_mount_path: "/data"                 # Where to mount volume (default: /data)
+#                                                 # Will create directory if doesn't exist
+#                                                 # Mount point ownership: {admin_user}:{admin_user}
+#
+# ebs_volume_encrypted: true                     # Encrypt volume (default: true - recommended)
+#                                                 # Adds minimal performance cost, improves security
+#
+# ebs_volume_snapshot_id: ""                     # Optional: Restore from snapshot
+#                                                 # Leave empty for new volume
+#                                                 # Example: snap-0123456789abcdef0
+#
+# enable_ebs_volume: false                       # Set to true to attach EBS volume
+#                                                 # Default: false (disabled)
+#                                                 # When true, all ebs_volume_* settings apply
+
 # CloudFront CDN Pricing (only if using CloudFront)
 # Default: PriceClass_100 (covers most users, cheapest)
 # Options: PriceClass_100, PriceClass_200, PriceClass_All
@@ -148,6 +179,15 @@ sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
 app_username: "{{ vault_app_username }}"
 app_password: "{{ vault_app_password }}"
 
+# EBS Volume Configuration (auto-configured)
+enable_ebs_volume: "{{ enable_ebs_volume | default(false) }}"
+ebs_volume_size: "{{ ebs_volume_size | default(100) }}"
+ebs_volume_type: "{{ ebs_volume_type | default('gp3') }}"
+ebs_volume_mount_path: "{{ ebs_volume_mount_path | default('/data') }}"
+ebs_volume_encrypted: "{{ ebs_volume_encrypted | default(true) }}"
+ebs_volume_snapshot_id: "{{ ebs_volume_snapshot_id | default('') }}"
+ebs_device_name: "/dev/sdf"                      # Device name for block device mapping
+
 # System packages (auto-configured)
 system_packages:
   - python3
@@ -163,4 +203,5 @@ system_packages:
   - zlib1g-dev
   - libpng-dev
   - net-tools
+  - xfsprogs                                     # For EBS volume formatting
 
