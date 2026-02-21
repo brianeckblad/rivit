@@ -47,18 +47,28 @@ git_branch: main                                 # Git branch to deploy (usually
 # ----------------------------------------------------------------------------
 # 3. USERS (OPTIONAL - defaults are secure)
 # ----------------------------------------------------------------------------
-# SECURITY: Using a dedicated app user (not ubuntu) provides:
-#   - Principle of least privilege
-#   - No SSH access (nologin shell)
-#   - Isolated from admin/deployment user
+# Two user setup:
+# 1. admin_user: Used for deployment and administration (SSH access)
+# 2. app_user: Dedicated application runtime user (no SSH access, no shell)
 #
-# DEFAULT: Uses app_name (recommended)
-# CUSTOM: Uncomment and set if you want different username
-# app_user: myapp_runtime
+# Benefits:
+#   - admin_user has full access for management tasks
+#   - app_user runs application with minimum permissions (principle of least privilege)
+#   - If app is compromised, attacker cannot SSH to server
+#   - Clear separation between deployment and runtime
+#
+# DEFAULT: admin_user = ubuntu, app_user = app_name (recommended)
+# CUSTOM: Uncomment and change if you want different usernames
 
 admin_user: ubuntu                               # Admin/SSH user for deployment (default for Ubuntu AMI)
+                                                 # This user can SSH and manage the server
+                                                 # Default 'ubuntu' is standard for AWS EC2 Ubuntu AMI
+
 app_user: "{{ app_name }}"                       # Application runtime user (restricted, no SSH access)
-deploy_user: "{{ admin_user }}"                  # Alias for admin_user (for compatibility)
+                                                 # This user runs the application process
+                                                 # Has no shell (/usr/sbin/nologin) and cannot SSH
+                                                 # Uncomment below to use a different username:
+                                                 # app_user: "myapp_runtime"
 
 # ----------------------------------------------------------------------------
 # 4. PERFORMANCE SETTINGS (OPTIONAL)

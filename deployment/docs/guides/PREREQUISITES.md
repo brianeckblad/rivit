@@ -387,13 +387,14 @@ ssl_email: "admin@example.com"          # CHANGE THIS - Email for SSL certificat
 # ============================================================================
 
 admin_user: ubuntu                      # Admin/SSH user for deployment
-                                        # (ubuntu is default for Ubuntu AMI)
+                                        # This user can SSH and manage the server
+                                        # Default: ubuntu (standard for Ubuntu EC2 AMI)
 
 app_user: "{{ app_name }}"              # Application runtime user (restricted, no SSH access)
+                                        # This user runs the application process
                                         # Default: same as app_name
-                                        # Uncomment and change if you want different username
-
-deploy_user: "{{ admin_user }}"         # Alias for admin_user (for compatibility)
+                                        # Uncomment and change if you want different username:
+                                        # app_user: "myapp_runtime"
 
 # ============================================================================
 # GIT CONFIGURATION
@@ -441,9 +442,8 @@ cloudfront_price_class: "PriceClass_100" # CloudFront pricing tier (if using CDN
 - `app_display_name`: Friendly display name. Example: `"My Application"`, `"Comic Tracker"`
 - `server_name`: Use `"_"` if you're just using IP address. Use `"your-domain.com"` if you have a domain.
 - `ssl_email`: Email for Let's Encrypt certificate notifications (only needed if using domain)
-- `admin_user`: Leave as `ubuntu` (default for Ubuntu 22.04 AMI)
-- `app_user`: Automatically set to `app_name` - this user runs your application (no SSH access)
-- `deploy_user`: Automatically set to `admin_user` - this is who deploys the code
+- `admin_user`: Leave as `ubuntu` (default for Ubuntu 22.04 AMI, used for SSH and deployment)
+- `app_user`: Automatically set to `app_name` - this user runs your application (no SSH access, no shell)
 
 ### Step 3: Create Secrets Vault
 
@@ -743,7 +743,7 @@ You've now:
 **all.yml** (main config):
 - Application identity (app_name, display_name)
 - Domain and SSL settings (server_name, ssl_email)
-- User configuration (admin_user, app_user, deploy_user)
+- User configuration (admin_user for deployment, app_user for runtime)
 - Performance tuning (gunicorn workers, timeouts)
 - Git branch selection
 - Log and backup retention settings
