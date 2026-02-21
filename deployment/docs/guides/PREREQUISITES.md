@@ -361,47 +361,74 @@ cd deployment
 nano group_vars/all.yml
 ```
 
-**Required variables at top of file:**
+**Key variables to change (at top of file):**
 
 ```yaml
-################################
-# APPLICATION CONFIGURATION
-################################
-app_name: myapp                          # CHANGE THIS - technical name, lowercase
-app_display_name: "My App"              # CHANGE THIS - friendly display name
-app_username: appuser                   # Application user account name
+# ============================================================================
+# APPLICATION IDENTITY (REQUIRED)
+# ============================================================================
 
-################################
-# AWS CONFIGURATION
-################################
-aws_region: us-east-2                   # CHANGE THIS - region for your resources
-s3_bucket_name: "yourname-myapp-2026"   # CHANGE THIS - must be globally unique
-s3_folder: data                         # Folder within bucket for app data
+app_name: "myapp"                       # CHANGE THIS - Your app's technical name
+                                        # Examples: myapp, comic_tracker, inventory_tool
+                                        # Used for: service name, directories, logs, etc.
 
-################################
-# DOMAIN & SSL
-################################
-server_name: "_"                        # "_" for IP access only, or "your-domain.com"
-ssl_email: "you@example.com"            # Email for SSL certificate notifications
+app_display_name: "My Application"      # CHANGE THIS - Your app's display name
+                                        # Examples: "My App", "Comic Tracker", "Inventory Tool"
 
-################################
-# INSTANCE CONFIGURATION
-################################
-instance_type: t3.micro                 # AWS free tier eligible
-instance_name: "{app_name}-server"      # Name shown in AWS Console
-ubuntu_version: 22.04                   # Ubuntu LTS version
+server_name: "_"                        # CHANGE THIS - Domain or "_" for IP-only access
+                                        # "_" = access via IP only (no SSL)
+                                        # "your-domain.com" = use domain with SSL
 
-################################
-# ADMIN USER
-################################
-admin_username: ubuntu                  # Default SSH user for Ubuntu AMI
-admin_email: "admin@example.com"        # For notifications
+ssl_email: "admin@example.com"          # CHANGE THIS - Email for SSL certificate alerts
+                                        # Only needed if using SSL (server_name is not "_")
+
+# ============================================================================
+# USERS (OPTIONAL - defaults are secure)
+# ============================================================================
+
+admin_user: ubuntu                      # Admin/SSH user for deployment
+                                        # (ubuntu is default for Ubuntu AMI)
+
+app_user: "{{ app_name }}"              # Application runtime user (restricted, no SSH access)
+                                        # Default: same as app_name
+                                        # Uncomment and change if you want different username
+
+deploy_user: "{{ admin_user }}"         # Alias for admin_user (for compatibility)
+
+# ============================================================================
+# GIT CONFIGURATION
+# ============================================================================
+
+git_branch: main                        # Git branch to deploy
+                                        # (usually: main or master)
+                                        # Your GitHub repo URL is in vault.yml
+
+# ============================================================================
+# PERFORMANCE SETTINGS (OPTIONAL)
+# ============================================================================
+
+gunicorn_workers: 4                     # Number of worker processes
+                                        # Typical: 2-4 x CPU cores
+python_version: "3.10"                  # Python version to use
+
+# ============================================================================
+# LOG & BACKUP SETTINGS (OPTIONAL)
+# ============================================================================
+
+log_retention_days: 20                  # Days to keep logs
+log_max_size: "10M"                     # Max size per log file
+backup_retention_days: 30               # Days to keep backups
+s3_version_retention_days: 30           # Days to keep old S3 versions
 ```
 
 **Don't know what to set?**
-- `app_name`: Use your application name (lowercase, no spaces)
-- `s3_bucket_name`: Must be **globally unique** across all AWS accounts. Use format: `yourname-appname-year`
-- `server_name`: Use `"_"` if you're just using IP address. Use domain if you have one.
+- `app_name`: Your application name (lowercase, no spaces). Example: `myapp`, `comic_tracker`
+- `app_display_name`: Friendly display name. Example: `"My Application"`, `"Comic Tracker"`
+- `server_name`: Use `"_"` if you're just using IP address. Use `"your-domain.com"` if you have a domain.
+- `ssl_email`: Email for Let's Encrypt certificate notifications (only needed if using domain)
+- `admin_user`: Leave as `ubuntu` (default for Ubuntu 22.04 AMI)
+- `app_user`: Automatically set to `app_name` - this user runs your application (no SSH access)
+- `deploy_user`: Automatically set to `admin_user` - this is who deploys the code
 
 ### Step 3: Create Secrets Vault
 
@@ -414,49 +441,94 @@ chmod 600 ~/.vault_pass
 nano group_vars/vault.yml
 ```
 
-**Required secrets:**
+**All required vault variables:**
 
 ```yaml
 ---
-# Git Repository
+# ============================================================================
+# GIT REPOSITORY (REQUIRED)
+# ============================================================================
+# Where your application code is stored on GitHub
 vault_git_repo: "https://github.com/YOUR_USERNAME/your_app.git"
-vault_git_branch: "main"
 
-# AWS Settings
-vault_aws_region: "us-east-2"
+# ============================================================================
+# AWS CONFIGURATION (REQUIRED)
+# ============================================================================
+# These values configure where your data is stored and which region
 
-# S3 Configuration
-vault_s3_bucket_name: "yourname-myapp-2026"
-vault_s3_folder: "data"
+vault_aws_region: "us-east-2"                   # Same region as your EC2 instance
+                                                 # (should match aws configure region)
 
-# Application Credentials
-vault_app_username: "admin"              # Default login username
-vault_app_password: "secure-password"    # Default login password (change after deploy)
+vault_s3_bucket_name: "yourname-myapp-2026"     # S3 bucket name (MUST BE GLOBALLY UNIQUE)
+                                                 # Pattern: yourname-appname-year
+                                                 # Used for: storing application data
+
+vault_s3_folder: "data"                         # Folder within bucket
+                                                 # Used for: organizing data in S3
+
+# ============================================================================
+# APPLICATION CREDENTIALS (REQUIRED)
+# ============================================================================
+# Default login credentials for your application
+# You can change these after deployment
+
+vault_app_username: "admin"                     # Default app login username
+vault_app_password: "change-this-password"      # Default app login password
+                                                 # IMPORTANT: Change this after first login
+
+# ============================================================================
+# SNS TOPIC (OPTIONAL - for monitoring and alerts)
+# ============================================================================
+# If you want to receive alerts (emails, SMS, etc.)
+# Leave blank ("") if not needed
+vault_sns_topic_arn: ""                         # Example: arn:aws:sns:us-east-2:123456789012:my-topic
 ```
 
-**Where to get these:**
-- `vault_git_repo`: Your GitHub repository URL (create if needed)
-- `vault_aws_region`: Same as `aws_region` in `all.yml`
-- `vault_s3_bucket_name`: Same as `s3_bucket_name` in `all.yml`
-- `vault_app_username`: Login username you want for the app
-- `vault_app_password`: Strong password (will change after deployment)
+**How to fill in each value:**
+
+| Variable | Where to Get It | Example |
+|----------|-----------------|---------|
+| `vault_git_repo` | Your GitHub repo URL | `https://github.com/myusername/myapp.git` |
+| `vault_aws_region` | Same as AWS CLI region | `us-east-2` |
+| `vault_s3_bucket_name` | Create a unique name | `john-myapp-2026` |
+| `vault_s3_folder` | Choose folder name | `data` or `uploads` |
+| `vault_app_username` | Choose app login | `admin` or `myusername` |
+| `vault_app_password` | Create strong password | `Tr0pic@lBanana99!` |
+| `vault_sns_topic_arn` | Optional - skip if not using | Leave as empty string `""` |
+
+**IMPORTANT about S3 bucket name:**
+- Must be **globally unique** across ALL AWS accounts (not just yours)
+- Can only contain lowercase letters, numbers, and hyphens
+- Cannot start or end with a hyphen
+- 3-63 characters long
+- Recommended pattern: `yourname-appname-year` (e.g., `john-myapp-2026`)
+
+**Vault Security:**
+- ✅ This file is encrypted before being stored in Git
+- ✅ Only the person with the vault password can read it
+- ✅ It's safe to commit to Git when encrypted
+- ✅ Your GitHub credentials stay private
 
 ### Step 4: Verify Configuration
 
 ```bash
 cd deployment
 
+# Check all.yml exists and shows your settings
+cat group_vars/all.yml | grep -E "^app_name|^app_display_name|^server_name|^admin_user|^app_user"
+# Should show your values
+
 # Check vault can be decrypted
 ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
 # Should show your secrets without error
 
-# Check configuration file exists
-cat group_vars/all.yml | head -20
-# Should show your variables
-
 # Verify AWS CLI uses correct profile
 aws sts get-caller-identity --profile your-profile-name
 # Should show your account ID and IAM user
+
+# Verify all configuration files exist
+ls -la group_vars/all.yml group_vars/vault.yml
+# Both should show
 ```
 
 ---
@@ -582,11 +654,26 @@ chmod 600 ~/.vault_pass
 ## Summary
 
 You've now:
-- ✅ Created AWS account and IAM user
-- ✅ Configured AWS CLI with credentials
-- ✅ Installed local deployment tools
-- ✅ Created deployment configuration files
-- ✅ Verified everything works
+- ✅ Created AWS account and IAM user with proper permissions
+- ✅ Configured AWS CLI with credentials  
+- ✅ Installed local deployment tools (Python, Ansible, Git)
+- ✅ Created deployment configuration files (all.yml and vault.yml)
+- ✅ Verified all tools and credentials work
+
+**Your configuration files now contain:**
+
+**all.yml** (main config):
+- Application identity (app_name, display_name)
+- Domain and SSL settings (server_name, ssl_email)
+- User configuration (admin_user, app_user, deploy_user)
+- Performance tuning (gunicorn workers, timeouts)
+- Git branch selection
+- Log and backup retention settings
+
+**vault.yml** (secrets):
+- GitHub repository URL and credentials
+- AWS region and S3 bucket settings
+- Application default username and password
 
 **You're ready to deploy!**
 

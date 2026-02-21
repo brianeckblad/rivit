@@ -1,39 +1,60 @@
 ---
-# Example vault file for secrets
+# ============================================================================
+# EXAMPLE SECRETS VAULT FILE
+# ============================================================================
+# This file contains sensitive data that should NEVER be committed unencrypted.
 #
-# Setup:
-# 1. Create vault password: echo 'your-secure-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
-# 2. Copy this file: cp vault.yml.example vault.yml
-# 3. Edit with your credentials: nano vault.yml
-# 4. Encrypt: ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
-# 5. Commit encrypted vault.yml to git (SAFE when encrypted)
+# Setup Process:
+# 1. Copy this file: cp vault.yml.example vault.yml
+# 2. Edit with your credentials: nano vault.yml
+# 3. Create vault password: echo 'your-secure-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
+# 4. Test decryption: ansible-vault view vault.yml --vault-password-file ~/.vault_pass
 #
-# Or create directly:
-#   ansible-vault create vault.yml --vault-password-file ~/.vault_pass
+# Encryption (when ready to commit):
+#   ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
 #
-# NOTE: Encrypted vault.yml should be committed to git for reusable deployments.
+# After encryption, it's SAFE to commit to Git - only readable with vault password
+# ============================================================================
 
 # ============================================================================
-# Git Repository (REQUIRED)
+# GIT REPOSITORY (REQUIRED)
 # ============================================================================
-# Contains your GitHub username/org - keep private
+# Your GitHub repository URL where your application code is stored
+# This is where deployment pulls your code from
 vault_git_repo: "https://github.com/YOUR_USERNAME/YOUR_APP_NAME.git"
 
 # ============================================================================
-# AWS Configuration (REQUIRED)
+# AWS CONFIGURATION (REQUIRED)
 # ============================================================================
 # NOTE: AWS credentials (access keys) are NOT stored here!
 # The EC2 instance uses an IAM role for authentication (more secure)
-vault_aws_region: "us-east-2"
-vault_s3_bucket_name: "your-unique-bucket-name"
-vault_s3_folder: "data"                          # S3 folder/prefix
+# These just specify which region and buckets to use
 
-# SNS Topic ARN (OPTIONAL - for monitoring/alerts)
+vault_aws_region: "us-east-2"                   # AWS region for your resources
+                                                 # Must match what you configured in AWS CLI
+
+vault_s3_bucket_name: "your-unique-bucket-name" # S3 storage bucket for application data
+                                                 # MUST be globally unique (not just in your account)
+                                                 # Recommended: yourname-appname-year
+                                                 # Example: john-myapp-2026
+
+vault_s3_folder: "data"                         # Folder/prefix within S3 bucket
+                                                 # Where app stores files
+                                                 # Example: data, uploads, backup, etc.
+
+# ============================================================================
+# APPLICATION CREDENTIALS (REQUIRED)
+# ============================================================================
+# Default login credentials for your application web interface
+# Change these after your first login to the application!
+
+vault_app_username: "admin"                     # Default username for app login
+vault_app_password: "change-this-to-strong-pwd" # Default password for app login
+                                                 # IMPORTANT: Change this after deployment!
+
+# ============================================================================
+# SNS TOPIC (OPTIONAL - for monitoring alerts)
+# ============================================================================
+# If you want automated alerts (error notifications, monitoring, etc.)
+# Leave this blank ("") if you don't need it
 # vault_sns_topic_arn: "arn:aws:sns:us-east-2:123456789012:your-topic-name"
-
-# ============================================================================
-# Application Credentials (REQUIRED)
-# ============================================================================
-# These are used for the web application login
-vault_app_username: "admin"
-vault_app_password: "change-this-to-a-strong-password"
