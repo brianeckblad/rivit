@@ -101,6 +101,31 @@ s3_version_retention_days: 30                    # Days to keep old S3 versions
 ec2_instance_type: "t3.micro"                   # Keep as t3.micro for free tier
                                                  # Change for production: t3.small or larger
 
+# EC2 Instance Configuration (OPTIONAL)
+# Default values provide good balance for most applications
+# Change only if you have specific requirements
+
+# assign_public_ip: true                         # Assign public IP automatically (default: true)
+#                                                 # Must be true for SSH/HTTP/HTTPS access
+
+# ec2_monitoring_enabled: true                   # Enable CloudWatch detailed monitoring (default: true)
+#                                                 # Provides detailed metrics (1-minute intervals)
+#                                                 # Cost: ~$3/month
+
+# ec2_termination_protection: false              # Protect instance from accidental termination (default: false)
+#                                                 # Set to true for production to prevent accidental deletion
+#                                                 # You can still manually delete if you disable protection first
+
+# ec2_ebs_optimized: false                       # Enable EBS optimization (default: false)
+#                                                 # Provides dedicated throughput to EBS
+#                                                 # Recommended for I/O intensive applications
+#                                                 # Adds ~5-10% to instance cost
+
+# ec2_source_dest_check: true                    # Enable source/destination check (default: true)
+#                                                 # Security feature: validates packet source/destination
+#                                                 # Required for normal EC2 operation
+#                                                 # Only disable if using instance as NAT/proxy
+
 # EBS Volume Attachment (OPTIONAL)
 # Add persistent block storage to your EC2 instance
 # Default: Disabled (uses instance root volume only)
@@ -178,6 +203,13 @@ sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
 # Application credentials from vault
 app_username: "{{ vault_app_username }}"
 app_password: "{{ vault_app_password }}"
+
+# EC2 Instance Configuration (auto-configured with defaults)
+assign_public_ip: "{{ assign_public_ip | default(true) }}"
+ec2_monitoring_enabled: "{{ ec2_monitoring_enabled | default(true) }}"
+ec2_termination_protection: "{{ ec2_termination_protection | default(false) }}"
+ec2_ebs_optimized: "{{ ec2_ebs_optimized | default(false) }}"
+ec2_source_dest_check: "{{ ec2_source_dest_check | default(true) }}"
 
 # EBS Volume Configuration (auto-configured)
 enable_ebs_volume: "{{ enable_ebs_volume | default(false) }}"
