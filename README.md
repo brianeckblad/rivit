@@ -54,7 +54,8 @@ pip install -r requirements.txt
 
 # 2. Configure (copy .env.example to .env and add your credentials)
 cp .env.example .env
-# Edit .env with AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET
+# Edit .env with your settings (see APP_CONFIGURATION_GUIDE.md for details)
+nano .env
 
 # 3. Create directories
 mkdir -p instance/{uploads,item_images,images,exports,snapshots,trash}

@@ -419,6 +419,21 @@ log_retention_days: 20                  # Days to keep logs
 log_max_size: "10M"                     # Max size per log file
 backup_retention_days: 30               # Days to keep backups
 s3_version_retention_days: 30           # Days to keep old S3 versions
+
+# ============================================================================
+# ADVANCED SETTINGS (OPTIONAL - Production Use)
+# ============================================================================
+
+ec2_instance_type: "t3.micro"           # EC2 server instance type
+                                        # Keep as t3.micro for free tier
+                                        # Change for production: t3.small, t3.medium, etc.
+                                        # Note: Larger = higher monthly cost
+
+cloudfront_price_class: "PriceClass_100" # CloudFront pricing tier (if using CDN)
+                                        # PriceClass_100: US, Canada, Europe (cheapest)
+                                        # PriceClass_200: Above + Asia, Africa, Middle East, South America
+                                        # PriceClass_All: All worldwide locations (most expensive)
+                                        # Only matters if you use setup-cloudfront.yml
 ```
 
 **Don't know what to set?**
@@ -651,7 +666,70 @@ chmod 600 ~/.vault_pass
 
 ---
 
-## Summary
+## Application Configuration (.env)
+
+**IMPORTANT:** You do NOT need to create `.env` manually!
+
+The deployment process automatically:
+1. Creates AWS Secrets Manager with all secrets from vault.yml
+2. Creates `.env` file on the server (setup.yml handles this)
+3. Configures application to use Secrets Manager
+
+### For Production Deployment
+
+- ✅ **No manual .env creation needed**
+- ✅ **setup.yml creates .env automatically**
+- ✅ **All secrets stored in Secrets Manager**
+- ✅ **IAM role provides secure access**
+
+Just create `vault.yml` with your secrets and run deployment!
+
+### For Local Testing (Optional)
+
+If testing locally **without** AWS access:
+
+```bash
+# From repository root (ONLY for local development)
+cp .env.example .env
+nano .env
+```
+
+
+**See:** [APP_CONFIGURATION_GUIDE.md](../../APP_CONFIGURATION_GUIDE.md) for complete details
+
+---
+
+## Ansible Inventory Configuration (hosts.yml)
+
+**Tell Ansible where your server is.**
+
+### For Local Testing (Default)
+
+No changes needed - uses `localhost`
+
+### For Remote EC2 Instance
+
+After launching EC2, update `deployment/inventories/hosts.yml`:
+
+```bash
+nano deployment/inventories/hosts.yml
+```
+
+**Changes:**
+
+1. Replace `localhost` with your EC2 instance IP
+2. Uncomment SSH section with your key path
+3. Update `~/.ssh/{app_name}-key.pem` with actual app name
+
+**Example:**
+```yaml
+ansible_host: 1.2.3.4  # Your EC2 IP
+ansible_ssh_private_key_file: ~/.ssh/myapp-key.pem
+```
+
+**Complete guide:** See [ANSIBLE_INVENTORY_SETUP.md](ANSIBLE_INVENTORY_SETUP.md)
+
+---
 
 You've now:
 - ✅ Created AWS account and IAM user with proper permissions

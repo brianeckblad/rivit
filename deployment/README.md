@@ -27,6 +27,12 @@
 | Document | Purpose | Time |
 |----------|---------|------|
 | **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)** | Setup AWS account, CLI, tools | 30 min |
+| **[ANSIBLE_INVENTORY_SETUP.md](docs/guides/ANSIBLE_INVENTORY_SETUP.md)** | Configure server location (hosts.yml) | 5 min |
+
+**Application Configuration:**
+| Document | Purpose | Time |
+|----------|---------|------|
+| **[APP_CONFIGURATION_GUIDE.md](../APP_CONFIGURATION_GUIDE.md)** | Configure Flask application (.env) | 10 min |
 
 ### Deployment Methods
 

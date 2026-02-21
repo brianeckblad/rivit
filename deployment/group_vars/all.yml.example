@@ -82,6 +82,21 @@ backup_retention_days: 30                        # Days to keep backups before d
 s3_version_retention_days: 30                    # Days to keep old S3 versions
 
 # ============================================================================
+# 7. ADVANCED SETTINGS (OPTIONAL - Production Use)
+# ============================================================================
+
+# EC2 Instance Type
+# Default: t3.micro (AWS free tier eligible)
+# Larger options: t3.small, t3.medium, t3.large, etc.
+ec2_instance_type: "t3.micro"                   # Keep as t3.micro for free tier
+                                                 # Change for production: t3.small or larger
+
+# CloudFront CDN Pricing (only if using CloudFront)
+# Default: PriceClass_100 (covers most users, cheapest)
+# Options: PriceClass_100, PriceClass_200, PriceClass_All
+cloudfront_price_class: "PriceClass_100"        # Only used if you deploy CloudFront
+
+# ============================================================================
 # ⚠️ END USER CONFIGURATION ⚠️
 # ============================================================================
 # Everything below is auto-configured - no changes needed
@@ -97,7 +112,17 @@ app_dir: "/home/{{ admin_user }}/{{ app_name }}"
 venv_dir: "/home/{{ admin_user }}/.venv"
 
 log_dir: "/var/log/{{ app_name }}"
+
+# SECURITY: Gunicorn is intentionally NOT exposed to internet
+# gunicorn_bind binds to localhost (127.0.0.1) only
+# Port 8000 is standard and correct
+# Nginx proxies requests from ports 80/443 to this internal port
+# This prevents direct attacks on the application server
 gunicorn_bind: "127.0.0.1:8000"
+
+# Computed: Extract port from gunicorn_bind
+# Used by health check endpoints
+app_port: "{{ gunicorn_bind.split(':')[1] }}"
 
 # Git repository from vault
 git_repo: "{{ vault_git_repo }}"
