@@ -322,6 +322,91 @@
         state: started
       when: supervisor_status.rc != 0 and supervisor_status.rc != 3
 
+    # =========================================================================
+    # EBS Volume Mounting (Optional - if enable_ebs_volume is true)
+    # =========================================================================
+    # This section handles attaching, formatting, and mounting the EBS volume
+    # Only runs if enable_ebs_volume is true in group_vars/all.yml
+
+    - name: Check if EBS volume is attached
+      block:
+        - name: List available block devices
+          command: lsblk --raw --noheadings --output NAME,SIZE,TYPE
+          register: lsblk_output
+          changed_when: false
+
+        - name: Find EBS volume device
+          set_fact:
+            ebs_device_found: "{{ lsblk_output.stdout_lines | select('match', '.*xvdf.*') | list }}"
+          when: enable_ebs_volume | bool
+
+        - name: Check if mount point exists
+          stat:
+            path: "{{ ebs_volume_mount_path }}"
+          register: mount_point
+          when: enable_ebs_volume | bool
+
+        - name: Create mount point directory
+          file:
+            path: "{{ ebs_volume_mount_path }}"
+            state: directory
+            owner: "{{ admin_user }}"
+            group: "{{ admin_user }}"
+            mode: '0755'
+          when: enable_ebs_volume | bool and not mount_point.stat.exists
+
+        - name: Check if EBS volume needs formatting
+          command: blkid {{ ebs_device_name }}1
+          register: blkid_check
+          failed_when: false
+          changed_when: false
+          when: enable_ebs_volume | bool and ebs_device_found
+
+        - name: Create filesystem on EBS volume
+          command: mkfs.xfs -f "{{ ebs_device_name }}1"
+          when: enable_ebs_volume | bool and ebs_device_found and blkid_check.rc != 0
+
+        - name: Get UUID of EBS volume
+          command: blkid -s UUID -o value "{{ ebs_device_name }}1"
+          register: ebs_uuid
+          changed_when: false
+          when: enable_ebs_volume | bool and ebs_device_found
+
+        - name: Add EBS volume to /etc/fstab
+          mount:
+            path: "{{ ebs_volume_mount_path }}"
+            src: "UUID={{ ebs_uuid.stdout }}"
+            fstype: xfs
+            opts: defaults,nofail
+            state: present
+          when: enable_ebs_volume | bool and ebs_device_found
+
+        - name: Mount EBS volume
+          command: mount "{{ ebs_volume_mount_path }}"
+          when: enable_ebs_volume | bool and ebs_device_found and not mount_point.stat.exists
+
+        - name: Set EBS mount point permissions
+          file:
+            path: "{{ ebs_volume_mount_path }}"
+            owner: "{{ admin_user }}"
+            group: "{{ admin_user }}"
+            mode: '0755'
+            state: directory
+          when: enable_ebs_volume | bool
+
+        - name: Display EBS volume information
+          debug:
+            msg:
+              - "✓ EBS Volume Information:"
+              - "  Device: {{ ebs_device_name }}1"
+              - "  Mount Path: {{ ebs_volume_mount_path }}"
+              - "  Size: {{ ebs_volume_size }} GB"
+              - "  Type: {{ ebs_volume_type }}"
+              - "  Encrypted: {{ ebs_volume_encrypted }}"
+              - "  UUID: {{ ebs_uuid.stdout }}"
+          when: enable_ebs_volume | bool and ebs_device_found
+      when: enable_ebs_volume | bool
+
   handlers:
     - name: restart supervisor
       service:

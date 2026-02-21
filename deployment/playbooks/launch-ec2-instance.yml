@@ -31,6 +31,10 @@
       set_fact:
         ami_id: "{{ amis.images | sort(attribute='creation_date') | last | map(attribute='image_id') | first }}"
 
+    - name: Build EBS volumes list (with optional EBS volume)
+      set_fact:
+        instance_volumes: "{{ [{'device_name': '/dev/xvda', 'ebs': {'volume_size': 20, 'volume_type': 'gp3', 'delete_on_termination': true, 'encrypted': true}}] + ([{'device_name': ebs_device_name, 'ebs': {'volume_size': ebs_volume_size, 'volume_type': ebs_volume_type, 'delete_on_termination': true, 'encrypted': ebs_volume_encrypted, 'snapshot_id': ebs_volume_snapshot_id if ebs_volume_snapshot_id else omit}}] if enable_ebs_volume | bool else []) }}"
+
     - name: Launch EC2 instance
       amazon.aws.ec2_instance:
         name: "{{ app_name }}"
@@ -40,36 +44,52 @@
         key_name: "{{ app_name }}-key"
         security_group: "{{ app_name }}-sg"
         iam_instance_profile: "{{ app_name }}-instance-profile"
-        # EBS Block Device Mapping (optional)
-        volumes:
-          - device_name: /dev/xvda
-            ebs:
-              volume_size: 20
-              volume_type: gp3
-              delete_on_termination: true
-              encrypted: true
-          - device_name: "{{ ebs_device_name }}"
-            ebs:
-              volume_size: "{{ ebs_volume_size }}"
-              volume_type: "{{ ebs_volume_type }}"
-              delete_on_termination: true
-              encrypted: "{{ ebs_volume_encrypted }}"
-              snapshot_id: "{{ ebs_volume_snapshot_id if ebs_volume_snapshot_id else omit }}"
+        volumes: "{{ instance_volumes }}"
+
+        # Networking Configuration
+        assign_public_ip: "{{ assign_public_ip }}"
+
+        # Monitoring & Detailed Metrics
+        monitoring: "{{ ec2_monitoring_enabled }}"
+
+        # Termination Protection
+        disable_api_termination: "{{ ec2_termination_protection }}"
+
+        # EBS Optimization
+        ebs_optimized: "{{ ec2_ebs_optimized }}"
+
+        # Instance Configuration
+        cpu_threads_per_core: null               # Let AWS decide optimal configuration
+
+        # Network Security
+        source_dest_check: "{{ ec2_source_dest_check }}"
+
         wait: yes
         wait_timeout: 300
+
         tags:
           Name: "{{ app_name }}"
           Application: "{{ app_name }}"
           Environment: production
           ManagedBy: Ansible
           EBSVolume: "{{ 'Attached' if enable_ebs_volume else 'None' }}"
+          CreatedDate: "{{ ansible_date_time.iso8601 }}"
+          LaunchMethod: Ansible
+          PublicIP: "{{ 'Yes' if assign_public_ip else 'No' }}"
+          Monitoring: "{{ 'Enabled' if ec2_monitoring_enabled else 'Disabled' }}"
+          TerminationProtection: "{{ 'Yes' if ec2_termination_protection else 'No' }}"
       register: ec2
-      when: enable_ebs_volume | bool
 
-    - name: Get instance public IP
+    - name: Get instance details
       set_fact:
         instance_ip: "{{ ec2.instances[0].public_ip_address }}"
         instance_id: "{{ ec2.instances[0].instance_id }}"
+        private_ip: "{{ ec2.instances[0].private_ip_address }}"
+        vpc_id: "{{ ec2.instances[0].vpc_id }}"
+        subnet_id: "{{ ec2.instances[0].subnet_id }}"
+        security_groups: "{{ ec2.instances[0].security_groups | map(attribute='GroupName') | list }}"
+        monitoring_state: "{{ ec2.instances[0].monitoring.state }}"
+        instance_state: "{{ ec2.instances[0].state.name }}"
 
     - name: Wait for SSH to become available
       wait_for:
@@ -79,39 +99,243 @@
         timeout: 300
         state: started
 
-    - name: Display instance information
+    - name: Display comprehensive instance information
       debug:
         msg:
-          - "✓ EC2 instance launched successfully"
-          - "Instance ID: {{ instance_id }}"
-          - "Public IP: {{ instance_ip }}"
-          - "Instance Type: {{ instance_type }}"
-          - "SSH: ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}"
           - ""
-          - "Next: Update deployment/inventories/hosts.yml with IP"
+          - "╔════════════════════════════════════════════════════════════╗"
+          - "║                                                            ║"
+          - "║   ✓ EC2 Instance Created Successfully                     ║"
+          - "║                                                            ║"
+          - "╚════════════════════════════════════════════════════════════╝"
+          - ""
+          - "INSTANCE DETAILS:"
+          - "  Instance ID:          {{ instance_id }}"
+          - "  Instance Name:        {{ app_name }}"
+          - "  Instance Type:        {{ instance_type }}"
+          - "  Instance State:       {{ instance_state }}"
+          - "  Availability Zone:    {{ ec2.instances[0].placement.availability_zone }}"
+          - ""
+          - "NETWORKING:"
+          - "  Public IP Address:    {{ instance_ip }}"
+          - "  Private IP Address:   {{ private_ip }}"
+          - "  VPC ID:               {{ vpc_id }}"
+          - "  Subnet ID:            {{ subnet_id }}"
+          - "  Security Groups:      {{ security_groups | join(', ') }}"
+          - ""
+          - "SSH ACCESS:"
+          - "  SSH Key:              ~/.ssh/{{ app_name }}-key.pem"
+          - "  SSH Command:          ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}"
+          - "  SSH Port:             22"
+          - ""
+          - "STORAGE:"
+          - "  Root Volume:          20 GB (gp3)"
+          - "  EBS Volume:           {{ 'Yes (' + (ebs_volume_size | string) + ' GB ' + ebs_volume_type + ')' if enable_ebs_volume else 'No' }}"
+          - ""
+          - "MONITORING:"
+          - "  CloudWatch:           {{ 'Enabled (detailed)' if monitoring_state == 'enabled' else 'Disabled (basic)' }}"
+          - "  Termination Protect:  Disabled (enable for production)"
+          - ""
+          - "NEXT STEPS:"
+          - "  1. Update Ansible inventory: deployment/inventories/hosts.yml"
+          - "  2. Set: ansible_host: {{ instance_ip }}"
+          - "  3. Run setup: ansible-playbook -i inventories playbooks/setup.yml"
+          - "  4. Application will be available at: http://{{ instance_ip }}"
+          - ""
 
-    - name: Save instance information to file
+    - name: Save comprehensive instance information to file
       copy:
         content: |
-          EC2 Instance Information
-          Created: {{ ansible_date_time.iso8601 }}
+          ╔════════════════════════════════════════════════════════════╗
+          ║                                                            ║
+          ║        EC2 INSTANCE INFORMATION - {{ app_name }}
+          ║                                                            ║
+          ╚════════════════════════════════════════════════════════════╝
           
-          Instance ID: {{ instance_id }}
-          Public IP: {{ instance_ip }}
-          Instance Type: {{ instance_type }}
-          AMI: {{ ami_id }}
-          SSH Key: ~/.ssh/{{ app_name }}-key.pem
-          Security Group: {{ app_name }}-sg
-          IAM Role: {{ app_name }}-ec2-role
+          CREATED: {{ ansible_date_time.iso8601 }}
           
-          SSH Command:
-          ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}
+          ════════════════════════════════════════════════════════════
+          INSTANCE DETAILS
+          ════════════════════════════════════════════════════════════
           
-          Next Steps:
-          1. Update deployment/inventories/hosts.yml
-          2. Set: ansible_host: {{ instance_ip }}
-          3. Run: ansible-playbook -i inventories playbooks/setup.yml
+          Instance ID:              {{ instance_id }}
+          Instance Name:            {{ app_name }}
+          Instance Type:            {{ instance_type }}
+          Instance State:           {{ instance_state }}
+          Availability Zone:        {{ ec2.instances[0].placement.availability_zone }}
+          Region:                   {{ aws_region }}
+          
+          AMI ID:                   {{ ami_id }}
+          Launch Time:              {{ ansible_date_time.iso8601 }}
+          
+          ════════════════════════════════════════════════════════════
+          NETWORKING
+          ════════════════════════════════════════════════════════════
+          
+          Public IP Address:        {{ instance_ip }}
+          Private IP Address:       {{ private_ip }}
+          VPC ID:                   {{ vpc_id }}
+          Subnet ID:                {{ subnet_id }}
+          
+          Assign Public IP:         Yes
+          Source/Dest Check:        Enabled
+          
+          ════════════════════════════════════════════════════════════
+          SECURITY
+          ════════════════════════════════════════════════════════════
+          
+          Security Groups:          {{ security_groups | join(', ') }}
+          SSH Key Name:             {{ app_name }}-key
+          SSH Key Location:         ~/.ssh/{{ app_name }}-key.pem
+          SSH Key Permissions:      0400 (read-only)
+          IAM Instance Role:        {{ app_name }}-ec2-role
+          
+          ════════════════════════════════════════════════════════════
+          STORAGE CONFIGURATION
+          ════════════════════════════════════════════════════════════
+          
+          Root Volume:
+            Device Name:            /dev/xvda
+            Size:                   20 GB
+            Type:                   gp3
+            Encrypted:              Yes
+            Delete on Termination:  Yes
+          
+          {% if enable_ebs_volume %}
+          Data Volume:
+            Device Name:            /dev/sdf
+            Size:                   {{ ebs_volume_size }} GB
+            Type:                   {{ ebs_volume_type }}
+            Encrypted:              {{ ebs_volume_encrypted }}
+            Mount Path:             {{ ebs_volume_mount_path }}
+            Delete on Termination:  Yes
+          {% else %}
+          Data Volume:              None attached
+          {% endif %}
+          
+          ════════════════════════════════════════════════════════════
+          MONITORING & MANAGEMENT
+          ════════════════════════════════════════════════════════════
+          
+          CloudWatch Monitoring:    {{ 'Enabled (detailed metrics)' if ec2_monitoring_enabled else 'Disabled (basic metrics)' }}
+          Termination Protection:   {{ 'Enabled' if ec2_termination_protection else 'Disabled' }}
+          EBS Optimization:         {{ 'Enabled' if ec2_ebs_optimized else 'Disabled' }}
+          Public IP Assignment:     {{ 'Enabled' if assign_public_ip else 'Disabled' }}
+          Source/Dest Check:        {{ 'Enabled' if ec2_source_dest_check else 'Disabled' }}
+          
+          ════════════════════════════════════════════════════════════
+          SSH ACCESS INFORMATION
+          ════════════════════════════════════════════════════════════
+          
+          SSH User:                 ubuntu
+          SSH Port:                 22
+          SSH Key File:             ~/.ssh/{{ app_name }}-key.pem
+          
+          Quick SSH Access:
+            ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}
+          
+          Copy SSH Key (if on different machine):
+            scp -i ~/old-key.pem ubuntu@{{ instance_ip }}:~/.ssh/authorized_keys .
+          
+          ════════════════════════════════════════════════════════════
+          APPLICATION ACCESS
+          ════════════════════════════════════════════════════════════
+          
+          HTTP Access:              http://{{ instance_ip }}
+          HTTPS Access:             https://{{ instance_ip }} (self-signed)
+          
+          Health Check:             http://{{ instance_ip }}/health
+          
+          ════════════════════════════════════════════════════════════
+          DEPLOYMENT STEPS
+          ════════════════════════════════════════════════════════════
+          
+          1. VERIFY SSH ACCESS
+             ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}
+          
+          2. UPDATE ANSIBLE INVENTORY
+             Edit: deployment/inventories/hosts.yml
+             Set: ansible_host: {{ instance_ip }}
+          
+          3. RUN APPLICATION SETUP
+             ansible-playbook -i inventories playbooks/setup.yml
+          
+          4. VERIFY APPLICATION
+             curl http://{{ instance_ip }}
+             
+             Check logs:
+             ssh ubuntu@{{ instance_ip }} 'sudo journalctl -u {{ app_name }} -n 50'
+          
+          5. CONFIGURE DNS (if using domain)
+             Point your domain to: {{ instance_ip }}
+             Then run: ansible-playbook playbooks/setup-ssl.yml
+          
+          ════════════════════════════════════════════════════════════
+          USEFUL AWS CLI COMMANDS
+          ════════════════════════════════════════════════════════════
+          
+          Get instance details:
+            aws ec2 describe-instances --instance-ids {{ instance_id }} --region {{ aws_region }}
+          
+          Connect via AWS Systems Manager (no SSH key needed):
+            aws ssm start-session --target {{ instance_id }} --region {{ aws_region }}
+          
+          View console output:
+            aws ec2 get-console-output --instance-id {{ instance_id }} --region {{ aws_region }}
+          
+          Stop instance:
+            aws ec2 stop-instances --instance-ids {{ instance_id }} --region {{ aws_region }}
+          
+          Start instance:
+            aws ec2 start-instances --instance-ids {{ instance_id }} --region {{ aws_region }}
+          
+          Terminate instance (DELETE):
+            aws ec2 terminate-instances --instance-ids {{ instance_id }} --region {{ aws_region }}
+          
+          Enable termination protection:
+            aws ec2 modify-instance-attribute --instance-id {{ instance_id }} --disable-api-termination --region {{ aws_region }}
+          
+          ════════════════════════════════════════════════════════════
+          IMPORTANT NOTES
+          ════════════════════════════════════════════════════════════
+          
+          • SSH key file ({{ app_name }}-key.pem) is CRITICAL - DO NOT LOSE IT
+          • The key is stored locally only - AWS doesn't have a copy
+          • You cannot recover a lost SSH key
+          • For production, enable termination protection
+          • For production, use a custom domain with SSL certificate
+          • Review security group rules in AWS Console
+          • Set up CloudWatch alarms for monitoring
+          • Enable detailed monitoring for high-traffic applications
+          
+          ════════════════════════════════════════════════════════════
+          STATUS CHECK
+          ════════════════════════════════════════════════════════════
+          
+          Check AWS Console > EC2 > Instances for status checks:
+            - System Status Check: Should pass in ~1 minute
+            - Instance Status Check: Should pass in ~1 minute
+          
+          If status checks fail, terminate and relaunch.
+          
+          ════════════════════════════════════════════════════════════
+          RESOURCE COST ESTIMATES
+          ════════════════════════════════════════════════════════════
+          
+          EC2 Instance ({{ instance_type }}):    ~$0.01 - $0.10/hour
+          Root Volume (20 GB gp3):               ~$2/month
+          {% if enable_ebs_volume %}
+          Data Volume ({{ ebs_volume_size }} GB {{ ebs_volume_type }}):     ~${{ (ebs_volume_size * 0.10) | int }}/month
+          {% endif %}
+          CloudWatch Monitoring:                 ~$0.30/month
+          
+          Total Estimated Monthly Cost: $5-50 (varies by usage)
+          
+          For detailed pricing, visit: https://aws.amazon.com/ec2/pricing/
+          
+          ════════════════════════════════════════════════════════════
         dest: "{{ playbook_dir }}/../instance-info.txt"
+        backup: yes
 
     - name: Update inventory file automatically
       lineinfile:
