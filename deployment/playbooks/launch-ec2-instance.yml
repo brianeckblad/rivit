@@ -31,9 +31,25 @@
       set_fact:
         ami_id: "{{ amis.images | sort(attribute='creation_date') | last | map(attribute='image_id') | first }}"
 
-    - name: Build EBS volumes list (with optional EBS volume)
+    - name: Build EBS volumes list (EBS volume is MANDATORY)
       set_fact:
-        instance_volumes: "{{ [{'device_name': '/dev/xvda', 'ebs': {'volume_size': 20, 'volume_type': 'gp3', 'delete_on_termination': true, 'encrypted': true}}] + ([{'device_name': ebs_device_name, 'ebs': {'volume_size': ebs_volume_size, 'volume_type': ebs_volume_type, 'delete_on_termination': true, 'encrypted': ebs_volume_encrypted, 'snapshot_id': ebs_volume_snapshot_id if ebs_volume_snapshot_id else omit}}] if enable_ebs_volume | bool else []) }}"
+        instance_volumes:
+          # Root volume (OS only)
+          - device_name: '/dev/xvda'
+            ebs:
+              volume_size: 20
+              volume_type: 'gp3'
+              delete_on_termination: true
+              encrypted: true
+
+          # Data/Application volume (MANDATORY - application runs here)
+          - device_name: "{{ ebs_device_name }}"
+            ebs:
+              volume_size: "{{ ebs_volume_size }}"
+              volume_type: "{{ ebs_volume_type }}"
+              delete_on_termination: true
+              encrypted: "{{ ebs_volume_encrypted }}"
+              snapshot_id: "{{ ebs_volume_snapshot_id if ebs_volume_snapshot_id else omit }}"
 
     - name: Launch EC2 instance
       amazon.aws.ec2_instance:
@@ -72,7 +88,8 @@
           Application: "{{ app_name }}"
           Environment: production
           ManagedBy: Ansible
-          EBSVolume: "{{ 'Attached' if enable_ebs_volume else 'None' }}"
+          EBSVolume: "Mandatory"
+          AppStorageMount: "{{ app_storage_mount_path }}"
           CreatedDate: "{{ ansible_date_time.iso8601 }}"
           LaunchMethod: Ansible
           PublicIP: "{{ 'Yes' if assign_public_ip else 'No' }}"
@@ -128,9 +145,30 @@
           - "  SSH Command:          ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}"
           - "  SSH Port:             22"
           - ""
-          - "STORAGE:"
-          - "  Root Volume:          20 GB (gp3)"
-          - "  EBS Volume:           {{ 'Yes (' + (ebs_volume_size | string) + ' GB ' + ebs_volume_type + ')' if enable_ebs_volume else 'No' }}"
+          STORAGE CONFIGURATION
+          ════════════════════════════════════════════════════════════
+
+          Root Volume (OS Only):
+            Device Name:            /dev/xvda
+            Size:                   20 GB
+            Type:                   gp3
+            Encrypted:              Yes
+
+          Application Storage Volume (MANDATORY):
+            Device Name:            /dev/sdf
+            Size:                   {{ ebs_volume_size }} GB
+            Type:                   {{ ebs_volume_type }}
+            Encrypted:              {{ ebs_volume_encrypted }}
+            Mount Point:            {{ app_storage_mount_path }}
+            Delete on Termination:  Yes
+
+          ⚠️  IMPORTANT:
+            ALL application files are stored on the {{ ebs_volume_size }} GB EBS volume
+            This includes:
+              • Application code ({{ app_storage_mount_path }})
+              • Python virtual environment ({{ venv_dir }})
+              • Application logs ({{ log_dir }})
+              • Instance data ({{ instance_dir }})
           - ""
           - "MONITORING:"
           - "  CloudWatch:           {{ 'Enabled (detailed)' if monitoring_state == 'enabled' else 'Disabled (basic)' }}"

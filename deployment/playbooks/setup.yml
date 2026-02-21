@@ -44,6 +44,69 @@
         state: present
       when: app_user != admin_user
 
+    # =========================================================================
+    # EBS VOLUME MOUNTING (MANDATORY)
+    # =========================================================================
+    # The EBS volume is mounted at: /{app_name}
+    # ALL application files, code, and data reside on this volume
+    # This must be done before creating application directories
+
+    - name: Wait for EBS volume to be available
+      wait_for:
+        path: "{{ ebs_device_name }}1"
+        state: present
+      changed_when: false
+
+    - name: Check if EBS volume is already formatted
+      command: "blkid {{ ebs_device_name }}1"
+      register: ebs_formatted
+      failed_when: false
+      changed_when: false
+
+    - name: Create XFS filesystem on EBS volume (if needed)
+      command: "mkfs.xfs -f {{ ebs_device_name }}1"
+      when: ebs_formatted.rc != 0
+
+    - name: Create application mount point directory
+      file:
+        path: "{{ app_storage_mount_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Get UUID of EBS volume
+      command: "blkid -s UUID -o value {{ ebs_device_name }}1"
+      register: ebs_uuid
+      changed_when: false
+
+    - name: Mount EBS volume at application path
+      mount:
+        path: "{{ app_storage_mount_path }}"
+        src: "UUID={{ ebs_uuid.stdout }}"
+        fstype: xfs
+        opts: defaults,nofail
+        state: mounted
+
+    - name: Set EBS mount point permissions
+      file:
+        path: "{{ app_storage_mount_path }}"
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
+        mode: '0755'
+        state: directory
+
+    - name: Display EBS volume information
+      debug:
+        msg:
+          - "✓ EBS Volume Mounted Successfully"
+          - "  Device: {{ ebs_device_name }}1"
+          - "  Mount Path: {{ app_storage_mount_path }}"
+          - "  Size: {{ ebs_volume_size }} GB"
+          - "  Type: {{ ebs_volume_type }}"
+          - "  Encrypted: {{ ebs_volume_encrypted }}"
+          - "  UUID: {{ ebs_uuid.stdout }}"
+          - ""
+          - "Application will be deployed to: {{ app_storage_mount_path }}"
+
     - name: Create application directory
       file:
         path: "{{ app_dir }}"

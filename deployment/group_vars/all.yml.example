@@ -92,69 +92,58 @@ backup_retention_days: 30                        # Days to keep backups before d
 s3_version_retention_days: 30                    # Days to keep old S3 versions
 
 # ============================================================================
-# 7. ADVANCED SETTINGS (OPTIONAL - Production Use)
+# 7. STORAGE CONFIGURATION (MANDATORY)
 # ============================================================================
+
+# EBS Volume Configuration
+# ⚠️ EBS VOLUME IS MANDATORY - Application runs on EBS volume
+# The EBS volume contains all application code, data, and logs
+# Root volume is only used for OS
+
+# Application Storage Location
+# Default: /{app_name} (e.g., /myapp)
+# This is where the EBS volume is mounted
+# ALL application files will be stored here
+app_storage_mount_path: "/{{ app_name }}"       # Mount point for application EBS volume
+                                                 # Format: /{app_name}
+                                                 # Example: /myapp, /inventory_tool, /comic_tracker
+                                                 # This directory contains:
+                                                 #   • Application code
+                                                 #   • Python virtual environment
+                                                 #   • Application data
+                                                 #   • Application logs
+                                                 #   • Cache files
+
+# EBS Volume Size (REQUIRED)
+ebs_volume_size: 100                             # Size in GB (default: 100)
+                                                 # Minimum: 20 GB (for OS + app)
+                                                 # Recommended: 50-100 GB for small apps
+                                                 # Increase for large datasets
+                                                 # Cost: ~$0.10/GB/month for gp3
+
+# EBS Volume Type (OPTIONAL)
+ebs_volume_type: "gp3"                           # Volume type (default: gp3)
+                                                 # gp3: General Purpose (recommended, fast, cost-effective)
+                                                 # gp2: Legacy general purpose (avoid)
+                                                 # io1: High IOPS (for databases, expensive)
+                                                 # st1: Throughput optimized (for big data)
+
+# EBS Encryption (OPTIONAL)
+ebs_volume_encrypted: true                       # Encrypt volume (default: true - recommended)
+                                                 # Adds minimal performance cost
+                                                 # Improves security for sensitive data
+
+# EBS Volume From Snapshot (OPTIONAL)
+ebs_volume_snapshot_id: ""                       # Restore from previous snapshot (default: empty)
+                                                 # Leave empty for new volume
+                                                 # Set to snapshot ID to restore: snap-0123456789abcdef0
+                                                 # Useful for backup/restore or copying volumes
 
 # EC2 Instance Type
 # Default: t3.micro (AWS free tier eligible)
 # Larger options: t3.small, t3.medium, t3.large, etc.
 ec2_instance_type: "t3.micro"                   # Keep as t3.micro for free tier
                                                  # Change for production: t3.small or larger
-
-# EC2 Instance Configuration (OPTIONAL)
-# Default values provide good balance for most applications
-# Change only if you have specific requirements
-
-# assign_public_ip: true                         # Assign public IP automatically (default: true)
-#                                                 # Must be true for SSH/HTTP/HTTPS access
-
-# ec2_monitoring_enabled: true                   # Enable CloudWatch detailed monitoring (default: true)
-#                                                 # Provides detailed metrics (1-minute intervals)
-#                                                 # Cost: ~$3/month
-
-# ec2_termination_protection: false              # Protect instance from accidental termination (default: false)
-#                                                 # Set to true for production to prevent accidental deletion
-#                                                 # You can still manually delete if you disable protection first
-
-# ec2_ebs_optimized: false                       # Enable EBS optimization (default: false)
-#                                                 # Provides dedicated throughput to EBS
-#                                                 # Recommended for I/O intensive applications
-#                                                 # Adds ~5-10% to instance cost
-
-# ec2_source_dest_check: true                    # Enable source/destination check (default: true)
-#                                                 # Security feature: validates packet source/destination
-#                                                 # Required for normal EC2 operation
-#                                                 # Only disable if using instance as NAT/proxy
-
-# EBS Volume Attachment (OPTIONAL)
-# Add persistent block storage to your EC2 instance
-# Default: Disabled (uses instance root volume only)
-# To enable: Uncomment below and set enable_ebs_volume: true
-#
-# ebs_volume_size: 100                           # Size in GB (default: 100)
-#                                                 # Minimum: 1 GB
-#                                                 # Maximum: 16,384 GB
-#                                                 # Cost: ~$0.10/GB/month for gp3
-#
-# ebs_volume_type: "gp3"                         # Volume type (default: gp3)
-#                                                 # gp3: General Purpose (fast, cost-effective)
-#                                                 # gp2: General Purpose (older, 3 IOPS/GB)
-#                                                 # io1: High IOPS (expensive)
-#                                                 # st1: Throughput optimized (for big data)
-#
-# ebs_volume_mount_path: "/data"                 # Where to mount volume (default: /data)
-#                                                 # Will create directory if doesn't exist
-#                                                 # Mount point ownership: {admin_user}:{admin_user}
-#
-# ebs_volume_encrypted: true                     # Encrypt volume (default: true - recommended)
-#                                                 # Adds minimal performance cost, improves security
-#
-# ebs_volume_snapshot_id: ""                     # Optional: Restore from snapshot
-#                                                 # Leave empty for new volume
-#                                                 # Example: snap-0123456789abcdef0
-#
-# enable_ebs_volume: false                       # Set to true to attach EBS volume
-#                                                 # Default: false (disabled)
 #                                                 # When true, all ebs_volume_* settings apply
 
 # CloudFront CDN Pricing (only if using CloudFront)
@@ -168,18 +157,36 @@ cloudfront_price_class: "PriceClass_100"        # Only used if you deploy CloudF
 # Everything below is auto-configured - no changes needed
 # ============================================================================
 
-# Computed values (do not edit)
+# ============================================================================
+# ⚠️ AUTO-CONFIGURED VALUES - DO NOT EDIT
+# ============================================================================
+# Everything below is automatically configured based on variables above
+
+# Computed values
 service_name: "{{ app_name }}"
-app_dir: "/home/{{ admin_user }}/{{ app_name }}"
 
-# SECURITY: Virtual environment is OUTSIDE app folder
-# Why: Prevents accidental exposure via web server misconfiguration
-# Location: /home/ubuntu/.venv (sibling to app, not inside)
-venv_dir: "/home/{{ admin_user }}/.venv"
+# APPLICATION DIRECTORY (ON EBS VOLUME)
+# All application files, code, data, and logs reside on EBS volume
+# EBS volume is mounted at: /{app_name}
+# Example: /myapp, /inventory_tool, /comic_tracker
+app_dir: "{{ app_storage_mount_path }}"         # Application directory on EBS volume
+                                                 # Contains: code, data, cache, instance files
 
-log_dir: "/var/log/{{ app_name }}"
+# VIRTUAL ENVIRONMENT (ON EBS VOLUME)
+# Python venv is also on EBS volume for better performance
+# Located inside app directory
+venv_dir: "{{ app_storage_mount_path }}/.venv"  # Python virtual environment on EBS volume
 
-# SECURITY: Gunicorn is intentionally NOT exposed to internet
+# LOG DIRECTORY (ON EBS VOLUME)
+# Application logs stored on EBS volume
+log_dir: "{{ app_storage_mount_path }}/logs"    # Log directory on EBS volume
+
+# INSTANCE DATA DIRECTORY (ON EBS VOLUME)
+# Runtime data and cache stored on EBS volume
+instance_dir: "{{ app_storage_mount_path }}/instance"  # Instance data directory on EBS volume
+
+# SECURITY: Gunicorn Configuration
+# Gunicorn is intentionally NOT exposed to internet
 # gunicorn_bind binds to localhost (127.0.0.1) only
 # Port 8000 is standard and correct
 # Nginx proxies requests from ports 80/443 to this internal port
@@ -211,11 +218,10 @@ ec2_termination_protection: "{{ ec2_termination_protection | default(false) }}"
 ec2_ebs_optimized: "{{ ec2_ebs_optimized | default(false) }}"
 ec2_source_dest_check: "{{ ec2_source_dest_check | default(true) }}"
 
-# EBS Volume Configuration (auto-configured)
-enable_ebs_volume: "{{ enable_ebs_volume | default(false) }}"
+# EBS Volume Configuration (MANDATORY - application runs here)
 ebs_volume_size: "{{ ebs_volume_size | default(100) }}"
 ebs_volume_type: "{{ ebs_volume_type | default('gp3') }}"
-ebs_volume_mount_path: "{{ ebs_volume_mount_path | default('/data') }}"
+ebs_volume_mount_path: "{{ app_storage_mount_path }}"  # Mount point for application
 ebs_volume_encrypted: "{{ ebs_volume_encrypted | default(true) }}"
 ebs_volume_snapshot_id: "{{ ebs_volume_snapshot_id | default('') }}"
 ebs_device_name: "/dev/sdf"                      # Device name for block device mapping
