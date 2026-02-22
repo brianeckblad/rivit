@@ -185,12 +185,14 @@ nano group_vars/all.yml
 ### 2. Create Secrets Vault
 
 ```bash
-# Create vault password file
+# Create vault password file (master password for encryption)
 echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
 # Create secrets file from template
 cp group_vars/vault.yml.example group_vars/vault.yml
+
+# Edit with your secrets
 nano group_vars/vault.yml
 ```
 
@@ -205,12 +207,25 @@ vault_app_username: "admin"
 vault_app_password: "strong-password-here"
 ```
 
-**Or use the setup script:**
+**⚠️ THEN ENCRYPT THE VAULT:**
+
 ```bash
-./scripts/local-dev-setup.sh  # Creates all files automatically
+cd deployment
+
+# Encrypt vault.yml (REQUIRED - do this before deploying!)
+ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
+
+# Verify it's encrypted
+head -1 group_vars/vault.yml
+# Should show: $ANSIBLE_VAULT;1.1;AES256
 ```
 
-**Detailed instructions:** → [docs/guides/QUICKSTART.md#prerequisites](docs/guides/QUICKSTART.md#prerequisites)
+**Or use the setup script:**
+```bash
+./scripts/local-dev-setup.sh  # Creates and encrypts all files automatically
+```
+
+**Detailed instructions:** → [docs/guides/PREREQUISITES.md](docs/guides/PREREQUISITES.md)
 
 ---
 

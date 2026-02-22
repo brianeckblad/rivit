@@ -97,27 +97,91 @@ echo "  📄 group_vars/all.yml.example"
 echo "  📄 group_vars/vault.yml.example"
 echo ""
 echo "Next Steps:"
+echo ""
+echo "Step 3: Create vault password file (if needed)"
+echo "-----------------------------------------------------"
+
+VAULT_PASS_FILE="$HOME/.vault_pass"
+
+if [ ! -f "$VAULT_PASS_FILE" ]; then
+    echo "🔐 Creating vault password file..."
+    echo "Enter a strong password for vault encryption:"
+    read -s VAULT_PASSWORD
+    echo "$VAULT_PASSWORD" > "$VAULT_PASS_FILE"
+    chmod 600 "$VAULT_PASS_FILE"
+    echo "   ✅ Created: $VAULT_PASS_FILE (with 600 permissions)"
+else
+    echo "⚠️  Vault password file already exists at $VAULT_PASS_FILE"
+fi
+
+# Encrypt vault.yml if it exists and is not already encrypted
+echo ""
+echo "Step 4: Encrypt vault.yml (REQUIRED - securing secrets)"
+echo "-----------------------------------------------------"
+
+if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+    # Check if vault.yml is already encrypted
+    if head -1 "$GROUP_VARS_DIR/vault.yml" | grep -q "ANSIBLE_VAULT"; then
+        echo "✅ vault.yml is already encrypted"
+    else
+        echo "🔒 Encrypting vault.yml..."
+        cd "$DEPLOYMENT_DIR"
+        ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass 2>/dev/null
+        echo "   ✅ vault.yml is now encrypted"
+        echo "   Verify: head -1 group_vars/vault.yml"
+    fi
+fi
+
+echo ""
+echo "=================================================="
+echo "✅ Setup Complete!"
+echo "=================================================="
+echo ""
+echo "Configuration files created (ignored by Git):"
+echo ""
+
+if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
+    echo "  📄 group_vars/all.yml"
+    echo "     → Edit this for your app name, domain, etc."
+fi
+
+if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+    # Check if encrypted
+    if head -1 "$GROUP_VARS_DIR/vault.yml" | grep -q "ANSIBLE_VAULT"; then
+        echo "  🔒 group_vars/vault.yml (ENCRYPTED)"
+    else
+        echo "  ⚠️  group_vars/vault.yml (NOT ENCRYPTED - fix this!)"
+    fi
+    echo "     → Edit with: ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass"
+fi
+
+echo ""
+echo "Template files (tracked in Git, receive updates):"
+echo ""
+echo "  📄 group_vars/all.yml.example"
+echo "  📄 group_vars/vault.yml.example"
+echo ""
+echo "Next Steps:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "1. Edit your configuration files:"
+echo "1. Review your configuration files:"
 echo "   cd $DEPLOYMENT_DIR"
 echo "   nano group_vars/all.yml"
-echo "   nano group_vars/vault.yml"
 echo ""
-echo "2. Create vault password file:"
-echo "   echo 'your-secure-password' > ~/.vault_pass"
-echo "   chmod 600 ~/.vault_pass"
-echo ""
-echo "3. (Optional) Encrypt your vault:"
+echo "2. Edit your secrets (vault is encrypted):"
 echo "   cd $DEPLOYMENT_DIR"
-echo "   ansible-vault encrypt group_vars/vault.yml \\"
-echo "     --vault-password-file ~/.vault_pass"
+echo "   ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass"
+echo ""
+echo "3. Verify vault can be decrypted:"
+echo "   cd $DEPLOYMENT_DIR"
+echo "   ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | head -5"
 echo ""
 echo "4. Verify Git ignores your configs:"
 echo "   git status"
 echo "   # Should show: nothing to commit (or only .example files)"
 echo ""
 echo "5. Deploy your application:"
+echo "   cd $DEPLOYMENT_DIR"
 echo "   ./scripts/infra-complete-setup.sh"
 echo ""
 

@@ -445,14 +445,35 @@ cloudfront_price_class: "PriceClass_100" # CloudFront pricing tier (if using CDN
 - `admin_user`: Leave as `ubuntu` (default for Ubuntu 22.04 AMI, used for SSH and deployment)
 - `app_user`: Automatically set to `app_name` - this user runs your application (no SSH access, no shell)
 
-### Step 3: Create Secrets Vault
+### Step 3: Create & Encrypt Secrets Vault
+
+**⚠️ SECURITY:** The vault file contains secrets. You MUST encrypt it.
+
+#### Step 3a: Create Vault Password File
+
+This is your master password for encrypting/decrypting secrets:
 
 ```bash
 # Create vault password file (stores your vault encryption password)
 echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
+```
 
-# Edit secrets vault
+**⚠️ IMPORTANT:**
+- `your-secure-password` - Make this a STRONG random password
+- Save it somewhere secure (password manager, etc.)
+- This password is needed every time you run deployment playbooks
+- This is NOT your AWS password - it's just for Ansible vault encryption
+
+#### Step 3b: Copy & Edit Vault
+
+```bash
+cd deployment
+
+# Copy template to your config
+cp group_vars/vault.yml.example group_vars/vault.yml
+
+# Edit with your secrets (plain text for now)
 nano group_vars/vault.yml
 ```
 
@@ -518,32 +539,67 @@ vault_sns_topic_arn: ""                         # Example: arn:aws:sns:us-east-2
 - 3-63 characters long
 - Recommended pattern: `yourname-appname-year` (e.g., `john-myapp-2026`)
 
+#### Step 3c: Encrypt the Vault File
+
+**NOW encrypt your vault.yml file:**
+
+```bash
+cd deployment
+
+# Encrypt vault.yml with your vault password
+ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
+
+# Verify it's encrypted (should show encrypted content, not plain text)
+cat group_vars/vault.yml | head -5
+# Should show: $ANSIBLE_VAULT;1.2;AES256;... (not readable plain text)
+
+# Verify you can decrypt it
+ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
+# Should show your secrets in plain text
+```
+
 **Vault Security:**
-- ✅ This file is encrypted before being stored in Git
-- ✅ Only the person with the vault password can read it
-- ✅ It's safe to commit to Git when encrypted
-- ✅ Your GitHub credentials stay private
+- ✅ Your vault.yml is now encrypted on disk
+- ✅ Only readable with the vault password from ~/.vault_pass
+- ✅ Safe to commit to Git (though ignored by .gitignore)
+- ✅ GitHub credentials and AWS settings stay private
+- ✅ Playbooks automatically decrypt it with ~/.vault_pass
+
+**⚠️ CRITICAL - Save Your Vault Password:**
+- Store `~/.vault_pass` securely (don't lose this file!)
+- Back up your vault password in a password manager
+- If you lose it, you cannot decrypt vault.yml
 
 ### Step 4: Verify Configuration
 
 ```bash
 cd deployment
 
-# Check all.yml exists and shows your settings
-cat group_vars/all.yml | grep -E "^app_name|^app_display_name|^server_name|^admin_user|^app_user"
+# 1. Check all.yml exists and shows your settings
+grep -E "^app_name:|^app_display_name:|^server_name:|^admin_user:|^app_user:" group_vars/all.yml
 # Should show your values
 
-# Check vault can be decrypted
-ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
-# Should show your secrets without error
+# 2. Check vault.yml is encrypted
+file group_vars/vault.yml
+# Should show: vault.yml: ASCII text (encrypted vault file)
+# OR check first line:
+head -1 group_vars/vault.yml
+# Should show: $ANSIBLE_VAULT;1.2;AES256; (encryption header, not plain text)
 
-# Verify AWS CLI uses correct profile
-aws sts get-caller-identity --profile your-profile-name
+# 3. Verify vault can be decrypted with your password
+ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | head -5
+# Should show your secrets without error (looking for vault_git_repo, vault_aws_region, etc.)
+
+# 4. Verify AWS CLI uses correct profile/region
+aws sts get-caller-identity
 # Should show your account ID and IAM user
 
-# Verify all configuration files exist
-ls -la group_vars/all.yml group_vars/vault.yml
-# Both should show
+# 5. Verify all configuration files exist and have correct permissions
+ls -la group_vars/all.yml group_vars/vault.yml ~/.vault_pass
+# Should show:
+#  - group_vars/all.yml (readable)
+#  - group_vars/vault.yml (readable)
+#  - ~/.vault_pass with -rw------- permissions (600)
 ```
 
 ---
@@ -580,11 +636,20 @@ ls deployment/group_vars/all.yml
 ls deployment/group_vars/vault.yml
 # ✅ Both files exist
 
-# 7. Vault can be read
-ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
-# ✅ Shows your secrets without error
+# 7. ⚠️ VAULT IS ENCRYPTED (CRITICAL!)
+head -1 deployment/group_vars/vault.yml
+# ✅ Should show: $ANSIBLE_VAULT;1.2;AES256; (NOT plain text!)
+# ✅ If it shows plain YAML, run: ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
 
-# 8. SSH key doesn't exist yet (will be created)
+# 8. Vault password file exists and has correct permissions
+ls -la ~/.vault_pass
+# ✅ Should show: -rw------- (read/write for user only, not readable by others)
+
+# 9. Vault can be decrypted
+ansible-vault view deployment/group_vars/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
+# ✅ Should show your GitHub repo URL without error
+
+# 10. SSH key doesn't exist yet (will be created)
 ls ~/.ssh/{app_name}-key.pem
 # ✅ Should NOT exist yet (will be created during deployment)
 ```

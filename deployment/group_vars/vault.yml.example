@@ -1,19 +1,19 @@
 ---
 # ============================================================================
-# EXAMPLE SECRETS VAULT FILE
+# SECRETS VAULT FILE - MUST BE ENCRYPTED
 # ============================================================================
-# This file contains sensitive data that should NEVER be committed unencrypted.
+# ⚠️ THIS FILE CONTAINS SECRETS AND MUST BE ENCRYPTED!
 #
-# Setup Process:
-# 1. Copy this file: cp vault.yml.example vault.yml
-# 2. Edit with your credentials: nano vault.yml
-# 3. Create vault password: echo 'your-secure-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
-# 4. Test decryption: ansible-vault view vault.yml --vault-password-file ~/.vault_pass
+# Complete setup in PREREQUISITES.md (see deployment docs):
+# 1. Create vault password file: echo 'strong-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
+# 2. Copy this file: cp vault.yml.example vault.yml
+# 3. Edit with your credentials: nano vault.yml
+# 4. ENCRYPT IT: ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
+# 5. Verify: ansible-vault view vault.yml --vault-password-file ~/.vault_pass
 #
-# Encryption (when ready to commit):
-#   ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
-#
-# After encryption, it's SAFE to commit to Git - only readable with vault password
+# ✅ After encryption, it's SAFE to commit to Git (encrypted content only)
+# ✅ Playbooks automatically decrypt with ~/.vault_pass (see ansible.cfg)
+# ⚠️ NEVER commit unencrypted vault.yml with real secrets!
 # ============================================================================
 
 # ============================================================================

@@ -11,6 +11,18 @@ Learn something new with each step!
 
 ---
 
+## About Secrets & Vault
+
+**Your vault.yml file is encrypted and safe.** Ansible automatically:
+- ✅ Reads your encrypted vault.yml
+- ✅ Uses ~/.vault_pass to decrypt it
+- ✅ No manual vault password entry needed
+- ✅ Works with all playbook commands below
+
+**If a playbook asks for vault password:** Make sure ~/.vault_pass exists with proper permissions (600).
+
+---
+
 ## Prerequisites
 
 ✅ **Have you done this yet?** Complete before starting deployment:
