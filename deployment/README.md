@@ -4,100 +4,103 @@
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started (The 3-Step Process)
 
-### New to this deployment? Start here:
+### Step 1: Prerequisites (30 minutes)
 
-1. **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)** (30 min)
-   - AWS account setup
-   - AWS CLI configuration
-   - Local tools installation
-   - Configuration files
+Get your local machine ready. Do this FIRST:
 
-2. **Then choose your deployment method:**
-   - **Fast?** → [QUICKSTART.md](docs/guides/QUICKSTART.md) (15-20 min)
-   - **Learn?** → [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) (1-2 hours)
+→ **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)**
+
+**Sets up:**
+- ✅ AWS account and IAM user
+- ✅ AWS CLI on your machine
+- ✅ Ansible and Python
+- ✅ Deployment configuration files
+
+**When done, you'll see:**
+```bash
+$ aws sts get-caller-identity
+# Shows your AWS account ID
+```
+
+### Step 2: Choose Your Deployment Path
+
+After prerequisites, pick how to deploy:
+
+#### Option A: Fast & Automated (Recommended)
+**Everything in 15-20 minutes, one command**
+
+→ **[QUICKSTART.md](docs/guides/QUICKSTART.md)**
+
+Best for:
+- Want your app running quickly
+- Trust automation (all steps documented)
+- Getting started is the priority
+
+#### Option B: Learn Step-by-Step
+**Understand each component, 1-2 hours**
+
+→ **[MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)**
+
+Best for:
+- Want to learn how it works
+- Prefer understanding before automating
+- Troubleshooting existing deployments
+
+### Step 3: After Deployment
+
+Your app is running! What now?
+
+| Next Step | Guide | Time |
+|-----------|-------|------|
+| Update your application code | [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md) | 1-10 min |
+| Add SSL/HTTPS (recommended) | [MANUAL_DEPLOYMENT.md#ssl](docs/guides/MANUAL_DEPLOYMENT.md#step-5-configure-ssl-optional) | 10 min |
+| Set up monitoring & alerts | [MONITORING.md](docs/guides/MONITORING.md) | 15 min |
+| Add security hardening | [SECURITY_HARDENING.md](docs/guides/SECURITY_HARDENING.md) | Reference |
 
 ---
 
-## 📚 Documentation Guide
+## 📚 Complete Documentation Index
 
-### Start Here
+### Core Guides
 
-| Document | Purpose | Time |
-|----------|---------|------|
-| **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)** | Setup AWS account, CLI, tools | 30 min |
-| **[ANSIBLE_INVENTORY_SETUP.md](docs/guides/ANSIBLE_INVENTORY_SETUP.md)** | Configure server location (hosts.yml) | 5 min |
+| Document | Purpose | When to Use |
+|----------|---------|-----------|
+| [PREREQUISITES.md](docs/guides/PREREQUISITES.md) | First time setup | Before anything else |
+| [QUICKSTART.md](docs/guides/QUICKSTART.md) | Automatic deployment | Want fast setup |
+| [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) | Step-by-step deployment | Want to learn |
 
-**Application Configuration:**
-| Document | Purpose | Time |
-|----------|---------|------|
-| **[APP_CONFIGURATION_GUIDE.md](../APP_CONFIGURATION_GUIDE.md)** | Configure Flask application (.env) | 10 min |
+### Understanding Your Deployment
 
-### Deployment Methods
-
-| Guide | Best For | Time |
-|-------|----------|------|
-| **[QUICKSTART.md](docs/guides/QUICKSTART.md)** | Fast deployment with automation | 15-20 min |
-| **[MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)** | Learn by doing, step-by-step | 1-2 hours |
-| **[INFRASTRUCTURE.md](docs/guides/INFRASTRUCTURE.md)** | Just AWS resources (no app) | 15 min |
-
-### After Deployment
-
-| Guide | Purpose | Time |
-|-------|---------|------|
-| **[UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md)** | Deploy code changes and updates | 1-10 min |
-| **[SECURITY_HARDENING.md](docs/guides/SECURITY_HARDENING.md)** | Verify hardening is applied | Reference |
-| **[WAF_CONFIGURATION.md](docs/guides/WAF_CONFIGURATION.md)** | Set up Web Application Firewall | 10 min |
-| **[CLOUDFRONT_CDN.md](docs/guides/CLOUDFRONT_CDN.md)** | Speed up with global CDN | 5 min |
+| Document | Purpose |
+|----------|---------|
+| [ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) | How everything fits together |
+| [INFRASTRUCTURE.md](docs/guides/INFRASTRUCTURE.md) | AWS resources explained |
 
 ### Operations & Maintenance
 
-| Guide | Purpose |
-|-------|---------|
-| **[MONITORING.md](docs/guides/MONITORING.md)** | Create dashboards and alarms |
-| **[OPERATIONS.md](docs/guides/OPERATIONS.md)** | Updates, backups, scaling |
-| **[MULTI_USER.md](docs/guides/MULTI_USER.md)** | Add additional users |
-| **[SECRET_MANAGEMENT.md](docs/guides/SECRET_MANAGEMENT.md)** | Rotate secrets safely |
+| Document | Purpose |
+|----------|---------|
+| [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md) | Deploy code changes |
+| [MONITORING.md](docs/guides/MONITORING.md) | Monitor your app (logs, alarms) |
+| [OPERATIONS.md](docs/guides/OPERATIONS.md) | Backups, scaling, troubleshooting |
+| [SECRET_MANAGEMENT.md](docs/guides/SECRET_MANAGEMENT.md) | Rotate passwords and credentials |
+| [MULTI_USER.md](docs/guides/MULTI_USER.md) | Add more users to server |
 
-### Reference & Architecture
+### Optional Features
 
-| Reference | Purpose |
-|-----------|---------|
-| **[ARCHITECTURE.md](docs/reference/ARCHITECTURE.md)** | System design & decisions |
-| **[PLAYBOOKS.md](docs/reference/PLAYBOOKS.md)** | All playbooks documented |
-| **[AWS_PROFILES.md](docs/reference/AWS_PROFILES.md)** | Multiple AWS accounts |
-| **[SECURITY.md](docs/reference/SECURITY.md)** | Security hardening details |
+| Feature | Guide |
+|---------|-------|
+| SSL/HTTPS Certificate | [MANUAL_DEPLOYMENT.md#ssl](docs/guides/MANUAL_DEPLOYMENT.md#step-5-configure-ssl-optional) |
+| CloudFront CDN | [CLOUDFRONT_CDN.md](docs/guides/CLOUDFRONT_CDN.md) |
+| WAF (Web Firewall) | [WAF_CONFIGURATION.md](docs/guides/WAF_CONFIGURATION.md) |
+| EBS Application Storage | [EBS_APPLICATION_STORAGE.md](docs/guides/EBS_APPLICATION_STORAGE.md) |
+| Security Hardening | [SECURITY_HARDENING.md](docs/guides/SECURITY_HARDENING.md) |
 
 ---
 
 ## What Gets Deployed
-
-**Complete production-ready setup:**
-
-- ✅ AWS EC2 instance (Ubuntu 22.04)
-- ✅ Application server (Gunicorn + Nginx)
-- ✅ Auto-restart service (Systemd)
-- ✅ Cloud storage (S3 bucket)
-- ✅ Permissions (IAM role, no credentials on server)
-- ✅ SSL/HTTPS (Let's Encrypt, optional)
-- ✅ Monitoring (CloudWatch, optional)
-- ✅ Security hardening (built-in)
-
-**Cost:** ~$10-15/month (~$2/month on AWS free tier)
-
----
-
-## Quick Reference
-
-### Configuration Files
-
-Your personal settings are **NOT** committed to Git (for security):
-
-```bash
-cd deployment
-
-# Create your config files from templates
 ./scripts/local-dev-setup.sh
 
 # Or manual copy
@@ -136,256 +139,70 @@ ansible-playbook -i inventories playbooks/setup.yml
 
 ---
 
-## Documentation Maintenance
+## What Gets Deployed
 
-**Help keep documentation accurate and up-to-date:**
+**Complete production-ready setup:**
 
-### For Users
-- **Have feedback?** → [FEEDBACK_FORM.md](../FEEDBACK_FORM.md)
-- **Found an error?** → Create GitHub issue with label `documentation`
-- **Have a suggestion?** → Open GitHub discussion in #documentation
+- ✅ AWS EC2 instance (Ubuntu 22.04)
+- ✅ Application server (Gunicorn + Nginx)
+- ✅ Auto-restart service (Systemd)
+- ✅ Cloud storage (S3 bucket)
+- ✅ Permissions (IAM role, no credentials on server)
+- ✅ SSL/HTTPS (Let's Encrypt, optional)
+- ✅ Monitoring (CloudWatch, optional)
+- ✅ Security hardening (built-in)
 
-### For Maintainers
-- **Quarterly review?** → [MAINTENANCE_CHECKLIST.md](docs/MAINTENANCE_CHECKLIST.md)
-- **Need to update docs?** → [SYNC_GUIDE.md](docs/SYNC_GUIDE.md)
-- **Want to validate?** → `bash docs/validate-docs.sh`
-- **Track changes?** → [CHANGELOG.md](docs/CHANGELOG.md)
-
-### Documentation Quality
-- ✅ All 21 playbooks documented
-- ✅ Complete prerequisites guide
-- ✅ Multiple deployment options
-- ✅ Step-by-step procedures
-- ✅ Troubleshooting guides
-- ✅ Best practices
-- ✅ Cost/time estimates
-
-**Standard pattern used by npm, docker, and most tools.**
+**Cost:** ~$10-15/month (~$2/month on AWS free tier)
 
 ---
 
-**⚠️ You must configure variables before deploying:**
+## Quick Facts
 
-### 1. Edit Configuration File
-
-```bash
-cd deployment
-
-# Create your config from template
-cp group_vars/all.yml.example group_vars/all.yml
-nano group_vars/all.yml
-```
-
-**Required variables to change:**
-- `app_name` - Your application name (technical, lowercase)
-- `app_display_name` - Display name for your app
-- `server_name` - Your domain or "_" for IP-only access
-- `ssl_email` - Your email for SSL certificate notifications (only if using SSL)
-
-### 2. Create Secrets Vault
-
-```bash
-# Create vault password file (master password for encryption)
-echo "your-secure-password" > ~/.vault_pass
-chmod 600 ~/.vault_pass
-
-# Create secrets file from template
-cp group_vars/vault.yml.example group_vars/vault.yml
-
-# Edit with your secrets
-nano group_vars/vault.yml
-```
-
-**Add your secrets:**
-```yaml
----
-vault_git_repo: "https://github.com/YOUR_USERNAME/your_app.git"
-vault_aws_region: "us-east-2"
-vault_s3_bucket_name: "yourname-yourapp-2026"
-vault_s3_folder: "data"
-vault_app_username: "admin"
-vault_app_password: "strong-password-here"
-```
-
-**⚠️ THEN ENCRYPT THE VAULT:**
-
-```bash
-cd deployment
-
-# Encrypt vault.yml (REQUIRED - do this before deploying!)
-ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
-
-# Verify it's encrypted
-head -1 group_vars/vault.yml
-# Should show: $ANSIBLE_VAULT;1.1;AES256
-```
-
-**Or use the setup script:**
-```bash
-./scripts/local-dev-setup.sh  # Creates and encrypts all files automatically
-```
-
-**Detailed instructions:** → [docs/guides/PREREQUISITES.md](docs/guides/PREREQUISITES.md)
+| Item | Value |
+|------|-------|
+| **Prerequisites time** | 30 minutes |
+| **Automated deploy time** | 15-20 minutes |
+| **Manual deploy time** | 1-2 hours |
+| **Server OS** | Ubuntu 22.04 LTS |
+| **App framework** | Python + Gunicorn + Nginx |
+| **Process manager** | Systemd |
+| **Deployment tool** | Ansible |
+| **Cloud provider** | AWS |
+| **Monthly cost** | ~$10-15 (free tier: ~$2) |
 
 ---
 
-## Deployment Options
-
-### Option 1: Automated (Recommended)
-
-**One command does everything:**
+## Common Commands
 
 ```bash
+# Start fresh deployment
 cd deployment
 ./scripts/infra-complete-setup.sh
-```
 
-**What it does:**
-1. Creates S3 bucket
-2. Provisions EC2 instance
-3. Deploys application
-4. Optional: SSL setup
-5. Optional: Monitoring
-
-**Duration:** 15-20 minutes  
-**Guide:** [docs/guides/QUICKSTART.md](docs/guides/QUICKSTART.md)
-
-### Option 2: Step-by-Step
-
-**Individual playbooks for each component:**
-
-```bash
-cd deployment
-
-# 1. Provision infrastructure (orchestration)
-ansible-playbook playbooks/provision-infrastructure.yml
-
-# OR run individual components:
-ansible-playbook playbooks/create-s3-bucket.yml
-ansible-playbook playbooks/create-iam-role.yml
-ansible-playbook playbooks/create-security-group.yml
-ansible-playbook playbooks/create-ssh-key.yml
-ansible-playbook playbooks/launch-ec2-instance.yml
-
-# 2. Deploy application
-ansible-playbook -i inventories playbooks/setup.yml
-
-# 3. Add SSL (optional)
-ansible-playbook -i inventories playbooks/setup-ssl.yml
-
-# 4. Add monitoring (optional)
-ansible-playbook -i inventories playbooks/setup-monitoring.yml
-
-# 5. Add CloudFront CDN (optional)
-ansible-playbook playbooks/setup-cloudfront.yml
-
-# 6. Add WAF protection (optional)
-ansible-playbook playbooks/setup-waf.yml
-
-# 7. Setup Secrets Manager (optional)
-ansible-playbook playbooks/setup-secrets-manager.yml
-```
-
-**Duration:** 30-40 minutes  
-**Guide:** [docs/guides/MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)
-
-**Each playbook = one AWS component**
-- Validate after each step
-- Skip optional components
-- Debug easily if something fails
-
-### Option 3: Manual AWS CLI
-
-**Full control with AWS CLI commands:**
-
-Each step has both playbook AND manual CLI options.
-
-**Guide:** [docs/guides/MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) (Option B for each step)
-
----
-
-## Common Tasks
-
-### First Time Deployment
-
-```bash
-cd deployment
-./scripts/infra-complete-setup.sh
-```
-→ [docs/guides/QUICKSTART.md](docs/guides/QUICKSTART.md)
-
-### Update Application
-
-```bash
+# Deploy code updates only
 cd deployment
 ansible-playbook -i inventories playbooks/update.yml
+
+# View application logs
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+sudo journalctl -u {app_name} -f
+
+# Restart application
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
+sudo systemctl restart {app_name}
 ```
-→ [docs/guides/OPERATIONS.md#updates](docs/guides/OPERATIONS.md#updates)
-
-### Add SSL Certificate
-
-```bash
-cd deployment
-ansible-playbook -i inventories playbooks/setup-ssl.yml
-```
-→ [docs/guides/MANUAL_DEPLOYMENT.md#step-3-configure-ssl-optional](docs/guides/MANUAL_DEPLOYMENT.md#step-3-configure-ssl-optional)
-
-### Rotate Secret
-
-```bash
-cd deployment
-ansible-playbook playbooks/secret-rotate.yml -e secret_key=YOUR_KEY
-ansible-playbook playbooks/secret-promote.yml -e secret_key=YOUR_KEY
-```
-→ [docs/guides/SECRET_MANAGEMENT.md](docs/guides/SECRET_MANAGEMENT.md)
-
-### View Logs
-
-```bash
-ssh ubuntu@YOUR_SERVER_IP
-sudo journalctl -u myapp -n 50
-```
-→ [docs/guides/OPERATIONS.md#logs](docs/guides/OPERATIONS.md#logs)
 
 ---
 
-## Technology Stack
+## Documentation Maintenance
 
-| Component | Technology |
-|-----------|-----------|
-| **Cloud** | AWS (EC2, S3, IAM, CloudWatch) |
-| **OS** | Ubuntu 22.04 LTS |
-| **Python** | Python 3.10 |
-| **Web Server** | Nginx |
-| **App Server** | Gunicorn (4 workers) |
-| **Process Manager** | Systemd |
-| **Deployment** | Ansible 2.9+ |
-| **SSL** | Let's Encrypt (certbot) |
-| **Secrets** | AWS Secrets Manager + Ansible Vault |
-| **Monitoring** | AWS CloudWatch |
+**Questions or improvements?**
+- **Found an error?** → Create GitHub issue with label `documentation`
+- **Have a suggestion?** → Open GitHub discussion
 
 ---
 
-## Quick Reference
-
-| Task | Command |
-|------|---------|
-| **Deploy** | `./scripts/infra-complete-setup.sh` |
-| **Update** | `ansible-playbook -i inventories playbooks/update.yml` |
-| **Logs** | `ssh ubuntu@IP` → `sudo journalctl -u myapp` |
-| **Restart** | `ssh ubuntu@IP` → `sudo systemctl restart myapp` |
-| **SSL** | `ansible-playbook -i inventories playbooks/setup-ssl.yml` |
-| **Status** | `./scripts/app-deploy.sh status` |
-
----
-
-## Getting Started
-
-**Ready to deploy?**
-
-1. **Quick:** → [docs/guides/QUICKSTART.md](docs/guides/QUICKSTART.md) (15-20 minutes)
-2. **Detailed:** → [docs/guides/MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) (1-2 hours)
-3. **Help:** → [docs/guides/OPERATIONS.md](docs/guides/OPERATIONS.md)
-
-**Your application is deployed!** 🎉
+**⏱️ Not started?** → Go to [PREREQUISITES.md](docs/guides/PREREQUISITES.md)  
+**⏱️ Finished prerequisites?** → Choose [QUICKSTART.md](docs/guides/QUICKSTART.md) or [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)  
+**⏱️ Already deployed?** → See [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md)
 

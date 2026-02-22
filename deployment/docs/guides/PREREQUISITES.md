@@ -721,102 +721,147 @@ chmod 600 ~/.vault_pass
 
 ---
 
-## What's Next?
+## ✅ Prerequisites Complete!
 
-**All prerequisites met? Choose your deployment path:**
+You've successfully set up:
+- ✅ AWS account with IAM user
+- ✅ AWS CLI configured and working
+- ✅ Local tools installed (Python, Ansible, Git)
+- ✅ Deployment configuration (`all.yml`)
+- ✅ Encrypted secrets vault (`vault.yml`)
+- ✅ Vault password file (`~/.vault_pass`)
 
-- **Fast deployment (15-20 min):** → [QUICKSTART.md](QUICKSTART.md)
-- **Educational step-by-step (1-2 hours):** → [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md)
-- **Understand everything first:** → [ARCHITECTURE.md](../reference/ARCHITECTURE.md)
+**Everything is ready to deploy your application!**
 
 ---
 
-## Application Configuration (.env)
+## 🚀 Choose Your Next Step
 
-**IMPORTANT:** You do NOT need to create `.env` manually!
+Now that prerequisites are complete, choose how you want to deploy:
 
-The deployment process automatically:
-1. Creates AWS Secrets Manager with all secrets from vault.yml
-2. Creates `.env` file on the server (setup.yml handles this)
-3. Configures application to use Secrets Manager
+### Option 1: Fast & Automated (Recommended) - 15-20 minutes
 
-### For Production Deployment
+**One command deploys everything automatically**
 
-- ✅ **No manual .env creation needed**
-- ✅ **setup.yml creates .env automatically**
-- ✅ **All secrets stored in Secrets Manager**
-- ✅ **IAM role provides secure access**
+→ **[QUICKSTART.md](QUICKSTART.md)**
 
-Just create `vault.yml` with your secrets and run deployment!
+Best for:
+- ✅ Getting your app running quickly
+- ✅ New to cloud deployment
+- ✅ Want everything automated
 
-### For Local Testing (Optional)
+What it does:
+- Creates AWS infrastructure (S3, IAM, Security Group, EC2)
+- Configures your application
+- Sets up web server and app server
+- Saves server info for you to access
 
-If testing locally **without** AWS access:
+### Option 2: Learn Step-by-Step - 1-2 hours
+
+**Deploy manually with full explanations of each step**
+
+→ **[MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md)**
+
+Best for:
+- ✅ Learning how deployment works
+- ✅ Understanding each AWS component
+- ✅ Custom configuration needs
+- ✅ Troubleshooting issues
+
+What it includes:
+- Step-by-step creation of each resource
+- Multiple options for each step (Playbook/CLI/Console)
+- Educational explanations
+- Links to AWS documentation
+
+### Option 3: Understand the Architecture First
+
+**Learn about all components before deploying**
+
+→ **[ARCHITECTURE.md](../reference/ARCHITECTURE.md)**
+
+Best for:
+- ✅ Understanding the whole system
+- ✅ Advanced customization needs
+- ✅ Decision-making about infrastructure
+
+---
+
+## ⏭️ I'm Ready - Take Me There!
+
+**Quick decision:**
+
+| I want to... | Go to... | Time |
+|---|---|---|
+| Deploy my app NOW | [QUICKSTART.md](QUICKSTART.md) | 15-20 min |
+| Learn how to deploy | [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md) | 1-2 hours |
+| Understand the system | [ARCHITECTURE.md](../reference/ARCHITECTURE.md) | 30 min |
+
+---
+
+**Pick one above and click the link. That's it!**
+
+---
+
+## Troubleshooting Prerequisites
+
+Still having issues? Check these:
+
+### AWS CLI Not Working
 
 ```bash
-# From repository root (ONLY for local development)
-cp .env.example .env
-nano .env
+aws sts get-caller-identity
+# ✅ Should show your account ID
+# ❌ If it doesn't, see: AWS CLI Configuration section above
 ```
 
-
-**See:** [APP_CONFIGURATION_GUIDE.md](../../APP_CONFIGURATION_GUIDE.md) for complete details
-
----
-
-## Ansible Inventory Configuration (hosts.yml)
-
-**Tell Ansible where your server is.**
-
-### For Local Testing (Default)
-
-No changes needed - uses `localhost`
-
-### For Remote EC2 Instance
-
-After launching EC2, update `deployment/inventories/hosts.yml`:
+### Vault Issues
 
 ```bash
-nano deployment/inventories/hosts.yml
+# Check vault is encrypted
+head -1 deployment/group_vars/vault.yml
+# ✅ Should show: $ANSIBLE_VAULT;1.1;AES256
+
+# Check vault can be decrypted
+ansible-vault view deployment/group_vars/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
+# ✅ Should show your GitHub URL
 ```
 
-**Changes:**
+### Ansible Not Working
 
-1. Replace `localhost` with your EC2 instance IP
-2. Uncomment SSH section with your key path
-3. Update `~/.ssh/{app_name}-key.pem` with actual app name
+```bash
+ansible --version
+# ✅ Should show version 2.9+
 
-**Example:**
-```yaml
-ansible_host: 1.2.3.4  # Your EC2 IP
-ansible_ssh_private_key_file: ~/.ssh/myapp-key.pem
+# If not, install it:
+pip3 install ansible
 ```
 
-**Complete guide:** See [ANSIBLE_INVENTORY_SETUP.md](ANSIBLE_INVENTORY_SETUP.md)
+### Configuration Files Missing
+
+```bash
+ls -la deployment/group_vars/all.yml deployment/group_vars/vault.yml
+# ✅ Both should exist
+
+# If not, run:
+cd deployment/scripts
+bash local-dev-setup.sh
+```
 
 ---
 
-You've now:
-- ✅ Created AWS account and IAM user with proper permissions
-- ✅ Configured AWS CLI with credentials  
-- ✅ Installed local deployment tools (Python, Ansible, Git)
-- ✅ Created deployment configuration files (all.yml and vault.yml)
-- ✅ Verified all tools and credentials work
+**Still stuck?** Each deployment guide has a Troubleshooting section with more help.
 
-**Your configuration files now contain:**
+---
 
-**all.yml** (main config):
-- Application identity (app_name, display_name)
-- Domain and SSL settings (server_name, ssl_email)
-- User configuration (admin_user for deployment, app_user for runtime)
-- Performance tuning (gunicorn workers, timeouts)
-- Git branch selection
-- Log and backup retention settings
+## Reference
 
-**vault.yml** (secrets):
-- GitHub repository URL and credentials
-- AWS region and S3 bucket settings
-- Application default username and password
+**Configuration file location:** `deployment/group_vars/`
 
-**You're ready to deploy!**
+- `all.yml` - Your app settings (not in Git)
+- `all.yml.example` - Template (in Git, shows what variables exist)
+- `vault.yml` - Your secrets, encrypted (not in Git)
+- `vault.yml.example` - Template (in Git, shows what secrets you need)
+
+**Vault password file:** `~/.vault_pass` (your home directory, not in Git)
 
