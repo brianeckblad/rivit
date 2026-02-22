@@ -315,22 +315,25 @@ pip3 install ansible
 
 ### Step 3: Configure Git (Optional but Recommended)
 
-```bash
-# Check your git configuration
-git config --global user.name
-git config --global user.email
+Configure git to use your identity automatically:
 
-# If not set, configure with your app email:
-git config --global user.name "testpilot"
-git config --global user.email "testpilot@ipix.io"
+```bash
+cd deployment
+./scripts/configure-git.sh
 ```
 
-**Want to automatically use your app's email?** → [GIT_CONFIGURATION.md](GIT_CONFIGURATION.md)
+**That's it!** Your commits will now use `{app_name}@brianeckblad.dev`
 
-This guide shows how to:
-- ✅ Automatically extract email from your app config
-- ✅ Configure per-repo or globally
-- ✅ Use conditional git config (auto-switch by directory)
+**What it does:**
+- ✅ Reads your app name from deployment config
+- ✅ Automatically sets email to `rampe@brianeckblad.dev` (for rampe project)
+- ✅ Sets name to "Brian Eckblad"
+- ✅ Configures locally (this repo only)
+
+**Want more options?** → [GIT_CONFIGURATION.md](GIT_CONFIGURATION.md)
+- Global configuration (all repos)
+- Manual app name specification
+- Verify it's working
 
 ### Step 4: Install Deployment Requirements
 

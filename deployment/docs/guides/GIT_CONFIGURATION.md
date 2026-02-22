@@ -1,147 +1,146 @@
 # Git Configuration Guide
 
-**Configure git to automatically use your app email**
+**Automatically configure git with your identity**
 
 ---
 
-## Problem
+## Quick Start (Recommended)
 
-You want `git config user.email` to automatically use your app's email domain without configuring it globally.
-
-## Solutions
-
-### Option 1: Automatic Script (Recommended)
-
-Use the provided script to automatically extract your app's email from deployment config:
+Just run the script - it automatically sets up git with your email based on your app name:
 
 ```bash
 cd deployment
 ./scripts/configure-git.sh
 ```
 
-**What it does:**
-1. Reads `group_vars/all.yml` for your `ssl_email`
-2. Sets git to use that email
-3. Asks if you want local (this repo) or global (all repos) configuration
+**That's it!** Your email is now set to `{app_name}@brianeckblad.dev`
 
-**Example:**
+### Example:
+
 ```bash
+$ cd deployment
 $ ./scripts/configure-git.sh
 
 Git Configuration Setup
 ==================================================
 
-📝 Configuration detected:
-   App name: rampe
-   Email: rampe@ipix.io
-   Domain: rampe.ipix.io
+📝 Configuration:
+   Name: Brian Eckblad
+   Email: rampe@brianeckblad.dev
+   Scope: Local (this repo)
 
-Configure git for:
-  1. This repository only (local)
-  2. All repositories (global)
-
-Choose 1 or 2 [default: 1]: 1
-Git user name (for this repo) [default: rampe]: testpilot
+Setting git config for this repository...
 
 ✅ Local git config set (.git/config)
 
 Your commits will now use:
-   Author: testpilot <rampe@ipix.io>
+   Author: Brian Eckblad <rampe@brianeckblad.dev>
+
+================================================== 
+✅ Git configuration complete!
+==================================================
 ```
 
 ---
 
-### Option 2: Manual Setup (Per Repository)
+## Usage Options
 
-Set git email for just this repo:
+### Option 1: Auto-Detect from Config (Default)
+
+Automatically reads `app_name` from your deployment configuration:
 
 ```bash
-cd /path/to/rampe
-
-# Set email for this repo only
-git config user.email "testpilot@ipix.io"
-git config user.name "testpilot"
-
-# Verify
-git config user.email
-# Shows: testpilot@ipix.io
+cd deployment
+./scripts/configure-git.sh
 ```
 
-**Location:** `.git/config` (not shared, not in version control)
+**Sets up for:** This repository only (local config)  
+**Email:** Extracted from `group_vars/all.yml`
 
 ---
 
-### Option 3: Global Configuration (All Repos)
+### Option 2: Manually Specify App Name
+
+Useful if outside the deployment directory:
+
+```bash
+# Set for rampe project
+./scripts/configure-git.sh rampe
+
+# Or with full path
+/path/to/rampe/deployment/scripts/configure-git.sh myapp
+```
+
+**Sets up for:** This repository only (local config)  
+**Email:** `rampe@brianeckblad.dev`
+
+---
+
+### Option 3: Global Configuration
 
 Set git email globally for all repositories:
 
 ```bash
-# Set globally (affects all repos on this machine)
-git config --global user.email "testpilot@example.com"
-git config --global user.name "testpilot"
+# Set globally for this app
+./scripts/configure-git.sh --global rampe
 
-# Verify
-git config --global user.email
-# Shows: testpilot@example.com
+# Or from anywhere
+/path/to/rampe/deployment/scripts/configure-git.sh -g myapp
 ```
 
-**Location:** `~/.gitconfig` (your home directory)
+**Sets up for:** All repositories on this machine  
+**Email:** `myapp@brianeckblad.dev`
 
-**Problem:** If you work on multiple projects with different emails, this isn't ideal.
+⚠️ **Note:** Global config is useful when you always use the same email, but local config (per-repo) is recommended when working on multiple projects.
 
 ---
 
-### Option 4: Conditional Configuration (Git 2.13+)
+## How It Works
 
-Use git's `conditional.includeIf` to automatically switch emails based on directory:
+The script is designed to be **reusable across all your projects**:
 
-```bash
-# Edit your global git config
-nano ~/.gitconfig
 ```
+Your Identity (hardcoded in script):
+├── Name: Brian Eckblad (fixed)
+└── Email domain: brianeckblad.dev (fixed)
 
-Add this at the end:
+Per-project:
+├── Reads app_name from deployment config OR accepts as argument
+└── Constructs email: {app_name}@brianeckblad.dev
 
-```ini
-[includeIf "gitdir:~/Development/rampe/"]
-    path = ~/Development/rampe/.gitconfig-local
-```
-
-Then create `.gitconfig-local` in the rampe directory:
-
-```ini
-[user]
-    name = testpilot
-    email = testpilot@ipix.io
-```
-
-**How it works:**
-- When you're in `~/Development/rampe/`, git uses `.gitconfig-local`
-- When you're elsewhere, git uses your global `~/.gitconfig`
-- Automatically switches based on directory
-
-**Check git version:**
-```bash
-git --version
-# Need 2.13 or higher
+Configuration scope:
+├── Local (default): .git/config (this repo only)
+└── Global (--global): ~/.gitconfig (all repos)
 ```
 
 ---
 
-## Recommendation
+## Examples
 
-**Use Option 1 (Automatic Script)** because:
-- ✅ Automatically reads from your deployment config
-- ✅ No manual email typing required
-- ✅ Works with any git version
-- ✅ Easy one-command setup
-- ✅ Can configure per-repo or globally
+### Example 1: Rampe Project
 
-**Then just run once:**
 ```bash
-cd deployment
+cd ~/Development/rampe/deployment
 ./scripts/configure-git.sh
-# Choose "1" for local (this repo only)
+
+# Sets: rampe@brianeckblad.dev (local)
+```
+
+### Example 2: Comic Tracker Project
+
+```bash
+cd ~/Development/comic-tracker/deployment
+./scripts/configure-git.sh
+
+# Sets: comic-tracker@brianeckblad.dev (local)
+```
+
+### Example 3: Manually Specify for Global Use
+
+```bash
+./scripts/configure-git.sh --global invoicing
+
+# Sets globally: invoicing@brianeckblad.dev (all repos)
 ```
 
 ---
@@ -151,90 +150,98 @@ cd deployment
 ```bash
 # Check what email git will use
 git config user.email
-# Should show: testpilot@ipix.io (or whatever you configured)
+# Shows: rampe@brianeckblad.dev
 
 # Check where it's configured
 git config --show-origin user.email
 # Shows: file:.git/config (local) or file:~/.gitconfig (global)
 
-# Make a test commit to verify
-git add README.md
+# Test with a commit
+git add .
 git commit -m "test: verify git config"
 git log -1 --format=fuller
-# Should show your configured email
+# Should show: Author: Brian Eckblad <rampe@brianeckblad.dev>
 ```
 
 ---
 
-## Why Not Global?
+## Change Email Later
 
-**Global config (Option 3) has issues:**
-- If you work on multiple projects, all use the same email
-- Different projects might need different emails
-- Need to remember to set it
-- Can't use variables
-
-**Local config (Option 2, 1, 4) is better:**
-- Each project has its own email
-- Can be different per project
-- Can be automated
-- More professional
-
----
-
-## Integration with Deployment
-
-The script `./scripts/configure-git.sh` is meant to be run after:
-
-1. `./scripts/local-dev-setup.sh` - Creates your config files
-2. `./scripts/configure-git.sh` - Sets up git with your app email
-
-Both are optional but recommended.
-
----
-
-## Troubleshooting
-
-**"git config: command not found"**
 ```bash
-# Install git
-brew install git  # macOS
-sudo apt install git  # Linux
-```
-
-**"Could not read configuration from group_vars/all.yml"**
-```bash
-# Run local-dev-setup.sh first
-cd deployment
-./scripts/local-dev-setup.sh
-
-# Then try git config script
-./scripts/configure-git.sh
-```
-
-**Want to change it later?**
-```bash
-# For local repo
+# Change for this repo
 git config user.email "newemail@domain.com"
 
-# For global
+# Change globally
 git config --global user.email "newemail@domain.com"
 ```
 
 ---
 
-## Quick Start
+## Script Personalization
+
+If you ever need to change your name or email domain, edit the script:
 
 ```bash
-# From deployment directory
-cd deployment
-
-# Step 1: Create config (if not done yet)
-./scripts/local-dev-setup.sh
-
-# Step 2: Configure git with your app email
-./scripts/configure-git.sh
-
-# Step 3: Done! Your commits will use testpilot@ipix.io (or your configured email)
+nano deployment/scripts/configure-git.sh
 ```
 
+Look for these lines at the top:
+
+```bash
+# Configuration - personalize this section for your identity
+GIT_USER_NAME="Brian Eckblad"
+EMAIL_DOMAIN="brianeckblad.dev"
+```
+
+Update these values and the script will use your new identity for all projects.
+
+---
+
+## Integration with Deployment
+
+The script works perfectly with your deployment workflow:
+
+```bash
+# 1. Create deployment config
+./scripts/local-dev-setup.sh
+
+# 2. Configure git automatically  
+./scripts/configure-git.sh
+
+# 3. Your commits now use rampe@brianeckblad.dev
+git add .
+git commit -m "Initial setup"
+```
+
+---
+
+## Troubleshooting
+
+**"Not in a git repository"**
+```bash
+# Must run inside a git repo for local config
+# Either: run from repo root, or use --global flag
+./scripts/configure-git.sh --global myapp
+```
+
+**"Could not determine app name"**
+```bash
+# Manually specify the app name
+./scripts/configure-git.sh myapp
+```
+
+**Want to verify the script works?**
+```bash
+cd /path/to/any/repo
+/path/to/rampe/deployment/scripts/configure-git.sh myapp
+```
+
+---
+
+## Why This Approach?
+
+✅ **Reusable** - Works with any project  
+✅ **No manual typing** - Auto-generates email  
+✅ **Professional** - Uses your domain  
+✅ **Flexible** - Local or global  
+✅ **Simple** - One command setup

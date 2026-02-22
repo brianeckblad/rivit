@@ -1,71 +1,85 @@
 #!/bin/bash
-# Configure git user email based on deployment configuration
-# This script extracts the email from your deployment config and sets it in git
+# Configure git user email based on app name
+# Reusable for any project - automatically sets email to app_name@brianeckblad.dev
+#
+# Usage:
+#   ./scripts/configure-git.sh                    # Auto-detect from group_vars/all.yml
+#   ./scripts/configure-git.sh myapp              # Set for specific app name
+#   ./scripts/configure-git.sh --global myapp     # Set globally for all repos
 
 set -e
+
+# Configuration - personalize this section for your identity
+GIT_USER_NAME="Brian Eckblad"
+EMAIL_DOMAIN="brianeckblad.dev"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"
 GROUP_VARS_DIR="$DEPLOYMENT_DIR/group_vars"
 
+# Parse arguments
+GLOBAL_CONFIG=false
+APP_NAME=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --global|-g)
+            GLOBAL_CONFIG=true
+            shift
+            ;;
+        --local|-l)
+            GLOBAL_CONFIG=false
+            shift
+            ;;
+        *)
+            APP_NAME="$1"
+            shift
+            ;;
+    esac
+done
+
+# If app name not provided, try to read from config
+if [ -z "$APP_NAME" ]; then
+    if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
+        APP_NAME=$(grep "^app_name:" "$GROUP_VARS_DIR/all.yml" | awk '{print $2}' | tr -d '"' | tr -d ' ')
+    fi
+
+    if [ -z "$APP_NAME" ]; then
+        echo "❌ Error: Could not determine app name"
+        echo ""
+        echo "Usage:"
+        echo "  $0                          # Auto-detect from group_vars/all.yml"
+        echo "  $0 myapp                    # Set for myapp (myapp@brianeckblad.dev)"
+        echo "  $0 --global myapp           # Set globally for all repositories"
+        echo ""
+        exit 1
+    fi
+fi
+
+# Construct email
+GIT_EMAIL="${APP_NAME}@${EMAIL_DOMAIN}"
+
 echo "=================================================="
 echo "Git Configuration Setup"
 echo "=================================================="
 echo ""
-
-# Check if all.yml exists
-if [ ! -f "$GROUP_VARS_DIR/all.yml" ]; then
-    echo "❌ Error: group_vars/all.yml not found"
-    echo "   Run ./scripts/local-dev-setup.sh first"
-    exit 1
-fi
-
-# Extract values from all.yml
-APP_NAME=$(grep "^app_name:" "$GROUP_VARS_DIR/all.yml" | awk '{print $2}' | tr -d '"')
-SSL_EMAIL=$(grep "^ssl_email:" "$GROUP_VARS_DIR/all.yml" | awk '{print $2}' | tr -d '"')
-SERVER_NAME=$(grep "^server_name:" "$GROUP_VARS_DIR/all.yml" | awk '{print $2}' | tr -d '"')
-
-if [ -z "$APP_NAME" ] || [ -z "$SSL_EMAIL" ]; then
-    echo "❌ Error: Could not read configuration from group_vars/all.yml"
-    echo "   Make sure app_name and ssl_email are set"
-    exit 1
-fi
-
-echo "📝 Configuration detected:"
-echo "   App name: $APP_NAME"
-echo "   Email: $SSL_EMAIL"
-echo "   Domain: $SERVER_NAME"
+echo "📝 Configuration:"
+echo "   Name: $GIT_USER_NAME"
+echo "   Email: $GIT_EMAIL"
+echo "   Scope: $([ "$GLOBAL_CONFIG" = true ] && echo 'Global' || echo 'Local (this repo)')"
 echo ""
 
-# Ask user for scope
-echo "Configure git for:"
-echo "  1. This repository only (local)"
-echo "  2. All repositories (global)"
-echo ""
-read -p "Choose 1 or 2 [default: 1]: " -r SCOPE
-SCOPE=${SCOPE:-1}
-
-if [ "$SCOPE" = "2" ]; then
+if [ "$GLOBAL_CONFIG" = true ]; then
     # Global configuration
-    echo ""
     echo "Setting git config globally..."
-    echo "   user.email: $SSL_EMAIL"
-    git config --global user.email "$SSL_EMAIL"
-
-    # Also set name if not set
-    if ! git config --global user.name > /dev/null 2>&1; then
-        read -p "Git user name (for global config) [default: $APP_NAME]: " -r GIT_NAME
-        GIT_NAME=${GIT_NAME:-$APP_NAME}
-        git config --global user.name "$GIT_NAME"
-        echo "   user.name: $GIT_NAME"
-    fi
+    git config --global user.name "$GIT_USER_NAME"
+    git config --global user.email "$GIT_EMAIL"
 
     echo ""
     echo "✅ Global git config set"
     echo ""
-    echo "View your settings:"
-    echo "   git config --global user.name"
-    echo "   git config --global user.email"
+    echo "Your commits will now use:"
+    echo "   Author: $(git config --global user.name) <$(git config --global user.email)>"
 else
     # Local (per-repository) configuration
     # Must be run from repository root
@@ -77,27 +91,17 @@ else
         exit 1
     fi
 
-    echo ""
     echo "Setting git config for this repository..."
-    echo "   Email: $SSL_EMAIL"
 
     cd "$REPO_ROOT"
-    git config user.email "$SSL_EMAIL"
-
-    # Also set name if not set locally
-    if ! git config user.name > /dev/null 2>&1; then
-        read -p "Git user name for this repo [default: $APP_NAME]: " -r GIT_NAME
-        GIT_NAME=${GIT_NAME:-$APP_NAME}
-        git config user.name "$GIT_NAME"
-        echo "   Name: $GIT_NAME"
-    fi
+    git config user.name "$GIT_USER_NAME"
+    git config user.email "$GIT_EMAIL"
 
     echo ""
     echo "✅ Local git config set (.git/config)"
     echo ""
-    echo "View your settings:"
-    echo "   git config user.name"
-    echo "   git config user.email"
+    echo "Your commits will now use:"
+    echo "   Author: $(git config user.name) <$(git config user.email)>"
 fi
 
 echo ""
@@ -105,10 +109,15 @@ echo "=================================================="
 echo "✅ Git configuration complete!"
 echo "=================================================="
 echo ""
-echo "Your commits will now use:"
-echo "   Author: $(git config user.name) <$(git config user.email)>"
+echo "View your settings:"
+if [ "$GLOBAL_CONFIG" = true ]; then
+    echo "   git config --global user.name"
+    echo "   git config --global user.email"
+else
+    echo "   git config user.name"
+    echo "   git config user.email"
+fi
 echo ""
 echo "To change later:"
-echo "   git config user.email \"newaddress@domain.com\""
+echo "   git config user.email \"newaddress@example.com\""
 echo ""
-
