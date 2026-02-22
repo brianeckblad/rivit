@@ -126,7 +126,7 @@ if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
     else
         echo "🔒 Encrypting vault.yml..."
         cd "$DEPLOYMENT_DIR"
-        ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass 2>/dev/null
+        ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default 2>/dev/null
         echo "   ✅ vault.yml is now encrypted"
         echo "   Verify: head -1 group_vars/vault.yml"
     fi

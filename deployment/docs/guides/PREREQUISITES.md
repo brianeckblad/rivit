@@ -313,7 +313,26 @@ pip3 install ansible
 - Install [Python 3](https://www.python.org/downloads/)
 - Install [Ansible on Windows](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible-on-windows)
 
-### Step 3: Install Deployment Requirements
+### Step 3: Configure Git (Optional but Recommended)
+
+```bash
+# Check your git configuration
+git config --global user.name
+git config --global user.email
+
+# If not set, configure with your app email:
+git config --global user.name "testpilot"
+git config --global user.email "testpilot@ipix.io"
+```
+
+**Want to automatically use your app's email?** → [GIT_CONFIGURATION.md](GIT_CONFIGURATION.md)
+
+This guide shows how to:
+- ✅ Automatically extract email from your app config
+- ✅ Configure per-repo or globally
+- ✅ Use conditional git config (auto-switch by directory)
+
+### Step 4: Install Deployment Requirements
 
 ```bash
 # Navigate to deployment directory
