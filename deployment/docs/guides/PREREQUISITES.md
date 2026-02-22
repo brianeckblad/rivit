@@ -547,11 +547,11 @@ vault_sns_topic_arn: ""                         # Example: arn:aws:sns:us-east-2
 cd deployment
 
 # Encrypt vault.yml with your vault password
-ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
+ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
 
 # Verify it's encrypted (should show encrypted content, not plain text)
 cat group_vars/vault.yml | head -5
-# Should show: $ANSIBLE_VAULT;1.2;AES256;... (not readable plain text)
+# Should show: $ANSIBLE_VAULT;1.1;AES256;... (not readable plain text)
 
 # Verify you can decrypt it
 ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
