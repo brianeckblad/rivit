@@ -1,6 +1,12 @@
 #!/bin/bash
-# Setup local development configuration using .example file pattern
-# This is the standard industry pattern for configuration management
+# Setup local development configuration
+# Handles both new setup and merging with existing configurations
+#
+# Usage:
+#   ./scripts/local-dev-setup.sh              # Interactive mode (detect existing files)
+#   ./scripts/local-dev-setup.sh -new         # Create fresh from templates
+#   ./scripts/local-dev-setup.sh -merge       # Merge existing values with new templates
+#   ./scripts/local-dev-setup.sh --no-backup  # Skip backup creation
 
 set -e
 
@@ -8,184 +14,344 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"
 GROUP_VARS_DIR="$DEPLOYMENT_DIR/group_vars"
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Parse arguments
+MODE="auto"  # auto, new, or merge
+NO_BACKUP=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -new|--new)
+            MODE="new"
+            shift
+            ;;
+        -merge|--merge)
+            MODE="merge"
+            shift
+            ;;
+        --no-backup)
+            NO_BACKUP=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo ""
+            echo "Usage:"
+            echo "  $0              # Auto-detect (interactive)"
+            echo "  $0 -new         # Create fresh from templates"
+            echo "  $0 -merge       # Merge existing values with templates"
+            echo "  $0 --no-backup  # Skip backup creation"
+            exit 1
+            ;;
+    esac
+done
+
 echo "=================================================="
-echo "Configuration Setup (.example pattern)"
+echo "Configuration Setup"
 echo "=================================================="
-echo ""
-echo "ℹ️  Updating existing configuration?"
-echo "   Use ./merge-config.sh instead to preserve your values"
-echo "   → ./deployment/docs/guides/MERGE_CONFIG.md"
-echo ""
-echo "This will create your configuration files from"
-echo ".example templates."
-echo ""
-echo "Pattern:"
-echo "  .example files = Templates (tracked in Git)"
-echo "  Real files     = Your configs (ignored by Git)"
 echo ""
 
-# Check if we're in the right directory
+# Check if templates exist
 if [ ! -f "$GROUP_VARS_DIR/all.yml.example" ]; then
-    echo "❌ Error: Cannot find group_vars/all.yml.example"
-    echo "   Please run this script from: deployment/scripts/"
+    echo "❌ Error: all.yml.example not found"
     exit 1
 fi
 
-# Function to create config from example
-create_from_example() {
-    local example_file="$1"
-    local dest_file="$2"
-    local file_description="$3"
+if [ ! -f "$GROUP_VARS_DIR/vault.yml.example" ]; then
+    echo "❌ Error: vault.yml.example not found"
+    exit 1
+fi
 
-    if [ ! -f "$example_file" ]; then
-        echo "⚠️  $example_file not found, skipping..."
-        return
+# Auto-detect mode if not specified
+if [ "$MODE" = "auto" ]; then
+    HAS_ALL_YML=false
+    HAS_VAULT_YML=false
+
+    if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
+        HAS_ALL_YML=true
     fi
 
-    if [ -f "$dest_file" ]; then
-        echo "⚠️  $dest_file already exists"
-        read -p "   Overwrite? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "   Skipped."
-            return
+    if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+        HAS_VAULT_YML=true
+    fi
+
+    if [ "$HAS_ALL_YML" = true ] || [ "$HAS_VAULT_YML" = true ]; then
+        echo "📋 Detected existing configuration files"
+        echo ""
+        echo "Choose an option:"
+        echo "  1. Create fresh from templates (overwrites existing)"
+        echo "  2. Merge existing values with new templates (preserves values)"
+        echo ""
+        read -p "Enter 1 or 2 [default: 2]: " -r CHOICE
+        CHOICE=${CHOICE:-2}
+
+        if [ "$CHOICE" = "1" ]; then
+            MODE="new"
+        else
+            MODE="merge"
         fi
-    fi
-
-    echo "📝 Creating $file_description..."
-    cp "$example_file" "$dest_file"
-    echo "   ✅ Created: $dest_file"
-}
-
-# Create all.yml from all.yml.example
-echo ""
-echo "Step 1: Create all.yml (main configuration)"
-echo "-----------------------------------------------------"
-create_from_example \
-    "$GROUP_VARS_DIR/all.yml.example" \
-    "$GROUP_VARS_DIR/all.yml" \
-    "main configuration"
-
-# Create vault.yml from vault.yml.example
-echo ""
-echo "Step 2: Create vault.yml (secrets file)"
-echo "-----------------------------------------------------"
-create_from_example \
-    "$GROUP_VARS_DIR/vault.yml.example" \
-    "$GROUP_VARS_DIR/vault.yml" \
-    "secrets vault file"
-
-# Summary
-echo ""
-echo "=================================================="
-echo "✅ Setup Complete!"
-echo "=================================================="
-echo ""
-echo "Configuration files created (ignored by Git):"
-echo ""
-
-if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
-    echo "  📄 group_vars/all.yml"
-    echo "     → Edit this for your app name, domain, etc."
-fi
-
-if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
-    echo "  📄 group_vars/vault.yml"
-    echo "     → Edit this for your secrets (Git repo, S3, passwords)"
-fi
-
-echo ""
-echo "Template files (tracked in Git, receive updates):"
-echo ""
-echo "  📄 group_vars/all.yml.example"
-echo "  📄 group_vars/vault.yml.example"
-echo ""
-echo "Next Steps:"
-echo ""
-echo "Step 3: Create vault password file (if needed)"
-echo "-----------------------------------------------------"
-
-VAULT_PASS_FILE="$HOME/.vault_pass"
-
-if [ ! -f "$VAULT_PASS_FILE" ]; then
-    echo "🔐 Creating vault password file..."
-    echo "Enter a strong password for vault encryption:"
-    read -s VAULT_PASSWORD
-    echo "$VAULT_PASSWORD" > "$VAULT_PASS_FILE"
-    chmod 600 "$VAULT_PASS_FILE"
-    echo "   ✅ Created: $VAULT_PASS_FILE (with 600 permissions)"
-else
-    echo "⚠️  Vault password file already exists at $VAULT_PASS_FILE"
-fi
-
-# Encrypt vault.yml if it exists and is not already encrypted
-echo ""
-echo "Step 4: Encrypt vault.yml (REQUIRED - securing secrets)"
-echo "-----------------------------------------------------"
-
-if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
-    # Check if vault.yml is already encrypted
-    if head -1 "$GROUP_VARS_DIR/vault.yml" | grep -q "ANSIBLE_VAULT"; then
-        echo "✅ vault.yml is already encrypted"
     else
-        echo "🔒 Encrypting vault.yml..."
-        cd "$DEPLOYMENT_DIR"
-        ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default 2>/dev/null
-        echo "   ✅ vault.yml is now encrypted"
-        echo "   Verify: head -1 group_vars/vault.yml"
+        MODE="new"
     fi
 fi
 
-echo ""
-echo "=================================================="
-echo "✅ Setup Complete!"
-echo "=================================================="
-echo ""
-echo "Configuration files created (ignored by Git):"
+echo "Mode: ${BLUE}${MODE^^}${NC}"
 echo ""
 
-if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
-    echo "  📄 group_vars/all.yml"
-    echo "     → Edit this for your app name, domain, etc."
+# ============================================================================
+# NEW MODE - Create fresh from templates
+# ============================================================================
+
+if [ "$MODE" = "new" ]; then
+    echo "📝 Creating fresh configuration files from templates..."
+    echo ""
+
+    cp "$GROUP_VARS_DIR/all.yml.example" "$GROUP_VARS_DIR/all.yml"
+    echo "✅ Created: group_vars/all.yml"
+
+    cp "$GROUP_VARS_DIR/vault.yml.example" "$GROUP_VARS_DIR/vault.yml"
+    echo "✅ Created: group_vars/vault.yml (unencrypted, ready to edit)"
+
+    echo ""
+    echo "=================================================="
+    echo "✅ New Configuration Files Created!"
+    echo "=================================================="
+    echo ""
+    echo "Next steps:"
+    echo "  1. Edit your configuration files:"
+    echo "     nano group_vars/all.yml"
+    echo "     nano group_vars/vault.yml"
+    echo ""
+    echo "  2. Create vault password (optional but recommended):"
+    echo "     echo 'your-password' > ~/.vault_pass"
+    echo "     chmod 600 ~/.vault_pass"
+    echo ""
+    echo "  3. Encrypt the vault:"
+    echo "     ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default"
+    echo ""
+    echo "  4. Configure git:"
+    echo "     ./scripts/configure-git.sh"
+    echo ""
+    echo "  5. Deploy!"
+    echo "     ./scripts/infra-complete-setup.sh"
+    echo ""
+    exit 0
 fi
 
-if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
-    # Check if encrypted
-    if head -1 "$GROUP_VARS_DIR/vault.yml" | grep -q "ANSIBLE_VAULT"; then
-        echo "  🔒 group_vars/vault.yml (ENCRYPTED)"
+# ============================================================================
+# MERGE MODE - Merge existing values with new templates
+# ============================================================================
+
+if [ "$MODE" = "merge" ]; then
+    echo "📋 Checking for existing configuration files..."
+    echo ""
+
+    HAS_ALL_YML=false
+    HAS_VAULT_YML=false
+
+    if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
+        echo "✅ Found: all.yml (will merge values)"
+        HAS_ALL_YML=true
+    fi
+
+    if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+        echo "✅ Found: vault.yml (will merge values)"
+        HAS_VAULT_YML=true
+    fi
+
+    echo ""
+
+    if [ "$HAS_ALL_YML" = false ] && [ "$HAS_VAULT_YML" = false ]; then
+        echo "ℹ️  No existing files found. Creating from templates..."
+        cp "$GROUP_VARS_DIR/all.yml.example" "$GROUP_VARS_DIR/all.yml"
+        echo "✅ Created: all.yml"
+
+        cp "$GROUP_VARS_DIR/vault.yml.example" "$GROUP_VARS_DIR/vault.yml"
+        echo "✅ Created: vault.yml (unencrypted, ready to edit)"
+
+        echo ""
+        echo "=================================================="
+        echo "✅ Configuration Files Created!"
+        echo "=================================================="
+        exit 0
+    fi
+
+    # Create backups if files exist
+    if [ "$NO_BACKUP" = false ]; then
+        echo "📦 Creating backups..."
+
+        if [ "$HAS_ALL_YML" = true ]; then
+            BACKUP_FILE="$GROUP_VARS_DIR/all.yml.backup.$(date +%s)"
+            cp "$GROUP_VARS_DIR/all.yml" "$BACKUP_FILE"
+            echo "  ✅ Backed up: all.yml → $(basename "$BACKUP_FILE")"
+        fi
+
+        if [ "$HAS_VAULT_YML" = true ]; then
+            # Decrypt vault if encrypted
+            if head -1 "$GROUP_VARS_DIR/vault.yml" | grep -q "ANSIBLE_VAULT"; then
+                echo "  🔓 Decrypting vault.yml..."
+                VAULT_PASS_FILE="$HOME/.vault_pass"
+
+                if [ ! -f "$VAULT_PASS_FILE" ]; then
+                    # File doesn't exist - prompt for password
+                    echo "     Vault password file not found. Please enter your vault password:"
+                    read -s -p "     Vault password: " VAULT_PASSWORD < /dev/tty
+                    echo ""
+                    # Create temp file with password for ansible-vault
+                    TEMP_PASS=$(mktemp)
+                    echo "$VAULT_PASSWORD" > "$TEMP_PASS"
+                    VAULT_PASS_FILE="$TEMP_PASS"
+                    TEMP_PASS_CREATED=true
+                fi
+
+                DECRYPTED_BACKUP="$GROUP_VARS_DIR/vault.yml.decrypted.$(date +%s)"
+                ansible-vault decrypt "$GROUP_VARS_DIR/vault.yml" --vault-password-file "$VAULT_PASS_FILE" --output "$DECRYPTED_BACKUP" 2>/dev/null
+                BACKUP_FILE="$DECRYPTED_BACKUP"
+
+                # Clean up temp password file if we created one
+                if [ "$TEMP_PASS_CREATED" = true ]; then
+                    rm -f "$TEMP_PASS"
+                fi
+            else
+                BACKUP_FILE="$GROUP_VARS_DIR/vault.yml.backup.$(date +%s)"
+                cp "$GROUP_VARS_DIR/vault.yml" "$BACKUP_FILE"
+            fi
+            echo "  ✅ Backed up: vault.yml → $(basename "$BACKUP_FILE")"
+        fi
+
+        echo ""
+    fi
+
+    # Merge all.yml
+    if [ "$HAS_ALL_YML" = true ]; then
+        echo "🔄 Merging all.yml..."
+
+        # Copy template
+        cp "$GROUP_VARS_DIR/all.yml.example" "$GROUP_VARS_DIR/all.yml.merged"
+
+        # Extract all key-value pairs from existing all.yml
+        while IFS= read -r line; do
+            # Skip comments and empty lines
+            if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
+                continue
+            fi
+
+            # Extract key and value
+            if [[ "$line" =~ ^([a-z_]+): ]]; then
+                KEY="${BASH_REMATCH[1]}"
+                VALUE=$(echo "$line" | sed "s/^${KEY}:[[:space:]]*//; s/#.*//" | sed 's/[[:space:]]*$//')
+
+                # Replace value in merged file (only simple key: value lines, not templated)
+                if ! grep -q "^${KEY}:[[:space:]]*{{" "$GROUP_VARS_DIR/all.yml.example"; then
+                    # Escape special characters for sed
+                    VALUE_ESCAPED=$(printf '%s\n' "$VALUE" | sed -e 's/[\/&]/\\&/g')
+                    sed -i.tmp "s|^${KEY}:.*|${KEY}: ${VALUE_ESCAPED}|" "$GROUP_VARS_DIR/all.yml.merged" && rm -f "$GROUP_VARS_DIR/all.yml.merged.tmp"
+                fi
+            fi
+        done < "$GROUP_VARS_DIR/all.yml"
+
+        mv "$GROUP_VARS_DIR/all.yml.merged" "$GROUP_VARS_DIR/all.yml"
+        echo "  ✅ Merged existing values into all.yml"
     else
-        echo "  ⚠️  group_vars/vault.yml (NOT ENCRYPTED - fix this!)"
+        cp "$GROUP_VARS_DIR/all.yml.example" "$GROUP_VARS_DIR/all.yml"
+        echo "  ✅ Created all.yml from template"
     fi
-    echo "     → Edit with: ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass"
+
+    # Merge vault.yml
+    if [ "$HAS_VAULT_YML" = true ]; then
+        echo "🔄 Merging vault.yml..."
+
+        # If vault is encrypted, decrypt it first
+        OLD_VAULT_FILE="$GROUP_VARS_DIR/vault.yml"
+        if head -1 "$OLD_VAULT_FILE" | grep -q "ANSIBLE_VAULT"; then
+            echo "  🔓 Decrypting existing vault.yml..."
+            VAULT_PASS_FILE="$HOME/.vault_pass"
+            if [ ! -f "$VAULT_PASS_FILE" ]; then
+                echo "     Vault password file not found. Please enter your vault password:"
+                read -s -p "     Vault password: " VAULT_PASSWORD < /dev/tty
+                echo ""
+                # Create temp file with password for ansible-vault
+                TEMP_PASS=$(mktemp)
+                echo "$VAULT_PASSWORD" > "$TEMP_PASS"
+                VAULT_PASS_FILE="$TEMP_PASS"
+                TEMP_PASS_CREATED=true
+            fi
+
+            # Create temp decrypted file
+            TEMP_VAULT=$(mktemp)
+            ansible-vault decrypt "$OLD_VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE" --output "$TEMP_VAULT" 2>/dev/null
+            OLD_VAULT_FILE="$TEMP_VAULT"
+
+            # Clean up temp password file if we created one
+            if [ "$TEMP_PASS_CREATED" = true ]; then
+                rm -f "$TEMP_PASS"
+            fi
+        fi
+
+        # Copy template
+        cp "$GROUP_VARS_DIR/vault.yml.example" "$GROUP_VARS_DIR/vault.yml.merged"
+
+        # Extract vault variables from existing file
+        while IFS= read -r line; do
+            # Skip comments and empty lines
+            if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
+                continue
+            fi
+
+            # Extract key and value (vault variables)
+            if [[ "$line" =~ ^([a-z_]+): ]]; then
+                KEY="${BASH_REMATCH[1]}"
+                VALUE=$(echo "$line" | sed "s/^${KEY}:[[:space:]]*//; s/#.*//" | sed 's/[[:space:]]*$//')
+
+                # Replace in merged file
+                VALUE_ESCAPED=$(printf '%s\n' "$VALUE" | sed -e 's/[\/&]/\\&/g')
+                sed -i.tmp "s|^${KEY}:.*|${KEY}: ${VALUE_ESCAPED}|" "$GROUP_VARS_DIR/vault.yml.merged" && rm -f "$GROUP_VARS_DIR/vault.yml.merged.tmp"
+            fi
+        done < "$OLD_VAULT_FILE"
+
+        # Clean up temp file if we created one
+        if [ -n "$TEMP_VAULT" ] && [ -f "$TEMP_VAULT" ]; then
+            rm -f "$TEMP_VAULT"
+        fi
+
+        mv "$GROUP_VARS_DIR/vault.yml.merged" "$GROUP_VARS_DIR/vault.yml"
+        echo "  ✅ Merged existing values into vault.yml"
+        echo "  ✅ Vault is unencrypted (ready to edit)"
+    else
+        cp "$GROUP_VARS_DIR/vault.yml.example" "$GROUP_VARS_DIR/vault.yml"
+        echo "  ✅ Created vault.yml from template (unencrypted)"
+    fi
+
+    echo ""
+    echo "=================================================="
+    echo "✅ Configuration Merge Complete!"
+    echo "=================================================="
+    echo ""
+    echo "Your existing values have been merged into the new templates."
+    echo "Only NEW values (from template updates) need to be configured."
+    echo ""
+    echo "Next steps:"
+    echo "  1. Review the merged files:"
+    echo "     nano group_vars/all.yml"
+    echo "     nano group_vars/vault.yml"
+    echo ""
+    echo "  2. Add any NEW configuration values from the templates"
+    echo "     (Look for comments marked as NEW or changed)"
+    echo ""
+    echo "  3. When ready, encrypt the vault:"
+    echo "     ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default"
+    echo ""
+    echo "  4. Configure git (if needed):"
+    echo "     ./scripts/configure-git.sh"
+    echo ""
+    echo "  5. Deploy:"
+    echo "     ./scripts/infra-complete-setup.sh"
+    echo ""
+    exit 0
 fi
-
-echo ""
-echo "Template files (tracked in Git, receive updates):"
-echo ""
-echo "  📄 group_vars/all.yml.example"
-echo "  📄 group_vars/vault.yml.example"
-echo ""
-echo "Next Steps:"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "1. Review your configuration files:"
-echo "   cd $DEPLOYMENT_DIR"
-echo "   nano group_vars/all.yml"
-echo ""
-echo "2. Edit your secrets (vault is encrypted):"
-echo "   cd $DEPLOYMENT_DIR"
-echo "   ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass"
-echo ""
-echo "3. Verify vault can be decrypted:"
-echo "   cd $DEPLOYMENT_DIR"
-echo "   ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | head -5"
-echo ""
-echo "4. Verify Git ignores your configs:"
-echo "   git status"
-echo "   # Should show: nothing to commit (or only .example files)"
-echo ""
-echo "5. Deploy your application:"
-echo "   cd $DEPLOYMENT_DIR"
-echo "   ./scripts/infra-complete-setup.sh"
-echo ""
-

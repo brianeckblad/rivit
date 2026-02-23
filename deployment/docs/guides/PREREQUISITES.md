@@ -359,33 +359,39 @@ ansible-playbook --version
 
 ### ⚠️ Updating Existing Configuration?
 
-If you already have `all.yml` and `vault.yml`, use the merge script instead:
+If you already have `all.yml` and `vault.yml`, merge them with the new templates:
 
 ```bash
 cd deployment
-./scripts/merge-config.sh
+./scripts/local-dev-setup.sh -merge
 ```
 
 This automatically imports your existing values into updated templates. You only add new values instead of retyping everything.
 
-→ [MERGE_CONFIG.md](MERGE_CONFIG.md) - Full guide
+→ [Using local-dev-setup.sh](#step-1-use-configuration-templates) (both new and merge modes)
 
 ---
 
 ### Step 1: Use Configuration Templates
 
+The `local-dev-setup.sh` script handles both new setup and merging:
+
 ```bash
 cd deployment
 
-# Option A: Automatic setup (recommended)
+# Interactive mode (auto-detects if files exist)
 ./scripts/local-dev-setup.sh
 
-# Option B: Manual copy
-cp group_vars/all.yml.example group_vars/all.yml
-cp group_vars/vault.yml.example group_vars/vault.yml
+# OR explicitly choose:
+
+# Option A: Create fresh from templates
+./scripts/local-dev-setup.sh -new
+
+# Option B: Merge existing values with updated templates
+./scripts/local-dev-setup.sh -merge
 ```
 
-**This creates:**
+**This creates/updates:**
 - `group_vars/all.yml` - Your application settings (ignored by Git)
 - `group_vars/vault.yml` - Your secrets (ignored by Git)
 

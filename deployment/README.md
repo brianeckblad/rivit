@@ -101,20 +101,48 @@ Your app is running! What now?
 ---
 
 ## What Gets Deployed
+
+**Complete production-ready setup:**
+
+- ✅ AWS EC2 instance (Ubuntu 22.04)
+- ✅ Application server (Gunicorn + Nginx)
+- ✅ Auto-restart service (Systemd)
+- ✅ Cloud storage (S3 bucket)
+- ✅ Permissions (IAM role, no credentials on server)
+- ✅ SSL/HTTPS (Let's Encrypt, optional)
+- ✅ Monitoring (CloudWatch, optional)
+- ✅ Security hardening (built-in)
+
+**Cost:** ~$10-15/month (~$2/month on AWS free tier)
+
+---
+
+## Configuration Setup
+
+```bash
+cd deployment
+
+# Interactive mode (auto-detects if files exist)
 ./scripts/local-dev-setup.sh
 
-# Or manual copy
-cp group_vars/all.yml.example group_vars/all.yml
-cp group_vars/vault.yml.example group_vars/vault.yml
+# OR explicitly choose:
+
+# Create fresh from templates
+./scripts/local-dev-setup.sh -new
+
+# Merge existing values with new templates
+./scripts/local-dev-setup.sh -merge
 ```
 
 **Files created:**
 - `group_vars/all.yml` - Your deployment settings
 - `group_vars/vault.yml` - Your secrets (encrypted)
 
-**These are ignored by Git** - safe to commit your personal settings locally!
+**These are ignored by Git** - safe to keep your personal settings locally!
 
-### Fast Deploy (If Already Configured)
+---
+
+## Quick Start
 
 ```bash
 cd deployment
