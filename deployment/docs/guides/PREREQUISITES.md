@@ -357,6 +357,21 @@ ansible-playbook --version
 
 **Create your personal deployment settings (not tracked in Git)**
 
+### ⚠️ Updating Existing Configuration?
+
+If you already have `all.yml` and `vault.yml`, use the merge script instead:
+
+```bash
+cd deployment
+./scripts/merge-config.sh
+```
+
+This automatically imports your existing values into updated templates. You only add new values instead of retyping everything.
+
+→ [MERGE_CONFIG.md](MERGE_CONFIG.md) - Full guide
+
+---
+
 ### Step 1: Use Configuration Templates
 
 ```bash
@@ -530,8 +545,8 @@ vault_s3_folder: "data"                         # Folder within bucket
 # Default login credentials for your application
 # You can change these after deployment
 
-vault_app_username: "admin"                     # Default app login username
-vault_app_password: "change-this-password"      # Default app login password
+app_default_username: "admin"                   # Default app login username
+app_default_password: "change-this-password"    # Default app login password
                                                  # IMPORTANT: Change this after first login
 
 # ============================================================================
@@ -550,8 +565,8 @@ vault_sns_topic_arn: ""                         # Example: arn:aws:sns:us-east-2
 | `vault_aws_region` | Same as AWS CLI region | `us-east-2` |
 | `vault_s3_bucket_name` | Create a unique name | `john-myapp-2026` |
 | `vault_s3_folder` | Choose folder name | `data` or `uploads` |
-| `vault_app_username` | Choose app login | `admin` or `myusername` |
-| `vault_app_password` | Create strong password | `Tr0pic@lBanana99!` |
+| `app_default_username` | Choose app login | `admin` or `myusername` |
+| `app_default_password` | Create strong password | `Tr0pic@lBanana99!` |
 | `vault_sns_topic_arn` | Optional - skip if not using | Leave as empty string `""` |
 
 **IMPORTANT about S3 bucket name:**
