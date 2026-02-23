@@ -142,14 +142,27 @@ if [ "$NO_BACKUP" = false ]; then
         if head -1 "$GROUP_VARS_DIR/vault.yml" | grep -q "ANSIBLE_VAULT"; then
             echo "  🔓 Decrypting vault.yml..."
             VAULT_PASS_FILE="$HOME/.vault_pass"
+
             if [ ! -f "$VAULT_PASS_FILE" ]; then
-                echo "❌ Error: Vault password file not found at $VAULT_PASS_FILE"
-                exit 1
+                # File doesn't exist - prompt for password
+                echo "     Vault password file not found. Please enter your vault password:"
+                read -s -p "     Vault password: " VAULT_PASSWORD < /dev/tty
+                echo ""
+                # Create temp file with password for ansible-vault
+                TEMP_PASS=$(mktemp)
+                echo "$VAULT_PASSWORD" > "$TEMP_PASS"
+                VAULT_PASS_FILE="$TEMP_PASS"
+                TEMP_PASS_CREATED=true
             fi
 
             DECRYPTED_BACKUP="$GROUP_VARS_DIR/vault.yml.decrypted.$(date +%s)"
             ansible-vault decrypt "$GROUP_VARS_DIR/vault.yml" --vault-password-file "$VAULT_PASS_FILE" --output "$DECRYPTED_BACKUP" 2>/dev/null
             BACKUP_FILE="$DECRYPTED_BACKUP"
+
+            # Clean up temp password file if we created one
+            if [ "$TEMP_PASS_CREATED" = true ]; then
+                rm -f "$TEMP_PASS"
+            fi
         else
             BACKUP_FILE="$GROUP_VARS_DIR/vault.yml.backup.$(date +%s)"
             cp "$GROUP_VARS_DIR/vault.yml" "$BACKUP_FILE"

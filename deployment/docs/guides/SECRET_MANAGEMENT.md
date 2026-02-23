@@ -83,11 +83,13 @@ Production:
 ### Initial Setup
 
 ```bash
-# 1. Create vault password (once)
+# 1. Create vault password (OPTIONAL but RECOMMENDED)
+#    Skip this if you prefer to enter password when prompted
 echo "your-secure-vault-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
 # 2. Create encrypted vault file
+#    You'll be prompted for password if ~/.vault_pass doesn't exist
 ansible-vault create deployment/group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 

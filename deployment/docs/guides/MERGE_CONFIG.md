@@ -208,12 +208,26 @@ The script just merges the values - no decryption needed.
 
 ### "Vault password file not found"
 
+This is fine! The script will prompt you to enter the password:
+
+```bash
+./scripts/merge-config.sh
+
+# Output:
+# 🔓 Decrypting vault.yml...
+#    Vault password file not found. Please enter your vault password:
+#    Vault password: [type your password here]
+# ✅ Merged existing values into vault.yml
+```
+
+Or create the file for convenience:
+
 ```bash
 # Create it
 echo "your-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 
-# Then try merge again
+# Then try merge again - no prompt needed
 ./scripts/merge-config.sh
 ```
 
