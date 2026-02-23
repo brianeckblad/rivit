@@ -67,7 +67,7 @@ Examples:
 For more info, see: deployment/docs/guides/MANUAL_DEPLOYMENT.md
 
 ${YELLOW}WARNING:${NC} Make sure you have:
-  1. Vault password set up: echo 'password' > ~/.vault_pass && chmod 600 ~/.vault_pass
+  1. Vault password (optional - will prompt if ~/.vault_pass missing): echo 'password' > ~/.vault_pass && chmod 600 ~/.vault_pass
   2. Hosts configured: deployment/inventories/hosts.yml
   3. Code pushed to GitHub: git push origin main
 

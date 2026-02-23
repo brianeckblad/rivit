@@ -5,14 +5,19 @@
 # ⚠️ THIS FILE CONTAINS SECRETS AND MUST BE ENCRYPTED!
 #
 # Complete setup in PREREQUISITES.md (see deployment docs):
-# 1. Create vault password file: echo 'strong-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
+# 1. Create vault password file (OPTIONAL but RECOMMENDED):
+#    echo 'strong-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
+#    (If you skip this, playbooks will prompt you for password)
+#
 # 2. Copy this file: cp vault.yml.example vault.yml
 # 3. Edit with your credentials: nano vault.yml
 # 4. ENCRYPT IT: ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
 # 5. Verify: ansible-vault view vault.yml --vault-password-file ~/.vault_pass
 #
 # ✅ After encryption, it's SAFE to commit to Git (encrypted content only)
-# ✅ Playbooks automatically decrypt with ~/.vault_pass (see ansible.cfg)
+# ✅ Playbooks automatically decrypt:
+#    - With password from ~/.vault_pass if it exists (no prompt)
+#    - By prompting you if ~/.vault_pass doesn't exist
 # ⚠️ NEVER commit unencrypted vault.yml with real secrets!
 # ============================================================================
 

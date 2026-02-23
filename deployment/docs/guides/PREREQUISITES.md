@@ -491,16 +491,27 @@ cloudfront_price_class: "PriceClass_100" # CloudFront pricing tier (if using CDN
 This is your master password for encrypting/decrypting secrets:
 
 ```bash
-# Create vault password file (stores your vault encryption password)
+# Create vault password file (OPTIONAL but RECOMMENDED - for convenience)
 echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 ```
 
-**⚠️ IMPORTANT:**
-- `your-secure-password` - Make this a STRONG random password
-- Save it somewhere secure (password manager, etc.)
-- This password is needed every time you run deployment playbooks
-- This is NOT your AWS password - it's just for Ansible vault encryption
+**About the vault password file:**
+- ✅ **If you create it** (`~/.vault_pass`) - Playbooks run automatically without prompting
+- ✅ **If you skip it** - Playbooks will prompt you to type the password when needed
+- ⚠️ **Make it strong** - Use a random, secure password (different from other passwords)
+- ⚠️ **Save it** - Store it in a password manager or secure location
+- ⚠️ **File permissions** - Must be `600` (readable only by you)
+
+**Why create it?**
+- Convenience: No password prompt on every playbook run
+- Automation: Useful for CI/CD pipelines
+- Security: Password is only in one place, not typed repeatedly
+
+**Why skip it?**
+- Security: Don't store password in a file on disk
+- Simplicity: Just type password when prompted
+- Flexibility: Different password per deployment if needed
 
 #### Step 3b: Copy & Edit Vault
 
@@ -597,10 +608,11 @@ ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
 
 **Vault Security:**
 - ✅ Your vault.yml is now encrypted on disk
-- ✅ Only readable with the vault password from ~/.vault_pass
+- ✅ Only readable with the vault password
 - ✅ Safe to commit to Git (though ignored by .gitignore)
 - ✅ GitHub credentials and AWS settings stay private
-- ✅ Playbooks automatically decrypt it with ~/.vault_pass
+- ✅ Playbooks automatically decrypt with password from `~/.vault_pass` OR prompt if missing
+- ✅ If `~/.vault_pass` doesn't exist, playbooks will ask for password
 
 **⚠️ CRITICAL - Save Your Vault Password:**
 - Store `~/.vault_pass` securely (don't lose this file!)
