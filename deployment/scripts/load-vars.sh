@@ -1,7 +1,31 @@
 #!/bin/bash
 # Load Ansible variables from YAML files for CLI usage
-# This script reads group_vars and exports them as shell variables
+# This script reads group_vars and EXPORTS them as shell variables
+#
+# ⚠️  IMPORTANT: You MUST source this script, don't run it directly!
 # Usage: source scripts/load-vars.sh
+# NOT: ./scripts/load-vars.sh
+#
+# After sourcing, variables are available:
+#   echo $app_name
+#   aws s3 ls | grep $app_name
+
+# Check if being sourced or executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "⚠️  ERROR: You must SOURCE this script, don't run it directly!"
+    echo ""
+    echo "❌ WRONG: ./scripts/load-vars.sh"
+    echo "✅ CORRECT: source scripts/load-vars.sh"
+    echo ""
+    echo "Usage:"
+    echo "  cd deployment"
+    echo "  source scripts/load-vars.sh"
+    echo ""
+    echo "Then variables will be available:"
+    echo "  echo \$app_name"
+    echo "  aws s3 ls | grep \$app_name"
+    exit 1
+fi
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -81,20 +105,21 @@ if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
 fi
 
 # Display status and available variables
-echo -e "${GREEN}✅ Variables loaded successfully${NC}"
+echo -e "${GREEN}✅ Variables loaded and EXPORTED successfully${NC}"
 echo ""
-echo "Available variables (non-vault):"
+echo "Available variables (exported to this shell):"
 echo "  app_name=$app_name"
 echo "  app_display_name=$app_display_name"
 echo "  aws_region=$aws_region"
 echo "  admin_user=$admin_user"
 echo "  server_name=$server_name"
 echo ""
-echo "Use in commands:"
-echo '  aws s3 ls | grep $app_name'
-echo '  aws iam get-role --role-name ${app_name}-ec2-role'
+echo "Variables are NOW AVAILABLE in your shell. Try these commands:"
+echo "  echo \$app_name"
+echo "  aws s3 ls | grep \$app_name"
+echo "  aws iam get-role --role-name \${app_name}-ec2-role"
 echo ""
-echo "For more variables, run:"
+echo "List all exported variables:"
 echo "  env | grep -E '^(app_|aws_|admin_)' | sort"
 echo ""
 
