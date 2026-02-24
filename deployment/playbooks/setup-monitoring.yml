@@ -5,6 +5,9 @@
 - name: Setup Application Monitoring
   hosts: production
   become: yes
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
 
   tasks:
     - name: Install CloudWatch agent

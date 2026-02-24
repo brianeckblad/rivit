@@ -7,6 +7,9 @@
 - name: Setup CloudFront Distribution
   hosts: localhost
   gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
 
   vars:
     cloudfront_price_class: "PriceClass_100"  # US, Canada, Europe

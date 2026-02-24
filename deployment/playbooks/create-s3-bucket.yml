@@ -7,6 +7,9 @@
 - name: Create S3 Bucket
   hosts: localhost
   gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
 
   tasks:
     - name: Create S3 bucket

@@ -13,6 +13,9 @@
 
 - name: Display provisioning plan
   hosts: localhost
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
   gather_facts: no
   tasks:
     - name: Show what will be created

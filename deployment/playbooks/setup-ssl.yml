@@ -5,6 +5,9 @@
 - name: Setup SSL Certificate with Let's Encrypt
   hosts: production
   become: yes
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
   vars:
     certbot_email: "{{ ssl_email | default('admin@' + server_name) }}"
 

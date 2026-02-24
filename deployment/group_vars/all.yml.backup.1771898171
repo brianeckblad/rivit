@@ -18,20 +18,20 @@
 # ----------------------------------------------------------------------------
 # 1. APPLICATION IDENTITY (REQUIRED)
 # ----------------------------------------------------------------------------
-app_name: "rampe"
+app_name: "myapp"                                # ⚠️ CHANGE THIS - Your app's technical name
                                                  # Examples: myapp, comic_tracker, inventory_tool
                                                  # Used for: service name, directories, logs, etc.
 
-app_display_name: "Rampe Application"
+app_display_name: "My Application"               # ⚠️ CHANGE THIS - Your app's display name
                                                  # Examples: "My App", "Comic Tracker", "Inventory Tool"
                                                  # Used for: systemd service description
 
 # Domain name for SSL/HTTPS (OPTIONAL)
-server_name: "rampe.ipix.io"
+server_name: "_"                                 # Set to your domain: "myapp.com" or leave as "_" for IP-only
                                                  # "_" = No domain, access via IP only
                                                  # "your-domain.com" = Use domain with SSL
 
-ssl_email: "rampe@ipix.io"
+ssl_email: "admin@example.com"                   # ⚠️ CHANGE THIS - Email for SSL certificate notifications
                                                  # Used for Let's Encrypt certificate expiration alerts
                                                  # Only needed if using SSL (server_name is not "_")
 
@@ -42,7 +42,7 @@ ssl_email: "rampe@ipix.io"
 # This keeps your GitHub username private
 # Example: https://github.com/YOUR_USERNAME/your_app_name.git
 
-git_branch: main
+git_branch: main                                 # Git branch to deploy (usually: main or master)
 
 # ----------------------------------------------------------------------------
 # 3. USERS (OPTIONAL - defaults are secure)
@@ -60,11 +60,11 @@ git_branch: main
 # DEFAULT: admin_user = ubuntu, app_user = app_name (recommended)
 # CUSTOM: Uncomment and change if you want different usernames
 
-admin_user: ubuntu
+admin_user: ubuntu                               # Admin/SSH user for deployment (default for Ubuntu AMI)
                                                  # This user can SSH and manage the server
                                                  # Default 'ubuntu' is standard for AWS EC2 Ubuntu AMI
 
-app_user: "{{ app_name }}"
+app_user: "{{ app_name }}"                       # Application runtime user (restricted, no SSH access)
                                                  # This user runs the application process
                                                  # Has no shell (/usr/sbin/nologin) and cannot SSH
                                                  # Uncomment below to use a different username:
@@ -73,22 +73,22 @@ app_user: "{{ app_name }}"
 # ----------------------------------------------------------------------------
 # 4. PERFORMANCE SETTINGS (OPTIONAL)
 # ----------------------------------------------------------------------------
-gunicorn_workers: 4
-gunicorn_timeout: 120
-python_version: "3.10"
+gunicorn_workers: 4                              # Number of worker processes (2-4 x CPU cores)
+gunicorn_timeout: 120                            # Request timeout in seconds
+python_version: "3.10"                           # Python version (don't change unless needed)
 
 # ----------------------------------------------------------------------------
 # 5. LOG RETENTION (OPTIONAL)
 # ----------------------------------------------------------------------------
-log_retention_days: 20
-log_max_size: "10M"
+log_retention_days: 20                           # Days to keep logs before rotation
+log_max_size: "10M"                              # Max size per log file before rotation
 
 # ----------------------------------------------------------------------------
 # 6. BACKUP SETTINGS (OPTIONAL)
 # ----------------------------------------------------------------------------
-backup_cleanup_hour: "3"
-backup_cleanup_minute: "0"
-backup_retention_days: 30
+backup_cleanup_hour: "3"                         # Hour to run cleanup (0-23, UTC)
+backup_cleanup_minute: "0"                       # Minute to run cleanup (0-59)
+backup_retention_days: 30                        # Days to keep backups before deletion
 s3_version_retention_days: 30                    # Days to keep old S3 versions
 
 # ============================================================================
@@ -104,7 +104,7 @@ s3_version_retention_days: 30                    # Days to keep old S3 versions
 # Default: /{app_name} (e.g., /myapp)
 # This is where the EBS volume is mounted
 # ALL application files will be stored here
-app_storage_mount_path: "/app"
+app_storage_mount_path: "/{{ app_name }}"       # Mount point for application EBS volume
                                                  # Format: /{app_name}
                                                  # Example: /myapp, /inventory_tool, /comic_tracker
                                                  # This directory contains:
@@ -115,26 +115,26 @@ app_storage_mount_path: "/app"
                                                  #   • Cache files
 
 # EBS Volume Size (REQUIRED)
-ebs_volume_size: 100
+ebs_volume_size: 100                             # Size in GB (default: 100)
                                                  # Minimum: 20 GB (for OS + app)
                                                  # Recommended: 50-100 GB for small apps
                                                  # Increase for large datasets
                                                  # Cost: ~$0.10/GB/month for gp3
 
 # EBS Volume Type (OPTIONAL)
-ebs_volume_type: "gp3"
+ebs_volume_type: "gp3"                           # Volume type (default: gp3)
                                                  # gp3: General Purpose (recommended, fast, cost-effective)
                                                  # gp2: Legacy general purpose (avoid)
                                                  # io1: High IOPS (for databases, expensive)
                                                  # st1: Throughput optimized (for big data)
 
 # EBS Encryption (OPTIONAL)
-ebs_volume_encrypted: true
+ebs_volume_encrypted: true                       # Encrypt volume (default: true - recommended)
                                                  # Adds minimal performance cost
                                                  # Improves security for sensitive data
 
 # EBS Volume From Snapshot (OPTIONAL)
-ebs_volume_snapshot_id: ""
+ebs_volume_snapshot_id: ""                       # Restore from previous snapshot (default: empty)
                                                  # Leave empty for new volume
                                                  # Set to snapshot ID to restore: snap-0123456789abcdef0
                                                  # Useful for backup/restore or copying volumes
@@ -149,7 +149,7 @@ ec2_instance_type: "t3.micro"                   # Keep as t3.micro for free tier
 # CloudFront CDN Pricing (only if using CloudFront)
 # Default: PriceClass_100 (covers most users, cheapest)
 # Options: PriceClass_100, PriceClass_200, PriceClass_All
-cloudfront_price_class: "PriceClass_100"
+cloudfront_price_class: "PriceClass_100"        # Only used if you deploy CloudFront
 
 # ============================================================================
 # ⚠️ END USER CONFIGURATION ⚠️
@@ -169,21 +169,21 @@ service_name: "{{ app_name }}"
 # All application files, code, data, and logs reside on EBS volume
 # EBS volume is mounted at: /{app_name}
 # Example: /myapp, /inventory_tool, /comic_tracker
-app_dir: "{{ app_storage_mount_path }}"
+app_dir: "{{ app_storage_mount_path }}"         # Application directory on EBS volume
                                                  # Contains: code, data, cache, instance files
 
 # VIRTUAL ENVIRONMENT (ON EBS VOLUME)
 # Python venv is also on EBS volume for better performance
 # Located inside app directory
-venv_dir: "{{ app_storage_mount_path }}/.venv"
+venv_dir: "{{ app_storage_mount_path }}/.venv"  # Python virtual environment on EBS volume
 
 # LOG DIRECTORY (ON EBS VOLUME)
 # Application logs stored on EBS volume
-log_dir: "{{ app_storage_mount_path }}/logs"
+log_dir: "{{ app_storage_mount_path }}/logs"    # Log directory on EBS volume
 
 # INSTANCE DATA DIRECTORY (ON EBS VOLUME)
 # Runtime data and cache stored on EBS volume
-instance_dir: "{{ app_storage_mount_path }}/instance"
+instance_dir: "{{ app_storage_mount_path }}/instance"  # Instance data directory on EBS volume
 
 # SECURITY: Gunicorn Configuration
 # Gunicorn is intentionally NOT exposed to internet
@@ -219,15 +219,15 @@ ec2_ebs_optimized: "{{ ec2_ebs_optimized | default(false) }}"
 ec2_source_dest_check: "{{ ec2_source_dest_check | default(true) }}"
 
 # EBS Volume Configuration (MANDATORY - application runs here)
-ebs_volume_size: 100
-ebs_volume_type: "gp3"
-ebs_volume_mount_path: "{{ app_storage_mount_path }}"
-ebs_volume_encrypted: true
-ebs_volume_snapshot_id: ""
-ebs_device_name: "/dev/sdf"
+ebs_volume_size: "{{ ebs_volume_size | default(100) }}"
+ebs_volume_type: "{{ ebs_volume_type | default('gp3') }}"
+ebs_volume_mount_path: "{{ app_storage_mount_path }}"  # Mount point for application
+ebs_volume_encrypted: "{{ ebs_volume_encrypted | default(true) }}"
+ebs_volume_snapshot_id: "{{ ebs_volume_snapshot_id | default('') }}"
+ebs_device_name: "/dev/sdf"                      # Device name for block device mapping
 
 # System packages (auto-configured)
-system_packages: 
+system_packages:
   - python3
   - python3-pip
   - python3-venv
