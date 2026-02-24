@@ -1,28 +1,16 @@
-# Configuration Merge Tool
+# Configuration Setup Guide
 
-**Update templates while keeping your existing configuration**
+**Use `local-dev-setup.sh` for both new setup and merging configurations**
 
 ---
 
-## Problem It Solves
+## Overview
 
-When you update your templates (`all.yml.example`, `vault.yml.example`) because you found bugs or added features, you don't want to lose your existing configuration. You just want to add the new values.
+The `local-dev-setup.sh` script handles both:
+- **New setup** - Create fresh configuration from templates
+- **Merging** - Preserve existing values when templates are updated
 
-**Before (tedious):**
-```
-1. Get new all.yml.example and vault.yml.example
-2. Manually copy all your old values into new files
-3. Add new values from the template
-4. Repeat for every template update
-```
-
-**After (automatic):**
-```
-1. Run merge-config.sh
-2. It imports your existing values automatically
-3. New template values are ready to configure
-4. Just add the new stuff
-```
+This replaces the need for separate scripts.
 
 ---
 
@@ -30,177 +18,176 @@ When you update your templates (`all.yml.example`, `vault.yml.example`) because 
 
 ```bash
 cd deployment
-./scripts/merge-config.sh
-```
 
-**That's it!** Your existing configuration is merged into the new templates.
+# Auto-detect and choose
+./scripts/local-dev-setup.sh
 
----
+# OR explicitly:
 
-## What It Does
+# Fresh setup
+./scripts/local-dev-setup.sh -new
 
-1. **Finds existing files** - Looks for your current `all.yml` and `vault.yml`
-2. **Creates backups** - Saves copies with timestamp before making changes
-3. **Decrypts vault** (if needed) - If vault is encrypted, decrypts it temporarily
-4. **Merges values** - Copies all your existing values into new template files
-5. **Keeps vault unencrypted** - You can edit immediately without encryption/decryption
-6. **Shows next steps** - Clear instructions on what to do next
-
----
-
-## Usage Examples
-
-### Example 1: Basic Merge (Default)
-
-```bash
-./scripts/merge-config.sh
-```
-
-**What happens:**
-- ✅ Creates backups with timestamps
-- ✅ Decrypts vault if encrypted
-- ✅ Merges your values into new templates
-- ✅ Leaves vault unencrypted for editing
-
-### Example 2: Skip Backup Creation
-
-```bash
-./scripts/merge-config.sh --no-backup
-```
-
-**When to use:**
-- You're confident in the changes
-- You've already backed up manually
-- You just want the merge to happen faster
-
-### Example 3: Force Without Confirmation
-
-```bash
-./scripts/merge-config.sh --force
-```
-
-**When to use:**
-- Running in automation/scripts
-- You know what you're doing
-- Don't show prompts
-
----
-
-## Backup Location
-
-Backups are created in `deployment/group_vars/`:
-
-```bash
-# Backup files look like:
-all.yml.backup.1708632706
-vault.yml.backup.1708632706
-vault.yml.decrypted.1708632706  # If vault was encrypted
-```
-
-**View backups:**
-```bash
-ls -lh deployment/group_vars/*.backup*
-ls -lh deployment/group_vars/*.decrypted*
-```
-
-**Restore from backup (if needed):**
-```bash
-cp deployment/group_vars/all.yml.backup.1708632706 deployment/group_vars/all.yml
-cp deployment/group_vars/vault.yml.backup.1708632706 deployment/group_vars/vault.yml
+# Merge existing with updated templates
+./scripts/local-dev-setup.sh -merge
 ```
 
 ---
 
-## After Merge - Next Steps
+## Usage Modes
 
-### 1. Review the Merged Files
+### Auto Mode (Recommended)
 
 ```bash
-# Check all.yml for new values
-nano deployment/group_vars/all.yml
-
-# Check vault.yml for new values
-nano deployment/group_vars/vault.yml
+./scripts/local-dev-setup.sh
 ```
 
-**Look for:**
-- Comments indicating new fields
-- Template variables that need values
-- Any fields marked as "CHANGE THIS"
+The script detects if you already have configuration files:
+- **If NO files exist** → Creates fresh from templates (same as `-new`)
+- **If files exist** → Asks you to choose between:
+  - `1` - Create fresh (overwrites existing)
+  - `2` - Merge (preserves existing values)
 
-### 2. Add New Configuration Values
+Default: `2` (merge)
 
-Find any new fields from the template that weren't in your old file and add them.
+---
 
-### 3. Encrypt the Vault (When Done)
+### New Mode (`-new`)
+
+Create fresh configuration files from templates:
+
+```bash
+./scripts/local-dev-setup.sh -new
+```
+
+**Use when:**
+- First time setup
+- You want to start completely fresh
+- You don't need to preserve existing values
+
+**What it does:**
+- Copies `all.yml.example` → `all.yml`
+- Copies `vault.yml.example` → `vault.yml`
+- Ready for you to edit
+
+---
+
+### Merge Mode (`-merge`)
+
+Merge existing configuration with updated templates:
+
+```bash
+./scripts/local-dev-setup.sh -merge
+```
+
+**Use when:**
+- Templates were updated with bug fixes or new features
+- You want to keep your existing values
+- You only want to add NEW configuration items
+
+**What it does:**
+- Creates backups with timestamps
+- Decrypts vault (if encrypted)
+- Merges your existing values into new templates
+- Shows you what changed
+- Leaves vault unencrypted (ready to edit)
+
+---
+
+## Detailed Workflow
+
+### First Time Setup
 
 ```bash
 cd deployment
+
+# 1. Create fresh configuration
+./scripts/local-dev-setup.sh -new
+
+# 2. Edit your configuration
+nano group_vars/all.yml
+nano group_vars/vault.yml
+
+# 3. Create vault password (optional but recommended)
+echo "your-password" > ~/.vault_pass
+chmod 600 ~/.vault_pass
+
+# 4. Encrypt the vault
 ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
-```
 
-### 4. Deploy
+# 5. Configure git
+./scripts/configure-git.sh
 
-```bash
+# 6. Deploy
 ./scripts/infra-complete-setup.sh
 ```
 
 ---
 
-## Workflow Example
-
-**Scenario:** You discover a bug and update `all.yml.example` with new configuration.
+### Template Update Workflow
 
 ```bash
-# 1. You update the template in the repo
+# 1. Pull latest templates from git
 git pull origin main
 
-# 2. Merge your existing config with the new template
-./scripts/merge-config.sh
+# 2. Check if all.yml.example or vault.yml.example changed
+git diff group_vars/all.yml.example
+git diff group_vars/vault.yml.example
 
-# Output:
-# ✅ Found: all.yml (will merge values)
-# ✅ Found: vault.yml (will merge values)
-# ✅ Backed up: all.yml → all.yml.backup.1708632706
-# ✅ Backed up: vault.yml → vault.yml.backup.1708632706
-# ✅ Merged existing values into all.yml
-# ✅ Merged existing values into vault.yml
-# 
-# Your existing values have been merged into the new templates.
-# Only NEW values (from template updates) need to be configured.
+# 3. Merge your existing config with updated templates
+./scripts/local-dev-setup.sh -merge
 
-# 3. Edit to add any new values
-nano group_vars/all.yml
+# 4. Review what changed
+nano group_vars/all.yml    # Look for new values
+nano group_vars/vault.yml
 
-# 4. Encrypt vault
+# 5. Add any NEW values from the templates
+
+# 6. Encrypt the vault
 ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
 
-# 5. Deploy
+# 7. Deploy with new configuration
 ./scripts/infra-complete-setup.sh
 ```
 
 ---
 
-## Vault Handling
+## Vault Password File
 
-### If Your Vault Is Encrypted
+The script handles vault encryption/decryption automatically:
 
-The script automatically:
-1. Detects that vault.yml is encrypted
-2. Decrypts it temporarily
-3. Extracts your values
-4. Merges them into new template
-5. Leaves new vault.yml **unencrypted** (so you can edit easily)
+- **If `~/.vault_pass` exists** - Uses it (no prompt)
+- **If missing** - Prompts you to enter password
+- **After merge** - Vault is left unencrypted (ready to edit)
 
-**Important:** After merging and editing, you must re-encrypt:
-
+**Create the file for convenience:**
 ```bash
-ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
+echo "your-password" > ~/.vault_pass
+chmod 600 ~/.vault_pass
 ```
 
-### If Your Vault Is Unencrypted
+---
 
-The script just merges the values - no decryption needed.
+## Backups
+
+When using `-merge` mode, the script creates timestamped backups:
+
+```bash
+# Backup locations
+group_vars/all.yml.backup.1708632706
+group_vars/vault.yml.backup.1708632706
+group_vars/vault.yml.decrypted.1708632706  # If vault was encrypted
+```
+
+**Restore if needed:**
+```bash
+cp group_vars/all.yml.backup.1708632706 group_vars/all.yml
+cp group_vars/vault.yml.backup.1708632706 group_vars/vault.yml
+```
+
+**Skip backups (if confident):**
+```bash
+./scripts/local-dev-setup.sh -merge --no-backup
+```
 
 ---
 
@@ -208,154 +195,80 @@ The script just merges the values - no decryption needed.
 
 ### "Vault password file not found"
 
-This is fine! The script will prompt you to enter the password:
+The script will prompt you:
 
 ```bash
-./scripts/merge-config.sh
+./scripts/local-dev-setup.sh -merge
 
 # Output:
 # 🔓 Decrypting vault.yml...
 #    Vault password file not found. Please enter your vault password:
-#    Vault password: [type your password here]
-# ✅ Merged existing values into vault.yml
+#    Vault password: [type your password]
 ```
 
-Or create the file for convenience:
+To avoid prompts, create the file:
 
 ```bash
-# Create it
 echo "your-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
-
-# Then try merge again - no prompt needed
-./scripts/merge-config.sh
 ```
 
 ### "Permission denied"
 
-```bash
-# Make script executable
-chmod +x scripts/merge-config.sh
+Make sure script is executable:
 
-# Then run again
-./scripts/merge-config.sh
+```bash
+chmod +x deployment/scripts/local-dev-setup.sh
 ```
 
-### "No existing files found"
+### "No existing files found" with `-merge`
 
-This means neither `all.yml` nor `vault.yml` exists yet.
-
-The script will create both from templates:
+The script will create fresh files instead:
 
 ```bash
-✅ Created: all.yml
-✅ Created: vault.yml (unencrypted, ready to edit)
-```
+./scripts/local-dev-setup.sh -merge
 
-Then edit them normally:
-```bash
-nano group_vars/all.yml
-nano group_vars/vault.yml
-```
-
-### "Merged file has wrong values"
-
-Restore from backup:
-
-```bash
-# List available backups
-ls -lh deployment/group_vars/*.backup*
-
-# Restore
-cp deployment/group_vars/all.yml.backup.1708632706 deployment/group_vars/all.yml
-cp deployment/group_vars/vault.yml.backup.1708632706 deployment/group_vars/vault.yml
-
-# Try merge again
-./scripts/merge-config.sh
+# No existing files? Creates from template
+# ✅ Created: all.yml
+# ✅ Created: vault.yml
 ```
 
 ---
 
-## Script Behavior Summary
+## Why One Script?
 
-| Scenario | Behavior |
-|----------|----------|
-| First time run | Creates new files from templates |
-| Update templates | Merges old values + new template |
-| Vault encrypted | Temporarily decrypts, then leaves unencrypted |
-| Vault unencrypted | Just merges values, no decryption |
-| Files exist | Backs up before modifying |
-| `--no-backup` | Skips backup creation |
-| `--force` | No confirmation prompts |
+Instead of maintaining two separate scripts (`local-dev-setup.sh` and `merge-config.sh`), we have one unified script that:
 
----
+- ✅ Detects your situation automatically
+- ✅ Handles both new setup and merging
+- ✅ Reduces code duplication
+- ✅ Easier to maintain
+- ✅ Clear and consistent interface
 
-## Integration with Other Scripts
-
-Works perfectly with:
-
-- **`local-dev-setup.sh`** - Initial setup (creates new files)
-- **`merge-config.sh`** - Update workflow (merges existing + new)
-- **`configure-git.sh`** - Git configuration
-- **`infra-complete-setup.sh`** - Deployment
-
-**Typical workflow:**
-
-```bash
-# First time
-./scripts/local-dev-setup.sh
-
-# Later, when templates are updated
-./scripts/merge-config.sh
-
-# Configure git
-./scripts/configure-git.sh
-
-# Deploy
-./scripts/infra-complete-setup.sh
-```
+Both workflows are now seamless with the same tool.
 
 ---
 
 ## Tips
 
-1. **Run merge-config after pulling updates**
+1. **Run merge after template updates**
    ```bash
    git pull origin main
-   ./scripts/merge-config.sh  # Merge template changes with your config
+   ./scripts/local-dev-setup.sh -merge
    ```
 
-2. **Keep old backups for comparison**
+2. **Check what changed in templates**
    ```bash
-   # Old backup still has your original values
-   diff deployment/group_vars/all.yml.backup.* deployment/group_vars/all.yml
+   git diff group_vars/*.example
    ```
 
 3. **Vault stays unencrypted after merge**
-   - Good for editing
-   - Bad for security if you commit
-   - **Don't forget to encrypt:** `ansible-vault encrypt ...`
-
-4. **Check what changed**
+   - Good: Easy to edit
+   - Remember: Encrypt before deploying
    ```bash
-   # See all new/changed values
-   diff deployment/group_vars/all.yml.example deployment/group_vars/all.yml
+   ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
    ```
 
----
-
-## Why This Matters
-
-Without merge-config, you'd have to:
-- ❌ Manually retype all your configuration
-- ❌ Risk losing values
-- ❌ Spend time on tedious copying
-- ❌ Deal with vault encryption/decryption manually
-
-With merge-config:
-- ✅ Automatic value preservation
-- ✅ Quick template updates
-- ✅ Clear workflow
-- ✅ Safe backups included
-- ✅ Vault handled automatically
-
+4. **Multiple projects?**
+   - Use `-merge` for each project after template updates
+   - Automatically preserves your project-specific values
