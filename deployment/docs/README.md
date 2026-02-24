@@ -44,7 +44,8 @@ Complete guides for deploying your application to AWS.
 - [WAF_CONFIGURATION.md](guides/WAF_CONFIGURATION.md) - Web application firewall
 
 ### **Security & Configuration**
-- [SECRET_MANAGEMENT.md](guides/SECRET_MANAGEMENT.md) - AWS Secrets Manager setup
+- [SECRET_MANAGEMENT.md](guides/SECRET_MANAGEMENT.md) - AWS Secrets Manager strategy
+- [SECRETS_MANAGER_SETUP.md](guides/SECRETS_MANAGER_SETUP.md) - Technical guide for setup-secrets-manager.yml playbook
 - [SECURITY_HARDENING.md](guides/SECURITY_HARDENING.md) - Security hardening
 - [SECURITY.md](reference/SECURITY.md) - Security model overview
 
