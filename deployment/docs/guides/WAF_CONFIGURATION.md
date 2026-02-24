@@ -50,7 +50,8 @@ Think of it as:
 cd deployment
 
 # Setup WAF with AWS managed rules
-ansible-playbook playbooks/setup-waf.yml
+ansible-playbook playbooks/setup-waf.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**

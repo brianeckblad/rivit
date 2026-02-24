@@ -422,25 +422,31 @@ cd deployment
 ### Rotate eBay Token
 
 ```bash
+cd deployment
+
 # 1. Get new token from eBay
 NEW_TOKEN="v^1.1#i^1#...new-token..."
 
 # 2. Add to vault as _new
-ansible-vault edit deployment/group_vars/vault.yml \
+ansible-vault edit group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
 # Add: vault_ebay_production_token_new: "..."
 
 # 3. Rotate secret
-ansible-playbook playbooks/secret-rotate.yml -e secret_key=ebay_production_token
+ansible-playbook playbooks/secret-rotate.yml \
+  -e secret_key=ebay_production_token \
+  --vault-password-file ~/.vault_pass
 
 # 4. Test application
 curl https://yourdomain.com/api/ebay/test
 
 # 5. If successful, promote
-ansible-playbook playbooks/secret-promote.yml -e secret_key=ebay_production_token
+ansible-playbook playbooks/secret-promote.yml \
+  -e secret_key=ebay_production_token \
+  --vault-password-file ~/.vault_pass
 
 # 6. Clean up vault
-ansible-vault edit deployment/group_vars/vault.yml
+ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 # Move _new to main, remove _new suffix
 
 # 7. Commit

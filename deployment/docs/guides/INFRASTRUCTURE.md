@@ -37,7 +37,8 @@
 cd deployment
 
 # Run S3 creation playbook
-ansible-playbook playbooks/create-s3-bucket.yml
+ansible-playbook playbooks/create-s3-bucket.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
@@ -143,7 +144,8 @@ aws s3 ls | grep $BUCKET_NAME
 cd deployment
 
 # Create IAM role with permissions
-ansible-playbook playbooks/create-iam-role.yml
+ansible-playbook playbooks/create-iam-role.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
@@ -243,7 +245,8 @@ aws iam get-role --role-name $ROLE_NAME
 cd deployment
 
 # Create security group with rules
-ansible-playbook playbooks/create-security-group.yml
+ansible-playbook playbooks/create-security-group.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
@@ -343,7 +346,8 @@ Two parts:
 cd deployment
 
 # Create SSH key pair
-ansible-playbook playbooks/create-ssh-key.yml
+ansible-playbook playbooks/create-ssh-key.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
@@ -432,7 +436,8 @@ Before launching EC2, you need:
 cd deployment
 
 # Launch EC2 instance
-ansible-playbook playbooks/launch-ec2-instance.yml
+ansible-playbook playbooks/launch-ec2-instance.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**

@@ -502,8 +502,11 @@ aws cloudwatch get-metric-statistics \
 **Combine CloudFront + WAF for maximum protection**
 
 ```bash
+cd deployment
+
 # Setup WAF
-ansible-playbook playbooks/setup-waf.yml
+ansible-playbook playbooks/setup-waf.yml \
+    --vault-password-file ~/.vault_pass
 
 # Attach WAF to CloudFront:
 # In WAF setup, scope = CLOUDFRONT (not REGIONAL)
