@@ -84,11 +84,11 @@ fi
 echo -e "${GREEN}✅ Variables loaded successfully${NC}"
 echo ""
 echo "Available variables (non-vault):"
-echo "  app_name=${app_name:-[not set]}"
-echo "  app_display_name=${app_display_name:-[not set]}"
-echo "  aws_region=${aws_region:-[not set]}"
-echo "  admin_user=${admin_user:-[not set]}"
-echo "  server_name=${server_name:-[not set]}"
+echo "  app_name=$app_name"
+echo "  app_display_name=$app_display_name"
+echo "  aws_region=$aws_region"
+echo "  admin_user=$admin_user"
+echo "  server_name=$server_name"
 echo ""
 echo "Use in commands:"
 echo '  aws s3 ls | grep $app_name'
@@ -111,13 +111,4 @@ else
     echo "Your secrets are visible in plain text. Encrypt it with:"
     echo "  ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass"
 fi
-echo "  admin_user=$admin_user"
-echo "  server_name=$server_name"
-echo ""
-echo "Use in commands:"
-echo '  aws s3 ls | grep $app_name'
-echo '  aws iam get-role --role-name ${app_name}-ec2-role'
-echo ""
-echo "For more variables, run:"
-echo "  env | grep -E '^(app_|aws_|admin_)' | sort"
 
