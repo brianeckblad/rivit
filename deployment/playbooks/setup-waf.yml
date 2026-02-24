@@ -2,7 +2,16 @@
 # Playbook to create and configure AWS WAF (Web Application Firewall)
 # Protects application from common web exploits
 #
+# Usage: ansible-playbook playbooks/setup-waf.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# If vault is not encrypted, run without --vault-password-file:
 # Usage: ansible-playbook playbooks/setup-waf.yml
+#
+# IMPORTANT: This playbook requires decrypted vault.yml to access secrets.
+# Encrypted vault variables will be automatically decrypted if you provide:
+# 1. ~/.vault_pass file (recommended), OR
+# 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Setup AWS WAF
   hosts: localhost

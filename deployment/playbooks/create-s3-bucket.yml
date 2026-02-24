@@ -2,7 +2,12 @@
 # Playbook to create S3 bucket for application storage
 # Single purpose: Create and configure S3 bucket
 #
-# Usage: ansible-playbook playbooks/create-s3-bucket.yml
+# Usage: ansible-playbook playbooks/create-s3-bucket.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# IMPORTANT: If vault.yml is encrypted, provide vault password via:
+# 1. ~/.vault_pass file (recommended), OR
+# 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Create S3 Bucket
   hosts: localhost

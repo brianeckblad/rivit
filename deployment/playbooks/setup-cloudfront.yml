@@ -2,7 +2,12 @@
 # Playbook to create and configure CloudFront distribution
 # For CDN and edge caching of static assets
 #
-# Usage: ansible-playbook playbooks/setup-cloudfront.yml
+# Usage: ansible-playbook playbooks/setup-cloudfront.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# IMPORTANT: If vault.yml is encrypted, provide vault password via:
+# 1. ~/.vault_pass file (recommended), OR
+# 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Setup CloudFront Distribution
   hosts: localhost

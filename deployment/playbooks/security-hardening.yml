@@ -1,7 +1,15 @@
 ---
 # Basic security hardening for Ubuntu servers
 # Follows security best practices without excessive complexity
-# Can be run independently: ansible-playbook playbooks/security-hardening.yml
+# Can be run independently: ansible-playbook playbooks/security-hardening.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# Usage: ansible-playbook playbooks/security-hardening.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# IMPORTANT: If vault.yml is encrypted, provide vault password via:
+# 1. ~/.vault_pass file (recommended), OR
+# 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Apply Security Hardening
   hosts: all

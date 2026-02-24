@@ -1,6 +1,13 @@
 ---
 # Playbook to setup monitoring and CloudWatch integration
 # This replaces setup-monitoring.sh
+#
+# Usage: ansible-playbook playbooks/setup-monitoring.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# IMPORTANT: If vault.yml is encrypted, provide vault password via:
+# 1. ~/.vault_pass file (recommended), OR
+# 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Setup Application Monitoring
   hosts: production

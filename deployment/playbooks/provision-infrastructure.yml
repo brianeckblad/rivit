@@ -2,12 +2,17 @@
 # Master orchestration playbook for complete infrastructure provisioning
 # This calls individual single-purpose playbooks in the correct order
 #
-# Usage: ansible-playbook playbooks/provision-infrastructure.yml
+# Usage: ansible-playbook playbooks/provision-infrastructure.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# IMPORTANT: If vault.yml is encrypted, provide vault password via:
+# 1. ~/.vault_pass file (recommended), OR
+# 2. --ask-vault-pass flag (will prompt for password)
 #
 # Individual playbooks can also be run separately:
-#   ansible-playbook playbooks/create-s3-bucket.yml
-#   ansible-playbook playbooks/create-iam-role.yml
-#   ansible-playbook playbooks/create-security-group.yml
+#   ansible-playbook playbooks/create-s3-bucket.yml --vault-password-file ~/.vault_pass
+#   ansible-playbook playbooks/create-iam-role.yml --vault-password-file ~/.vault_pass
+#   ansible-playbook playbooks/create-security-group.yml --vault-password-file ~/.vault_pass
 #   ansible-playbook playbooks/create-ssh-key.yml
 #   ansible-playbook playbooks/launch-ec2-instance.yml
 

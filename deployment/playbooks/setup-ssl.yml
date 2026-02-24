@@ -1,6 +1,13 @@
 ---
 # Playbook to setup SSL certificates using Let's Encrypt
 # This replaces ssl-setup.sh
+#
+# Usage: ansible-playbook playbooks/setup-ssl.yml \
+#          --vault-password-file ~/.vault_pass
+#
+# IMPORTANT: If vault.yml is encrypted, provide vault password via:
+# 1. ~/.vault_pass file (recommended), OR
+# 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Setup SSL Certificate with Let's Encrypt
   hosts: production
