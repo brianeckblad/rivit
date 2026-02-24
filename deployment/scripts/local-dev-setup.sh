@@ -101,7 +101,9 @@ if [ "$MODE" = "auto" ]; then
     fi
 fi
 
-echo "Mode: ${BLUE}${MODE^^}${NC}"
+# Convert MODE to uppercase for display (compatible with all shells)
+MODE_DISPLAY=$(echo "$MODE" | tr '[:lower:]' '[:upper:]')
+echo "Mode: ${BLUE}${MODE_DISPLAY}${NC}"
 echo ""
 
 # ============================================================================
@@ -232,29 +234,11 @@ if [ "$MODE" = "merge" ]; then
     if [ "$HAS_ALL_YML" = true ]; then
         echo "🔄 Merging all.yml..."
 
-        # Copy template
-        cp "$GROUP_VARS_DIR/all.yml.example" "$GROUP_VARS_DIR/all.yml.merged"
-
-        # Extract all key-value pairs from existing all.yml
-        while IFS= read -r line; do
-            # Skip comments and empty lines
-            if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
-                continue
-            fi
-
-            # Extract key and value
-            if [[ "$line" =~ ^([a-z_]+): ]]; then
-                KEY="${BASH_REMATCH[1]}"
-                VALUE=$(echo "$line" | sed "s/^${KEY}:[[:space:]]*//; s/#.*//" | sed 's/[[:space:]]*$//')
-
-                # Replace value in merged file (only simple key: value lines, not templated)
-                if ! grep -q "^${KEY}:[[:space:]]*{{" "$GROUP_VARS_DIR/all.yml.example"; then
-                    # Escape special characters for sed
-                    VALUE_ESCAPED=$(printf '%s\n' "$VALUE" | sed -e 's/[\/&]/\\&/g')
-                    sed -i.tmp "s|^${KEY}:.*|${KEY}: ${VALUE_ESCAPED}|" "$GROUP_VARS_DIR/all.yml.merged" && rm -f "$GROUP_VARS_DIR/all.yml.merged.tmp"
-                fi
-            fi
-        done < "$GROUP_VARS_DIR/all.yml"
+        # Use Python helper for reliable YAML merging
+        python3 "$SCRIPT_DIR/merge-yaml.py" \
+            "$GROUP_VARS_DIR/all.yml.example" \
+            "$GROUP_VARS_DIR/all.yml" \
+            "$GROUP_VARS_DIR/all.yml.merged"
 
         mv "$GROUP_VARS_DIR/all.yml.merged" "$GROUP_VARS_DIR/all.yml"
         echo "  ✅ Merged existing values into all.yml"
@@ -269,7 +253,11 @@ if [ "$MODE" = "merge" ]; then
 
         # If vault is encrypted, decrypt it first
         OLD_VAULT_FILE="$GROUP_VARS_DIR/vault.yml"
-        if head -1 "$OLD_VAULT_FILE" | grep -q "ANSIBLE_VAULT"; then
+        TEMP_VAULT=""
+        VAULT_WAS_ENCRYPTED=false
+
+        if head -1 "$OLD_VAULT_FILE" 2>/dev/null | grep -q "ANSIBLE_VAULT"; then
+            VAULT_WAS_ENCRYPTED=true
             echo "  🔓 Decrypting existing vault.yml..."
             VAULT_PASS_FILE="$HOME/.vault_pass"
             if [ ! -f "$VAULT_PASS_FILE" ]; then
@@ -285,7 +273,7 @@ if [ "$MODE" = "merge" ]; then
 
             # Create temp decrypted file
             TEMP_VAULT=$(mktemp)
-            ansible-vault decrypt "$OLD_VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE" --output "$TEMP_VAULT" 2>/dev/null
+            ansible-vault decrypt "$OLD_VAULT_FILE" --vault-password-file "$VAULT_PASS_FILE" --output "$TEMP_VAULT" 2>/dev/null || true
             OLD_VAULT_FILE="$TEMP_VAULT"
 
             # Clean up temp password file if we created one
@@ -294,33 +282,19 @@ if [ "$MODE" = "merge" ]; then
             fi
         fi
 
-        # Copy template
-        cp "$GROUP_VARS_DIR/vault.yml.example" "$GROUP_VARS_DIR/vault.yml.merged"
+        # Use Python helper for reliable YAML merging
+        python3 "$SCRIPT_DIR/merge-yaml.py" \
+            "$GROUP_VARS_DIR/vault.yml.example" \
+            "$OLD_VAULT_FILE" \
+            "$GROUP_VARS_DIR/vault.yml.merged"
 
-        # Extract vault variables from existing file
-        while IFS= read -r line; do
-            # Skip comments and empty lines
-            if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
-                continue
-            fi
-
-            # Extract key and value (vault variables)
-            if [[ "$line" =~ ^([a-z_]+): ]]; then
-                KEY="${BASH_REMATCH[1]}"
-                VALUE=$(echo "$line" | sed "s/^${KEY}:[[:space:]]*//; s/#.*//" | sed 's/[[:space:]]*$//')
-
-                # Replace in merged file
-                VALUE_ESCAPED=$(printf '%s\n' "$VALUE" | sed -e 's/[\/&]/\\&/g')
-                sed -i.tmp "s|^${KEY}:.*|${KEY}: ${VALUE_ESCAPED}|" "$GROUP_VARS_DIR/vault.yml.merged" && rm -f "$GROUP_VARS_DIR/vault.yml.merged.tmp"
-            fi
-        done < "$OLD_VAULT_FILE"
+        mv "$GROUP_VARS_DIR/vault.yml.merged" "$GROUP_VARS_DIR/vault.yml"
 
         # Clean up temp file if we created one
         if [ -n "$TEMP_VAULT" ] && [ -f "$TEMP_VAULT" ]; then
             rm -f "$TEMP_VAULT"
         fi
 
-        mv "$GROUP_VARS_DIR/vault.yml.merged" "$GROUP_VARS_DIR/vault.yml"
         echo "  ✅ Merged existing values into vault.yml"
         echo "  ✅ Vault is unencrypted (ready to edit)"
     else

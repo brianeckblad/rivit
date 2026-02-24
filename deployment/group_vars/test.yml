@@ -1,0 +1,245 @@
+---
+# ============================================================================
+# EXAMPLE CONFIGURATION FILE
+# ============================================================================
+# This is a template. Copy it to create your actual config:
+#   cp all.yml.example all.yml
+#   nano all.yml
+#
+# The real all.yml file is ignored by Git (your personal settings stay private)
+# Updates to this template will be tracked in Git
+# ============================================================================
+
+# ============================================================================
+# ⚠️ USER CONFIGURATION - CHANGE THESE VALUES ⚠️
+# ============================================================================
+# Everything below this section is auto-configured based on these values
+
+# ----------------------------------------------------------------------------
+# 1. APPLICATION IDENTITY (REQUIRED)
+# ----------------------------------------------------------------------------
+app_name: "rampe" # ⚠️ CHANGE THIS - Your app's technical name
+                                                 # Examples: myapp, comic_tracker, inventory_tool
+                                                 # Used for: service name, directories, logs, etc.
+
+app_display_name: "Rampe Application" # ⚠️ CHANGE THIS - Your app's display name
+                                                 # Examples: "My App", "Comic Tracker", "Inventory Tool"
+                                                 # Used for: systemd service description
+
+# Domain name for SSL/HTTPS (OPTIONAL)
+server_name: "rampe.ipix.io" # Set to your domain: "myapp.com" or leave as "_" for IP-only
+                                                 # "_" = No domain, access via IP only
+                                                 # "your-domain.com" = Use domain with SSL
+
+ssl_email: "rampe@ipix.io" # ⚠️ CHANGE THIS - Email for SSL certificate notifications
+                                                 # Used for Let's Encrypt certificate expiration alerts
+                                                 # Only needed if using SSL (server_name is not "_")
+
+# ----------------------------------------------------------------------------
+# 2. GIT CONFIGURATION
+# ----------------------------------------------------------------------------
+# Your GitHub repository URL is in vault.yml (vault_git_repo)
+# This keeps your GitHub username private
+# Example: https://github.com/YOUR_USERNAME/your_app_name.git
+
+git_branch: main # Git branch to deploy (usually: main or master)
+
+# ----------------------------------------------------------------------------
+# 3. USERS (OPTIONAL - defaults are secure)
+# ----------------------------------------------------------------------------
+# Two user setup:
+# 1. admin_user: Used for deployment and administration (SSH access)
+# 2. app_user: Dedicated application runtime user (no SSH access, no shell)
+#
+# Benefits:
+#   - admin_user has full access for management tasks
+#   - app_user runs application with minimum permissions (principle of least privilege)
+#   - If app is compromised, attacker cannot SSH to server
+#   - Clear separation between deployment and runtime
+#
+# DEFAULT: admin_user = ubuntu, app_user = app_name (recommended)
+# CUSTOM: Uncomment and change if you want different usernames
+
+admin_user: ubuntu # Admin/SSH user for deployment (default for Ubuntu AMI)
+                                                 # This user can SSH and manage the server
+                                                 # Default 'ubuntu' is standard for AWS EC2 Ubuntu AMI
+
+app_user: "{{ app_name }}" # Application runtime user (restricted, no SSH access)
+                                                 # This user runs the application process
+                                                 # Has no shell (/usr/sbin/nologin) and cannot SSH
+                                                 # Uncomment below to use a different username:
+                                                 # app_user: "myapp_runtime"
+
+# ----------------------------------------------------------------------------
+# 4. PERFORMANCE SETTINGS (OPTIONAL)
+# ----------------------------------------------------------------------------
+gunicorn_workers: 4 # Number of worker processes (2-4 x CPU cores)
+gunicorn_timeout: 120 # Request timeout in seconds
+python_version: "3.10" # Python version (don't change unless needed)
+
+# ----------------------------------------------------------------------------
+# 5. LOG RETENTION (OPTIONAL)
+# ----------------------------------------------------------------------------
+log_retention_days: 20 # Days to keep logs before rotation
+log_max_size: "10M" # Max size per log file before rotation
+
+# ----------------------------------------------------------------------------
+# 6. BACKUP SETTINGS (OPTIONAL)
+# ----------------------------------------------------------------------------
+backup_cleanup_hour: "3" # Hour to run cleanup (0-23, UTC)
+backup_cleanup_minute: "0" # Minute to run cleanup (0-59)
+backup_retention_days: 30 # Days to keep backups before deletion
+s3_version_retention_days: 30                    # Days to keep old S3 versions
+
+# ============================================================================
+# 7. STORAGE CONFIGURATION (MANDATORY)
+# ============================================================================
+
+# EBS Volume Configuration
+# ⚠️ EBS VOLUME IS MANDATORY - Application runs on EBS volume
+# The EBS volume contains all application code, data, and logs
+# Root volume is only used for OS
+
+# Application Storage Location
+# Default: /{app_name} (e.g., /myapp)
+# This is where the EBS volume is mounted
+# ALL application files will be stored here
+app_storage_mount_path: "/app" # Mount point for application EBS volume
+                                                 # Format: /{app_name}
+                                                 # Example: /myapp, /inventory_tool, /comic_tracker
+                                                 # This directory contains:
+                                                 #   • Application code
+                                                 #   • Python virtual environment
+                                                 #   • Application data
+                                                 #   • Application logs
+                                                 #   • Cache files
+
+# EBS Volume Size (REQUIRED)
+ebs_volume_size: 100 # Size in GB (default: 100)
+                                                 # Minimum: 20 GB (for OS + app)
+                                                 # Recommended: 50-100 GB for small apps
+                                                 # Increase for large datasets
+                                                 # Cost: ~$0.10/GB/month for gp3
+
+# EBS Volume Type (OPTIONAL)
+ebs_volume_type: "gp3" # Volume type (default: gp3)
+                                                 # gp3: General Purpose (recommended, fast, cost-effective)
+                                                 # gp2: Legacy general purpose (avoid)
+                                                 # io1: High IOPS (for databases, expensive)
+                                                 # st1: Throughput optimized (for big data)
+
+# EBS Encryption (OPTIONAL)
+ebs_volume_encrypted: true # Encrypt volume (default: true - recommended)
+                                                 # Adds minimal performance cost
+                                                 # Improves security for sensitive data
+
+# EBS Volume From Snapshot (OPTIONAL)
+ebs_volume_snapshot_id: "" # Restore from previous snapshot (default: empty)
+                                                 # Leave empty for new volume
+                                                 # Set to snapshot ID to restore: snap-0123456789abcdef0
+                                                 # Useful for backup/restore or copying volumes
+
+# EC2 Instance Type
+# Default: t3.micro (AWS free tier eligible)
+# Larger options: t3.small, t3.medium, t3.large, etc.
+ec2_instance_type: "t3.micro"                   # Keep as t3.micro for free tier
+                                                 # Change for production: t3.small or larger
+#                                                 # When true, all ebs_volume_* settings apply
+
+# CloudFront CDN Pricing (only if using CloudFront)
+# Default: PriceClass_100 (covers most users, cheapest)
+# Options: PriceClass_100, PriceClass_200, PriceClass_All
+cloudfront_price_class: "PriceClass_100" # Only used if you deploy CloudFront
+
+# ============================================================================
+# ⚠️ END USER CONFIGURATION ⚠️
+# ============================================================================
+# Everything below is auto-configured - no changes needed
+# ============================================================================
+
+# ============================================================================
+# ⚠️ AUTO-CONFIGURED VALUES - DO NOT EDIT
+# ============================================================================
+# Everything below is automatically configured based on variables above
+
+# Computed values
+service_name: "{{ app_name }}"
+
+# APPLICATION DIRECTORY (ON EBS VOLUME)
+# All application files, code, data, and logs reside on EBS volume
+# EBS volume is mounted at: /{app_name}
+# Example: /myapp, /inventory_tool, /comic_tracker
+app_dir: "{{ app_storage_mount_path }}" # Application directory on EBS volume
+                                                 # Contains: code, data, cache, instance files
+
+# VIRTUAL ENVIRONMENT (ON EBS VOLUME)
+# Python venv is also on EBS volume for better performance
+# Located inside app directory
+venv_dir: "{{ app_storage_mount_path }}/.venv" # Python virtual environment on EBS volume
+
+# LOG DIRECTORY (ON EBS VOLUME)
+# Application logs stored on EBS volume
+log_dir: "{{ app_storage_mount_path }}/logs" # Log directory on EBS volume
+
+# INSTANCE DATA DIRECTORY (ON EBS VOLUME)
+# Runtime data and cache stored on EBS volume
+instance_dir: "{{ app_storage_mount_path }}/instance" # Instance data directory on EBS volume
+
+# SECURITY: Gunicorn Configuration
+# Gunicorn is intentionally NOT exposed to internet
+# gunicorn_bind binds to localhost (127.0.0.1) only
+# Port 8000 is standard and correct
+# Nginx proxies requests from ports 80/443 to this internal port
+# This prevents direct attacks on the application server
+gunicorn_bind: "127.0.0.1:8000"
+
+# Computed: Extract port from gunicorn_bind
+# Used by health check endpoints
+app_port: "{{ gunicorn_bind.split(':')[1] }}"
+
+# Git repository from vault
+git_repo: "{{ vault_git_repo }}"
+
+# AWS Configuration from vault
+aws_region: "{{ vault_aws_region | default('us-east-2') }}"
+s3_bucket_name: "{{ vault_s3_bucket_name }}"
+s3_folder: "{{ vault_s3_folder | default('data') }}"
+secret_name: "{{ app_name }}/secrets"
+sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
+
+# Application default login credentials (from vault)
+app_username: "{{ app_default_username }}"
+app_password: "{{ app_default_password }}"
+
+# EC2 Instance Configuration (auto-configured with defaults)
+assign_public_ip: "{{ assign_public_ip | default(true) }}"
+ec2_monitoring_enabled: "{{ ec2_monitoring_enabled | default(true) }}"
+ec2_termination_protection: "{{ ec2_termination_protection | default(false) }}"
+ec2_ebs_optimized: "{{ ec2_ebs_optimized | default(false) }}"
+ec2_source_dest_check: "{{ ec2_source_dest_check | default(true) }}"
+
+# EBS Volume Configuration (MANDATORY - application runs here)
+ebs_volume_size: 100
+ebs_volume_type: "gp3"
+ebs_volume_mount_path: "{{ app_storage_mount_path }}" # Mount point for application
+ebs_volume_encrypted: true
+ebs_volume_snapshot_id: ""
+ebs_device_name: "/dev/sdf" # Device name for block device mapping
+
+# System packages (auto-configured)
+system_packages: 
+  - python3
+  - python3-pip
+  - python3-venv
+  - python3-dev
+  - build-essential
+  - nginx
+  - git
+  - curl
+  - supervisor
+  - libjpeg-dev
+  - zlib1g-dev
+  - libpng-dev
+  - net-tools
+  - xfsprogs                                     # For EBS volume formatting
+
