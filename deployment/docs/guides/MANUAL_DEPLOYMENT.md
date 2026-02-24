@@ -45,27 +45,27 @@ $ aws sts get-caller-identity
 
 **Before running CLI commands, load your variables into shell:**
 
-All CLI commands in this guide use `$app_name`, `$aws_region`, etc. These come from your config files.
+All CLI commands in this guide use `$app_name`, `$aws_region`, etc. You must load these first.
 
-### Setup (One Time)
+### Setup (One Time Per Terminal Session)
 
 ```bash
 cd deployment
 
-# Load variables into current shell session
+# IMPORTANT: Use 'source' not './'
 source scripts/load-vars.sh
 ```
 
-**You should see:**
-```
-✅ Variables loaded successfully
+**⚠️ Important Difference:**
+- ❌ `./scripts/load-vars.sh` - Script runs in subshell, variables NOT available to you
+- ✅ `source scripts/load-vars.sh` - Script runs in your shell, variables exported and available
 
-Available variables (non-vault):
-  app_name=rampe
-  app_display_name=Rampe Application
-  aws_region=us-east-2
-  admin_user=ubuntu
-  server_name=rampe.ipix.io
+### Verify Variables Are Exported
+
+```bash
+echo $app_name          # Should show: rampe
+echo $aws_region        # Should show: us-east-2
+echo $admin_user        # Should show: ubuntu
 ```
 
 ### Use Variables in Commands
@@ -93,6 +93,8 @@ For commands that need vault variables (like API keys), use Ansible playbooks in
 # Playbooks automatically decrypt vault
 ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
 ```
+
+→ **Full guide:** [LOAD_VARS_USAGE.md](LOAD_VARS_USAGE.md)
 
 ---
 

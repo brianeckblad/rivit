@@ -45,14 +45,14 @@ chmod 600 ~/.vault_pass
 Then run any playbook with:
 
 ```bash
+cd deployment
 ansible-playbook playbooks/setup-waf.yml --vault-password-file ~/.vault_pass
 ```
 
 ### Alternative: Interactive password prompt
 
-Run playbook with:
-
 ```bash
+cd deployment
 ansible-playbook playbooks/setup-waf.yml --ask-vault-pass
 ```
 
@@ -61,6 +61,7 @@ You'll be prompted to enter the vault password before the playbook runs.
 ### Alternative: Environment variable
 
 ```bash
+cd deployment
 export ANSIBLE_VAULT_PASSWORD="your-vault-password"
 ansible-playbook playbooks/setup-waf.yml
 ```

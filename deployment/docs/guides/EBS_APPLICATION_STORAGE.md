@@ -129,7 +129,9 @@ ec2_ebs_optimized: true
 ### 1. Instance Creation
 
 ```bash
-ansible-playbook playbooks/launch-ec2-instance.yml
+cd deployment
+ansible-playbook playbooks/launch-ec2-instance.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **Creates:**
@@ -140,7 +142,9 @@ ansible-playbook playbooks/launch-ec2-instance.yml
 ### 2. Server Setup
 
 ```bash
-ansible-playbook -i inventories playbooks/setup.yml
+cd deployment
+ansible-playbook -i inventories playbooks/setup.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **Steps in order:**
@@ -204,8 +208,11 @@ aws ec2 create-snapshot \
 
 2. Launch instance:
    ```bash
-   ansible-playbook playbooks/launch-ec2-instance.yml
-   ansible-playbook -i inventories playbooks/setup.yml
+   cd deployment
+   ansible-playbook playbooks/launch-ec2-instance.yml \
+       --vault-password-file ~/.vault_pass
+   ansible-playbook -i inventories playbooks/setup.yml \
+       --vault-password-file ~/.vault_pass
    ```
 
 3. EBS volume will be created from snapshot with all your data
@@ -220,10 +227,17 @@ aws ec2 create-snapshot \
 
 2. **Create larger volume** from snapshot:
    ```bash
+   cd deployment
+   
    # Update configuration
-   ebs_volume_size: 200              # Increase from 100 to 200 GB
+   nano group_vars/all.yml
+   # Change: ebs_volume_size: 200    (increase from 100 to 200 GB)
    
    # Create new instance with larger volume
+   ansible-playbook playbooks/launch-ec2-instance.yml \
+       --vault-password-file ~/.vault_pass
+   ansible-playbook -i inventories playbooks/setup.yml \
+       --vault-password-file ~/.vault_pass
    ansible-playbook playbooks/launch-ec2-instance.yml
    ```
 

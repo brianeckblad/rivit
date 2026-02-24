@@ -29,20 +29,25 @@ Before running commands, load your deployment variables:
 ```bash
 cd deployment
 
-# Load variables into shell
+# IMPORTANT: Use 'source' command
 source scripts/load-vars.sh
 ```
 
-**You'll see:**
+**You should see:**
 ```
-✅ Variables loaded successfully
+✅ Variables loaded and EXPORTED successfully
 
-Available variables (non-vault):
+Available variables (exported to this shell):
   app_name=rampe
   app_display_name=Rampe Application
   aws_region=us-east-2
   admin_user=ubuntu
   server_name=rampe.ipix.io
+
+Variables are NOW AVAILABLE in your shell. Try these commands:
+  echo $app_name
+  aws s3 ls | grep $app_name
+  aws iam get-role --role-name ${app_name}-ec2-role
 ```
 
 Now your variables are available in all CLI commands:
@@ -52,21 +57,23 @@ echo $aws_region         # Shows: us-east-2
 aws s3 ls | grep $app_name
 ```
 
+→ **Full guide:** [LOAD_VARS_USAGE.md](LOAD_VARS_USAGE.md)
+
 ---
 
 ## Quick Deploy (10-15 minutes)
 
-Everything is automated with a single playbook:
+Everything is automated with playbooks:
 
 ```bash
 cd deployment
 
-# Load variables first
-source scripts/load-vars.sh
+# Variables already loaded from previous step
+# Now run the deployment playbooks
 
-# Run complete infrastructure & application setup
 ansible-playbook playbooks/provision-infrastructure.yml \
     --vault-password-file ~/.vault_pass
+
 ansible-playbook -i inventories playbooks/setup.yml \
     --vault-password-file ~/.vault_pass
 ```
