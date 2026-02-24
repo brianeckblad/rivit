@@ -1,0 +1,123 @@
+#!/bin/bash
+# Load Ansible variables from YAML files for CLI usage
+# This script reads group_vars and exports them as shell variables
+# Usage: source scripts/load-vars.sh
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"
+GROUP_VARS_DIR="$DEPLOYMENT_DIR/group_vars"
+
+# Color output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Check if files exist
+if [ ! -f "$GROUP_VARS_DIR/all.yml" ]; then
+    echo -e "${RED}Error: $GROUP_VARS_DIR/all.yml not found${NC}"
+    echo "Run: cd deployment && ./scripts/local-dev-setup.sh"
+    return 1 2>/dev/null || exit 1
+fi
+
+# Function to safely parse simple YAML key-value pairs
+parse_yaml_simple() {
+    local file=$1
+
+    # Process each line carefully
+    while IFS= read -r line; do
+        # Skip empty lines and comments
+        [[ -z "$line" ]] && continue
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+
+        # Extract lines with key: value format (simple values only)
+        if [[ "$line" =~ ^([a-z_]+):[[:space:]]*(.+)$ ]]; then
+            local key="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[2]}"
+
+            # Skip Jinja2 templates
+            [[ "$value" =~ \{\{ ]] && continue
+            [[ "$value" =~ \[\[ ]] && continue
+
+            # Skip complex structures (lists, dicts)
+            [[ "$value" =~ ^[\[\{] ]] && continue
+
+            # Trim trailing whitespace
+            value="${value%% *}"
+
+            # Remove quotes
+            value="${value#\"}"
+            value="${value%\"}"
+            value="${value#\'}"
+            value="${value%\'}"
+
+            # Skip empty values
+            [[ -z "$value" ]] && continue
+
+            # Skip values that look like jinja or are obviously placeholders
+            [[ "$value" =~ ^\{\{ ]] && continue
+            [[ "$value" == "\"\"" ]] && continue
+            [[ "$value" == "''" ]] && continue
+
+            # Export the variable
+            export "$key"="$value"
+        fi
+    done < "$file"
+}
+
+# Load all.yml variables
+parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
+
+# Check vault status
+vault_encrypted=false
+if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+    if head -1 "$GROUP_VARS_DIR/vault.yml" 2>/dev/null | grep -q "ANSIBLE_VAULT"; then
+        vault_encrypted=true
+    else
+        # Load vault variables if not encrypted
+        parse_yaml_simple "$GROUP_VARS_DIR/vault.yml"
+    fi
+fi
+
+# Display status and available variables
+echo -e "${GREEN}✅ Variables loaded successfully${NC}"
+echo ""
+echo "Available variables (non-vault):"
+echo "  app_name=${app_name:-[not set]}"
+echo "  app_display_name=${app_display_name:-[not set]}"
+echo "  aws_region=${aws_region:-[not set]}"
+echo "  admin_user=${admin_user:-[not set]}"
+echo "  server_name=${server_name:-[not set]}"
+echo ""
+echo "Use in commands:"
+echo '  aws s3 ls | grep $app_name'
+echo '  aws iam get-role --role-name ${app_name}-ec2-role'
+echo ""
+echo "For more variables, run:"
+echo "  env | grep -E '^(app_|aws_|admin_)' | sort"
+echo ""
+
+# Show vault status
+if [ "$vault_encrypted" = true ]; then
+    echo -e "${YELLOW}ℹ️  Note: vault.yml is encrypted${NC}"
+    echo "Sensitive variables from vault.yml will not be available in shell."
+    echo ""
+    echo "For CLI commands that need vault variables:"
+    echo "  1. Use Ansible playbooks: ansible-playbook playbooks/... --vault-password-file ~/.vault_pass"
+    echo "  2. Or view vault manually: ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass"
+else
+    echo -e "${YELLOW}⚠️  Warning: vault.yml is NOT encrypted!${NC}"
+    echo "Your secrets are visible in plain text. Encrypt it with:"
+    echo "  ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass"
+fi
+echo "  admin_user=$admin_user"
+echo "  server_name=$server_name"
+echo ""
+echo "Use in commands:"
+echo '  aws s3 ls | grep $app_name'
+echo '  aws iam get-role --role-name ${app_name}-ec2-role'
+echo ""
+echo "For more variables, run:"
+echo "  env | grep -E '^(app_|aws_|admin_)' | sort"
+

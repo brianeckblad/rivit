@@ -22,15 +22,53 @@
 
 ---
 
-## Quick Deploy (10-15 minutes)
+## Load Configuration Variables
 
-Everything is automated - one command deploys everything:
+Before running commands, load your deployment variables:
 
 ```bash
 cd deployment
 
-# Run the complete setup
-./scripts/infra-complete-setup.sh
+# Load variables into shell
+source scripts/load-vars.sh
+```
+
+**You'll see:**
+```
+✅ Variables loaded successfully
+
+Available variables (non-vault):
+  app_name=rampe
+  app_display_name=Rampe Application
+  aws_region=us-east-2
+  admin_user=ubuntu
+  server_name=rampe.ipix.io
+```
+
+Now your variables are available in all CLI commands:
+```bash
+echo $app_name           # Shows: rampe
+echo $aws_region         # Shows: us-east-2
+aws s3 ls | grep $app_name
+```
+
+---
+
+## Quick Deploy (10-15 minutes)
+
+Everything is automated with a single playbook:
+
+```bash
+cd deployment
+
+# Load variables first
+source scripts/load-vars.sh
+
+# Run complete infrastructure & application setup
+ansible-playbook playbooks/provision-infrastructure.yml \
+    --vault-password-file ~/.vault_pass
+ansible-playbook -i inventories playbooks/setup.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does automatically:**
@@ -48,6 +86,10 @@ cd deployment
 **Duration:** 10-15 minutes  
 **Cost:** ~$0.01 (minimal during creation)
 
+**Alternative: All-in-one script (if available):**
+```bash
+./scripts/infra-complete-setup.sh
+```
 ---
 
 ## Monitoring Progress

@@ -704,7 +704,17 @@ ls -la ~/.vault_pass
 ansible-vault view deployment/group_vars/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
 # ✅ Should show your GitHub repo URL without error
 
-# 10. SSH key doesn't exist yet (will be created)
+# 10. Variables can be loaded (used for CLI commands)
+cd deployment
+source scripts/load-vars.sh
+# ✅ Should show: ✅ Variables loaded successfully
+# ✅ Should show your app_name, aws_region, etc.
+
+# 11. Test using variables in commands
+echo $app_name
+# ✅ Should show your application name
+
+# 12. SSH key doesn't exist yet (will be created)
 ls ~/.ssh/{app_name}-key.pem
 # ✅ Should NOT exist yet (will be created during deployment)
 ```
