@@ -90,11 +90,22 @@ aws ec2 describe-security-groups --group-names ${app_name}-sg
 
 For commands that need vault variables (like API keys), use Ansible playbooks instead:
 ```bash
-# Playbooks automatically decrypt vault
+cd deployment
+
+# Playbooks automatically decrypt vault and sync to AWS Secrets Manager
 ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
 ```
 
-→ **Full guide:** [LOAD_VARS_USAGE.md](LOAD_VARS_USAGE.md)
+**What it does:**
+- ✅ Extracts secrets from encrypted Ansible Vault
+- ✅ Creates AWS Secrets Manager secret (using native Ansible modules)
+- ✅ Updates secret with vault values  
+- ✅ Configures automatic rotation
+- ✅ Tags resources for tracking
+
+→ **Full Details:** [SECRETS_MANAGER_SETUP.md](SECRETS_MANAGER_SETUP.md) - Technical guide with examples
+
+→ **Simple Usage:** [LOAD_VARS_USAGE.md](LOAD_VARS_USAGE.md) - Variable loading for CLI commands
 
 ---
 

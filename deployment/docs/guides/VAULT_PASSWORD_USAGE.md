@@ -76,7 +76,7 @@ These playbooks need vault.yml decryption:
 | `provision-infrastructure.yml` | Infrastructure setup |
 | `setup-ssl.yml` | SSL certificate setup |
 | `setup-monitoring.yml` | CloudWatch monitoring |
-| `setup-secrets-manager.yml` | AWS Secrets Manager |
+| `setup-secrets-manager.yml` | AWS Secrets Manager (uses native Ansible modules) |
 | `security-hardening.yml` | Security hardening |
 | `setup-cloudfront.yml` | CloudFront CDN |
 | `setup-waf.yml` | AWS WAF configuration |
@@ -85,6 +85,15 @@ These playbooks need vault.yml decryption:
 | `secret-sync.yml` | Vault to AWS sync |
 
 All require the vault password to run successfully.
+
+**Note on setup-secrets-manager.yml:**
+This playbook uses native Ansible AWS modules (`amazon.aws.secretsmanager_secret`) instead of shell commands. This provides:
+- ✅ Better reliability (no shell command parsing issues)
+- ✅ No sudo password prompts
+- ✅ Cleaner error handling
+- ✅ More portable across environments
+
+See [SECRETS_MANAGER_SETUP.md](SECRETS_MANAGER_SETUP.md) for technical details.
 
 ## Checking If Vault Is Encrypted
 

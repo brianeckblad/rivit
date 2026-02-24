@@ -80,6 +80,32 @@ Production:
 
 ## Workflow
 
+### Sync Secrets to AWS Secrets Manager
+
+The `setup-secrets-manager.yml` playbook automatically syncs secrets from Ansible Vault to AWS Secrets Manager:
+
+```bash
+cd deployment
+source scripts/load-vars.sh
+ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
+```
+
+**This playbook:**
+1. ✅ Extracts vault variables from encrypted vault.yml
+2. ✅ Creates AWS Secrets Manager secret via Ansible AWS module (not shell command)
+3. ✅ Stores all secrets as JSON
+4. ✅ Enables automatic 30-day rotation
+5. ✅ Tags resources for tracking
+
+**Technical Details:**
+- Uses `query('varnames', '^vault_')` to safely extract vault variables (non-deprecated approach)
+- Uses `amazon.aws.secretsmanager_secret` module for AWS operations (no shell commands, no sudo)
+- No passwords needed on EC2 instance (IAM role handles authentication)
+
+→ **Full Details:** [SECRETS_MANAGER_SETUP.md](SECRETS_MANAGER_SETUP.md)
+
+---
+
 ### Initial Setup
 
 ```bash
