@@ -47,14 +47,60 @@ $ aws sts get-caller-identity
 
 All CLI commands in this guide use `$app_name`, `$aws_region`, etc. You must load these first.
 
+### ⚠️ IMPORTANT: You Must Be in the `deployment` Directory
+
+```bash
+# Make sure you're in the deployment directory
+cd /Users/brian/Development/rampe/deployment
+
+# Verify you're in the right place
+pwd
+# Should show: /Users/brian/Development/rampe/deployment
+# And you should see: group_vars/ playbooks/ scripts/
+ls group_vars/all.yml  # This should exist and NOT show "not found"
+```
+
 ### Setup (One Time Per Terminal Session)
 
 ```bash
-cd deployment
+cd /Users/brian/Development/rampe/deployment
 
 # IMPORTANT: Use 'source' not './'
 source scripts/load-vars.sh
 ```
+
+**Expected output:**
+```
+✅ Variables loaded and EXPORTED successfully
+
+Available variables (exported to this shell):
+  app_name=rampe
+  app_display_name=Rampe Application
+  aws_region=us-east-2
+  admin_user=ubuntu
+  server_name=rampe.ipix.io
+
+Variables are NOW AVAILABLE in your shell...
+```
+
+**If you get "group_vars/all.yml not found" error:**
+
+1. ✅ **Check you're in deployment directory:**
+   ```bash
+   pwd  # Must show: .../rampe/deployment
+   ls -la group_vars/all.yml  # File must exist here
+   ```
+
+2. ✅ **If file doesn't exist, run setup:**
+   ```bash
+   ./scripts/local-dev-setup.sh
+   # Answer prompts to create configuration files
+   ```
+
+3. ✅ **Then try loading variables again:**
+   ```bash
+   source scripts/load-vars.sh
+   ```
 
 **⚠️ Important Difference:**
 - ❌ `./scripts/load-vars.sh` - Script runs in subshell, variables NOT available to you
@@ -67,6 +113,11 @@ echo $app_name          # Should show: rampe
 echo $aws_region        # Should show: us-east-2
 echo $admin_user        # Should show: ubuntu
 ```
+
+**Not showing values?**
+- Make sure you used `source` (not `./`)
+- Make sure you're in the deployment directory
+- Run `source scripts/load-vars.sh` again
 
 ### Use Variables in Commands
 
@@ -90,7 +141,7 @@ aws ec2 describe-security-groups --group-names ${app_name}-sg
 
 For commands that need vault variables (like API keys), use Ansible playbooks instead:
 ```bash
-cd deployment
+cd /Users/brian/Development/rampe/deployment
 
 # Playbooks automatically decrypt vault and sync to AWS Secrets Manager
 ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass

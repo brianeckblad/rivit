@@ -27,9 +27,24 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 
-# Script directory
+# Script directory and path resolution
+# Handle both: sourced from deployment/ and sourced from other locations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Verify we're in the right place (DEPLOYMENT_DIR should end with /deployment)
+if [[ ! "$DEPLOYMENT_DIR" =~ deployment$ ]]; then
+    # If not, we're probably being sourced from deployment directory
+    # Try one level up
+    if [ -d "group_vars" ]; then
+        # group_vars exists in current directory, so current dir IS deployment
+        DEPLOYMENT_DIR="$(pwd)"
+    else
+        # Try assuming we're at deployment level
+        DEPLOYMENT_DIR="$(pwd)"
+    fi
+fi
+
 GROUP_VARS_DIR="$DEPLOYMENT_DIR/group_vars"
 
 # Color output
@@ -41,7 +56,13 @@ NC='\033[0m'
 # Check if files exist
 if [ ! -f "$GROUP_VARS_DIR/all.yml" ]; then
     echo -e "${RED}Error: $GROUP_VARS_DIR/all.yml not found${NC}"
-    echo "Run: cd deployment && ./scripts/local-dev-setup.sh"
+    echo ""
+    echo "Make sure you're in the deployment directory:"
+    echo "  cd /path/to/rampe/deployment"
+    echo "  source scripts/load-vars.sh"
+    echo ""
+    echo "Or run setup if you haven't configured variables yet:"
+    echo "  ./scripts/local-dev-setup.sh"
     return 1 2>/dev/null || exit 1
 fi
 
