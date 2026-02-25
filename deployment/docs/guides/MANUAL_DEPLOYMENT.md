@@ -51,11 +51,11 @@ All CLI commands in this guide use `$app_name`, `$aws_region`, etc. You must loa
 
 ```bash
 # Make sure you're in the deployment directory
-cd /Users/brian/Development/rampe/deployment
+cd deployment/
 
 # Verify you're in the right place
 pwd
-# Should show: /Users/brian/Development/rampe/deployment
+# Should show: .../rampe/deployment (the last two directories should be rampe/deployment)
 # And you should see: group_vars/ playbooks/ scripts/
 ls group_vars/all.yml  # This should exist and NOT show "not found"
 ```
@@ -63,7 +63,7 @@ ls group_vars/all.yml  # This should exist and NOT show "not found"
 ### Setup (One Time Per Terminal Session)
 
 ```bash
-cd /Users/brian/Development/rampe/deployment
+cd deployment/
 
 # IMPORTANT: Use 'source' not './'
 source scripts/load-vars.sh
@@ -141,7 +141,7 @@ aws ec2 describe-security-groups --group-names ${app_name}-sg
 
 For commands that need vault variables (like API keys), use Ansible playbooks instead:
 ```bash
-cd /Users/brian/Development/rampe/deployment
+cd deployment/
 
 # Playbooks automatically decrypt vault and sync to AWS Secrets Manager
 ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
@@ -948,7 +948,6 @@ aws ec2 describe-instances \
 - **Add Multiple Users:** [MULTI_USER.md](MULTI_USER.md)
 - **Manage Secrets:** [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
 - **Security Details:** [../reference/SECURITY.md](../reference/SECURITY.md)
-- **All Playbooks Reference:** [../reference/PLAYBOOKS.md](../reference/PLAYBOOKS.md)
 
 ---
 

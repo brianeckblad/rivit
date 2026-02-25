@@ -227,7 +227,7 @@ aws ec2 describe-instances --profile {app_name}-staging
 
 **⚠️ Don't know which approach?** → Start with single account (profile `default`). You can add more profiles later.
 
-**For detailed setup:** → [AWS_PROFILES.md](../reference/AWS_PROFILES.md)
+**For detailed setup:** → Configure AWS CLI profiles for your region and account
 
 ### Step 3: Verify Configuration
 

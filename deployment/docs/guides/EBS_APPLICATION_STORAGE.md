@@ -458,7 +458,5 @@ sudo rm /{app_name}/logs/archive/*.log
 
 ## See Also
 
-- [EBS_STORAGE.md](../reference/EBS_STORAGE.md) - Detailed EBS configuration
-- [EC2_INSTANCE_CREATION.md](EC2_INSTANCE_CREATION.md) - Instance creation guide
 - [USER_MODEL.md](../reference/USER_MODEL.md) - User and permission model
 
