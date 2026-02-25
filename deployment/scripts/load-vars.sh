@@ -81,29 +81,25 @@ parse_yaml_simple() {
             local key="${BASH_REMATCH[1]}"
             local value="${BASH_REMATCH[2]}"
 
-            # Skip Jinja2 templates
-            [[ "$value" =~ \{\{ ]] && continue
-            [[ "$value" =~ \[\[ ]] && continue
+            # Skip complex values (Jinja2, lists, dicts)
+            if [[ "$value" == *"{{"* ]] || [[ "$value" == *"}}"* ]] || \
+               [[ "$value" == "["* ]] || [[ "$value" == "{"* ]]; then
+                continue
+            fi
 
-            # Skip complex structures (lists, dicts)
-            [[ "$value" =~ ^[\[\{] ]] && continue
+            # Remove inline comments
+            value="${value%% #*}"
 
-            # Trim trailing whitespace
-            value="${value%% *}"
+            # Remove quotes (double and single)
+            value="${value//\"/}"
+            value="${value//\'/}"
 
-            # Remove quotes
-            value="${value#\"}"
-            value="${value%\"}"
-            value="${value#\'}"
-            value="${value%\'}"
+            # Simple trim using sed
+            value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
             # Skip empty values
             [[ -z "$value" ]] && continue
 
-            # Skip values that look like jinja or are obviously placeholders
-            [[ "$value" =~ ^\{\{ ]] && continue
-            [[ "$value" == "\"\"" ]] && continue
-            [[ "$value" == "''" ]] && continue
 
             # Export the variable
             export "$key"="$value"
