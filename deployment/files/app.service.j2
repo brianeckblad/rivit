@@ -48,14 +48,28 @@ Environment="PATH={{ venv_dir }}/bin"
 Environment="FLASK_APP=app"
 Environment="APP_SERVICE_NAME={{ service_name }}"
 
+# ============================================================================# AWS CONFIGURATION FOR SECRETS MANAGER
 # ============================================================================
-# ENVIRONMENT CONFIGURATION
+# These environment variables tell the app to read secrets from AWS
+# The app config.py uses these to fetch secrets from Secrets Manager
+#
+# SECRET_NAME: The AWS Secrets Manager secret name
+#              Format: {app_name}/secrets
+# AWS_REGION: The AWS region where the secret is stored
 # ============================================================================
-# EnvironmentFile: Load .env file with application secrets
-#                 (deployed by setup.yml from template/env.j2)
+Environment="SECRET_NAME={{ app_name }}/secrets"
+Environment="AWS_REGION={{ aws_region }}"
+
 # ============================================================================
-# Load environment variables from .env file
-EnvironmentFile={{ app_dir }}/.env
+# OPTIONAL: LEGACY .ENV FILE SUPPORT (for development only)
+# ============================================================================
+# If a .env file exists in the app directory, it will be loaded
+# This is ONLY for local development, not used in production
+# On production: secrets come from AWS Secrets Manager above
+# ============================================================================
+# EnvironmentFile: Load .env file if it exists (optional, for local dev)
+# NOTE: Commented out because we use AWS Secrets Manager in production
+# EnvironmentFile={{ app_dir }}/.env
 
 # ============================================================================
 # APPLICATION STARTUP WITH GUNICORN

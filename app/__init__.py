@@ -9,12 +9,18 @@ import time
 import json
 
 # Track application start time
-APP_START_TIME = time.time()
-
-# Load environment variables from .env file
-# Use explicit path to ensure it's found regardless of working directory
+APP_START_TIME = time.time()# Load environment variables from .env file (optional)
+# .env file is used ONLY for local development
+# On production servers, environment variables are set by systemd
+# and secrets come from AWS Secrets Manager
 env_path = Path(__file__).parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+if env_path.exists():
+    # Local development: .env file exists
+    load_dotenv(dotenv_path=env_path)
+else:
+    # Production: .env doesn't exist, use systemd environment variables
+    # and AWS Secrets Manager via config.py
+    pass
 
 
 class UserContextFilter(logging.Filter):

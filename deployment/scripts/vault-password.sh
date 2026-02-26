@@ -6,10 +6,17 @@
 # This allows ansible.cfg to reference it without tilde expansion issues
 
 # Shell compatibility check
-current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+# Get shell from ps output and extract basename (handles /bin/bash)
+current_shell=$(ps -p $$ -o comm= 2>/dev/null)
+current_shell=$(basename "$current_shell" 2>/dev/null)
+current_shell=$(echo "$current_shell" | tr -d '-')  # Remove leading dash
+
+# Fallback to SHELL env var if ps failed
 if [[ -z "$current_shell" ]]; then
     current_shell=$(basename "$SHELL" 2>/dev/null)
+    current_shell=$(echo "$current_shell" | tr -d '-')
 fi
+
 case "$current_shell" in
     bash|zsh)
         ;; # Supported shell

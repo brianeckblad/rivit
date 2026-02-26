@@ -12,9 +12,12 @@
 set -e
 
 # Shell compatibility check
-current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+current_shell=$(ps -p $$ -o comm= 2>/dev/null)
+current_shell=$(basename "$current_shell" 2>/dev/null)
+current_shell=$(echo "$current_shell" | tr -d '-')
 if [[ -z "$current_shell" ]]; then
     current_shell=$(basename "$SHELL" 2>/dev/null)
+    current_shell=$(echo "$current_shell" | tr -d '-')
 fi
 case "$current_shell" in
     bash|zsh)

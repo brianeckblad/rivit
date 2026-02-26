@@ -1,11 +1,149 @@
-# Application Secrets Management - .env vs AWS Secrets Manager
+# Application Secrets Management - vault.yml is the Source of Truth
 
 **Date:** February 25, 2026  
-**Status:** ✅ UPDATED
+**Status:** ✅ COMPLETE
 
 ---
 
-## Architecture
+## The Answer: YES, Everything is in vault.yml
+
+✅ **You DO NOT need `.env.example` for deployment**
+
+All secrets from the application's `.env.example` are now in the encrypted `vault.yml`:
+
+| .env Variable | vault.yml Variable | Location |
+|-------------|-------------------|----------|
+| FLASK_ENV | `flask_env` | vault.yml |
+| SECRET_KEY | `flask_secret_key` | vault.yml |
+| PORT | `flask_port` | vault.yml |
+| USERS | `users` | vault.yml |
+| EBAY_ENVIRONMENT | `ebay_environment` | vault.yml |
+| EBAY_PRODUCTION_* | `ebay_production_*` | vault.yml |
+| EBAY_SANDBOX_* | `ebay_sandbox_*` | vault.yml |
+| EBAY_VERIFICATION_TOKEN | `ebay_verification_token` | vault.yml |
+| CLOUDFRONT_DOMAIN | `cloudfront_domain` | vault.yml |
+| APP_SECRET_TOKEN | `app_secret_token` | vault.yml |
+
+**AWS Credentials in .env (NOT needed in vault):**
+- `AWS_ACCESS_KEY_ID` - NOT in vault (EC2 uses IAM role)
+- `AWS_SECRET_ACCESS_KEY` - NOT in vault (EC2 uses IAM role)
+- `AWS_REGION` - Already in `all.yml` as `aws_region`
+- `S3_BUCKET` - Already in vault as `vault_s3_bucket_name`
+
+---
+
+## The Complete Flow
+
+### 1. Development (Local Machine)
+
+You MAY use `.env.example` copied to `.env` locally:
+```bash
+cp .env.example .env
+# Edit .env for local development
+python app.py
+```
+
+**But you don't have to** - vault.yml is the source of truth.
+
+### 2. Deployment Setup
+
+All secrets from `.env` are already defined in `vault.yml.example`:
+```bash
+cp deployment/group_vars/vault.yml.example deployment/group_vars/vault.yml
+nano deployment/group_vars/vault.yml  # Edit secrets
+ansible-vault encrypt deployment/group_vars/vault.yml --vault-password-file ~/.vault_pass
+```
+
+### 3. Deployment Execution
+
+Ansible playbook syncs vault secrets to AWS Secrets Manager:
+```bash
+ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
+```
+
+### 4. Runtime (EC2 Server)
+
+Application reads from AWS Secrets Manager:
+```python
+import boto3
+secrets = boto3.client('secretsmanager').get_secret_value(SecretId='rampe/secrets')
+# All secrets loaded, no .env needed
+```
+
+---
+
+## .env.example - Is It Needed?
+
+**.env.example should be:**
+- ✅ Kept in the repository (for local development reference)
+- ❌ NOT used for deployment (use vault.yml instead)
+- ❌ NOT needed on the deployed server (use AWS Secrets Manager)
+
+**.env file locally:**
+- ✅ Can be used for local development  
+- ✅ Must be in .gitignore (already is)
+- ✅ Never committed to git
+
+---
+
+## All Variables in vault.yml.example
+
+```yaml
+# GIT CONFIGURATION
+vault_git_repo: "https://github.com/..."
+
+# AWS CONFIGURATION  
+vault_aws_region: "us-east-2"
+vault_s3_bucket_name: "your-bucket"
+vault_s3_folder: "data"
+
+# APPLICATION CREDENTIALS
+app_default_username: "admin"
+app_default_password: "password"
+
+# FLASK CONFIGURATION
+flask_secret_key: "random-secret"
+flask_port: "8000"
+flask_env: "production"
+
+# USER AUTHENTICATION
+users: "admin:password"
+
+# CLOUDFRONT & RATE LIMITING
+cloudfront_domain: "your-domain.cloudfront.net"
+app_secret_token: "generated-token"
+
+# eBay API CONFIGURATION
+ebay_environment: "production"
+ebay_production_app_id: "..."
+ebay_production_cert_id: "..."
+ebay_production_dev_id: "..."
+ebay_production_token: "..."
+ebay_sandbox_app_id: "..."
+ebay_sandbox_cert_id: "..."
+ebay_sandbox_dev_id: "..."
+ebay_sandbox_token: "..."
+ebay_verification_token: "..."
+
+# SNS TOPIC
+vault_sns_topic_arn: ""
+```
+
+---
+
+## Summary
+
+| File | Use |
+|------|-----|
+| `.env.example` (in repo) | Local development reference - OPTIONAL |
+| `.env` (local machine) | Local development only - NOT in git |
+| `vault.yml.example` (in repo) | Deployment template |
+| `vault.yml` (encrypted) | Source of truth for deployment - Safe to commit |
+| AWS Secrets Manager | Source of truth at runtime |
+
+**Answer: You do NOT need `.env.example` for deployment - everything is in vault.yml**
+
+
 
 ### Secrets Storage
 
