@@ -1,0 +1,24 @@
+---
+# Harden file permissions on the application server
+#
+# Sets secure ownership and permissions on all application files,
+# directories, logs, and credentials.
+#
+# Can be run independently or as part of security-hardening.yml
+#
+# Usage:
+#   ansible-playbook playbooks/harden-permissions.yml \
+#     -i inventories/hosts.yml \
+#     --vault-password-file ~/.vault_pass
+
+- name: Harden File Permissions
+  hosts: app_servers
+  become: yes
+
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+
+  tasks:
+    - name: Apply file permission hardening
+      import_tasks: tasks/harden-permissions.yml
