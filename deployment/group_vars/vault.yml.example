@@ -58,8 +58,75 @@ app_default_password: "change-this-to-strong-pwd" # Default password for app log
                                                  # IMPORTANT: Change this after deployment!
 
 # ============================================================================
+# USER AUTHENTICATION (OPTIONAL)
+# ============================================================================
+# Format: username:password or username1:password1,username2:password2
+# Default: admin:admin123 (if not set)
+# Multiple users: admin:password1,user2:password2
+# This is for basic application user authentication
+users: "admin:admin123"                         # Change to your secure passwords!
+
+# ============================================================================
+# CLOUDFRONT & RATE LIMITING (OPTIONAL)
+# ============================================================================
+# CloudFront distribution domain for CDN acceleration
+# Only needed if using CloudFront (see docs/CLOUDFRONT_RATE_LIMITING.md)
+cloudfront_domain: "your-distribution-id.cloudfront.net"  # CloudFront domain (optional)
+
+# Secret token for rate limiting verification
+# Only needed if using CloudFront/WAF rate limiting
+app_secret_token: "your-generated-secure-token-here"     # Generated for CloudFront/WAF
+
+# ============================================================================
+# FLASK CONFIGURATION (REQUIRED)
+# ============================================================================
+# These are the core application secrets
+
+flask_secret_key: "change-this-to-a-random-secret-key"  # Flask SECRET_KEY
+                                                         # Generate: python -c "import secrets; print(secrets.token_hex(32))"
+                                                         # Used for session encryption, CSRF protection, etc.
+
+flask_port: "8000"                              # Application port (typically 8000 or 5000)
+flask_env: "production"                         # Flask environment (development or production)
+
+# ============================================================================
+# AWS S3 CONFIGURATION (REQUIRED)
+# ============================================================================
+# NOTE: AWS credentials (access keys) are NOT stored here!
+# The EC2 instance uses an IAM role for authentication (more secure)
+# S3 bucket configuration is defined above (vault_s3_bucket_name, vault_s3_folder)
+
+# For local development ONLY - EC2 instances use IAM roles:
+# aws_access_key_id: "your_access_key_here"
+# aws_secret_access_key: "your_secret_key_here"
+
+# ============================================================================
+# eBay API CONFIGURATION (REQUIRED IF USING eBay)
+# ============================================================================
+# eBay Sandbox - for testing (no real transactions)
+ebay_environment: "sandbox"                    # sandbox or production
+
+ebay_sandbox_app_id: "your-sandbox-app-id-here"      # From https://developer.ebay.com/my/keys
+ebay_sandbox_cert_id: "your-sandbox-cert-id-here"    # Sandbox certificate
+ebay_sandbox_dev_id: "your-sandbox-dev-id-here"      # Sandbox developer ID
+ebay_sandbox_token: "your-sandbox-user-token-here"   # Sandbox user token
+
+# eBay Production - for real transactions
+ebay_production_app_id: "your-production-app-id-here"      # From https://developer.ebay.com/my/keys
+ebay_production_cert_id: "your-production-cert-id-here"    # Production certificate
+ebay_production_dev_id: "your-production-dev-id-here"      # Production developer ID
+ebay_production_token: "your-production-user-token-here"   # Production user token
+
+# eBay Verification Token - for Marketplace Account Deletion endpoint
+# Required: 32-80 characters
+# Generate using: ./deployment/scripts/util-generate-ebay-token.sh
+# This token persists across deployments
+ebay_verification_token: "your-64-character-token-here"
+
+# ============================================================================
 # SNS TOPIC (OPTIONAL - for monitoring alerts)
 # ============================================================================
 # If you want automated alerts (error notifications, monitoring, etc.)
 # Leave this blank ("") if you don't need it
-# vault_sns_topic_arn: "arn:aws:sns:us-east-2:123456789012:your-topic-name"
+vault_sns_topic_arn: ""
+
