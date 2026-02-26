@@ -28,6 +28,9 @@ For deployment and operational scripts, see `deployment/scripts/`.
 ### `generate_avery_labels.py`
 **Purpose:** Generate printable Avery label sheets (SKU labels)
 
+### `cleanup_old_backups.py`
+**Purpose:** Clean up old backup files beyond retention period (runs via cron on server)
+
 ---
 
 ## Usage

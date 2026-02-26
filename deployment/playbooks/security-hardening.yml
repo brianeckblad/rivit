@@ -106,7 +106,7 @@
           notify: restart sshd
 
     - name: Security Hardening - File Permissions
-      import_tasks: tasks/harden-permissions.yml
+      import_tasks: harden-permissions-tasks.yml
 
     - name: Security Hardening - Shared Memory
       lineinfile:

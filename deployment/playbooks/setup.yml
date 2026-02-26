@@ -311,26 +311,24 @@
         group: "{{ app_user }}"
         mode: '0755'
 
-    - name: Copy backup cleanup script
-      copy:
-        src: "{{ playbook_dir }}/../files/cleanup_old_backups.py"
-        dest: "{{ app_dir }}/scripts/cleanup_old_backups.py"
+    - name: Ensure backup cleanup script is executable
+      file:
+        path: "{{ app_dir }}/app/scripts/cleanup_old_backups.py"
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
         mode: '0755'
-        remote_src: no
 
     - name: Create daily cron job for backup cleanup
       cron:
         name: "Cleanup old backups (>{{ backup_retention_days }} days)"
         minute: "{{ backup_cleanup_minute }}"
         hour: "{{ backup_cleanup_hour }}"
-        job: "cd {{ app_dir }} && {{ venv_dir }}/bin/python {{ app_dir }}/scripts/cleanup_old_backups.py >> {{ log_dir }}/cleanup.log 2>&1"
+        job: "cd {{ app_dir }} && {{ venv_dir }}/bin/python {{ app_dir }}/app/scripts/cleanup_old_backups.py >> {{ log_dir }}/cleanup.log 2>&1"
         user: "{{ app_user }}"
         state: present
 
     - name: Apply security permissions
-      import_tasks: tasks/harden-permissions.yml
+      import_tasks: harden-permissions-tasks.yml
 
     - name: Ensure supervisor is running
       service:

@@ -4,8 +4,6 @@
 # Sets secure ownership and permissions on all application files,
 # directories, logs, and credentials.
 #
-# Can be run independently or as part of security-hardening.yml
-#
 # Usage:
 #   ansible-playbook playbooks/harden-permissions.yml \
 #     -i inventories/hosts.yml \
@@ -21,4 +19,4 @@
 
   tasks:
     - name: Apply file permission hardening
-      import_tasks: tasks/harden-permissions.yml
+      import_tasks: harden-permissions-tasks.yml
