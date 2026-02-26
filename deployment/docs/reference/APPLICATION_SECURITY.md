@@ -1,7 +1,7 @@
 # Application Security Reference
 
 **Technical reference for security implementation**  
-**For daily security operations:** See [OPERATIONS.md#security-operations](OPERATIONS.md#security-operations)  
+**For daily security operations:** See [OPERATIONS.md](../guides/OPERATIONS.md#security-operations)  
 **Version:** 5.0  
 **Last Updated:** February 8, 2026
 
@@ -17,7 +17,7 @@ Multi-layer security architecture:
 2. **Application Security** - IP blocking, attack detection (`app/security.py`)
 3. **Nginx** - Origin validation, direct access blocking
 
-**For operational tasks (blocking/unblocking IPs, monitoring):** See [OPERATIONS.md](OPERATIONS.md)
+**For operational tasks (blocking/unblocking IPs, monitoring):** See [OPERATIONS.md](../guides/OPERATIONS.md)
 
 ---
 

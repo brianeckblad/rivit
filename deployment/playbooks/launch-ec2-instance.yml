@@ -145,30 +145,28 @@
           - "  SSH Command:          ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}"
           - "  SSH Port:             22"
           - ""
-          STORAGE CONFIGURATION
-          ════════════════════════════════════════════════════════════
-
-          Root Volume (OS Only):
-            Device Name:            /dev/xvda
-            Size:                   20 GB
-            Type:                   gp3
-            Encrypted:              Yes
-
-          Application Storage Volume (MANDATORY):
-            Device Name:            /dev/sdf
-            Size:                   {{ ebs_volume_size }} GB
-            Type:                   {{ ebs_volume_type }}
-            Encrypted:              {{ ebs_volume_encrypted }}
-            Mount Point:            {{ app_storage_mount_path }}
-            Delete on Termination:  Yes
-
-          ⚠️  IMPORTANT:
-            ALL application files are stored on the {{ ebs_volume_size }} GB EBS volume
-            This includes:
-              • Application code ({{ app_storage_mount_path }})
-              • Python virtual environment ({{ venv_dir }})
-              • Application logs ({{ log_dir }})
-              • Instance data ({{ instance_dir }})
+          - "STORAGE CONFIGURATION:"
+          - "  Root Volume (OS Only):"
+          - "    Device Name:          /dev/xvda"
+          - "    Size:                 20 GB"
+          - "    Type:                 gp3"
+          - "    Encrypted:            Yes"
+          - ""
+          - "  Application Storage Volume (MANDATORY):"
+          - "    Device Name:          /dev/sdf"
+          - "    Size:                 {{ ebs_volume_size }} GB"
+          - "    Type:                 {{ ebs_volume_type }}"
+          - "    Encrypted:            {{ ebs_volume_encrypted }}"
+          - "    Mount Point:          {{ app_storage_mount_path }}"
+          - "    Delete on Termination: Yes"
+          - ""
+          - "  IMPORTANT:"
+          - "    ALL application files are stored on the {{ ebs_volume_size }} GB EBS volume"
+          - "    This includes:"
+          - "      - Application code ({{ app_storage_mount_path }})"
+          - "      - Python virtual environment ({{ venv_dir }})"
+          - "      - Application logs ({{ log_dir }})"
+          - "      - Instance data ({{ instance_dir }})"
           - ""
           - "MONITORING:"
           - "  CloudWatch:           {{ 'Enabled (detailed)' if monitoring_state == 'enabled' else 'Disabled (basic)' }}"
