@@ -55,23 +55,26 @@ NC='\033[0m'
 
 # Check if files exist
 if [ ! -f "$GROUP_VARS_DIR/all.yml" ]; then
-    echo -e "${RED}Error: $GROUP_VARS_DIR/all.yml not found${NC}"
+    echo -e "${RED}❌ Configuration file not found: $GROUP_VARS_DIR/all.yml${NC}"
     echo ""
-    echo "Make sure you're in the deployment directory:"
-    echo "  cd /path/to/rampe/deployment"
-    echo "  source scripts/load-vars.sh"
-    echo ""
-    echo "Or run setup if you haven't configured variables yet:"
+    echo "You need to create it from the template. Run:"
     echo "  ./scripts/local-dev-setup.sh"
+    echo ""
+    echo "This will create all.yml from all.yml.example and vault.yml from vault.yml.example"
+    echo ""
     return 1 2>/dev/null || exit 1
 fi
 
 # Function to safely parse simple YAML key-value pairs
 parse_yaml_simple() {
     local file=$1
+    local -a lines
 
-    # Process each line carefully
-    while IFS= read -r line; do
+    # Read entire file into array (no subshell)
+    mapfile -t lines < "$file"
+
+    # Process each line
+    for line in "${lines[@]}"; do
         # Skip empty lines and comments
         [[ -z "$line" ]] && continue
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
@@ -100,11 +103,10 @@ parse_yaml_simple() {
             # Skip empty values
             [[ -z "$value" ]] && continue
 
-
-            # Export the variable
+            # Export the variable (same shell context - no subshell!)
             export "$key"="$value"
         fi
-    done < "$file"
+    done
 }
 
 # Load all.yml variables
