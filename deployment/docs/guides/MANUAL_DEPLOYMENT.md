@@ -75,7 +75,7 @@ source scripts/load-vars.sh
 
 Available variables (exported to this shell):
   app_name=rampe
-  app_display_name=Rampe Application
+  app_display_name=Rampe Inventory Manager
   aws_region=us-east-2
   admin_user=ubuntu
   server_name=rampe.ipix.io
@@ -119,21 +119,61 @@ echo $admin_user        # Should show: ubuntu
 - Make sure you're in the deployment directory
 - Run `source scripts/load-vars.sh` again
 
-### Use Variables in Commands
+### Variables Now Available in Shell
 
-Now all CLI commands can use the variables:
+These variables are loaded into your shell and can be used in scripts:
 
 ```bash
-# Variables are available
-echo $app_name
-echo $aws_region
-echo $admin_user
-
-# Use in AWS CLI commands
-aws s3 ls | grep $app_name
-aws iam get-role --role-name ${app_name}-ec2-role
-aws ec2 describe-security-groups --group-names ${app_name}-sg
+# These work immediately - they're just configuration values
+echo $app_name              # Shows: rampe
+echo $aws_region            # Shows: us-east-2
+echo $admin_user            # Shows: ubuntu
+echo $server_name           # Shows: rampe.ipix.io
+echo $app_display_name      # Shows: Rampe Inventory Manager
 ```
+
+**⚠️ Important:** These are just CONFIGURATION VARIABLES loaded from `group_vars/all.yml`. They don't prove AWS resources exist yet!
+
+### What Variables Are For
+
+**Configuration variables** (available NOW):
+- Used by deployment scripts and playbooks
+- Used to reference your app name, region, etc.
+- Loaded from `group_vars/all.yml`
+
+**AWS Resources** (created DURING deployment):
+- S3 buckets, IAM roles, security groups, EC2 instances
+- Don't exist yet - will be created by playbooks
+- After deployment, commands using variables will work
+
+### Example: What Works NOW vs LATER
+
+#### ✅ Works NOW (just configuration):
+```bash
+# These work - just reading config values
+echo "App name: $app_name"
+echo "AWS region: $aws_region"
+echo "Admin user: $admin_user"
+
+# This works - lists existing S3 buckets
+aws s3 ls
+```
+
+#### ❌ Fails NOW (AWS resources don't exist yet):
+```bash
+# These FAIL - resources will be created during deployment
+aws s3 ls | grep $app_name                           # ❌ Bucket doesn't exist yet
+aws iam get-role --role-name ${app_name}-ec2-role    # ❌ IAM role doesn't exist yet
+aws ec2 describe-security-groups --group-names ${app_name}-sg  # ❌ Security group doesn't exist yet
+```
+
+**After deployment playbooks run, these will work!**
+
+### Where Variables Come From
+
+- Defined in `group_vars/all.yml` (your configuration file)
+- Default aws_region: `us-east-2`
+- Edit `group_vars/all.yml` to change them
 
 ### Variables from Vault
 
