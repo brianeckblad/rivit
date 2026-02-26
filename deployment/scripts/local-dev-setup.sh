@@ -1,7 +1,7 @@
 #!/bin/bash
 # Setup local development configuration
 # Handles both new setup and merging with existing configurations
-# Supported shells: bash, ksh
+# Supported shells: bash, zsh
 #
 # Usage:
 #   ./scripts/local-dev-setup.sh              # Interactive mode (detect existing files)
@@ -17,12 +17,12 @@ if [[ -z "$current_shell" ]]; then
     current_shell=$(basename "$SHELL" 2>/dev/null)
 fi
 case "$current_shell" in
-    bash|ksh)
+    bash|zsh)
         ;; # Supported shell
     *)
         echo "⚠️  WARNING: Unsupported shell detected!" >&2
         echo "   Current shell: $current_shell" >&2
-        echo "   Supported shells: bash, ksh" >&2
+        echo "   Supported shells: bash, zsh" >&2
         echo "" >&2
         echo "   Please run with: bash ./scripts/local-dev-setup.sh" >&2
         exit 1
