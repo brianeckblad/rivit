@@ -68,21 +68,29 @@ fi
 # Function to safely parse simple YAML key-value pairs
 parse_yaml_simple() {
     local file=$1
-    local -a lines
+    local export_count=0
+    local line_count=0
 
-    # Read entire file into array (no subshell)
-    mapfile -t lines < "$file"
+    # Read file line by line without subshell (works in bash AND zsh)
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line_count=$((line_count+1))
 
-    # Process each line
-    for line in "${lines[@]}"; do
         # Skip empty lines and comments
         [[ -z "$line" ]] && continue
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
 
         # Extract lines with key: value format (simple values only)
         if [[ "$line" =~ ^([a-z_]+):[[:space:]]*(.+)$ ]]; then
-            local key="${BASH_REMATCH[1]}"
-            local value="${BASH_REMATCH[2]}"
+            # Handle both bash (BASH_REMATCH) and zsh (match) regex arrays
+            if [[ -n "${BASH_REMATCH[1]}" ]]; then
+                local key="${BASH_REMATCH[1]}"
+                local value="${BASH_REMATCH[2]}"
+            elif [[ -n "${match[1]}" ]]; then
+                local key="${match[1]}"
+                local value="${match[2]}"
+            else
+                continue
+            fi
 
             # Skip complex values (Jinja2, lists, dicts)
             if [[ "$value" == *"{{"* ]] || [[ "$value" == *"}}"* ]] || \
@@ -103,10 +111,11 @@ parse_yaml_simple() {
             # Skip empty values
             [[ -z "$value" ]] && continue
 
-            # Export the variable (same shell context - no subshell!)
+            # Export the variable
             export "$key"="$value"
+            export_count=$((export_count+1))
         fi
-    done
+    done < "$file"
 }
 
 # Load all.yml variables
