@@ -84,7 +84,7 @@ def merge_yaml_files(template_path, existing_path, output_path):
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print("Usage: merge-yaml.py <template> <existing> <output>")
+        print("Usage: merge_yaml.py <template> <existing> <output>")
         sys.exit(1)
 
     template = sys.argv[1]

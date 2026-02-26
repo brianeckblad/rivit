@@ -90,7 +90,7 @@ EnvironmentFile=-{{ app_dir }}/.env
 # ============================================================================
 # Pre-start validation - PREVENTS startup if schema invalid
 ExecStartPre=/bin/bash -c 'echo "Validating CSV schema..."'
-ExecStartPre={{ venv_dir }}/bin/python {{ app_dir }}/deployment/scripts/util-validate-csv-schema.py --quiet
+ExecStartPre={{ venv_dir }}/bin/python {{ app_dir }}/app/scripts/util_validate_csv_schema.py --quiet
 ExecStartPre=/bin/bash -c 'echo "✓ CSV schema validation passed"'
 
 # ============================================================================

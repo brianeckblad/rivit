@@ -257,7 +257,7 @@ if [ "$MODE" = "merge" ]; then
         echo "🔄 Merging all.yml..."
 
         # Use Python helper for reliable YAML merging
-        python3 "$SCRIPT_DIR/merge-yaml.py" \
+        python3 "$SCRIPT_DIR/merge_yaml.py" \
             "$GROUP_VARS_DIR/all.yml.example" \
             "$GROUP_VARS_DIR/all.yml" \
             "$GROUP_VARS_DIR/all.yml.merged"
@@ -305,7 +305,7 @@ if [ "$MODE" = "merge" ]; then
         fi
 
         # Use Python helper for reliable YAML merging
-        python3 "$SCRIPT_DIR/merge-yaml.py" \
+        python3 "$SCRIPT_DIR/merge_yaml.py" \
             "$GROUP_VARS_DIR/vault.yml.example" \
             "$OLD_VAULT_FILE" \
             "$GROUP_VARS_DIR/vault.yml.merged"

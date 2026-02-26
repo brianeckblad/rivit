@@ -10,16 +10,16 @@ For deployment and operational scripts, see `deployment/scripts/`.
 
 ## Scripts
 
-### `util-check-comic-images.py`
+### `util_check_comic_images.py`
 **Purpose:** Verify comic images exist and are valid
 
-### `util-fix-missing-thumbnails.py`
+### `util_fix_missing_thumbnails.py`
 **Purpose:** Regenerate missing thumbnail images
 
-### `util-generate-page-images.py`
+### `util_generate_page_images.py`
 **Purpose:** Generate page images from source files
 
-### `util-validate-csv-schema.py`
+### `util_validate_csv_schema.py`
 **Purpose:** Validate CSV data files against expected schema
 
 ### `util-generate-ebay-token.sh`
@@ -39,13 +39,22 @@ These scripts are run manually when needed, either locally or on the server:
 
 ```bash
 # Run locally
-python app/scripts/util-validate-csv-schema.py
+python app/scripts/util_validate_csv_schema.py
 
 # Run on server
 ssh user@server
 cd /{app_name}
-python app/scripts/util-fix-missing-thumbnails.py
+python app/scripts/util_fix_missing_thumbnails.py
 ```
+
+---
+
+## Naming Convention
+
+| Type | Convention | Example |
+|------|-----------|---------|
+| Python scripts | `snake_case.py` | `util_check_comic_images.py` |
+| Shell scripts | `kebab-case.sh` | `util-generate-ebay-token.sh` |
 
 ---
 

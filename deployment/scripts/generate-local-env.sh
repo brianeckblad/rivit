@@ -6,7 +6,7 @@
 # (use IAM roles in production, optional for local dev).
 #
 # Usage:
-#   python scripts/local-dev-setup-env.py
+#   python scripts/local_dev_setup_env.py
 #   (or manually: bash scripts/generate-local-env.sh)
 
 set -e

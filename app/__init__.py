@@ -17,7 +17,7 @@ APP_START_TIME = time.time()
 # This code handles BOTH local development AND production deployment:
 #
 # LOCAL DEVELOPMENT:
-#   1. User runs: python scripts/local-dev-setup-env.py
+#   1. User runs: python scripts/local_dev_setup_env.py
 #   2. This generates: .env file (auto-generated from vault.yml)
 #   3. App loads .env via load_dotenv() below
 #   4. Secrets come from .env file
@@ -36,7 +36,7 @@ APP_START_TIME = time.time()
 # ============================================================================
 env_path = Path(__file__).parent.parent / '.env'
 if env_path.exists():
-    # Local development: .env file exists from local-dev-setup-env.py
+    # Local development: .env file exists from local_dev_setup_env.py
     load_dotenv(dotenv_path=env_path)
 else:
     # Production: .env doesn't exist

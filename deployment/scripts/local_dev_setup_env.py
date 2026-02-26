@@ -7,7 +7,7 @@ All secrets are pulled from the encrypted vault, making it safe to share
 deployment configuration while keeping secrets out of git.
 
 Usage:
-    python scripts/local-dev-setup-env.py
+    python scripts/local_dev_setup_env.py
 
 The generated .env file is:
     - Added to .gitignore (never committed)
@@ -83,7 +83,7 @@ def generate_env_file(vault_data, env_file):
         "# Do NOT commit this file to git (already in .gitignore)",
         "#",
         "# To regenerate from vault.yml:",
-        "#   python scripts/local-dev-setup-env.py",
+        "#   python scripts/local_dev_setup_env.py",
         "# ============================================================================",
         "",
     ]
@@ -205,7 +205,7 @@ def main():
     print(f"  3. Run the app: {GREEN}python -m app{NC}\n")
     print("Note:")
     print("  - This file is in .gitignore and will not be committed")
-    print("  - Regenerate anytime with: python scripts/local-dev-setup-env.py")
+    print("  - Regenerate anytime with: python scripts/local_dev_setup_env.py")
     print("  - For production, secrets come from AWS Secrets Manager (no .env needed)\n")
 
 if __name__ == '__main__':
