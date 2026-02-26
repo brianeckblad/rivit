@@ -194,9 +194,7 @@ ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.va
 - ✅ Configures automatic rotation
 - ✅ Tags resources for tracking
 
-→ **Full Details:** [SECRETS_MANAGER_SETUP.md](SECRETS_MANAGER_SETUP.md) - Technical guide with examples
-
-→ **Simple Usage:** [LOAD_VARS_USAGE.md](LOAD_VARS_USAGE.md) - Variable loading for CLI commands
+→ **Secret rotation and management:** [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
 
 ---
 

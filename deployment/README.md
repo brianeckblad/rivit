@@ -1,236 +1,147 @@
-# Deployment Documentation
+# Deployment
 
-**Professional deployment automation for Python web applications on AWS**
+**Deploy a Python web application to AWS with Ansible**
 
 ---
 
-## 🚀 Getting Started (The 3-Step Process)
+## Getting Started
 
-### Step 1: Prerequisites (30 minutes)
+### Step 1: Prerequisites
 
-Get your local machine ready. Do this FIRST:
+Set up your local machine, AWS account, and configuration files.
 
-→ **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)**
+→ **[PREREQUISITES.md](docs/guides/PREREQUISITES.md)** (~30 minutes)
 
-**Sets up:**
-- ✅ AWS account and IAM user
-- ✅ AWS CLI on your machine
-- ✅ Ansible and Python
-- ✅ Deployment configuration files
+### Step 2: Deploy
 
-**When done, you'll see:**
-```bash
-$ aws sts get-caller-identity
-# Shows your AWS account ID
-```
-
-### Step 2: Choose Your Deployment Path
-
-After prerequisites, pick how to deploy:
-
-#### Option A: Fast & Automated (Recommended)
-**Everything in 15-20 minutes, one command**
-
-→ **[QUICKSTART.md](docs/guides/QUICKSTART.md)**
-
-Best for:
-- Want your app running quickly
-- Trust automation (all steps documented)
-- Getting started is the priority
-
-#### Option B: Learn Step-by-Step
-**Understand each component, 1-2 hours**
-
-→ **[MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)**
-
-Best for:
-- Want to learn how it works
-- Prefer understanding before automating
-- Troubleshooting existing deployments
+| Path | Guide | Time |
+|------|-------|------|
+| **Automated** (recommended) | [QUICKSTART.md](docs/guides/QUICKSTART.md) | 15-20 min |
+| **Step-by-step** (learn how it works) | [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) | 1-2 hours |
 
 ### Step 3: After Deployment
 
-Your app is running! What now?
-
-| Next Step | Guide | Time |
-|-----------|-------|------|
-| Update your application code | [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md) | 1-10 min |
-| Add SSL/HTTPS (recommended) | [MANUAL_DEPLOYMENT.md#ssl](docs/guides/MANUAL_DEPLOYMENT.md#step-5-configure-ssl-optional) | 10 min |
-| Set up monitoring & alerts | [MONITORING.md](docs/guides/MONITORING.md) | 15 min |
-| Add security hardening | [SECURITY_HARDENING.md](docs/guides/SECURITY_HARDENING.md) | Reference |
+| Task | Guide |
+|------|-------|
+| Update application code | [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md) |
+| Set up monitoring & alerts | [MONITORING.md](docs/guides/MONITORING.md) |
+| Manage secrets & credentials | [SECRET_MANAGEMENT.md](docs/guides/SECRET_MANAGEMENT.md) |
+| Day-to-day operations | [OPERATIONS.md](docs/guides/OPERATIONS.md) |
 
 ---
 
-## 📚 Complete Documentation Index
+## What Gets Deployed
+
+- ✅ AWS EC2 instance (Ubuntu 22.04) with EBS storage
+- ✅ Application server (Gunicorn + Nginx)
+- ✅ Auto-restart service (Systemd)
+- ✅ Cloud storage (S3 bucket)
+- ✅ IAM role (no credentials on server)
+- ✅ Secrets in AWS Secrets Manager
+- ✅ SSL/HTTPS (Let's Encrypt, optional)
+- ✅ Monitoring (CloudWatch, optional)
+- ✅ Security hardening (built-in)
+
+**Cost:** ~$10-15/month (~$2/month on AWS free tier)
+
+---
+
+## Configuration
+
+```bash
+cd deployment
+
+# Interactive setup (creates all.yml and vault.yml)
+./scripts/local-dev-setup.sh
+
+# Load variables into your shell
+source scripts/load-vars.sh
+```
+
+---
+
+## Documentation Index
 
 ### Core Guides
 
-| Document | Purpose | When to Use |
-|----------|---------|-----------|
-| [PREREQUISITES.md](docs/guides/PREREQUISITES.md) | First time setup | Before anything else |
-| [QUICKSTART.md](docs/guides/QUICKSTART.md) | Automatic deployment | Want fast setup |
-| [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) | Step-by-step deployment | Want to learn |
-
-### Understanding Your Deployment
-
 | Document | Purpose |
 |----------|---------|
-| [ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) | How everything fits together |
-| [INFRASTRUCTURE.md](docs/guides/INFRASTRUCTURE.md) | AWS resources explained |
+| [PREREQUISITES.md](docs/guides/PREREQUISITES.md) | First-time setup |
+| [QUICKSTART.md](docs/guides/QUICKSTART.md) | Automated deployment |
+| [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md) | Step-by-step deployment |
+| [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md) | Deploy code changes |
 
 ### Operations & Maintenance
 
 | Document | Purpose |
 |----------|---------|
-| [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md) | Deploy code changes |
-| [MONITORING.md](docs/guides/MONITORING.md) | Monitor your app (logs, alarms) |
 | [OPERATIONS.md](docs/guides/OPERATIONS.md) | Backups, scaling, troubleshooting |
+| [MONITORING.md](docs/guides/MONITORING.md) | Logs, alarms, dashboards |
 | [SECRET_MANAGEMENT.md](docs/guides/SECRET_MANAGEMENT.md) | Rotate passwords and credentials |
-| [MULTI_USER.md](docs/guides/MULTI_USER.md) | Add more users to server |
+| [MULTI_USER.md](docs/guides/MULTI_USER.md) | Add users to server |
+
+### Infrastructure & Security
+
+| Document | Purpose |
+|----------|---------|
+| [INFRASTRUCTURE.md](docs/guides/INFRASTRUCTURE.md) | AWS resources explained |
+| [EBS_APPLICATION_STORAGE.md](docs/guides/EBS_APPLICATION_STORAGE.md) | Application storage on EBS |
+| [SECURITY_HARDENING.md](docs/guides/SECURITY_HARDENING.md) | Server hardening |
+| [SECURITY.md](docs/reference/SECURITY.md) | Security model overview |
 
 ### Optional Features
 
-| Feature | Guide |
-|---------|-------|
-| SSL/HTTPS Certificate | [MANUAL_DEPLOYMENT.md#ssl](docs/guides/MANUAL_DEPLOYMENT.md#step-5-configure-ssl-optional) |
-| CloudFront CDN | [CLOUDFRONT_CDN.md](docs/guides/CLOUDFRONT_CDN.md) |
-| WAF (Web Firewall) | [WAF_CONFIGURATION.md](docs/guides/WAF_CONFIGURATION.md) |
-| EBS Application Storage | [EBS_APPLICATION_STORAGE.md](docs/guides/EBS_APPLICATION_STORAGE.md) |
-| Security Hardening | [SECURITY_HARDENING.md](docs/guides/SECURITY_HARDENING.md) |
+| Document | Purpose |
+|----------|---------|
+| [CLOUDFRONT_CDN.md](docs/guides/CLOUDFRONT_CDN.md) | Content delivery network |
+| [WAF_CONFIGURATION.md](docs/guides/WAF_CONFIGURATION.md) | Web application firewall |
+
+### Reference
+
+| Document | Purpose |
+|----------|---------|
+| [ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) | System design overview |
+| [APPLICATION_SECURITY.md](docs/reference/APPLICATION_SECURITY.md) | Security layers (WAF, attack detection) |
+| [SECURITY.md](docs/reference/SECURITY.md) | User isolation model |
+| [USER_MODEL.md](docs/reference/USER_MODEL.md) | User types and permissions |
+| [GIT_CONFIGURATION.md](docs/guides/GIT_CONFIGURATION.md) | Git setup for deployment |
 
 ---
 
-## What Gets Deployed
-
-**Complete production-ready setup:**
-
-- ✅ AWS EC2 instance (Ubuntu 22.04)
-- ✅ Application server (Gunicorn + Nginx)
-- ✅ Auto-restart service (Systemd)
-- ✅ Cloud storage (S3 bucket)
-- ✅ Permissions (IAM role, no credentials on server)
-- ✅ SSL/HTTPS (Let's Encrypt, optional)
-- ✅ Monitoring (CloudWatch, optional)
-- ✅ Security hardening (built-in)
-
-**Cost:** ~$10-15/month (~$2/month on AWS free tier)
-
----
-
-## Configuration Setup
-
-```bash
-cd deployment
-
-# Interactive mode (auto-detects if files exist)
-./scripts/local-dev-setup.sh
-
-# OR explicitly choose:
-
-# Create fresh from templates
-./scripts/local-dev-setup.sh -new
-
-# Merge existing values with new templates
-./scripts/local-dev-setup.sh -merge
-```
-
-**Files created:**
-- `group_vars/all.yml` - Your deployment settings
-- `group_vars/vault.yml` - Your secrets (encrypted)
-
-**These are ignored by Git** - safe to keep your personal settings locally!
-
----
-
-## Quick Start
-
-```bash
-cd deployment
-
-# Option 1: Automated (everything)
-ansible-playbook playbooks/provision-infrastructure.yml
-ansible-playbook -i inventories playbooks/setup.yml
-
-# Option 2: Just the app (EC2 already running)
-ansible-playbook -i inventories playbooks/setup.yml
-```
-
----
-
-## First Time?
-
-**Not done setup yet?** → [PREREQUISITES.md](docs/guides/PREREQUISITES.md)
-
-**Everything ready?** Choose one:
-- ⚡ Fast → [QUICKSTART.md](docs/guides/QUICKSTART.md)
-- 📖 Educational → [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)
-
----
-
-## What Gets Deployed
-
-**Complete production-ready setup:**
-
-- ✅ AWS EC2 instance (Ubuntu 22.04)
-- ✅ Application server (Gunicorn + Nginx)
-- ✅ Auto-restart service (Systemd)
-- ✅ Cloud storage (S3 bucket)
-- ✅ Permissions (IAM role, no credentials on server)
-- ✅ SSL/HTTPS (Let's Encrypt, optional)
-- ✅ Monitoring (CloudWatch, optional)
-- ✅ Security hardening (built-in)
-
-**Cost:** ~$10-15/month (~$2/month on AWS free tier)
-
----
-
-## Quick Facts
+## Quick Reference
 
 | Item | Value |
 |------|-------|
-| **Prerequisites time** | 30 minutes |
-| **Automated deploy time** | 15-20 minutes |
-| **Manual deploy time** | 1-2 hours |
-| **Server OS** | Ubuntu 22.04 LTS |
-| **App framework** | Python + Gunicorn + Nginx |
-| **Process manager** | Systemd |
-| **Deployment tool** | Ansible |
-| **Cloud provider** | AWS |
-| **Monthly cost** | ~$10-15 (free tier: ~$2) |
+| Server OS | Ubuntu 22.04 LTS |
+| App server | Gunicorn + Nginx |
+| Process manager | Systemd |
+| Deployment tool | Ansible |
+| Cloud provider | AWS |
+| Region (default) | us-east-2 |
+| Monthly cost | ~$10-15 (free tier: ~$2) |
 
 ---
 
 ## Common Commands
 
 ```bash
-# Start fresh deployment
 cd deployment
+
+# Load configuration variables
+source scripts/load-vars.sh
+
+# Full infrastructure + app deployment
 ./scripts/infra-complete-setup.sh
 
 # Deploy code updates only
-cd deployment
-ansible-playbook -i inventories playbooks/update.yml
+ansible-playbook -i inventories playbooks/update.yml --vault-password-file ~/.vault_pass
 
-# View application logs
-ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
-sudo journalctl -u {app_name} -f
+# SSH to server
+ssh -i ~/.ssh/${app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
-# Restart application
-ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
-sudo systemctl restart {app_name}
+# View logs (on server)
+sudo journalctl -u ${app_name} -f
+
+# Restart app (on server)
+sudo systemctl restart ${app_name}
 ```
-
----
-
-## Documentation Maintenance
-
-**Questions or improvements?**
-- **Found an error?** → Create GitHub issue with label `documentation`
-- **Have a suggestion?** → Open GitHub discussion
-
----
-
-**⏱️ Not started?** → Go to [PREREQUISITES.md](docs/guides/PREREQUISITES.md)  
-**⏱️ Finished prerequisites?** → Choose [QUICKSTART.md](docs/guides/QUICKSTART.md) or [MANUAL_DEPLOYMENT.md](docs/guides/MANUAL_DEPLOYMENT.md)  
-**⏱️ Already deployed?** → See [UPDATING_APPLICATION.md](docs/guides/UPDATING_APPLICATION.md)
-

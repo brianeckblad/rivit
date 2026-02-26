@@ -9,17 +9,39 @@ import time
 import json
 
 # Track application start time
-APP_START_TIME = time.time()# Load environment variables from .env file (optional)
-# .env file is used ONLY for local development
-# On production servers, environment variables are set by systemd
-# and secrets come from AWS Secrets Manager
+APP_START_TIME = time.time()
+
+# ============================================================================
+# ENVIRONMENT VARIABLE LOADING
+# ============================================================================
+# This code handles BOTH local development AND production deployment:
+#
+# LOCAL DEVELOPMENT:
+#   1. User runs: python scripts/local-dev-setup-env.py
+#   2. This generates: .env file (auto-generated from vault.yml)
+#   3. App loads .env via load_dotenv() below
+#   4. Secrets come from .env file
+#
+# PRODUCTION DEPLOYMENT:
+#   1. Deployment does NOT create a .env file on the server
+#   2. Systemd service sets environment variables:
+#      - SECRET_NAME={{ app_name }}/secrets
+#      - AWS_REGION={{ aws_region }}
+#   3. App skips load_dotenv() (file doesn't exist)
+#   4. Secrets come from AWS Secrets Manager (via config.py)
+#
+# The load_dotenv() call is INTENTIONALLY optional:
+# - If .env exists (local dev): loads it
+# - If .env doesn't exist (production): skips silently
+# ============================================================================
 env_path = Path(__file__).parent.parent / '.env'
 if env_path.exists():
-    # Local development: .env file exists
+    # Local development: .env file exists from local-dev-setup-env.py
     load_dotenv(dotenv_path=env_path)
 else:
-    # Production: .env doesn't exist, use systemd environment variables
-    # and AWS Secrets Manager via config.py
+    # Production: .env doesn't exist
+    # Secrets come from AWS Secrets Manager via config.py
+    # which reads SECRET_NAME and AWS_REGION from systemd environment
     pass
 
 

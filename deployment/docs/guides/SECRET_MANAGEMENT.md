@@ -102,7 +102,6 @@ ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.va
 - Uses `amazon.aws.secretsmanager_secret` module for AWS operations (no shell commands, no sudo)
 - No passwords needed on EC2 instance (IAM role handles authentication)
 
-→ **Full Details:** [SECRETS_MANAGER_SETUP.md](SECRETS_MANAGER_SETUP.md)
 
 ---
 

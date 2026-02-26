@@ -57,7 +57,6 @@ echo $aws_region         # Shows: us-east-2
 aws s3 ls | grep $app_name
 ```
 
-→ **Full guide:** [LOAD_VARS_USAGE.md](LOAD_VARS_USAGE.md)
 
 ---
 
