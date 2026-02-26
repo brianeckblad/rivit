@@ -1,9 +1,26 @@
 #!/bin/bash
 #
 # Get App Name from Configuration
+# Supported shells: bash, ksh
 # This script reads app_name from group_vars/all.yml
 # Used by other scripts to ensure consistency
 #
+
+# Shell compatibility check
+current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+if [[ -z "$current_shell" ]]; then
+    current_shell=$(basename "$SHELL" 2>/dev/null)
+fi
+case "$current_shell" in
+    bash|ksh)
+        ;; # Supported shell
+    *)
+        echo "⚠️  WARNING: Unsupported shell detected!" >&2
+        echo "   Current shell: $current_shell" >&2
+        echo "   Supported shells: bash, ksh" >&2
+        return 1 2>/dev/null || exit 1
+        ;;
+esac
 
 # Find the deployment directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

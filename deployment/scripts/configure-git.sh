@@ -1,5 +1,6 @@
 #!/bin/bash
 # Configure git user email based on app name
+# Supported shells: bash, ksh
 # Reusable for any project - automatically sets email to app_name@brianeckblad.dev
 #
 # Usage:
@@ -8,6 +9,24 @@
 #   ./scripts/configure-git.sh --global myapp     # Set globally for all repos
 
 set -e
+
+# Shell compatibility check
+current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+if [[ -z "$current_shell" ]]; then
+    current_shell=$(basename "$SHELL" 2>/dev/null)
+fi
+case "$current_shell" in
+    bash|ksh)
+        ;; # Supported shell
+    *)
+        echo "⚠️  WARNING: Unsupported shell detected!" >&2
+        echo "   Current shell: $current_shell" >&2
+        echo "   Supported shells: bash, ksh" >&2
+        echo "" >&2
+        echo "   Please run with: bash ./deployment/scripts/configure-git.sh" >&2
+        exit 1
+        ;;
+esac
 
 # Configuration - personalize this section for your identity
 GIT_USER_NAME="Brian Eckblad"

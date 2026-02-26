@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Remote Deployment Script
+# Supported shells: bash, ksh
 #
 # This script simplifies remote deployment from your local machine
 # It handles the most common deployment scenarios
@@ -8,6 +9,24 @@
 # Usage:
 #   ./deployment/scripts/app-deploy.sh setup     # Initial setup
 #   ./deployment/scripts/app-deploy.sh update     # Update after git push
+
+# Shell compatibility check
+current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+if [[ -z "$current_shell" ]]; then
+    current_shell=$(basename "$SHELL" 2>/dev/null)
+fi
+case "$current_shell" in
+    bash|ksh)
+        ;; # Supported shell
+    *)
+        echo "⚠️  WARNING: Unsupported shell detected!" >&2
+        echo "   Current shell: $current_shell" >&2
+        echo "   Supported shells: bash, ksh" >&2
+        echo "" >&2
+        echo "   Please run with: bash ./deployment/scripts/app-deploy.sh" >&2
+        exit 1
+        ;;
+esac
 #   ./deployment/scripts/app-deploy.sh hardening # Security hardening
 #   ./deployment/scripts/app-deploy.sh cleanup    # Clean server files
 #   ./deployment/scripts/app-deploy.sh logs       # View recent logs

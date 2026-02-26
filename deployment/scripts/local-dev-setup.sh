@@ -1,6 +1,7 @@
 #!/bin/bash
 # Setup local development configuration
 # Handles both new setup and merging with existing configurations
+# Supported shells: bash, ksh
 #
 # Usage:
 #   ./scripts/local-dev-setup.sh              # Interactive mode (detect existing files)
@@ -9,6 +10,24 @@
 #   ./scripts/local-dev-setup.sh --no-backup  # Skip backup creation
 
 set -e
+
+# Shell compatibility check
+current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+if [[ -z "$current_shell" ]]; then
+    current_shell=$(basename "$SHELL" 2>/dev/null)
+fi
+case "$current_shell" in
+    bash|ksh)
+        ;; # Supported shell
+    *)
+        echo "⚠️  WARNING: Unsupported shell detected!" >&2
+        echo "   Current shell: $current_shell" >&2
+        echo "   Supported shells: bash, ksh" >&2
+        echo "" >&2
+        echo "   Please run with: bash ./scripts/local-dev-setup.sh" >&2
+        exit 1
+        ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(dirname "$SCRIPT_DIR")"

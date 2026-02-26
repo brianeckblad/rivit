@@ -2,6 +2,8 @@
 # Load Ansible variables from YAML files for CLI usage
 # This script reads group_vars and EXPORTS them as shell variables
 #
+# Supported shells: bash, ksh
+#
 # ⚠️  IMPORTANT: You MUST source this script, don't run it directly!
 # Usage: source scripts/load-vars.sh
 # NOT: ./scripts/load-vars.sh
@@ -9,6 +11,26 @@
 # After sourcing, variables are available:
 #   echo $app_name
 #   aws s3 ls | grep $app_name
+
+# Shell compatibility check
+{
+    current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+    if [[ -z "$current_shell" ]]; then
+        current_shell=$(basename "$SHELL" 2>/dev/null)
+    fi
+    case "$current_shell" in
+        bash|ksh)
+            ;; # Supported shell
+        *)
+            echo "⚠️  WARNING: Unsupported shell detected!" >&2
+            echo "   Current shell: $current_shell" >&2
+            echo "   Supported shells: bash, ksh" >&2
+            echo "" >&2
+            echo "   Please run with: bash -c 'source scripts/load-vars.sh'" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
+    esac
+}
 
 # Check if being sourced or executed directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

@@ -1,5 +1,24 @@
 #!/bin/bash
 # Force hard restart and cache clearing script
+# Supported shells: bash, ksh
+
+# Shell compatibility check
+current_shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '-')
+if [[ -z "$current_shell" ]]; then
+    current_shell=$(basename "$SHELL" 2>/dev/null)
+fi
+case "$current_shell" in
+    bash|ksh)
+        ;; # Supported shell
+    *)
+        echo "⚠️  WARNING: Unsupported shell detected!" >&2
+        echo "   Current shell: $current_shell" >&2
+        echo "   Supported shells: bash, ksh" >&2
+        echo "" >&2
+        echo "   Please run with: bash ./deployment/scripts/app-hard-restart.sh" >&2
+        exit 1
+        ;;
+esac
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
