@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Get App Name from Configuration
-# Supported shells: bash, ksh
+# Supported shells: bash, zsh
 # This script reads app_name from group_vars/all.yml
 # Used by other scripts to ensure consistency
 #
@@ -12,12 +12,12 @@ if [[ -z "$current_shell" ]]; then
     current_shell=$(basename "$SHELL" 2>/dev/null)
 fi
 case "$current_shell" in
-    bash|ksh)
+    bash|zsh)
         ;; # Supported shell
     *)
         echo "⚠️  WARNING: Unsupported shell detected!" >&2
         echo "   Current shell: $current_shell" >&2
-        echo "   Supported shells: bash, ksh" >&2
+        echo "   Supported shells: bash, zsh" >&2
         return 1 2>/dev/null || exit 1
         ;;
 esac

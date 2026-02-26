@@ -2,7 +2,7 @@
 # Load Ansible variables from YAML files for CLI usage
 # This script reads group_vars and EXPORTS them as shell variables
 #
-# Supported shells: bash, ksh
+# Supported shells: bash, zsh
 #
 # ⚠️  IMPORTANT: You MUST source this script, don't run it directly!
 # Usage: source scripts/load-vars.sh
@@ -19,12 +19,12 @@
         current_shell=$(basename "$SHELL" 2>/dev/null)
     fi
     case "$current_shell" in
-        bash|ksh)
+        bash|zsh)
             ;; # Supported shell
         *)
             echo "⚠️  WARNING: Unsupported shell detected!" >&2
             echo "   Current shell: $current_shell" >&2
-            echo "   Supported shells: bash, ksh" >&2
+            echo "   Supported shells: bash, zsh" >&2
             echo "" >&2
             echo "   Please run with: bash -c 'source scripts/load-vars.sh'" >&2
             return 1 2>/dev/null || exit 1

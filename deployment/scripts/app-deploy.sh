@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Remote Deployment Script
-# Supported shells: bash, ksh
+# Supported shells: bash, zsh
 #
 # This script simplifies remote deployment from your local machine
 # It handles the most common deployment scenarios
@@ -16,12 +16,12 @@ if [[ -z "$current_shell" ]]; then
     current_shell=$(basename "$SHELL" 2>/dev/null)
 fi
 case "$current_shell" in
-    bash|ksh)
+    bash|zsh)
         ;; # Supported shell
     *)
         echo "⚠️  WARNING: Unsupported shell detected!" >&2
         echo "   Current shell: $current_shell" >&2
-        echo "   Supported shells: bash, ksh" >&2
+        echo "   Supported shells: bash, zsh" >&2
         echo "" >&2
         echo "   Please run with: bash ./deployment/scripts/app-deploy.sh" >&2
         exit 1
