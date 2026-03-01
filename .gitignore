@@ -28,9 +28,7 @@ instance/*
 # OS
 .DS_Store
 
-# Ansible vault passwords
-.vault_pass
-.vault_password
+# Ansible vault passwords (safety net - file lives outside repo at ~/.vault_pass)
 **/vault_pass
 **/vault_password
 
