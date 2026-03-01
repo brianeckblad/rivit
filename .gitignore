@@ -39,8 +39,5 @@ deployment/group_vars/all.yml
 deployment/group_vars/vault.yml
 
 # Deployment state files
-deployment/.deployment-config
-deployment/aws-setup-summary.txt
-deployment/deployment-summary.txt
 **/.secret-rotation-info
 
