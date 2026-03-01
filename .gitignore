@@ -14,8 +14,6 @@ __pycache__/
 # Local development (in project directory)
 venv/
 .venv/
-env/
-ENV/
 # Note: In production, venv is at ~/.venv (in user's home directory, outside project)
 
 # ============================================================================
@@ -25,11 +23,10 @@ ENV/
 .env.local
 .env.*.local
 .flaskenv
-github/
 
 # GitHub config - only track copilot instructions
 .github/*
-.github
+!.github/copilot-instructions.md
 
 # ============================================================================
 # Flask Instance Data (user-specific, generated at runtime)
