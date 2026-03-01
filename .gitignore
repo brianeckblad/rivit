@@ -37,7 +37,6 @@ instance/*
 # Deployment user config (copied from .example files)
 deployment/group_vars/all.yml
 deployment/group_vars/vault.yml
-!deployment/group_vars/**/*.example
 
 # Deployment state files
 deployment/.deployment-config
