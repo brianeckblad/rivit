@@ -38,6 +38,5 @@ instance/*
 deployment/group_vars/all.yml
 deployment/group_vars/vault.yml
 
-# Deployment state files
-**/.secret-rotation-info
+
 
