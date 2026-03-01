@@ -1,98 +1,47 @@
-# ============================================================================
 # Python
-# ============================================================================
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-*.egg-info/
-*.egg
 
-# ============================================================================
-# Virtual Environment
-# ============================================================================
-# Local development (in project directory)
-venv/
+# Virtual environment
 .venv/
-# Note: In production, venv is at ~/.venv (in user's home directory, outside project)
 
-# ============================================================================
-# Environment Variables & Secrets (NEVER COMMIT!)
-# ============================================================================
+# Environment variables & secrets
 .env
-.env.local
-.env.*.local
 .flaskenv
 
-# GitHub config - only track copilot instructions
+# GitHub - only track copilot instructions
 .github/*
 !.github/copilot-instructions.md
 
-# ============================================================================
-# Flask Instance Data (user-specific, generated at runtime)
-# ============================================================================
+# Flask instance data (user-specific, generated at runtime)
 instance/*
 !instance/README.md
 !instance/app_defaults.json
-
-# Keep these for deployment:
 !instance/app_version
 
-# ============================================================================
-# IDE & Editor
-# ============================================================================
-.vscode/
+# IDE
 .idea/
-*.swp
-*.swo
-*~
 
-# ============================================================================
 # Logs
-# ============================================================================
 *.log
-logs/
 
-# ============================================================================
-# OS Files
-# ============================================================================
+# OS
 .DS_Store
-.DS_Store?
-._*
-Thumbs.db
 
-# ============================================================================
-# Ansible Vault (NEVER COMMIT PASSWORDS!)
-# ============================================================================
+# Ansible vault passwords
 .vault_pass
 .vault_password
 **/vault_pass
 **/vault_password
 
-# ============================================================================
-# Deployment - User Configuration Files (NEVER COMMIT!)
-# ============================================================================
-# Users copy .example files to create their actual config files
-# Example: cp all.yml.example all.yml
-#
-# .example files = Templates (IN GIT, get updates)
-# Real files     = User configs (IGNORED BY GIT, stay private)
-
-# User's actual configuration files (copied from .example files)
+# Deployment user config (copied from .example files)
 deployment/group_vars/all.yml
 deployment/group_vars/vault.yml
-
-# Keep .example template files (these ARE tracked in Git)
 !deployment/group_vars/**/*.example
 
-# Deployment state/summary files
+# Deployment state files
 deployment/.deployment-config
 deployment/aws-setup-summary.txt
 deployment/deployment-summary.txt
 **/.secret-rotation-info
 
-# ============================================================================
-# Label Tools (Generated Files)
-# ============================================================================
-label_tools/*.csv
-label_tools/*.pdf
