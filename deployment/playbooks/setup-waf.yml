@@ -171,7 +171,7 @@
       copy:
         content: |
           AWS WAF Configuration
-          Created: {{ ansible_date_time.iso8601 }}
+          Created: {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}
           
           Web ACL Name: {{ app_name }}-web-acl
           Web ACL ARN: {{ waf_data.Summary.ARN }}

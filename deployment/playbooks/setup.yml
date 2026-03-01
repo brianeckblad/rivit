@@ -203,7 +203,6 @@
         name: gunicorn
         virtualenv: "{{ venv_dir }}"
         state: present
-        virtualenv: "{{ venv_dir }}"
 
     - name: Check if .env file already exists
       stat:

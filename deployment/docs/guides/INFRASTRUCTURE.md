@@ -1,6 +1,6 @@
-# Infrastructure Components Guide
+# Infrastructure Components
 
-**Understanding and deploying each AWS component**
+AWS resource details — S3, IAM, EC2, and Security Groups.
 
 ---
 
@@ -18,16 +18,9 @@
 
 ### What It Is
 
-**S3 (Simple Storage Service)** is AWS's object storage service. Think of it as a secure, scalable cloud drive.
+S3 (Simple Storage Service) is AWS object storage. The application uses it for images, uploads, and backups. S3 provides versioning (recover deleted files), encryption at rest, and 99.99% availability.
 
-**Why you need it:**
-- Store application files (images, uploads, backups)
-- Highly available (99.99% uptime)
-- Cost-effective (~$0.023 per GB/month)
-- Access from anywhere with proper credentials
-- Versioning and encryption built-in
-
-**AWS Pricing:** ~$1-2/month for typical app storage (first 5GB free on free tier)
+Cost: ~$1–2/month for typical usage (first 5 GB free on free tier).
 
 ### Option A: Deploy via Playbook (Automated)
 
@@ -98,27 +91,20 @@ aws s3 ls | grep $BUCKET_NAME
 # Should show your bucket
 ```
 
-**Why each step:**
-- **Versioning:** Mistakes happen. Versioning lets you recover old versions of files.
-- **Encryption:** Your data is encrypted on AWS servers. Even AWS staff can't read your data.
-- **Block Public:** Prevents accidental exposure of private data. (Like the leak that happens when someone misconfigures S3)
 
-### Option C: Create via AWS Console (Point & Click)
-
-**Easiest visual way**
+### Option C: Create via AWS Console
 
 1. Go to [S3 Console](https://s3.console.aws.amazon.com/s3/)
 2. Click **Create bucket**
-3. **Bucket name:** `yourname-{app_name}-2026` (must be globally unique)
-4. **Region:** `us-east-2`
-5. Click **Create bucket**
-6. **Enable versioning:**
-   - Click the bucket name
-   - Properties tab → Versioning → Edit → Enable → Save changes
-7. **Enable encryption:**
-   - Properties tab → Encryption → Edit → AES-256 → Save changes
-8. **Block public access:**
-   - Permissions tab → Block public access → Edit → Check all 4 boxes → Save
+3. **Bucket name:** Use the same value you set for `vault_s3_bucket_name` in your vault. Must be globally unique.
+4. **Region:** Same as `aws_region` in `all.yml` (e.g. `us-east-2`)
+5. **Block all public access:** Check all 4 boxes
+6. Click **Create bucket**
+7. Open the bucket, then go to **Properties**:
+   - **Bucket Versioning** → Edit → Enable → Save
+   - **Default encryption** → Edit → SSE-S3 (AES-256) → Save
+
+The bucket name must match your vault configuration exactly, or the application and decommission playbooks will not find it.
 
 ---
 
@@ -126,15 +112,9 @@ aws s3 ls | grep $BUCKET_NAME
 
 ### What It Is
 
-**IAM (Identity and Access Management)** controls who can do what in AWS.
+IAM (Identity and Access Management) controls who can do what in AWS. An IAM role grants your EC2 instance permission to access S3, CloudWatch, and Secrets Manager without storing credentials on the server.
 
-**Why you need it:**
-- Your EC2 instance needs permission to access S3, CloudWatch, Secrets Manager
-- Alternative to putting credentials on the server (bad practice)
-- Permission-based (server can only do what role allows)
-- Can be revoked instantly if needed
-
-**Security benefit:** No AWS credentials stored on server = if server is compromised, attacker can't access S3 or secrets directly.
+If the server is compromised, the role can be revoked instantly. No access keys to steal.
 
 ### Option A: Deploy via Playbook (Automated)
 
@@ -214,28 +194,38 @@ aws iam get-role --role-name $ROLE_NAME
 # Should show role details
 ```
 
+### Option C: Create via AWS Console
+
+1. Go to [IAM Roles Console](https://console.aws.amazon.com/iam/home#/roles)
+2. Click **Create role**
+3. **Trusted entity type:** AWS service
+4. **Use case:** EC2
+5. Click **Next**
+6. Search for and attach these managed policies:
+   - `AmazonS3FullAccess`
+   - `SecretsManagerReadWrite`
+   - `CloudWatchLogsFullAccess`
+7. Click **Next**
+8. **Role name:** `{app_name}-ec2-role` (must match exactly)
+9. Click **Create role**
+10. Go back to the role list, open `{app_name}-ec2-role`
+11. Note the **Instance profile ARN** — the playbook creates this automatically, but the console does too when you create a role with EC2 as the use case
+
+The role name must be `{app_name}-ec2-role` exactly. The decommission playbook searches for this name to delete inline policies, detach managed policies, remove instance profiles, and delete the role.
+
 ---
 
 ## Security Group
 
 ### What It Is
 
-**A security group is a virtual firewall** - it controls which network traffic can reach your server.
-
-**Think of it like:**
-- Firewall rules for your server
-- What ports/protocols can connect
-- From where (IP addresses)
+A security group is a virtual firewall that controls which network traffic can reach your server. It defines which ports accept connections and from which IP addresses.
 
 **Why you need it:**
 - Only allow necessary ports (22 for SSH, 80 for HTTP, 443 for HTTPS)
 - Prevent unauthorized access
 - Required by AWS before launching EC2
 
-**Ports explained:**
-- **22 (SSH):** Secure remote access (terminal access to server)
-- **80 (HTTP):** Web traffic (unencrypted)
-- **443 (HTTPS):** Secure web traffic (encrypted)
 
 ### Option A: Deploy via Playbook (Automated)
 
@@ -314,29 +304,39 @@ aws ec2 describe-security-groups \
   --query 'SecurityGroups[0].IpPermissions'
 ```
 
+### Option C: Create via AWS Console
+
+1. Go to [EC2 Console → Security Groups](https://console.aws.amazon.com/ec2/home#SecurityGroups)
+2. Click **Create security group**
+3. **Security group name:** `{app_name}-sg`
+4. **Description:** `Security group for {app_name}`
+5. **VPC:** Leave default
+6. Under **Inbound rules**, click **Add rule** three times:
+
+| Type | Port | Source | Description |
+|------|------|--------|-------------|
+| SSH | 22 | `0.0.0.0/0` | SSH access |
+| HTTP | 80 | `0.0.0.0/0` | Web traffic |
+| HTTPS | 443 | `0.0.0.0/0` | Secure web traffic |
+
+7. Click **Create security group**
+8. Note the **Security group ID** (e.g. `sg-0abc123`) — you need it when launching EC2
+
+The name must be `{app_name}-sg` exactly. The decommission playbook searches for this name.
+
+**Ports explained:**
+- **22 (SSH):** Remote terminal access to the server
+- **80 (HTTP):** Unencrypted web traffic
+- **443 (HTTPS):** Encrypted web traffic (used after SSL setup)
+
 ---
 
 ## SSH Key Pair
 
 ### What It Is
 
-**SSH key pair = password-less authentication to your server**
+An SSH key pair provides password-less authentication to your server. It consists of a private key (stored on your machine) and a public key (stored on the server). The private key must be kept secret.
 
-Two parts:
-- **Public key:** Stored on server (anyone can know this)
-- **Private key:** Stored on your computer (keep secret!)
-
-**How it works:**
-1. You send message signed with private key
-2. Server verifies with public key
-3. Access granted
-
-**Why better than password:**
-- Can't be brute-forced
-- No password to type (or steal)
-- Can revoke access instantly by removing public key
-
----
 
 ### Option A: Deploy via Playbook (Automated)
 
@@ -395,11 +395,28 @@ ls -la ~/.ssh/$KEY_NAME.pem
 ssh-keygen -l -f ~/.ssh/$KEY_NAME.pem
 ```
 
-**⚠️ Important:**
-- Save this key securely (password manager, backup, etc.)
-- Don't commit to Git
-- Can't regenerate if lost (have to replace on server)
-- Keep only on trusted computers
+**Important:**
+- Save this key securely. You cannot regenerate it if lost.
+- Do not commit to Git.
+- Keep only on trusted computers.
+
+### Option C: Create via AWS Console
+
+1. Go to [EC2 Console → Key Pairs](https://console.aws.amazon.com/ec2/home#KeyPairs)
+2. Click **Create key pair**
+3. **Name:** `{app_name}-key`
+4. **Key pair type:** RSA
+5. **Private key file format:** `.pem`
+6. Click **Create key pair**
+7. Your browser downloads `{app_name}-key.pem` automatically
+8. Move it to your SSH directory and set permissions:
+
+```bash
+mv ~/Downloads/{app_name}-key.pem ~/.ssh/{app_name}-key.pem
+chmod 400 ~/.ssh/{app_name}-key.pem
+```
+
+The key name must be `{app_name}-key` exactly. The decommission playbook searches for this name to delete the AWS key pair and the local `.pem` file.
 
 ---
 
@@ -407,19 +424,9 @@ ssh-keygen -l -f ~/.ssh/$KEY_NAME.pem
 
 ### What It Is
 
-**EC2 = Elastic Compute Cloud = Virtual server in the cloud**
+EC2 (Elastic Compute Cloud) is a virtual server running in AWS. You launch an instance from a machine image (AMI), and it runs 24/7 until you stop or terminate it.
 
-**Think of it as:**
-- Renting a computer from AWS
-- Runs 24/7 (you pay for every hour)
-- Can shut down when not needed
-- Can launch/delete in seconds
-
-**Instance type `t3.micro`:**
-- 1 vCPU (1 processor core)
-- 1GB RAM
-- Good for low-traffic apps
-- **Free tier eligible** (750 hours/month free for first 12 months)
+**Instance type `t3.micro`:** 1 vCPU, 1 GB RAM. Suitable for low-traffic applications. Free tier eligible (750 hours/month for the first 12 months).
 
 ### Prerequisites
 
@@ -470,7 +477,7 @@ cat deployment/instance-info.txt
 # Set variables
 SG_ID="sg-xxxxxxxxx"          # From security group creation
 KEY_NAME="{app_name}-key"     # From key pair creation
-INSTANCE_NAME="{app_name}-server"
+INSTANCE_NAME="{app_name}"
 AWS_REGION="us-east-2"
 
 # 1. Find latest Ubuntu 22.04 LTS AMI
@@ -529,40 +536,63 @@ echo "SSH command: ssh -i ~/.ssh/$KEY_NAME.pem ubuntu@$INSTANCE_IP"
 - **Security Group:** Which firewall rules apply
 - **IAM Instance Profile:** Which permissions the instance has
 
+### Option C: Launch via AWS Console
+
+1. Go to [EC2 Console → Instances](https://console.aws.amazon.com/ec2/home#Instances)
+2. Click **Launch instances**
+3. **Name:** `{app_name}` (must match exactly — the terminate playbook finds instances by this Name tag)
+4. **Application and OS Images:** Search for `Ubuntu`, select **Ubuntu Server 22.04 LTS (HVM), SSD Volume Type**, architecture **64-bit (x86)**
+5. **Instance type:** `t3.micro` (free tier eligible)
+6. **Key pair:** Select `{app_name}-key` from the dropdown
+7. **Network settings:** Click **Edit**
+   - **Select existing security group:** Choose `{app_name}-sg`
+   - **Auto-assign public IP:** Enable
+8. **Configure storage:** 20 GB, `gp3`
+9. **Advanced details** (expand):
+   - **IAM instance profile:** Select `{app_name}-ec2-role`
+10. Click **Launch instance**
+11. Wait 1–2 minutes, then go to **Instances** and note the **Public IPv4 address**
+12. Test SSH access:
+
+```bash
+ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_INSTANCE_IP
+```
+
+The Name tag must be `{app_name}` exactly (not `{app_name}-server`). The terminate and decommission playbooks search for instances by this tag.
+
 ---
 
 ## Verification
 
-### All Infrastructure Created?
+Run these checks after creating all resources:
 
 ```bash
-# Check EC2 instance
 aws ec2 describe-instances \
-  --filters "Name=instance-state-name,Values=running" \
+  --filters "Name=tag:Name,Values={app_name}" "Name=instance-state-name,Values=running" \
   --query 'Reservations[0].Instances[0].[InstanceId,PublicIpAddress,State.Name]'
 
-# Check security group
 aws ec2 describe-security-groups \
   --group-names {app_name}-sg \
-  --query 'SecurityGroups[0].[GroupId,IpPermissions]'
+  --query 'SecurityGroups[0].[GroupId,GroupName]'
 
-# Check IAM role
-aws iam get-role --role-name {app_name}-ec2-role
+aws iam get-role --role-name {app_name}-ec2-role \
+  --query 'Role.[RoleName,Arn]'
 
-# Check S3 bucket
 aws s3 ls | grep {app_name}
 
-# Check SSH key
 ls -la ~/.ssh/{app_name}-key.pem
 ```
 
-**All ✅? Ready to deploy application!**
+Every command should return results. If any fails, revisit the corresponding section above.
 
 ---
 
-## Next Steps
+## Next step
 
-- **Deploy application on EC2:** → [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md#step-2-deploy-application)
-- **All via one command:** → [QUICKSTART.md](QUICKSTART.md)
-- **Understand architecture:** → [ARCHITECTURE.md](../reference/ARCHITECTURE.md)
+Continue to [Chapter 3: Manual Deployment — Step 6](MANUAL_DEPLOYMENT.md#step-6-deploy-application-to-server) to deploy the application on your new server.
+
+## See also
+
+- [Chapter 2: Quick Start](QUICKSTART.md) — deploy with one command instead
+- [Architecture](../reference/ARCHITECTURE.md) — system design overview
 

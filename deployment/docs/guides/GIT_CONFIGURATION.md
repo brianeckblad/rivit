@@ -1,6 +1,6 @@
-# Git Configuration Guide
+# Chapter 12: Git Configuration
 
-**Automatically configure git with your identity**
+Repository setup for deployment workflows.
 
 ---
 
@@ -238,10 +238,11 @@ cd /path/to/any/repo
 
 ---
 
-## Why This Approach?
+## Next step
 
-✅ **Reusable** - Works with any project  
-✅ **No manual typing** - Auto-generates email  
-✅ **Professional** - Uses your domain  
-✅ **Flexible** - Local or global  
-✅ **Simple** - One command setup
+Continue to [Chapter 13: Decommission](DECOMMISSION.md).
+
+## See also
+
+- [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md) — deploy code changes via Git
+- [Chapter 2: Quick Start](QUICKSTART.md) — automated deployment workflow

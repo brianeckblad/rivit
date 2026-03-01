@@ -1,200 +1,37 @@
-# Manual Deployment Guide
+# Chapter 3: Manual Deployment
 
-**Learn how to deploy by doing - step-by-step with full explanations**
+Deploy step-by-step with full explanations. Each step offers two options:
+1. **Playbook** — automated with Ansible (fastest)
+2. **CLI** — AWS CLI commands (educational)
 
-This guide walks you through each deployment step with three options:
-1. **Playbook** - Automated with Ansible (fastest)
-2. **CLI** - Step-by-step with AWS CLI commands
-3. **Console** - Point & click in AWS web console
+For a point-and-click walkthrough using the AWS web console, see [AWS Console Deployment](AWS_CONSOLE_DEPLOYMENT.md).
 
-Learn something new with each step!
-
----
-
-## About Secrets & Vault
-
-**Your vault.yml file is encrypted and safe.** Ansible automatically:
-- ✅ Reads your encrypted vault.yml
-- ✅ Uses ~/.vault_pass to decrypt it
-- ✅ No manual vault password entry needed
-- ✅ Works with all playbook commands below
-
-**If a playbook asks for vault password:** Make sure ~/.vault_pass exists with proper permissions (600).
-
----
-
-## Prerequisites
-
-✅ **Have you done this yet?** Complete before starting deployment:
-
-→ [PREREQUISITES.md](PREREQUISITES.md) - AWS account, CLI setup, local tools
-
-**Not done?** Do that first. Come back here when you see:
-```bash
-$ aws sts get-caller-identity
-{
-    "Account": "123456789012",
-    "UserId": "...",
-    "Arn": "arn:aws:iam::123456789012:user/..."
-}
-```
+> **Prerequisite:** Complete [Chapter 1: Prerequisites](PREREQUISITES.md) before continuing.
 
 ---
 
 ## Load Configuration Variables
 
-**Before running CLI commands, load your variables into shell:**
-
-All CLI commands in this guide use `$app_name`, `$aws_region`, etc. You must load these first.
-
-### ⚠️ IMPORTANT: You Must Be in the `deployment` Directory
+CLI commands in this guide use `$app_name`, `$aws_region`, and other variables from `group_vars/all.yml`. Load them once per terminal session:
 
 ```bash
-# Make sure you're in the deployment directory
-cd deployment/
-
-# Verify you're in the right place
-pwd
-# Should show: .../rampe/deployment (the last two directories should be rampe/deployment)
-# And you should see: group_vars/ playbooks/ scripts/
-ls group_vars/all.yml  # This should exist and NOT show "not found"
-```
-
-### Setup (One Time Per Terminal Session)
-
-```bash
-cd deployment/
-
-# IMPORTANT: Use 'source' not './'
+cd deployment
 source scripts/load-vars.sh
 ```
 
-**Expected output:**
-```
-✅ Variables loaded and EXPORTED successfully
-
-Available variables (exported to this shell):
-  app_name=rampe
-  app_display_name=Rampe Inventory Manager
-  aws_region=us-east-2
-  admin_user=ubuntu
-  server_name=rampe.ipix.io
-
-Variables are NOW AVAILABLE in your shell...
-```
-
-**If you get "group_vars/all.yml not found" error:**
-
-1. ✅ **Check you're in deployment directory:**
-   ```bash
-   pwd  # Must show: .../rampe/deployment
-   ls -la group_vars/all.yml  # File must exist here
-   ```
-
-2. ✅ **If file doesn't exist, run setup:**
-   ```bash
-   ./scripts/local-dev-setup.sh
-   # Answer prompts to create configuration files
-   ```
-
-3. ✅ **Then try loading variables again:**
-   ```bash
-   source scripts/load-vars.sh
-   ```
-
-**⚠️ Important Difference:**
-- ❌ `./scripts/load-vars.sh` - Script runs in subshell, variables NOT available to you
-- ✅ `source scripts/load-vars.sh` - Script runs in your shell, variables exported and available
-
-### Verify Variables Are Exported
+Verify the variables loaded:
 
 ```bash
-echo $app_name          # Should show: rampe
-echo $aws_region        # Should show: us-east-2
-echo $admin_user        # Should show: ubuntu
+echo $app_name       # e.g., rampe
+echo $aws_region     # e.g., us-east-2
 ```
 
-**Not showing values?**
-- Make sure you used `source` (not `./`)
-- Make sure you're in the deployment directory
-- Run `source scripts/load-vars.sh` again
+If `echo $app_name` is blank:
+- Confirm you are in the `deployment/` directory (`pwd` should end with `rampe/deployment`)
+- Use `source` not `./` — running `./scripts/load-vars.sh` creates a subshell and the variables are lost
+- If `group_vars/all.yml` does not exist, run `./scripts/local-dev-setup.sh` first
 
-### Variables Now Available in Shell
-
-These variables are loaded into your shell and can be used in scripts:
-
-```bash
-# These work immediately - they're just configuration values
-echo $app_name              # Shows: rampe
-echo $aws_region            # Shows: us-east-2
-echo $admin_user            # Shows: ubuntu
-echo $server_name           # Shows: rampe.ipix.io
-echo $app_display_name      # Shows: Rampe Inventory Manager
-```
-
-**⚠️ Important:** These are just CONFIGURATION VARIABLES loaded from `group_vars/all.yml`. They don't prove AWS resources exist yet!
-
-### What Variables Are For
-
-**Configuration variables** (available NOW):
-- Used by deployment scripts and playbooks
-- Used to reference your app name, region, etc.
-- Loaded from `group_vars/all.yml`
-
-**AWS Resources** (created DURING deployment):
-- S3 buckets, IAM roles, security groups, EC2 instances
-- Don't exist yet - will be created by playbooks
-- After deployment, commands using variables will work
-
-### Example: What Works NOW vs LATER
-
-#### ✅ Works NOW (just configuration):
-```bash
-# These work - just reading config values
-echo "App name: $app_name"
-echo "AWS region: $aws_region"
-echo "Admin user: $admin_user"
-
-# This works - lists existing S3 buckets
-aws s3 ls
-```
-
-#### ❌ Fails NOW (AWS resources don't exist yet):
-```bash
-# These FAIL - resources will be created during deployment
-aws s3 ls | grep $app_name                           # ❌ Bucket doesn't exist yet
-aws iam get-role --role-name ${app_name}-ec2-role    # ❌ IAM role doesn't exist yet
-aws ec2 describe-security-groups --group-names ${app_name}-sg  # ❌ Security group doesn't exist yet
-```
-
-**After deployment playbooks run, these will work!**
-
-### Where Variables Come From
-
-- Defined in `group_vars/all.yml` (your configuration file)
-- Default aws_region: `us-east-2`
-- Edit `group_vars/all.yml` to change them
-
-### Variables from Vault
-
-**Note:** Vault variables won't load into shell (they're encrypted).
-
-For commands that need vault variables (like API keys), use Ansible playbooks instead:
-```bash
-cd deployment/
-
-# Playbooks automatically decrypt vault and sync to AWS Secrets Manager
-ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
-```
-
-**What it does:**
-- ✅ Extracts secrets from encrypted Ansible Vault
-- ✅ Creates AWS Secrets Manager secret (using native Ansible modules)
-- ✅ Updates secret with vault values  
-- ✅ Configures automatic rotation
-- ✅ Tags resources for tracking
-
-→ **Secret rotation and management:** [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
+Vault-encrypted variables (API keys, bucket name) are not loaded into the shell. Playbooks decrypt them automatically. See [Chapter 7: Secret Management](SECRET_MANAGEMENT.md).
 
 ---
 
@@ -249,21 +86,28 @@ source scripts/load-vars.sh
 ```
 
 **Then create S3 bucket:**
+
+> **Important:** The bucket name below must match `vault_s3_bucket_name` in your vault.yml.
+> Check it with: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep s3_bucket`
+
 ```bash
+# Set your bucket name (must match vault_s3_bucket_name)
+S3_BUCKET="rampe-ipix-io"  # ⚠️ Change to YOUR vault_s3_bucket_name value
+
 # Create bucket with encryption
 aws s3api create-bucket \
-    --bucket ${app_name}-data \
+    --bucket $S3_BUCKET \
     --region $aws_region \
     --create-bucket-configuration LocationConstraint=$aws_region
 
 # Enable versioning
 aws s3api put-bucket-versioning \
-    --bucket ${app_name}-data \
+    --bucket $S3_BUCKET \
     --versioning-configuration Status=Enabled
 
 # Enable encryption
 aws s3api put-bucket-encryption \
-    --bucket ${app_name}-data \
+    --bucket $S3_BUCKET \
     --server-side-encryption-configuration '{
       "Rules": [{
         "ApplyServerSideEncryptionByDefault": {
@@ -274,18 +118,24 @@ aws s3api put-bucket-encryption \
 
 # Block public access
 aws s3api put-public-access-block \
-    --bucket ${app_name}-data \
+    --bucket $S3_BUCKET \
     --public-access-block-configuration \
     "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
 ```
 
-### Option C: AWS Console (Point & Click)
+### Option C: AWS Console (Point and Click)
 
-→ [INFRASTRUCTURE.md#option-c-create-via-aws-console](INFRASTRUCTURE.md#option-c-create-via-aws-console)
+→ [Console Deployment — Step 1: Create S3 Bucket](AWS_CONSOLE_DEPLOYMENT.md#step-1-create-s3-bucket)
+
 
 **Verify:**
+
+> **Note:** The bucket name comes from `vault_s3_bucket_name` in your encrypted vault, not from `app_name`.
+> To find your bucket name: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep s3_bucket`
+
 ```bash
-aws s3 ls | grep ${app_name}-data
+# List all buckets (confirm yours appears)
+aws s3api list-buckets --query 'Buckets[].Name'
 ```
 
 ---
@@ -333,6 +183,9 @@ aws iam create-role \
     --assume-role-policy-document file:///tmp/trust-policy.json
 
 # Create inline policy for S3 access
+# ⚠️ S3_BUCKET must match vault_s3_bucket_name from your vault
+S3_BUCKET="rampe-ipix-io"  # Change to YOUR vault_s3_bucket_name value
+
 cat > /tmp/s3-policy.json <<EOF
 {
   "Version": "2012-10-17",
@@ -345,8 +198,8 @@ cat > /tmp/s3-policy.json <<EOF
       "s3:ListBucket"
     ],
     "Resource": [
-      "arn:aws:s3:::${app_name}-data",
-      "arn:aws:s3:::${app_name}-data/*"
+      "arn:aws:s3:::${S3_BUCKET}",
+      "arn:aws:s3:::${S3_BUCKET}/*"
     ]
   }]
 }
@@ -359,13 +212,17 @@ aws iam put-role-policy \
 
 # Create instance profile
 aws iam create-instance-profile \
-    --instance-profile-name ${app_name}-ec2-profile
+    --instance-profile-name ${app_name}-instance-profile
 
 # Add role to instance profile
 aws iam add-role-to-instance-profile \
     --role-name ${app_name}-ec2-role \
-    --instance-profile-name ${app_name}-ec2-profile
+    --instance-profile-name ${app_name}-instance-profile
 ```
+
+### Option C: AWS Console (Point and Click)
+
+→ [Console Deployment — Step 2: Create IAM Role](AWS_CONSOLE_DEPLOYMENT.md#step-2-create-iam-role)
 
 **Verify:**
 ```bash
@@ -434,6 +291,10 @@ aws ec2 create-tags \
     --tags Key=Name,Value=${app_name}-sg Key=Application,Value=${app_name}
 ```
 
+### Option C: AWS Console (Point and Click)
+
+→ [Console Deployment — Step 3: Create Security Group](AWS_CONSOLE_DEPLOYMENT.md#step-3-create-security-group)
+
 **Verify:**
 ```bash
 aws ec2 describe-security-groups --group-names ${app_name}-sg
@@ -477,6 +338,10 @@ chmod 400 ~/.ssh/${app_name}-key.pem
 ls -la ~/.ssh/${app_name}-key.pem
 ```
 
+### Option C: AWS Console (Point and Click)
+
+→ [Console Deployment — Step 4: Create SSH Key Pair](AWS_CONSOLE_DEPLOYMENT.md#step-4-create-ssh-key-pair)
+
 ---
 
 ## Step 5: Launch EC2 Instance
@@ -494,7 +359,7 @@ ansible-playbook playbooks/launch-ec2-instance.yml --vault-password-file ~/.vaul
 
 **Check results:**
 ```bash
-cat deployment/instance-info.txt
+cat instance-info.txt
 ```
 
 ### Option B: AWS CLI (5 minutes)
@@ -515,7 +380,7 @@ SG_ID=$(aws ec2 describe-security-groups \
 
 # Get instance profile ARN
 PROFILE_ARN=$(aws iam get-instance-profile \
-    --instance-profile-name ${app_name}-ec2-profile \
+    --instance-profile-name ${app_name}-instance-profile \
     --query 'InstanceProfile.Arn' \
     --output text)
 
@@ -541,7 +406,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
     --security-group-ids $SG_ID \
     --iam-instance-profile Arn=$PROFILE_ARN \
     --ebs-optimized \
-    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${app_name}-server},{Key=Application,Value=${app_name}}]" \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${app_name}},{Key=Application,Value=${app_name}}]" \
     --query 'Instances[0].InstanceId' \
     --output text)
 
@@ -567,9 +432,13 @@ echo "  SERVER_IP=$PUBLIC_IP"
 ```bash
 # Check instance is running
 aws ec2 describe-instances \
-    --filters "Name=tag:Name,Values=${app_name}-server" \
+    --filters "Name=tag:Name,Values=${app_name}" \
     --query 'Reservations[0].Instances[0].{ID:InstanceId,State:State.Name,IP:PublicIpAddress}'
 ```
+
+### Option C: AWS Console (Point and Click)
+
+→ [Console Deployment — Step 5: Launch EC2 Instance](AWS_CONSOLE_DEPLOYMENT.md#step-5-launch-ec2-instance)
 
 ---
 
@@ -590,7 +459,7 @@ export SERVER_IP=<YOUR_SERVER_IP>
 cd deployment
 source scripts/load-vars.sh
 export SERVER_IP=$(aws ec2 describe-instances \
-    --filters "Name=tag:Name,Values=${app_name}-server" \
+    --filters "Name=tag:Name,Values=${app_name}" \
     --query 'Reservations[0].Instances[0].PublicIpAddress' \
     --output text)
 
@@ -599,14 +468,19 @@ echo "Server IP: $SERVER_IP"
 
 **Option A: Full Automated Setup (Recommended - 10 minutes)**
 
+> **Inventory is managed automatically.** The `launch-ec2-instance.yml` playbook
+> writes your server IP to `inventories/hosts.yml` (which is gitignored — no
+> secrets in git). You don't need to edit it manually.
+
 ```bash
 cd deployment
 
-# Update inventory
-sed -i.bak "s/ansible_host:.*/ansible_host: $SERVER_IP/" inventories/hosts.yml
+# If you launched via CLI (not the playbook), update inventory manually:
+# sed -i.bak "s/ansible_host:.*/ansible_host: $SERVER_IP/" inventories/hosts.yml
+# sed -i.bak "s/ansible_connection:.*/ansible_connection: ssh/" inventories/hosts.yml
 
 # Deploy everything
-ansible-playbook -i inventories playbooks/setup.yml --vault-password-file ~/.vault_pass
+ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
@@ -627,11 +501,11 @@ curl http://$SERVER_IP
 
 **Option B: Manual SSH Setup (Educational - 30 minutes)**
 
-→ [Step 6 Manual Setup](#step-6-manual-ssh-deploy-application) (below)
+→ [Step 6b: Deploy via SSH](#step-6b-deploy-via-ssh-manual) (below)
 
 ---
 
-## Step 6 Manual SSH Deploy Application
+## Step 6b: Deploy via SSH (Manual)
 
 **For learning - do everything yourself on the server**
 
@@ -832,6 +706,8 @@ curl https://${server_name}
 # Should show application over HTTPS
 ```
 
+For console-based SSL setup, see [Console Deployment — Step 7: Configure SSL](AWS_CONSOLE_DEPLOYMENT.md#step-7-configure-sslhttps-optional).
+
 ---
 
 ## Step 8: Setup Monitoring (Optional)
@@ -853,6 +729,8 @@ ansible-playbook -i inventories playbooks/setup-monitoring.yml --vault-password-
 - AWS Console → CloudWatch → Logs
 - Look for `/${app_name}/`
 
+For creating alarms and dashboards in the console, see [Console Deployment — Step 8: Set Up Monitoring](AWS_CONSOLE_DEPLOYMENT.md#step-8-set-up-monitoring-optional).
+
 **Create Dashboards & Alarms (Recommended):**
 
 Now that logs are being collected, create alarms to detect problems and dashboards to monitor health.
@@ -861,43 +739,39 @@ Now that logs are being collected, create alarms to detect problems and dashboar
 
 ---
 
-## Verification Checklist
+## Verification
 
-**After deployment, verify everything:**
+After deployment, run these checks:
 
-**First, load variables:**
 ```bash
 cd deployment
 source scripts/load-vars.sh
+
+# Application responds
+curl http://$SERVER_IP
+
+# EC2 instance is running
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=${app_name}" \
+  --query 'Reservations[0].Instances[0].{ID:InstanceId,State:State.Name,IP:PublicIpAddress}'
+
+# S3 bucket exists
+aws s3api list-buckets --query 'Buckets[].Name'
+
+# IAM role exists
+aws iam get-role --role-name ${app_name}-ec2-role --query 'Role.RoleName'
 ```
 
-**Then run checks:**
-```bash
-# ✅ Can you access the application?
-curl http://$SERVER_IP
-# Should show your app homepage
+On the server:
 
-# ✅ Is the app service running?
+```bash
 ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP
 sudo systemctl status ${app_name}
-exit
-
-# ✅ Is Nginx running?
-ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP
 sudo systemctl status nginx
 exit
-
-# ✅ Can you see EC2 instance in AWS?
-aws ec2 describe-instances --filters "Name=tag:Name,Values=${app_name}-server"
-
-# ✅ Does S3 bucket exist?
-aws s3 ls | grep ${app_name}-data
-
-# ✅ Is IAM role attached?
-aws iam get-role --role-name ${app_name}-ec2-role
 ```
 
-**All checks pass?** 🎉 **Deployment complete!**
+Every command should succeed. If any fails, see Troubleshooting below.
 
 ---
 
@@ -967,57 +841,23 @@ cd deployment
 source scripts/load-vars.sh
 
 # Check IAM role is attached to instance
-aws iam get-instance-profile --instance-profile-name ${app_name}-ec2-profile
+aws iam get-instance-profile --instance-profile-name ${app_name}-instance-profile
 
 # Check instance has role
 aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=${app_name}-server" \
+  --filters "Name=tag:Name,Values=${app_name}" \
   --query 'Reservations[0].Instances[0].IamInstanceProfile'
 # Should show the role ARN
 ```
 
 ---
 
-## Next Steps
+## Next step
 
-**After successful deployment:**
+Continue to [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md).
 
-- **Operations & Maintenance:** [OPERATIONS.md](OPERATIONS.md)
-- **Add Multiple Users:** [MULTI_USER.md](MULTI_USER.md)
-- **Manage Secrets:** [SECRET_MANAGEMENT.md](SECRET_MANAGEMENT.md)
-- **Security Details:** [../reference/SECURITY.md](../reference/SECURITY.md)
+## See also
 
----
-
-## Summary
-
-**You deployed:**
-- ✅ AWS infrastructure (S3, EC2, IAM, Security Groups)
-- ✅ Application with Gunicorn + Nginx
-- ✅ Systemd service (auto-restart)
-- ✅ (Optional) SSL/HTTPS
-- ✅ (Optional) CloudWatch monitoring
-
-**You learned:**
-- How AWS services work (not just commands)
-- Both automated (playbook) and manual (CLI) approaches
-- What each component does and why
-- How to use variables in CLI commands
-
-**Architecture is now:**
-- Scalable (can add more servers)
-- Secure (no credentials on server, IAM roles)
-- Maintainable (systemd auto-restart)
-- Observable (CloudWatch logs)
-
----
-
-## Quick Links
-
-| Task | Time | Link |
-|------|------|------|
-| **First time?** | 15 min | [PREREQUISITES.md](PREREQUISITES.md) |
-| **Just deploy** | 20 min | [QUICKSTART.md](QUICKSTART.md) |
-| **Learn details** | 1-2 hrs | This guide |
-| **Infrastructure only** | 15 min | [INFRASTRUCTURE.md](INFRASTRUCTURE.md) |
-| **Daily operations** | Reference | [OPERATIONS.md](OPERATIONS.md) |
+- [Chapter 5: Operations](OPERATIONS.md) — backups, restarts, troubleshooting
+- [Chapter 7: Secret Management](SECRET_MANAGEMENT.md) — rotate credentials
+- [Chapter 13: Decommission](DECOMMISSION.md) — tear down all resources

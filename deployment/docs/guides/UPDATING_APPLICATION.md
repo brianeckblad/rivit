@@ -1,6 +1,6 @@
-# Updating Your Application
+# Chapter 4: Updating Your Application
 
-**Deploy code changes to your running application**
+Deploy code changes to your running server.
 
 ---
 
@@ -527,22 +527,14 @@ Then every push to `main` auto-deploys!
 
 ---
 
-## Summary
+---
 
-**Deployment process:**
-1. Test locally
-2. Commit to Git
-3. Run update playbook
-4. Verify health
-5. Monitor logs
-6. Rollback if needed
+## Next step
 
-**You now have:**
-- ✅ Fast deployments (1-2 minutes)
-- ✅ Automatic service restart
-- ✅ Rollback capability
-- ✅ Zero-downtime strategy
-- ✅ Monitoring integration
+Continue to [Chapter 5: Operations](OPERATIONS.md).
 
-**Next update?** Just push to Git and run the playbook! 🚀
+## See also
+
+- [Chapter 6: Monitoring](MONITORING.md) — dashboards and alarms
+- [Chapter 7: Secret Management](SECRET_MANAGEMENT.md) — rotate credentials after deploy
 

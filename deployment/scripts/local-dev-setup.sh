@@ -142,6 +142,11 @@ if [ "$MODE" = "new" ]; then
     cp "$GROUP_VARS_DIR/vault.yml.example" "$GROUP_VARS_DIR/vault.yml"
     echo "✅ Created: group_vars/vault.yml (unencrypted, ready to edit)"
 
+    if [ ! -f "$SCRIPT_DIR/../inventories/hosts.yml" ]; then
+        cp "$SCRIPT_DIR/../inventories/hosts.yml.example" "$SCRIPT_DIR/../inventories/hosts.yml"
+        echo "✅ Created: inventories/hosts.yml (auto-updated on deploy)"
+    fi
+
     echo ""
     echo "=================================================="
     echo "✅ New Configuration Files Created!"
@@ -198,6 +203,11 @@ if [ "$MODE" = "merge" ]; then
 
         cp "$GROUP_VARS_DIR/vault.yml.example" "$GROUP_VARS_DIR/vault.yml"
         echo "✅ Created: vault.yml (unencrypted, ready to edit)"
+
+        if [ ! -f "$SCRIPT_DIR/../inventories/hosts.yml" ]; then
+            cp "$SCRIPT_DIR/../inventories/hosts.yml.example" "$SCRIPT_DIR/../inventories/hosts.yml"
+            echo "✅ Created: inventories/hosts.yml (auto-updated on deploy)"
+        fi
 
         echo ""
         echo "=================================================="

@@ -25,6 +25,11 @@ ENV/
 .env.local
 .env.*.local
 .flaskenv
+github/
+
+# GitHub config - only track copilot instructions
+.github/*
+.github
 
 # ============================================================================
 # Flask Instance Data (user-specific, generated at runtime)
@@ -94,4 +99,3 @@ deployment/deployment-summary.txt
 # ============================================================================
 label_tools/*.csv
 label_tools/*.pdf
-!label_tools/README.md

@@ -1,11 +1,6 @@
 # Application Security Reference
 
-**Technical reference for security implementation**  
-**For daily security operations:** See [OPERATIONS.md](../guides/OPERATIONS.md#security-operations)  
-**Version:** 5.0  
-**Last Updated:** February 8, 2026
-
-> **Note:** Commands in this guide use `{app_name}` as a placeholder for your configured application name (set in `deployment/group_vars/all.yml`). Replace `{app_name}` with your actual app name when running commands and referencing paths.
+Security layers, WAF rules, attack detection, and rate limiting.
 
 ---
 

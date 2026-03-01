@@ -12,6 +12,9 @@
 - name: Create Security Group
   hosts: localhost
   gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
 
   tasks:
     - name: Create security group
@@ -52,7 +55,7 @@
           Application: "{{ app_name }}"
           Environment: production
           ManagedBy: Ansible
-          CreatedDate: "{{ ansible_date_time.iso8601 }}"
+          CreatedDate: "{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"
 
     - name: Display security group information
       debug:

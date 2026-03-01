@@ -1,6 +1,6 @@
-# Prerequisites Guide
+# Chapter 1: Prerequisites
 
-**Everything you need to set up before deploying {app_name}**
+Set up your AWS account, local tools, and configuration files.
 
 ---
 
@@ -10,7 +10,7 @@
 2. [AWS CLI Configuration](#aws-cli-configuration)
 3. [Local Tools Installation](#local-tools-installation)
 4. [Deployment Configuration](#deployment-configuration)
-5. [Verification Checklist](#verification-checklist)
+5. [Verification](#verification)
 
 ---
 
@@ -344,6 +344,9 @@ cd /path/to/{app_name}/deployment
 # Install Python requirements (Ansible plugins, AWS SDK, etc.)
 pip3 install -r requirements.txt
 
+# Install/upgrade Ansible collections (AWS modules)
+ansible-galaxy collection install -r requirements.yml --upgrade
+
 # Verify Ansible
 ansible --version
 
@@ -659,274 +662,40 @@ ls -la group_vars/all.yml group_vars/vault.yml ~/.vault_pass
 
 ---
 
-## Verification Checklist
+## Verification
 
-**Before you start deployment, verify everything:**
+Run these checks before continuing. Every command should succeed.
 
 ```bash
-# 1. AWS CLI working
-aws sts get-caller-identity
-# ✅ Shows your account ID and IAM user
+aws sts get-caller-identity           # Shows your account ID
+ansible --version                     # Version 2.9+
+python3 --version                     # Version 3.8+
 
-# 2. Ansible installed
-ansible --version
-# ✅ Shows version 2.9 or higher
-
-# 3. Python installed
-python3 --version
-# ✅ Shows version 3.8 or higher
-
-# 4. Git configured
-git config --global user.name
-git config --global user.email
-# ✅ Both return values
-
-# 5. Deployment requirements installed
 cd deployment
-pip3 list | grep boto
-# ✅ Shows boto3 and other AWS packages
+ls group_vars/all.yml                 # Exists
+head -1 group_vars/vault.yml          # Shows $ANSIBLE_VAULT;1.2;AES256
+ls -la ~/.vault_pass                  # Permissions: -rw-------
 
-# 6. Configuration created
-ls deployment/group_vars/all.yml
-ls deployment/group_vars/vault.yml
-# ✅ Both files exist
-
-# 7. ⚠️ VAULT IS ENCRYPTED (CRITICAL!)
-head -1 deployment/group_vars/vault.yml
-# ✅ Should show: $ANSIBLE_VAULT;1.2;AES256; (NOT plain text!)
-# ✅ If it shows plain YAML, run: ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
-
-# 8. Vault password file exists and has correct permissions
-ls -la ~/.vault_pass
-# ✅ Should show: -rw------- (read/write for user only, not readable by others)
-
-# 9. Vault can be decrypted
-ansible-vault view deployment/group_vars/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
-# ✅ Should show your GitHub repo URL without error
-
-# 10. Variables can be loaded (used for CLI commands)
-cd deployment
-source scripts/load-vars.sh
-# ✅ Should show: ✅ Variables loaded successfully
-# ✅ Should show your app_name, aws_region, etc.
-
-# 11. Test using variables in commands
-echo $app_name
-# ✅ Should show your application name
-
-# 12. SSH key doesn't exist yet (will be created)
-ls ~/.ssh/{app_name}-key.pem
-# ✅ Should NOT exist yet (will be created during deployment)
+source scripts/load-vars.sh           # Shows variables loaded
+echo $app_name                        # Shows your application name
 ```
-
-**If all checks pass ✅ you're ready to deploy!**
-
-**Next step:** → [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md) or [QUICKSTART.md](QUICKSTART.md)
 
 ---
 
 ## Troubleshooting
 
-### AWS CLI Issues
-
-**"Unable to locate credentials"**
-```bash
-# Make sure you ran aws configure
-aws configure
-# Then test
-aws sts get-caller-identity
-```
-
-**"InvalidUserID.Malformed"**
-- Your IAM user doesn't exist
-- Create it in [IAM Console](https://console.aws.amazon.com/iam/home#/users)
-
-**"SignatureDoesNotMatch"**
-- Your Access Key or Secret Key is wrong
-- Double-check the `.csv` file you downloaded
-- Create new access keys if needed
-
-### Ansible Issues
-
-**"ansible: command not found"**
-```bash
-# Install Ansible
-pip3 install ansible
-
-# Or using your system package manager
-# macOS: brew install ansible
-# Ubuntu: sudo apt install ansible
-```
-
-**"No module named 'boto3'"**
-```bash
-# Install deployment requirements
-cd deployment
-pip3 install -r requirements.txt
-```
-
-### Configuration Issues
-
-**"Cannot access vault.yml - Permission denied"**
-```bash
-# Check vault password file permissions
-ls -la ~/.vault_pass
-# Should show: -rw------- (600)
-
-# Fix permissions
-chmod 600 ~/.vault_pass
-```
-
-**"Vault password not found"**
-```bash
-# Create vault password file
-echo "your-password" > ~/.vault_pass
-chmod 600 ~/.vault_pass
-```
+| Problem | Fix |
+|---------|-----|
+| `Unable to locate credentials` | Run `aws configure` and enter your access key |
+| `ansible: command not found` | `pip3 install ansible` |
+| `No module named 'boto3'` | `cd deployment && pip3 install -r requirements.txt` |
+| `Cannot access vault.yml` | `chmod 600 ~/.vault_pass` |
+| Vault shows plain text, not `$ANSIBLE_VAULT` | `ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass` |
+| `source scripts/load-vars.sh` fails | Make sure you are in the `deployment/` directory |
 
 ---
 
-## ✅ Prerequisites Complete!
+## Next step
 
-You've successfully set up:
-- ✅ AWS account with IAM user
-- ✅ AWS CLI configured and working
-- ✅ Local tools installed (Python, Ansible, Git)
-- ✅ Deployment configuration (`all.yml`)
-- ✅ Encrypted secrets vault (`vault.yml`)
-- ✅ Vault password file (`~/.vault_pass`)
-
-**Everything is ready to deploy your application!**
-
----
-
-## 🚀 Choose Your Next Step
-
-Now that prerequisites are complete, choose how you want to deploy:
-
-### Option 1: Fast & Automated (Recommended) - 15-20 minutes
-
-**One command deploys everything automatically**
-
-→ **[QUICKSTART.md](QUICKSTART.md)**
-
-Best for:
-- ✅ Getting your app running quickly
-- ✅ New to cloud deployment
-- ✅ Want everything automated
-
-What it does:
-- Creates AWS infrastructure (S3, IAM, Security Group, EC2)
-- Configures your application
-- Sets up web server and app server
-- Saves server info for you to access
-
-### Option 2: Learn Step-by-Step - 1-2 hours
-
-**Deploy manually with full explanations of each step**
-
-→ **[MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md)**
-
-Best for:
-- ✅ Learning how deployment works
-- ✅ Understanding each AWS component
-- ✅ Custom configuration needs
-- ✅ Troubleshooting issues
-
-What it includes:
-- Step-by-step creation of each resource
-- Multiple options for each step (Playbook/CLI/Console)
-- Educational explanations
-- Links to AWS documentation
-
-### Option 3: Understand the Architecture First
-
-**Learn about all components before deploying**
-
-→ **[ARCHITECTURE.md](../reference/ARCHITECTURE.md)**
-
-Best for:
-- ✅ Understanding the whole system
-- ✅ Advanced customization needs
-- ✅ Decision-making about infrastructure
-
----
-
-## ⏭️ I'm Ready - Take Me There!
-
-**Quick decision:**
-
-| I want to... | Go to... | Time |
-|---|---|---|
-| Deploy my app NOW | [QUICKSTART.md](QUICKSTART.md) | 15-20 min |
-| Learn how to deploy | [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md) | 1-2 hours |
-| Understand the system | [ARCHITECTURE.md](../reference/ARCHITECTURE.md) | 30 min |
-
----
-
-**Pick one above and click the link. That's it!**
-
----
-
-## Troubleshooting Prerequisites
-
-Still having issues? Check these:
-
-### AWS CLI Not Working
-
-```bash
-aws sts get-caller-identity
-# ✅ Should show your account ID
-# ❌ If it doesn't, see: AWS CLI Configuration section above
-```
-
-### Vault Issues
-
-```bash
-# Check vault is encrypted
-head -1 deployment/group_vars/vault.yml
-# ✅ Should show: $ANSIBLE_VAULT;1.1;AES256
-
-# Check vault can be decrypted
-ansible-vault view deployment/group_vars/vault.yml --vault-password-file ~/.vault_pass | grep vault_git_repo
-# ✅ Should show your GitHub URL
-```
-
-### Ansible Not Working
-
-```bash
-ansible --version
-# ✅ Should show version 2.9+
-
-# If not, install it:
-pip3 install ansible
-```
-
-### Configuration Files Missing
-
-```bash
-ls -la deployment/group_vars/all.yml deployment/group_vars/vault.yml
-# ✅ Both should exist
-
-# If not, run:
-cd deployment/scripts
-bash local-dev-setup.sh
-```
-
----
-
-**Still stuck?** Each deployment guide has a Troubleshooting section with more help.
-
----
-
-## Reference
-
-**Configuration file location:** `deployment/group_vars/`
-
-- `all.yml` - Your app settings (not in Git)
-- `all.yml.example` - Template (in Git, shows what variables exist)
-- `vault.yml` - Your secrets, encrypted (not in Git)
-- `vault.yml.example` - Template (in Git, shows what secrets you need)
-
-**Vault password file:** `~/.vault_pass` (your home directory, not in Git)
+Continue to [Chapter 2: Quick Start](QUICKSTART.md) (automated, 15–20 min) or [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) (step-by-step, 1–2 hrs).
 

@@ -1,6 +1,6 @@
-# Security Hardening Guide
+# Chapter 8: Security Hardening
 
-**Secure your server and application**
+Server permissions, firewall rules, and SSH lockdown.
 
 ---
 
@@ -529,10 +529,19 @@ nmap --script ssl-cert,ssl-enum-ciphers -p 443 YOUR_SERVER_IP
 - ❌ Many common attacks
 
 **Not protected against:**
-- Application-level attacks (SQL injection, XSS) - app code must handle
-- DDoS attacks - need WAF or DDoS protection service
-- 0-day exploits - will patch automatically when available
-- Social engineering - user training required
+- Application-level attacks (SQL injection, XSS) — application code must handle these
+- DDoS attacks — requires WAF or DDoS protection service
+- Zero-day exploits — patches applied automatically when available
+- Social engineering — user training required
 
-**Stay secure!** 🔒
+---
+
+## Next step
+
+Continue to [Chapter 9: Multi-User Support](MULTI_USER.md).
+
+## See also
+
+- [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md) — block attacks at the edge
+- [User Isolation Model](../reference/SECURITY.md) — two-user privilege model
 

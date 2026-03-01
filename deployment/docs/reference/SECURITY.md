@@ -1,9 +1,6 @@
-# Security Hardening - Application User Isolation
+# User Isolation Model
 
-**Date:** February 14, 2026  
-**Status:** ✅ Production-Ready
-
-> **Security Principle:** Applications should run with the minimum privileges necessary to perform their function, not as administrative users.
+Applications run with minimum privileges, not as administrative users.
 
 ---
 

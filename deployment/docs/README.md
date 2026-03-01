@@ -1,77 +1,87 @@
-# Deployment Documentation
+# Rampe Deployment Guide
+
+**Deploy, operate, and maintain a Python web application on AWS.**
+
+Start at Chapter 1 and follow the chapters in order. Chapters 8–12 are optional.
 
 ---
 
-## Getting Started
+## Part I — Deploy
 
-1. [PREREQUISITES.md](guides/PREREQUISITES.md) - Set up AWS account, CLI, Ansible, and configuration
-2. [QUICKSTART.md](guides/QUICKSTART.md) - Automated deployment (15-20 min)
-3. [MANUAL_DEPLOYMENT.md](guides/MANUAL_DEPLOYMENT.md) - Step-by-step deployment (1-2 hours)
+| Ch. | Guide | Time |
+|-----|-------|------|
+| 1 | [Prerequisites](guides/PREREQUISITES.md) | 30 min |
+| 2 | [Quick Start](guides/QUICKSTART.md) — automated, recommended | 15–20 min |
+| 3 | [Manual Deployment](guides/MANUAL_DEPLOYMENT.md) — step-by-step | 1–2 hrs |
+| 3b | [AWS Console Deployment](guides/AWS_CONSOLE_DEPLOYMENT.md) — point-and-click via AWS web console | 1–2 hrs |
 
----
+Complete Chapter 2 or 3. Your application is live.
 
-## Guides
+## Part II — Operate
 
-### Deployment
-- [PREREQUISITES.md](guides/PREREQUISITES.md) - First-time setup
-- [QUICKSTART.md](guides/QUICKSTART.md) - Automated deployment
-- [MANUAL_DEPLOYMENT.md](guides/MANUAL_DEPLOYMENT.md) - Step-by-step deployment
-- [UPDATING_APPLICATION.md](guides/UPDATING_APPLICATION.md) - Deploy code changes
+| Ch. | Guide |
+|-----|-------|
+| 4 | [Updating Your Application](guides/UPDATING_APPLICATION.md) |
+| 5 | [Operations](guides/OPERATIONS.md) — backups, scaling, troubleshooting |
+| 6 | [Monitoring](guides/MONITORING.md) — dashboards, alarms, alerting |
+| 7 | [Secret Management](guides/SECRET_MANAGEMENT.md) |
 
-### Infrastructure
-- [INFRASTRUCTURE.md](guides/INFRASTRUCTURE.md) - AWS resources explained
-- [EBS_APPLICATION_STORAGE.md](guides/EBS_APPLICATION_STORAGE.md) - Application storage
+## Part III — Harden & Extend
 
-### Operations
-- [OPERATIONS.md](guides/OPERATIONS.md) - Backups, scaling, troubleshooting
-- [MONITORING.md](guides/MONITORING.md) - Logs, alarms, dashboards
-- [SECRET_MANAGEMENT.md](guides/SECRET_MANAGEMENT.md) - Secrets and credentials
+| Ch. | Guide |
+|-----|-------|
+| 8 | [Security Hardening](guides/SECURITY_HARDENING.md) |
+| 9 | [Multi-User Support](guides/MULTI_USER.md) |
+| 10 | [CloudFront CDN](guides/CLOUDFRONT_CDN.md) |
+| 11 | [WAF Configuration](guides/WAF_CONFIGURATION.md) |
+| 12 | [Git Configuration](guides/GIT_CONFIGURATION.md) |
 
-### Security
-- [SECURITY_HARDENING.md](guides/SECURITY_HARDENING.md) - Server hardening
-- [MULTI_USER.md](guides/MULTI_USER.md) - Multiple user accounts
+## Part IV — Decommission
 
-### Optional Features
-- [CLOUDFRONT_CDN.md](guides/CLOUDFRONT_CDN.md) - Content delivery network
-- [WAF_CONFIGURATION.md](guides/WAF_CONFIGURATION.md) - Web application firewall
-- [GIT_CONFIGURATION.md](guides/GIT_CONFIGURATION.md) - Git setup
+| Ch. | Guide |
+|-----|-------|
+| 13 | [Decommission](guides/DECOMMISSION.md) — full teardown or single-resource rollback |
 
 ---
 
 ## Reference
 
-- [ARCHITECTURE.md](reference/ARCHITECTURE.md) - System design overview
-- [APPLICATION_SECURITY.md](reference/APPLICATION_SECURITY.md) - Security layers (WAF, attack detection)
-- [SECURITY.md](reference/SECURITY.md) - User isolation model
-- [USER_MODEL.md](reference/USER_MODEL.md) - User types and permissions
+| Document | Topic |
+|----------|-------|
+| [Architecture](reference/ARCHITECTURE.md) | System design and technology choices |
+| [Infrastructure](guides/INFRASTRUCTURE.md) | AWS resource details (S3, IAM, EC2, SG) |
+| [EBS Storage](guides/EBS_APPLICATION_STORAGE.md) | Application storage on EBS volumes |
+| [Application Security](reference/APPLICATION_SECURITY.md) | WAF rules, attack detection, rate limiting |
+| [User Isolation](reference/SECURITY.md) | Two-user privilege model |
+| [User Types](reference/USER_MODEL.md) | Admin vs. application user permissions |
 
 ---
 
-## File Structure
+## Playbook Reference
 
-```
-docs/
-├── guides/                   # How-to guides (step-by-step)
-│   ├── PREREQUISITES.md
-│   ├── QUICKSTART.md
-│   ├── MANUAL_DEPLOYMENT.md
-│   ├── UPDATING_APPLICATION.md
-│   ├── INFRASTRUCTURE.md
-│   ├── EBS_APPLICATION_STORAGE.md
-│   ├── OPERATIONS.md
-│   ├── MONITORING.md
-│   ├── SECRET_MANAGEMENT.md
-│   ├── SECURITY_HARDENING.md
-│   ├── MULTI_USER.md
-│   ├── CLOUDFRONT_CDN.md
-│   ├── WAF_CONFIGURATION.md
-│   └── GIT_CONFIGURATION.md
-│
-├── reference/                # Reference material
-│   ├── APPLICATION_SECURITY.md
-│   ├── ARCHITECTURE.md
-│   ├── SECURITY.md
-│   └── USER_MODEL.md
-│
-└── README.md                 # This file
+| Create | Delete | Resource |
+|--------|--------|----------|
+| `create-s3-bucket.yml` | `delete-s3-bucket.yml` | S3 Bucket |
+| `create-iam-role.yml` | `delete-iam-role.yml` | IAM Role + Policies |
+| `create-security-group.yml` | `delete-security-group.yml` | Security Group |
+| `create-ssh-key.yml` | `delete-ssh-key.yml` | SSH Key Pair |
+| `launch-ec2-instance.yml` | `terminate-ec2-instance.yml` | EC2 Instance |
+| `setup-waf.yml` | `delete-waf.yml` | WAF Web ACL + IP set |
+| `setup-cloudfront.yml` | `delete-cloudfront.yml` | CloudFront distribution |
+| `setup-secrets-manager.yml` | `delete-secrets-manager.yml` | Secrets Manager secret |
+
+## Common Commands
+
+```bash
+cd deployment
+source scripts/load-vars.sh
+
+# Deploy
+ansible-playbook playbooks/provision-infrastructure.yml --vault-password-file ~/.vault_pass
+
+# Update
+ansible-playbook playbooks/update.yml --vault-password-file ~/.vault_pass
+
+# Teardown
+ansible-playbook playbooks/decommission.yml --vault-password-file ~/.vault_pass
 ```

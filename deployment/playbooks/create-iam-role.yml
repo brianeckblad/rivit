@@ -7,10 +7,13 @@
 - name: Create IAM Role for EC2
   hosts: localhost
   gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
 
   tasks:
     - name: Create IAM role for EC2 instance
-      community.aws.iam_role:
+      amazon.aws.iam_role:
         name: "{{ app_name }}-ec2-role"
         assume_role_policy_document:
           Version: "2012-10-17"
@@ -19,6 +22,11 @@
               Principal:
                 Service: ec2.amazonaws.com
               Action: sts:AssumeRole
+        managed_policies:
+          - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        create_instance_profile: false
+        delete_instance_profile: false
+        purge_policies: false
         description: "IAM role for {{ app_name }} EC2 instance"
         tags:
           Application: "{{ app_name }}"
@@ -26,7 +34,7 @@
           ManagedBy: Ansible
 
     - name: Attach S3 access policy to role
-      community.aws.iam_policy:
+      amazon.aws.iam_policy:
         iam_type: role
         iam_name: "{{ app_name }}-ec2-role"
         policy_name: "{{ app_name }}-s3-access"
@@ -45,7 +53,7 @@
                 - "arn:aws:s3:::{{ s3_bucket_name }}"
 
     - name: Attach Secrets Manager access policy to role
-      community.aws.iam_policy:
+      amazon.aws.iam_policy:
         iam_type: role
         iam_name: "{{ app_name }}-ec2-role"
         policy_name: "{{ app_name }}-secrets-access"
@@ -60,7 +68,7 @@
               Resource: "arn:aws:secretsmanager:{{ aws_region }}:*:secret:{{ app_name }}/*"
 
     - name: Attach CloudWatch access policy to role
-      community.aws.iam_policy:
+      amazon.aws.iam_policy:
         iam_type: role
         iam_name: "{{ app_name }}-ec2-role"
         policy_name: "{{ app_name }}-cloudwatch-access"
@@ -77,14 +85,8 @@
                 - logs:DescribeLogStreams
               Resource: "*"
 
-    - name: Attach SSM access policy (for remote management)
-      community.aws.iam_role_policy_attachment:
-        role_name: "{{ app_name }}-ec2-role"
-        policy_arn: "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-        state: present
-
     - name: Create IAM instance profile
-      community.aws.iam_instance_profile:
+      amazon.aws.iam_instance_profile:
         name: "{{ app_name }}-instance-profile"
         role: "{{ app_name }}-ec2-role"
         state: present
@@ -96,4 +98,3 @@
           - "Role: {{ app_name }}-ec2-role"
           - "Instance Profile: {{ app_name }}-instance-profile"
           - "Policies: S3, Secrets Manager, CloudWatch, SSM"
-

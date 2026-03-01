@@ -1,6 +1,6 @@
 # Architecture Reference
 
-**Technical architecture and design decisions**
+System design, component diagram, and technology choices.
 
 ---
 

@@ -1,9 +1,6 @@
-# Multi-User Support
+# Chapter 9: Multi-User Support
 
-**Version:** 1.0  
-**Date:** February 9, 2026
-
-> **Note:** Commands in this guide use `{app_name}` as a placeholder for your configured application name (set in `deployment/group_vars/all.yml`). Replace `{app_name}` with your actual app name when running commands.
+Add user accounts and manage access.
 
 ---
 
@@ -1054,16 +1051,12 @@ The payload includes `userId` to identify which user's item was affected.
 
 ---
 
-## Support
+## Next step
 
-For issues or questions:
-1. Check `deployment/OPERATIONS.md` for operational procedures
-2. Check logs: `/var/log/{app_name}/app.log`
-3. Check AWS Secrets Manager for credential issues
-4. Check IAM role permissions
+Continue to [Chapter 10: CloudFront CDN](CLOUDFRONT_CDN.md).
 
----
+## See also
 
-**Version:** 1.0  
-**Last Updated:** February 9, 2026
+- [Chapter 8: Security Hardening](SECURITY_HARDENING.md) — server permissions
+- [User Types](../reference/USER_MODEL.md) — admin vs. application user capabilities
 

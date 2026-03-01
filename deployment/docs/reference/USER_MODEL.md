@@ -1,8 +1,6 @@
-# User Model Overview
+# User Model Reference
 
-**Deployment Structure: Two-User Security Model**
-
-This application uses a simplified, security-focused two-user model for deployment and runtime operations.
+Two-user security model for deployment and runtime operations.
 
 ---
 

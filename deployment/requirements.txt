@@ -1,9 +1,12 @@
 # Deployment Requirements
-# Install on LOCAL/deployment machine: pip install -r deployment/requirements.txt
+# Install on LOCAL/deployment machine:
+#   pip install -r deployment/requirements.txt
+#   ansible-galaxy collection install -r deployment/requirements.yml --upgrade
 # These are NOT needed on the production server
 
 # Ansible for configuration management and deployment
-ansible>=2.15.0
+# 13.x bundles ansible-core 2.20 and collections (amazon.aws, community.aws)
+ansible>=13.0.0
 
 # AWS SDK for infrastructure provisioning (EC2, S3, CloudFront, WAF, Secrets Manager)
 boto3>=1.28.0

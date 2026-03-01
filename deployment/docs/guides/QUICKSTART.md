@@ -1,24 +1,8 @@
-# Quick Start Guide
+# Chapter 2: Quick Start
 
-**Deploy your application in 15-20 minutes using automation**
+Deploy the application in 15–20 minutes using automation.
 
----
-
-## Prerequisites (5 minutes)
-
-**Have you completed the prerequisites?** If not, go here first:
-
-→ [PREREQUISITES.md](PREREQUISITES.md) - AWS account, CLI setup, local configuration
-
-**You need:**
-- ✅ AWS account with IAM user configured
-- ✅ AWS CLI working: `aws sts get-caller-identity`
-- ✅ Ansible installed: `ansible --version`
-- ✅ Configuration created: `group_vars/all.yml` and `group_vars/vault.yml`
-- ✅ Vault encrypted: `head -1 group_vars/vault.yml` shows `$ANSIBLE_VAULT;1.1;AES256`
-- ✅ Vault password file: `~/.vault_pass` with 600 permissions
-
-**Not done yet?** → [PREREQUISITES.md](PREREQUISITES.md)
+> **Prerequisite:** Complete [Chapter 1: Prerequisites](PREREQUISITES.md) before continuing.
 
 ---
 
@@ -258,46 +242,17 @@ If the script fails partway through:
 
 4. **Check security group:**
    - Make sure ports 80 and 443 are open
-   - See [MANUAL_DEPLOYMENT.md#step-3-security-group](MANUAL_DEPLOYMENT.md#step-3-security-group)
+   - See [MANUAL_DEPLOYMENT.md#step-3-create-security-group](MANUAL_DEPLOYMENT.md#step-3-create-security-group)
 
 ---
 
-## What's Next?
+## Next step
 
-**Application is running! Now:**
+Continue to [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md).
 
-1. **Add SSL (HTTPS recommended for production)**
-   → [Add SSL Certificate](MANUAL_DEPLOYMENT.md#step-3-configure-ssl-optional)
+## See also
 
-2. **Set up monitoring (optional)**
-   → [CloudWatch Monitoring](MONITORING.md)
-
-3. **Learn how to update your app**
-   → [UPDATING_APPLICATION.md](UPDATING_APPLICATION.md)
-
-4. **Understand the deployment**
-   → [ARCHITECTURE.md](../reference/ARCHITECTURE.md)
-
----
-
-## Manual Deployment (Alternative)
-
-Don't like automated scripts? Deploy step-by-step instead:
-
-→ [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md) - Learn each component
-
----
-
-## Questions?
-
-- **How does it work?** → [ARCHITECTURE.md](../reference/ARCHITECTURE.md)
-- **What got deployed?** → [INFRASTRUCTURE.md](INFRASTRUCTURE.md)
-- **How to update?** → [UPDATING_APPLICATION.md](UPDATING_APPLICATION.md)
-- **How to monitor?** → [MONITORING.md](MONITORING.md)
-- **Troubleshooting?** → [OPERATIONS.md](OPERATIONS.md)
-
----
-
-**⏱️ Time invested now: 20 minutes**  
-**🎉 Application deployed and running!**
+- [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) — deploy step-by-step instead
+- [Chapter 6: Monitoring](MONITORING.md) — set up CloudWatch dashboards and alarms
+- [Architecture](../reference/ARCHITECTURE.md) — how the system is designed
 

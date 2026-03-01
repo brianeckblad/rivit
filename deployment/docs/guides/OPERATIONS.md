@@ -1,8 +1,6 @@
-# Operations Guide
+# Chapter 5: Operations
 
-**Day-to-day operations, maintenance, and procedures**  
-**Version:** 5.0  
-**Last Updated:** February 8, 2026
+Backups, restarts, scaling, log management, and troubleshooting.
 
 ---
 
@@ -1815,73 +1813,35 @@ Checklist:
 
 ```bash
 # Download application files
-scp -r -i ~/.ssh/{app_name}-key.pem \
-  ubuntu@YOUR_SERVER_IP:/home/ubuntu/{app_name} \
-  ./backup-{app_name}-$(date +%Y%m%d)/
+scp -r -i ~/.ssh/${app_name}-key.pem \
+  ubuntu@YOUR_SERVER_IP:/home/ubuntu/${app_name} \
+  ./backup-${app_name}-$(date +%Y%m%d)/
 
 # Backup logs
-scp -r -i ~/.ssh/{app_name}-key.pem \
-  ubuntu@YOUR_SERVER_IP:/var/log/{app_name} \
+scp -r -i ~/.ssh/${app_name}-key.pem \
+  ubuntu@YOUR_SERVER_IP:/var/log/${app_name} \
   ./backup-logs-$(date +%Y%m%d)/
 
 # Backup configuration
-scp -i ~/.ssh/{app_name}-key.pem \
+scp -i ~/.ssh/${app_name}-key.pem \
   ubuntu@YOUR_SERVER_IP:/home/ubuntu/.env \
   ./backup-config-$(date +%Y%m%d)/.env
 ```
 
-### Stop Services
-
-```bash
-ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
-
-# Stop application
-sudo systemctl stop {app_name}
-sudo systemctl disable {app_name}
-
-# Stop Nginx
-sudo systemctl stop nginx
-sudo systemctl disable nginx
-
-# Verify all stopped
-sudo systemctl status {app_name}
-sudo systemctl status nginx
-
-exit
-```
-
 ### Delete AWS Resources
 
-```bash
-# CAUTION: This deletes everything!
+Once backups are confirmed, follow the teardown guide:
 
-# Delete EC2 instance
-aws ec2 terminate-instances --instance-ids i-xxxxxxxxxxxxx
-
-# Delete elastic IP (if used)
-aws ec2 release-address --allocation-id eipalloc-xxxxx
-
-# Delete security group (wait 5 minutes after instance deletion)
-aws ec2 delete-security-group --group-id sg-xxxxx
-
-# Delete SSH key pair
-aws ec2 delete-key-pair --key-name {app_name}-key
-
-# Delete S3 bucket (if empty)
-aws s3 rb s3://your-bucket-name
-
-# Delete IAM role
-aws iam remove-role-from-instance-profile \
-  --instance-profile-name {app_name}-ec2-role \
-  --role-name {app_name}-ec2-role
-
-aws iam delete-instance-profile --instance-profile-name {app_name}-ec2-role
-aws iam delete-role --role-name {app_name}-ec2-role
-```
+→ [Chapter 13: Decommission](DECOMMISSION.md) — full teardown with dependency order
 
 ---
 
-**Version:** 5.0  
-**Last Updated:** February 8, 2026  
-**Review Schedule:** Quarterly
+## Next step
+
+Continue to [Chapter 6: Monitoring](MONITORING.md).
+
+## See also
+
+- [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md) — deploy code changes
+- [Chapter 7: Secret Management](SECRET_MANAGEMENT.md) — rotate credentials
 

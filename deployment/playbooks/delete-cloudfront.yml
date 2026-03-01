@@ -1,0 +1,148 @@
+---
+# Playbook to delete CloudFront distribution and origin access identity
+# Counterpart to: setup-cloudfront.yml
+#
+# What gets removed (in order):
+#   1. CloudFront distribution (disabled first, then deleted)
+#   2. Origin Access Identity (OAI)
+#   3. S3 bucket policy for CloudFront access
+#   4. Local cloudfront-info.txt
+#
+# NOTE: Disabling a distribution takes 10-15 minutes before it can be deleted
+#
+# Usage: ansible-playbook playbooks/delete-cloudfront.yml --vault-password-file ~/.vault_pass
+#
+# To recreate: ansible-playbook playbooks/setup-cloudfront.yml --vault-password-file ~/.vault_pass
+
+- name: Delete CloudFront Distribution
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+
+  tasks:
+
+    # ── Step 1: Find the distribution ───────────────────────────────────────
+    - name: "Step 1/4 — Find CloudFront distribution by comment tag"
+      command: >
+        aws cloudfront list-distributions
+        --query "DistributionList.Items[?Comment=='CDN for {{ app_display_name }}'].{Id:Id,Status:Status,DomainName:DomainName,Enabled:Enabled}" 
+        --output json
+      register: cf_list
+      failed_when: false
+      changed_when: false
+
+    - name: Parse distribution list
+      set_fact:
+        distributions: "{{ cf_list.stdout | from_json | default([]) }}"
+      when: cf_list.rc == 0
+
+    - name: No distribution found
+      debug:
+        msg: "⏭ No CloudFront distribution found for {{ app_display_name }} — nothing to delete"
+      when: distributions is not defined or distributions | length == 0
+
+    # ── Step 2: Disable distribution (required before deletion) ─────────────
+    - name: "Step 2/4 — Get distribution config (needed for ETag)"
+      command: >
+        aws cloudfront get-distribution-config
+        --id {{ distributions[0].Id }}
+      register: cf_config
+      when: distributions is defined and distributions | length > 0
+      failed_when: false
+
+    - name: Parse config and ETag
+      set_fact:
+        cf_etag: "{{ cf_config.stdout | from_json | json_query('ETag') }}"
+        cf_dist_config: "{{ cf_config.stdout | from_json | json_query('DistributionConfig') }}"
+      when: cf_config is defined and cf_config.rc is defined and cf_config.rc == 0
+
+    - name: "Step 2/4 — Disable distribution"
+      shell: |
+        python3 -c "
+        import json, subprocess, sys
+        config = json.loads(sys.argv[1])
+        config['Enabled'] = False
+        with open('/tmp/cf-disable.json', 'w') as f:
+            json.dump(config, f)
+        " '{{ cf_dist_config | to_json }}'
+        aws cloudfront update-distribution \
+          --id {{ distributions[0].Id }} \
+          --distribution-config file:///tmp/cf-disable.json \
+          --if-match {{ cf_etag }}
+      when: cf_etag is defined and distributions[0].Enabled | default(false)
+      register: disable_result
+      failed_when: false
+
+    - name: "Step 2/4 — Wait for distribution to disable (this takes 10-15 minutes)"
+      command: >
+        aws cloudfront wait distribution-deployed
+        --id {{ distributions[0].Id }}
+      when: disable_result is defined and disable_result is changed
+      register: wait_result
+      failed_when: false
+
+    # ── Step 3: Delete distribution ─────────────────────────────────────────
+    - name: "Step 3/4 — Get updated ETag after disable"
+      command: >
+        aws cloudfront get-distribution-config
+        --id {{ distributions[0].Id }}
+      register: cf_config_updated
+      when: distributions is defined and distributions | length > 0
+      failed_when: false
+
+    - name: Parse updated ETag
+      set_fact:
+        cf_etag_updated: "{{ cf_config_updated.stdout | from_json | json_query('ETag') }}"
+      when: cf_config_updated is defined and cf_config_updated.rc is defined and cf_config_updated.rc == 0
+
+    - name: "Step 3/4 — Delete distribution"
+      command: >
+        aws cloudfront delete-distribution
+        --id {{ distributions[0].Id }}
+        --if-match {{ cf_etag_updated }}
+      when: cf_etag_updated is defined
+      register: delete_result
+      failed_when: false
+
+    # ── Step 4: Delete OAI and clean up ─────────────────────────────────────
+    - name: "Step 4/4 — Find and delete Origin Access Identities"
+      shell: |
+        aws cloudfront list-cloud-front-origin-access-identities \
+          --query "CloudFrontOriginAccessIdentityList.Items[?contains(Comment, '{{ app_name }}')].Id" \
+          --output text | tr '\t' '\n' | while read oai_id; do
+          if [ -n "$oai_id" ] && [ "$oai_id" != "None" ]; then
+            ETAG=$(aws cloudfront get-cloud-front-origin-access-identity \
+              --id $oai_id --query 'ETag' --output text)
+            aws cloudfront delete-cloud-front-origin-access-identity \
+              --id $oai_id --if-match $ETAG 2>/dev/null
+            echo "Deleted OAI: $oai_id"
+          fi
+        done
+      failed_when: false
+
+    - name: "Step 4/4 — Remove S3 bucket policy (CloudFront access)"
+      command: >
+        aws s3api delete-bucket-policy
+        --bucket {{ s3_bucket_name }}
+      failed_when: false
+
+    - name: "Step 4/4 — Remove local info file"
+      file:
+        path: "{{ playbook_dir }}/../cloudfront-info.txt"
+        state: absent
+
+    # ── Summary ─────────────────────────────────────────────────────────────
+    - name: Display result
+      debug:
+        msg:
+          - ""
+          - "✓ CloudFront distribution deleted"
+          - "✓ Origin Access Identity deleted"
+          - "✓ S3 bucket policy removed"
+          - "✓ Local info file removed"
+          - ""
+          - "To recreate:"
+          - "  ansible-playbook playbooks/setup-cloudfront.yml --vault-password-file ~/.vault_pass"
+

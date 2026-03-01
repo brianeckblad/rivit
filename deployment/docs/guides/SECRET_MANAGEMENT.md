@@ -1,7 +1,6 @@
-# Secret Management Strategy
+# Chapter 7: Secret Management
 
-**Version:** 5.0  
-**Date:** February 8, 2026
+Rotate passwords, API keys, and credentials.
 
 ---
 
@@ -562,7 +561,12 @@ curl https://yourdomain.com/health
 
 ---
 
-**Version:** 5.0  
-**Last Updated:** February 8, 2026  
-**Next Review:** May 2026
+## Next step
+
+Continue to [Chapter 8: Security Hardening](SECURITY_HARDENING.md).
+
+## See also
+
+- [Chapter 5: Operations](OPERATIONS.md) — operational procedures
+- [Chapter 6: Monitoring](MONITORING.md) — track secret rotation events
 

@@ -1,6 +1,6 @@
-# CloudWatch Monitoring Guide
+# Chapter 6: Monitoring
 
-**Set up dashboards and alarms to monitor your application**
+CloudWatch dashboards, alarms, and alerting.
 
 ---
 
@@ -418,13 +418,12 @@ aws ec2 describe-instances \
 
 ---
 
-## Summary
+## Next step
 
-You've set up:
-- ✅ Error rate alarm (catch bugs)
-- ✅ CPU alarm (catch overload)
-- ✅ Disk alarm (catch storage issues)
-- ✅ Visual dashboard (see health at a glance)
+Continue to [Chapter 7: Secret Management](SECRET_MANAGEMENT.md).
 
-**Your application is now being monitored 24/7!** 🎉
+## See also
+
+- [Chapter 5: Operations](OPERATIONS.md) — daily monitoring tasks
+- [Chapter 8: Security Hardening](SECURITY_HARDENING.md) — server lockdown
 

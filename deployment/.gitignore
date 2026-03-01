@@ -25,6 +25,17 @@ ansible_facts/
 group_vars/all.yml
 group_vars/vault.yml
 
+# Inventory file (contains real server IP after deployment)
+inventories/hosts.yml
+!inventories/hosts.yml.example
+
+# Deployment info files (contain real IPs, ARNs, instance IDs)
+instance-info.txt
+secrets-manager-info.txt
+cloudfront-info.txt
+waf-info.txt
+.last-rotation.txt
+
 # Keep .example template files in Git
 !group_vars/**/*.example
 !group_vars/**/*.yml.example

@@ -1,0 +1,129 @@
+---
+# Playbook to delete AWS WAF Web ACL and IP set
+# Counterpart to: setup-waf.yml
+#
+# What gets removed (in order):
+#   1. WAF Web ACL association with ALB (if any)
+#   2. WAF Web ACL
+#   3. WAF IP set
+#   4. Local waf-info.txt
+#
+# NOTE: Web ACL must be disassociated from all resources before deletion
+#
+# Usage: ansible-playbook playbooks/delete-waf.yml --vault-password-file ~/.vault_pass
+#
+# To recreate: ansible-playbook playbooks/setup-waf.yml --vault-password-file ~/.vault_pass
+
+- name: Delete AWS WAF
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+
+  tasks:
+
+    # ── Step 1: Find WAF resources ──────────────────────────────────────────
+    - name: "Step 1/4 — Find WAF Web ACL"
+      command: >
+        aws wafv2 list-web-acls
+        --scope REGIONAL
+        --query "WebACLs[?Name=='{{ app_name }}-web-acl'].{Id:Id,Name:Name,ARN:ARN,LockToken:LockToken}"
+        --output json
+        --region {{ aws_region }}
+      register: waf_list
+      failed_when: false
+      changed_when: false
+
+    - name: Parse WAF list
+      set_fact:
+        waf_acls: "{{ waf_list.stdout | from_json | default([]) }}"
+      when: waf_list.rc == 0
+
+    - name: No WAF found
+      debug:
+        msg: "⏭ No WAF Web ACL found with name {{ app_name }}-web-acl — nothing to delete"
+      when: waf_acls is not defined or waf_acls | length == 0
+
+    # ── Step 2: Disassociate from ALB ───────────────────────────────────────
+    - name: "Step 2/4 — Find resources associated with Web ACL"
+      command: >
+        aws wafv2 list-resources-for-web-acl
+        --web-acl-arn {{ waf_acls[0].ARN }}
+        --resource-type APPLICATION_LOAD_BALANCER
+        --region {{ aws_region }}
+        --query 'ResourceArns'
+        --output json
+      register: associated_resources
+      when: waf_acls is defined and waf_acls | length > 0
+      failed_when: false
+      changed_when: false
+
+    - name: "Step 2/4 — Disassociate Web ACL from all resources"
+      command: >
+        aws wafv2 disassociate-web-acl
+        --resource-arn {{ item }}
+        --region {{ aws_region }}
+      loop: "{{ associated_resources.stdout | from_json | default([]) }}"
+      when: associated_resources is defined and associated_resources.rc is defined and associated_resources.rc == 0
+      failed_when: false
+
+    # ── Step 3: Delete Web ACL ──────────────────────────────────────────────
+    - name: "Step 3/4 — Delete WAF Web ACL"
+      command: >
+        aws wafv2 delete-web-acl
+        --name {{ app_name }}-web-acl
+        --scope REGIONAL
+        --id {{ waf_acls[0].Id }}
+        --lock-token {{ waf_acls[0].LockToken }}
+        --region {{ aws_region }}
+      when: waf_acls is defined and waf_acls | length > 0
+      register: acl_delete
+      failed_when: false
+
+    # ── Step 4: Delete IP set ───────────────────────────────────────────────
+    - name: "Step 4/4 — Find WAF IP set"
+      command: >
+        aws wafv2 list-ip-sets
+        --scope REGIONAL
+        --query "IPSets[?Name=='{{ app_name }}-rate-limit-ips'].{Id:Id,LockToken:LockToken}"
+        --output json
+        --region {{ aws_region }}
+      register: ipset_list
+      failed_when: false
+      changed_when: false
+
+    - name: Parse IP set list
+      set_fact:
+        ip_sets: "{{ ipset_list.stdout | from_json | default([]) }}"
+      when: ipset_list.rc == 0
+
+    - name: "Step 4/4 — Delete WAF IP set"
+      command: >
+        aws wafv2 delete-ip-set
+        --name {{ app_name }}-rate-limit-ips
+        --scope REGIONAL
+        --id {{ ip_sets[0].Id }}
+        --lock-token {{ ip_sets[0].LockToken }}
+        --region {{ aws_region }}
+      when: ip_sets is defined and ip_sets | length > 0
+      failed_when: false
+
+    - name: "Step 4/4 — Remove local info file"
+      file:
+        path: "{{ playbook_dir }}/../waf-info.txt"
+        state: absent
+
+    # ── Summary ─────────────────────────────────────────────────────────────
+    - name: Display result
+      debug:
+        msg:
+          - ""
+          - "✓ WAF Web ACL deleted:    {{ app_name }}-web-acl"
+          - "✓ WAF IP set deleted:     {{ app_name }}-rate-limit-ips"
+          - "✓ ALB disassociated"
+          - "✓ Local info file removed"
+          - ""
+          - "To recreate:"
+          - "  ansible-playbook playbooks/setup-waf.yml --vault-password-file ~/.vault_pass"
+

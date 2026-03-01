@@ -1,6 +1,6 @@
-# CloudFront CDN Guide
+# Chapter 10: CloudFront CDN
 
-**Speed up your application with global content delivery**
+Global content delivery for static assets.
 
 ---
 
@@ -586,15 +586,18 @@ convert image.jpg -quality 85 -strip image-optimized.jpg
 - ✅ DDoS protection (Shield Standard)
 - ✅ Cost savings on bandwidth
 - ✅ Automatic compression
-- ✅ Cache invalidation control
+- Cache invalidation control
 
-**Setup takes:**
-- ⚡ 5 minutes (automated)
-- 🔧 10-15 minutes (manual setup)
+Cost: $5–50/month depending on traffic volume.
 
-**Costs:**
-- 💰 $5-50/month (depending on data transferred)
-- 💾 Saves money if serving static files
+---
 
-**Your users will thank you for the speed!** ⚡
+## Next step
+
+Continue to [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md).
+
+## See also
+
+- [Chapter 8: Security Hardening](SECURITY_HARDENING.md) — server-level security
+- [Architecture](../reference/ARCHITECTURE.md) — system design overview
 

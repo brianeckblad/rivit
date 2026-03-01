@@ -1,18 +1,12 @@
-# AWS WAF Configuration Guide
+# Chapter 11: WAF Configuration
 
-**Block attacks before they reach your server**
+Block attacks at the network edge before they reach your server.
 
 ---
 
 ## What is WAF?
 
-**WAF = Web Application Firewall**
-
-Think of it as:
-- **Bouncer at the door** - Checks all incoming requests
-- **Rule-based filtering** - Block based on patterns
-- **Rate limiting** - Stop DDoS attacks
-- **Geo-blocking** - Block certain countries
+AWS WAF (Web Application Firewall) inspects incoming HTTP requests and blocks those that match known attack patterns. It provides rule-based filtering, rate limiting, and geographic restrictions.
 - **Bot detection** - Block malicious bots
 
 **Key difference from regular firewall:**
@@ -556,15 +550,19 @@ aws wafv2 list-resources-for-web-acl \
 - ✅ SQL injection attacks
 - ✅ XSS (cross-site scripting)
 - ✅ DDoS attacks (via rate limiting)
-- ✅ Malicious bots
-- ✅ Traffic from specific countries/IPs
+- Malicious bots
+- Traffic from specific countries/IPs
 
-**Setup takes:**
-- ⚡ 2-3 minutes (automated playbook)
-- 🔧 10-15 minutes (manual setup)
+Cost: $5–50/month depending on rules and traffic volume.
 
-**Costs:**
-- 💰 $5-50/month (depending on rules and volume)
+---
 
-**You're now protected from web attacks!** 🛡️
+## Next step
+
+Continue to [Chapter 12: Git Configuration](GIT_CONFIGURATION.md).
+
+## See also
+
+- [Chapter 10: CloudFront CDN](CLOUDFRONT_CDN.md) — attach WAF to CloudFront
+- [Application Security](../reference/APPLICATION_SECURITY.md) — security layers reference
 

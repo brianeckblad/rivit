@@ -1,7 +1,6 @@
-# EBS Volume as Primary Application Storage
+# EBS Application Storage
 
-**Date:** February 21, 2026  
-**Status:** ✅ Application Runs Entirely on EBS Volume
+How the application uses EBS volumes for persistent storage.
 
 ## Overview
 
