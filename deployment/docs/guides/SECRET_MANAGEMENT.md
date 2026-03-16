@@ -99,7 +99,9 @@ ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.va
 
 **Secrets synced to Secrets Manager:**
 - `vault_*` variables (stripped of prefix): `aws_region`, `s3_bucket_name`, `s3_folder`, `sns_topic_arn`
-- eBay credentials (UPPERCASE keys): `EBAY_PRODUCTION_APP_ID`, `EBAY_VERIFICATION_TOKEN`, etc.
+- Flask: `SECRET_KEY` (from `flask_secret_key`)
+- AWS config (UPPERCASE): `S3_BUCKET_NAME`, `S3_FOLDER`, `AWS_REGION`, `SNS_TOPIC_ARN`
+- eBay credentials (UPPERCASE): `EBAY_PRODUCTION_APP_ID`, `EBAY_VERIFICATION_TOKEN`, etc.
 - App credentials: `APP_DEFAULT_USERNAME`, `APP_DEFAULT_PASSWORD`
 - CloudFront: `CLOUDFRONT_DOMAIN`, `APP_SECRET_TOKEN`
 

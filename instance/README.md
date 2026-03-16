@@ -47,19 +47,17 @@ instance/
 
 ### `.env`
 **Created:** By Ansible playbook during deployment  
-**Purpose:** Minimal environment configuration (most secrets in AWS Secrets Manager)  
+**Purpose:** Non-secret configuration only (all secrets in AWS Secrets Manager)  
 **Contains:**
-- Flask configuration (SECRET_KEY, FLASK_ENV, DEBUG)
+- Flask configuration (FLASK_ENV, DEBUG)
 - AWS Secrets Manager pointer (SECRET_NAME, AWS_REGION)
 - S3 configuration (S3_BUCKET_NAME, S3_FOLDER)
-- Application paths (COMIC_IMAGE_PATH)
-- eBay verification token (must persist across deployments)
+- Application paths (COMIC_IMAGE_PATH, APP_SERVICE_NAME)
 
 **Format:**
 ```bash
 # Flask Configuration
 FLASK_ENV=production
-SECRET_KEY=<generated-once-and-persisted>
 DEBUG=False
 
 # Server Configuration
@@ -79,12 +77,13 @@ S3_FOLDER=production
 # Application Configuration
 COMIC_IMAGE_PATH=/home/ubuntu/<app_name>/instance/item_images
 
-# Note: All secrets (eBay API credentials, verification token, admin passwords)
+# Note: All secrets (SECRET_KEY, eBay credentials, admin passwords)
 # are fetched from AWS Secrets Manager at runtime.
 # The IAM role attached to the EC2 instance provides access.
 ```
 
-**What's NOT in .env (in AWS Secrets Manager instead):**
+**What's NOT in .env (all in AWS Secrets Manager):**
+- ❌ SECRET_KEY (in Secrets Manager)
 - ❌ AWS_ACCESS_KEY_ID (uses IAM role!)
 - ❌ AWS_SECRET_ACCESS_KEY (uses IAM role!)
 - ❌ EBAY_PRODUCTION_APP_ID (in Secrets Manager)
@@ -101,8 +100,7 @@ COMIC_IMAGE_PATH=/home/ubuntu/<app_name>/instance/item_images
 - Not in version control
 - Persists across updates
 - **No AWS credentials stored** - EC2 uses IAM role
-- **No sensitive API keys or tokens** - All in Secrets Manager
-- Only SECRET_KEY persists locally (for session signing)
+- **No secrets on disk** - All secrets fetched from Secrets Manager at runtime
 
 ---
 
@@ -114,11 +112,12 @@ COMIC_IMAGE_PATH=/home/ubuntu/<app_name>/instance/item_images
 **Contains:**
 ```json
 {
-  "SECRET_KEY": "<from .env>",
+  "SECRET_KEY": "<from vault.yml flask_secret_key>",
   "AWS_REGION": "us-east-2",
   "S3_BUCKET_NAME": "your-bucket-name",
   "S3_FOLDER": "production",
-  "EBAY_PRODUCTION_APP_ID": "YourApp-YourApp-PRD-...",
+  "SNS_TOPIC_ARN": "",
+  "EBAY_PRODUCTION_APP_ID": "YourApp-PRD-...",
   "EBAY_PRODUCTION_DEV_ID": "...",
   "EBAY_PRODUCTION_CERT_ID": "PRD-...",
   "EBAY_PRODUCTION_TOKEN": "v^1.1#...",
@@ -126,12 +125,11 @@ COMIC_IMAGE_PATH=/home/ubuntu/<app_name>/instance/item_images
   "EBAY_SANDBOX_DEV_ID": "...",
   "EBAY_SANDBOX_CERT_ID": "...",
   "EBAY_SANDBOX_TOKEN": "...",
-  "ADMIN_USERNAME": "admin",
-  "ADMIN_PASSWORD": "...",
-  "APP_SECRET_TOKEN": "...",
-  "GITHUB_TOKEN": "ghp_...",
-  "GITHUB_REPO": "yourusername/<app_name>",
-  "GITHUB_BRANCH": "main"
+  "EBAY_VERIFICATION_TOKEN": "<64-char-token>",
+  "APP_DEFAULT_USERNAME": "admin",
+  "APP_DEFAULT_PASSWORD": "...",
+  "CLOUDFRONT_DOMAIN": "",
+  "APP_SECRET_TOKEN": ""
 }
 ```
 

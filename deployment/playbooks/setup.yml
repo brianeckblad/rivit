@@ -204,55 +204,27 @@
         virtualenv: "{{ venv_dir }}"
         state: present
 
-    - name: Check if .env file already exists
-      stat:
-        path: "{{ app_dir }}/.env"
-      register: env_file
-
-    - name: Read existing SECRET_KEY if .env exists
-      shell: grep '^SECRET_KEY=' {{ app_dir }}/.env | cut -d'=' -f2
-      register: existing_secret_key
-      when: env_file.stat.exists
-      changed_when: false
-      failed_when: false
-
-    - name: Read existing EBAY_VERIFICATION_TOKEN if .env exists
-      shell: grep '^EBAY_VERIFICATION_TOKEN=' {{ app_dir }}/.env | cut -d'=' -f2
-      register: existing_ebay_token
-      when: env_file.stat.exists
-      changed_when: false
-      failed_when: false
-
-    - name: Generate new SECRET_KEY if needed
-      set_fact:
-        secret_key: "{{ existing_secret_key.stdout if (env_file.stat.exists and existing_secret_key.stdout != '') else lookup('password', '/dev/null chars=ascii_letters,digits,punctuation length=50') }}"
-
-    - name: Generate new EBAY_VERIFICATION_TOKEN if needed (64 chars)
-      set_fact:
-        ebay_verification_token: "{{ existing_ebay_token.stdout if (env_file.stat.exists and existing_ebay_token.stdout != '' and existing_ebay_token.stdout != 'your-64-character-token-here') else lookup('password', '/dev/null chars=ascii_letters,digits length=64') }}"
-
     # =========================================================================
     # Create .env file with application configuration
     # =========================================================================
-    # Note: This .env file contains NON-SECRET configuration only.
-    # All secrets (API keys, passwords, etc.) are stored in AWS Secrets Manager.
-    # The application reads this .env file and then fetches secrets from
-    # Secrets Manager using the SECRET_NAME variable.
+    # This .env file contains NON-SECRET configuration only.
+    # All secrets (SECRET_KEY, API keys, passwords, tokens) are stored in
+    # AWS Secrets Manager. The application reads this .env file for config,
+    # then fetches secrets from Secrets Manager using SECRET_NAME.
     #
     # Contents of auto-generated .env:
     # - FLASK_ENV: Environment mode (development/production)
-    # - SECRET_KEY: Flask session key (auto-generated, persisted)
     # - PORT/HOST: Server settings
     # - SECRET_NAME: Points to AWS Secrets Manager secret
     # - AWS_REGION: AWS region (from vault.yml)
     # - S3_BUCKET/FOLDER: S3 configuration (from vault.yml)
+    # - COMIC_IMAGE_PATH, APP_SERVICE_NAME: Application paths
     #
-    # What is NOT in .env:
-    # - AWS credentials (IAM role provides access)
-    # - eBay API credentials (from Secrets Manager)
-    # - eBay verification token (from Secrets Manager)
-    # - Application passwords (from Secrets Manager)
-    # - Any sensitive data (all in Secrets Manager)
+    # What is NOT in .env (all in Secrets Manager):
+    # - SECRET_KEY (Flask session signing)
+    # - eBay API credentials and verification token
+    # - Application passwords
+    # - CloudFront tokens
     # =========================================================================
     - name: Create .env file from template
       template:
