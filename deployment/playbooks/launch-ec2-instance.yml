@@ -34,18 +34,10 @@
       set_fact:
         ami_id: "{{ (amis.images | sort(attribute='creation_date') | last).image_id }}"
 
-    - name: Build EBS volumes list (EBS volume is MANDATORY)
+    - name: Build EBS volumes list
       set_fact:
         instance_volumes:
-          # Root volume (OS only)
-          - device_name: '/dev/xvda'
-            ebs:
-              volume_size: 20
-              volume_type: 'gp3'
-              delete_on_termination: true
-              encrypted: true
-
-          # Data/Application volume (MANDATORY - application runs here)
+          # Data/Application volume (application code, logs, data all live here)
           - device_name: "{{ ebs_device_name }}"
             ebs:
               volume_size: "{{ ebs_volume_size }}"
@@ -148,13 +140,9 @@
           - "  SSH Port:             22"
           - ""
           - "STORAGE CONFIGURATION:"
-          - "  Root Volume (OS Only):"
-          - "    Device Name:          /dev/xvda"
-          - "    Size:                 20 GB"
-          - "    Type:                 gp3"
-          - "    Encrypted:            Yes"
+          - "  Root Volume (OS):       8 GB gp3 (AMI default)"
           - ""
-          - "  Application Storage Volume (MANDATORY):"
+          - "  Application Data Volume:"
           - "    Device Name:          /dev/sdf"
           - "    Size:                 {{ ebs_volume_size }} GB"
           - "    Type:                 {{ ebs_volume_type }}"
@@ -232,14 +220,12 @@
           ════════════════════════════════════════════════════════════
           
           Root Volume:
-            Device Name:            /dev/xvda
-            Size:                   20 GB
+            Device Name:            /dev/sda1
+            Size:                   8 GB (AMI default)
             Type:                   gp3
-            Encrypted:              Yes
-            Delete on Termination:  Yes
           
           {% if ebs_volume_size is defined %}
-          Data Volume:
+          Application Data Volume:
             Device Name:            /dev/sdf
             Size:                   {{ ebs_volume_size }} GB
             Type:                   {{ ebs_volume_type }}
@@ -355,7 +341,7 @@
           ════════════════════════════════════════════════════════════
           
           EC2 Instance ({{ instance_type }}):    ~$0.01 - $0.10/hour
-          Root Volume (20 GB gp3):               ~$2/month
+          Root Volume (8 GB gp3):                ~$1/month
           {% if ebs_volume_size is defined %}
           Data Volume ({{ ebs_volume_size }} GB {{ ebs_volume_type }}):     ~${{ (ebs_volume_size * 0.10) | int }}/month
           {% endif %}
