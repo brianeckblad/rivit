@@ -12,12 +12,14 @@ For a point-and-click walkthrough using the AWS web console, see [AWS Console De
 
 ## Load Configuration Variables
 
-CLI commands in this guide use `$app_name`, `$aws_region`, and other variables from `group_vars/all.yml`. Load them once per terminal session:
+CLI commands in this guide use `$app_name`, `$aws_region`, and other variables from `group_vars/all.yml` and `vault.yml`. Load them once per terminal session:
 
 ```bash
 cd deployment
 source scripts/load-vars.sh
 ```
+
+The script decrypts `vault.yml` automatically using `~/.vault_pass`. If that file does not exist, it prompts for the vault password.
 
 Verify the variables loaded:
 
@@ -31,7 +33,6 @@ If `echo $app_name` is blank:
 - Use `source` not `./` — running `./scripts/load-vars.sh` creates a subshell and the variables are lost
 - If `group_vars/all.yml` does not exist, run `./scripts/local-dev-setup.sh` first
 
-Vault-encrypted variables (API keys, bucket name) are not loaded into the shell. Playbooks decrypt them automatically. See [Chapter 7: Secret Management](SECRET_MANAGEMENT.md).
 
 ---
 

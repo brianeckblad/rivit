@@ -105,7 +105,7 @@ parse_yaml_simple() {
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
 
         # Extract lines with key: value format (simple values only)
-        if [[ "$line" =~ ^([a-z_]+):[[:space:]]*(.+)$ ]]; then
+        if [[ "$line" =~ ^([a-z0-9_]+):[[:space:]]*(.+)$ ]]; then
             # Handle both bash (BASH_REMATCH) and zsh (match) regex arrays
             if [[ -n "${BASH_REMATCH[1]}" ]]; then
                 local key="${BASH_REMATCH[1]}"
@@ -143,19 +143,75 @@ parse_yaml_simple() {
     done < "$file"
 }
 
-# Load all.yml variables
-parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
-
-# Check vault status
+# Check vault status and load vault variables
 vault_encrypted=false
+vault_loaded=false
 if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
     if head -1 "$GROUP_VARS_DIR/vault.yml" 2>/dev/null | grep -q "ANSIBLE_VAULT"; then
         vault_encrypted=true
+        # Decrypt vault to load variables
+        vault_content=""
+        if [ -f "$HOME/.vault_pass" ]; then
+            vault_content=$(ansible-vault view "$GROUP_VARS_DIR/vault.yml" \
+                --vault-password-file "$HOME/.vault_pass" 2>/dev/null)
+        else
+            echo -e "${YELLOW}ℹ️  ~/.vault_pass not found — enter vault password to load secrets${NC}"
+            vault_content=$(ansible-vault view "$GROUP_VARS_DIR/vault.yml" \
+                --ask-vault-pass 2>/dev/null)
+        fi
+        if [ -n "$vault_content" ]; then
+            # Parse decrypted content line by line (same logic as parse_yaml_simple)
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                [[ -z "$line" ]] && continue
+                [[ "$line" =~ ^[[:space:]]*# ]] && continue
+                if [[ "$line" =~ ^([a-z0-9_]+):[[:space:]]*(.+)$ ]]; then
+                    if [[ -n "${BASH_REMATCH[1]}" ]]; then
+                        key="${BASH_REMATCH[1]}"
+                        value="${BASH_REMATCH[2]}"
+                    elif [[ -n "${match[1]}" ]]; then
+                        key="${match[1]}"
+                        value="${match[2]}"
+                    else
+                        continue
+                    fi
+                    [[ "$value" == *"{{"* ]] && continue
+                    value="${value%% #*}"
+                    value="${value//\"/}"
+                    value="${value//\'/}"
+                    value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                    # Export even empty values (overrides inherited env vars)
+                    export "$key"="$value"
+                fi
+            done <<< "$vault_content"
+            vault_loaded=true
+        else
+            echo -e "${RED}⚠️  Could not decrypt vault.yml — vault variables not loaded${NC}"
+        fi
     else
         # Load vault variables if not encrypted
         parse_yaml_simple "$GROUP_VARS_DIR/vault.yml"
+        vault_loaded=true
     fi
 fi
+
+# Load all.yml variables (plain values)
+parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
+
+# Resolve Jinja2 references: {{ var | default('val') }}
+# Uses Python for reliable regex parsing (avoids zsh regex/typeset issues)
+# Handles lines like: aws_region: "{{ vault_aws_region | default('us-east-2') }}"
+eval "$(python3 -c "
+import re, os
+with open('$GROUP_VARS_DIR/all.yml') as f:
+    for line in f:
+        m = re.match(r'^([a-z0-9_]+):\s*\"?\{\{\s*([a-z0-9_]+)\s*\|\s*default\([\\x27\"](.*?)[\\x27\"]\)\s*\}\}\"?', line)
+        if m:
+            key, src, fallback = m.groups()
+            value = os.environ.get(src, fallback)
+            # Escape double quotes and backslashes in value
+            value = value.replace(chr(92), chr(92)*2).replace('\"', '\\\\\"')
+            print(f'export {key}=\"{value}\"')
+" 2>/dev/null)"
 
 # Display status and available variables
 echo -e "${GREEN}✅ Variables loaded and EXPORTED successfully${NC}"
@@ -183,12 +239,16 @@ echo ""
 
 # Show vault status
 if [ "$vault_encrypted" = true ]; then
-    echo -e "${YELLOW}ℹ️  Note: vault.yml is encrypted${NC}"
-    echo "Sensitive variables from vault.yml will not be available in shell."
-    echo ""
-    echo "For CLI commands that need vault variables:"
-    echo "  1. Use Ansible playbooks: ansible-playbook playbooks/... --vault-password-file ~/.vault_pass"
-    echo "  2. Or view vault manually: ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass"
+    if [ "$vault_loaded" = true ]; then
+        echo -e "${GREEN}🔓 vault.yml decrypted and loaded${NC}"
+    else
+        echo -e "${YELLOW}⚠️  vault.yml is encrypted but could not be decrypted${NC}"
+        echo "Variables from vault.yml (aws_region, etc.) are not available."
+        echo ""
+        echo "To fix:"
+        echo "  1. Create ~/.vault_pass with your vault password"
+        echo "  2. Or run: source scripts/load-vars.sh (will prompt for password)"
+    fi
 else
     echo -e "${YELLOW}⚠️  Warning: vault.yml is NOT encrypted!${NC}"
     echo "Your secrets are visible in plain text. Encrypt it with:"
