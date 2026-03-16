@@ -32,7 +32,7 @@
 
     - name: Set AMI ID (latest)
       set_fact:
-        ami_id: "{{ amis.images | sort(attribute='creation_date') | last | map(attribute='image_id') | first }}"
+        ami_id: "{{ (amis.images | sort(attribute='creation_date') | last).image_id }}"
 
     - name: Build EBS volumes list (EBS volume is MANDATORY)
       set_fact:
@@ -66,19 +66,18 @@
         volumes: "{{ instance_volumes }}"
 
         # Networking Configuration
-        assign_public_ip: "{{ assign_public_ip }}"
+        network:
+          assign_public_ip: "{{ assign_public_ip }}"
 
         # Monitoring & Detailed Metrics
-        monitoring: "{{ ec2_monitoring_enabled }}"
+        detailed_monitoring: "{{ ec2_monitoring_enabled }}"
 
         # Termination Protection
-        disable_api_termination: "{{ ec2_termination_protection }}"
+        termination_protection: "{{ ec2_termination_protection }}"
 
         # EBS Optimization
         ebs_optimized: "{{ ec2_ebs_optimized }}"
 
-        # Instance Configuration
-        cpu_threads_per_core: null               # Let AWS decide optimal configuration
 
         # Network Security
         source_dest_check: "{{ ec2_source_dest_check }}"
@@ -107,8 +106,8 @@
         private_ip: "{{ ec2.instances[0].private_ip_address }}"
         vpc_id: "{{ ec2.instances[0].vpc_id }}"
         subnet_id: "{{ ec2.instances[0].subnet_id }}"
-        security_groups: "{{ ec2.instances[0].security_groups | map(attribute='GroupName') | list }}"
-        monitoring_state: "{{ ec2.instances[0].monitoring.state }}"
+        security_groups: "{{ ec2.instances[0].security_groups | map(attribute='group_name') | list }}"
+        monitoring_state: "{{ ec2.instances[0].monitoring.state | default('disabled') }}"
         instance_state: "{{ ec2.instances[0].state.name }}"
 
     - name: Wait for SSH to become available
@@ -239,7 +238,7 @@
             Encrypted:              Yes
             Delete on Termination:  Yes
           
-          {% if enable_ebs_volume %}
+          {% if ebs_volume_size is defined %}
           Data Volume:
             Device Name:            /dev/sdf
             Size:                   {{ ebs_volume_size }} GB
@@ -247,8 +246,6 @@
             Encrypted:              {{ ebs_volume_encrypted }}
             Mount Path:             {{ ebs_volume_mount_path }}
             Delete on Termination:  Yes
-          {% else %}
-          Data Volume:              None attached
           {% endif %}
           
           ════════════════════════════════════════════════════════════
@@ -359,7 +356,7 @@
           
           EC2 Instance ({{ instance_type }}):    ~$0.01 - $0.10/hour
           Root Volume (20 GB gp3):               ~$2/month
-          {% if enable_ebs_volume %}
+          {% if ebs_volume_size is defined %}
           Data Volume ({{ ebs_volume_size }} GB {{ ebs_volume_type }}):     ~${{ (ebs_volume_size * 0.10) | int }}/month
           {% endif %}
           CloudWatch Monitoring:                 ~$0.30/month

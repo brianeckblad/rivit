@@ -215,12 +215,12 @@ sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
 app_username: "{{ app_default_username }}"
 app_password: "{{ app_default_password }}"
 
-# EC2 Instance Configuration (auto-configured with defaults)
-assign_public_ip: "{{ assign_public_ip | default(true) }}"
-ec2_monitoring_enabled: "{{ ec2_monitoring_enabled | default(true) }}"
-ec2_termination_protection: "{{ ec2_termination_protection | default(false) }}"
-ec2_ebs_optimized: "{{ ec2_ebs_optimized | default(false) }}"
-ec2_source_dest_check: "{{ ec2_source_dest_check | default(true) }}"
+# EC2 Instance Configuration
+assign_public_ip: true
+ec2_monitoring_enabled: true
+ec2_termination_protection: false
+ec2_ebs_optimized: false
+ec2_source_dest_check: true
 
 # EBS Volume (computed aliases used by playbooks)
 ebs_volume_mount_path: "{{ app_storage_mount_path }}"
