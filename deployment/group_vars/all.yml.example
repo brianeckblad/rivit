@@ -217,7 +217,8 @@ app_password: "{{ app_default_password }}"
 
 # EC2 Instance Configuration
 assign_public_ip: true
-ec2_monitoring_enabled: true
+ec2_monitoring_enabled: false                    # true = detailed CloudWatch (1-min, ~$2.10/mo)
+                                                 # false = basic CloudWatch (5-min, free)
 ec2_termination_protection: false
 ec2_ebs_optimized: false
 ec2_source_dest_check: true
