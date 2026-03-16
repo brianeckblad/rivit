@@ -139,6 +139,14 @@ ebs_volume_snapshot_id: ""                       # Set to snapshot ID to restore
 ec2_instance_type: "t3.micro"                    # Keep as t3.micro for free tier
                                                  # Change for production: t3.small or larger
 
+# EC2 Instance Options
+assign_public_ip: true                           # Assign a public IP address
+ec2_monitoring_enabled: false                    # true = detailed CloudWatch (1-min, ~$2.10/mo)
+                                                 # false = basic CloudWatch (5-min, free)
+ec2_termination_protection: false                # true = prevent accidental termination
+ec2_ebs_optimized: false                         # true = dedicated EBS throughput (not needed for t3)
+ec2_source_dest_check: true                      # true = standard networking (disable for NAT instances)
+
 # ----------------------------------------------------------------------------
 # 8. OPTIONAL FEATURES
 # ----------------------------------------------------------------------------
@@ -215,13 +223,6 @@ sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
 app_username: "{{ app_default_username }}"
 app_password: "{{ app_default_password }}"
 
-# EC2 Instance Configuration
-assign_public_ip: true
-ec2_monitoring_enabled: false                    # true = detailed CloudWatch (1-min, ~$2.10/mo)
-                                                 # false = basic CloudWatch (5-min, free)
-ec2_termination_protection: false
-ec2_ebs_optimized: false
-ec2_source_dest_check: true
 
 # EBS Volume (computed aliases used by playbooks)
 ebs_volume_mount_path: "{{ app_storage_mount_path }}"
