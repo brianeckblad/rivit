@@ -47,6 +47,10 @@ vault_s3_folder: "data"                         # Folder/prefix within S3 bucket
                                                  # Where app stores files
                                                  # Example: data, uploads, backup, etc.
 
+# For local development ONLY (EC2 instances use IAM roles instead):
+# aws_access_key_id: "your_access_key_here"
+# aws_secret_access_key: "your_secret_key_here"
+
 # ============================================================================
 # APPLICATION CREDENTIALS (REQUIRED)
 # ============================================================================
@@ -69,13 +73,14 @@ users: "admin:admin123"                         # Change to your secure password
 # ============================================================================
 # CLOUDFRONT & RATE LIMITING (OPTIONAL)
 # ============================================================================
-# CloudFront distribution domain for CDN acceleration
-# Only needed if using CloudFront (see docs/CLOUDFRONT_RATE_LIMITING.md)
-cloudfront_domain: "your-distribution-id.cloudfront.net"  # CloudFront domain (optional)
-
-# Secret token for rate limiting verification
-# Only needed if using CloudFront/WAF rate limiting
-app_secret_token: "your-generated-secure-token-here"     # Generated for CloudFront/WAF
+# Controlled by enable_cloudfront in all.yml (default: false)
+# Leave empty until enabled — the app works without CloudFront
+#
+# After enabling and running provisioning, fill in:
+#   cloudfront_domain: from the playbook output (e.g., d1234567.cloudfront.net)
+#   app_secret_token: generate with python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+cloudfront_domain: ""
+app_secret_token: ""
 
 # ============================================================================
 # FLASK CONFIGURATION (REQUIRED)
@@ -83,44 +88,76 @@ app_secret_token: "your-generated-secure-token-here"     # Generated for CloudFr
 # These are the core application secrets
 
 flask_secret_key: "change-this-to-a-random-secret-key"  # Flask SECRET_KEY
-                                                         # Generate: python -c "import secrets; print(secrets.token_hex(32))"
+                                                         # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
                                                          # Used for session encryption, CSRF protection, etc.
+                                                         # Note: Ansible auto-generates this on deploy if not already set in .env
 
 flask_port: "8000"                              # Application port (typically 8000 or 5000)
 flask_env: "production"                         # Flask environment (development or production)
 
-# ============================================================================
-# AWS S3 CONFIGURATION (REQUIRED)
-# ============================================================================
-# NOTE: AWS credentials (access keys) are NOT stored here!
-# The EC2 instance uses an IAM role for authentication (more secure)
-# S3 bucket configuration is defined above (vault_s3_bucket_name, vault_s3_folder)
-
-# For local development ONLY - EC2 instances use IAM roles:
-# aws_access_key_id: "your_access_key_here"
-# aws_secret_access_key: "your_secret_key_here"
 
 # ============================================================================
 # eBay API CONFIGURATION (REQUIRED IF USING eBay)
 # ============================================================================
-# eBay Sandbox - for testing (no real transactions)
-ebay_environment: "sandbox"                    # sandbox or production
+# All credentials come from the eBay Developer Portal:
+#   https://developer.ebay.com/my/keys
+#
+# The portal shows two key sets: Sandbox (testing) and Production (live).
+# Click a key set title to expand its detail page containing:
+#   - App ID (also called Client ID)
+#   - Cert ID (also called Client Secret)
+#   - Dev ID (shared across both environments, shown at top of page)
+#
+# User tokens are generated separately:
+#   https://developer.ebay.com/my/auth
+#   1. Select environment (Sandbox or Production) at the top
+#   2. Click "Get a User Token" tab
+#   3. Select your app from the dropdown
+#   4. Sign in and authorize with your eBay account
+#   5. Copy the generated OAuth user token
+#   Note: Production tokens expire after 18 months and must be refreshed
+# ============================================================================
 
-ebay_sandbox_app_id: "your-sandbox-app-id-here"      # From https://developer.ebay.com/my/keys
-ebay_sandbox_cert_id: "your-sandbox-cert-id-here"    # Sandbox certificate
-ebay_sandbox_dev_id: "your-sandbox-dev-id-here"      # Sandbox developer ID
-ebay_sandbox_token: "your-sandbox-user-token-here"   # Sandbox user token
+# Which eBay environment to use: "sandbox" for testing, "production" for live
+ebay_environment: "production"
 
-# eBay Production - for real transactions
-ebay_production_app_id: "your-production-app-id-here"      # From https://developer.ebay.com/my/keys
-ebay_production_cert_id: "your-production-cert-id-here"    # Production certificate
-ebay_production_dev_id: "your-production-dev-id-here"      # Production developer ID
-ebay_production_token: "your-production-user-token-here"   # Production user token
+# --- Sandbox credentials (for testing, no real transactions) ---
+
+# Dev ID: shown at the top of the keys page (shared across both environments)
+ebay_sandbox_dev_id: ""
+
+# Cert ID: under Sandbox key set details
+ebay_sandbox_cert_id: ""
+
+# App ID: under Sandbox key set details
+ebay_sandbox_app_id: ""
+
+# User Token: generate via auth flow with sandbox environment selected
+ebay_sandbox_token: ""
+
+# --- Production credentials (for live transactions) ---
+
+# Dev ID: same value as sandbox (shared)
+ebay_production_dev_id: ""
+
+# Cert ID: under Production key set details
+ebay_production_cert_id: ""
+
+# App ID: under Production key set details
+ebay_production_app_id: ""
+
+# User Token: generate via auth flow with production environment selected
+ebay_production_token: ""
 
 # eBay Verification Token - for Marketplace Account Deletion endpoint
-# Required: 32-80 characters
-# Generate using: ./deployment/scripts/util-generate-ebay-token.sh
-# This token persists across deployments
+# This is a random string YOU generate (not from eBay).
+# After generating, paste it into the Developer Portal:
+#   1. Click your app title to expand details
+#   2. Scroll to "Marketplace Account Deletion" section
+#   3. Paste this token into the "Verification token" field
+#   4. Set the endpoint URL to: https://your-domain.com/api/ebay/marketplace-account-deletion
+# Generate: python3 -c "import secrets; print(secrets.token_urlsafe(48)[:64])"
+# Note: Ansible auto-generates this on deploy if not already set in .env
 ebay_verification_token: "your-64-character-token-here"
 
 # ============================================================================
@@ -129,4 +166,3 @@ ebay_verification_token: "your-64-character-token-here"
 # If you want automated alerts (error notifications, monitoring, etc.)
 # Leave this blank ("") if you don't need it
 vault_sns_topic_arn: ""
-

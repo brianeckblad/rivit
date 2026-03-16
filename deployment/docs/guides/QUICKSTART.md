@@ -67,7 +67,8 @@ ansible-playbook -i inventories playbooks/setup.yml \
 3. ✅ Creates security group (allows ports 22, 80, 443)
 4. ✅ Creates SSH key pair
 5. ✅ Launches EC2 instance (Ubuntu 22.04)
-6. ✅ Configures EC2 with your app
+6. ✅ Sets up CloudFront CDN (if `enable_cloudfront: true` in `all.yml`)
+7. ✅ Configures EC2 with your app
 7. ✅ Sets up Nginx web server
 8. ✅ Sets up Gunicorn app server
 9. ✅ Configures auto-restart with Systemd

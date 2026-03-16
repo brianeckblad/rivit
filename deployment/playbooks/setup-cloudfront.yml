@@ -2,12 +2,12 @@
 # Playbook to create and configure CloudFront distribution
 # For CDN and edge caching of static assets
 #
+# Controlled by: enable_cloudfront in group_vars/all.yml
+# To enable: set enable_cloudfront: true, then run this playbook
+# To force:  ansible-playbook playbooks/setup-cloudfront.yml -e enable_cloudfront=true
+#
 # Usage: ansible-playbook playbooks/setup-cloudfront.yml \
 #          --vault-password-file ~/.vault_pass
-#
-# IMPORTANT: If vault.yml is encrypted, provide vault password via:
-# 1. ~/.vault_pass file (recommended), OR
-# 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Setup CloudFront Distribution
   hosts: localhost
@@ -16,10 +16,16 @@
     - ../group_vars/all.yml
     - ../group_vars/vault.yml
 
-  vars:
-    cloudfront_price_class: "PriceClass_100"  # US, Canada, Europe
-
   tasks:
+    - name: Check if CloudFront is enabled
+      debug:
+        msg: "Skipping CloudFront setup (enable_cloudfront is false in all.yml)"
+      when: not (enable_cloudfront | default(false) | bool)
+
+    - name: End play if CloudFront is disabled
+      meta: end_play
+      when: not (enable_cloudfront | default(false) | bool)
+
     - name: Get S3 bucket info
       command: >
         aws s3api get-bucket-location

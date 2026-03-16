@@ -48,8 +48,12 @@ Think of it as:
 ```bash
 cd deployment
 
-# Setup CloudFront
-ansible-playbook playbooks/setup-cloudfront.yml
+# Enable CloudFront in your config
+# In group_vars/all.yml, set: enable_cloudfront: true
+
+# Then run provisioning (or just the CloudFront playbook)
+ansible-playbook playbooks/setup-cloudfront.yml \
+    --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
@@ -567,14 +571,14 @@ convert image.jpg -quality 85 -strip image-optimized.jpg
 
 ---
 
-## Next Steps
+## Next step
 
-- **Setup:** Run `ansible-playbook playbooks/setup-cloudfront.yml`
-- **Configuration:** See [#cloudfront-behaviors](#cloudfront-behaviors)
-- **Monitor:** Check CloudWatch metrics weekly
-- **Optimize:** Adjust TTLs based on cache hit rate
-- **WAF:** Combine with [WAF_CONFIGURATION.md](WAF_CONFIGURATION.md) for full protection
-- **Operations:** See [OPERATIONS.md](OPERATIONS.md) for ongoing monitoring
+Continue to [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md).
+
+## See also
+
+- [Chapter 5: Operations](OPERATIONS.md) — ongoing monitoring
+- [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md) — combine with CloudFront for full protection
 
 ---
 

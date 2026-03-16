@@ -7,7 +7,6 @@ Preserves existing values while adding new keys from templates.
 import sys
 import re
 import os
-from pathlib import Path
 
 def parse_yaml_simple(content):
     """Parse simple YAML (key: value format without complex structures)"""
@@ -18,7 +17,7 @@ def parse_yaml_simple(content):
             continue
 
         # Extract key: value pairs
-        match = re.match(r'^([a-z_]+):\s*(.+?)(?:\s*#.*)?$', line)
+        match = re.match(r'^([a-z0-9_]+):\s*(.+?)(?:\s*#.*)?$', line)
         if match:
             key = match.group(1)
             value = match.group(2).strip()
@@ -57,17 +56,23 @@ def merge_yaml_files(template_path, existing_path, output_path):
             continue
 
         # Check if this is a key: value line
-        match = re.match(r'^([a-z_]+):\s*', line)
+        match = re.match(r'^([a-z0-9_]+):\s*', line)
         if match:
             key = match.group(1)
             # If key exists in existing config, use that value
             if key in existing_data:
                 # Reconstruct the line with existing value, preserving trailing comments
-                template_match = re.match(r'^([a-z_]+):\s*(.+?)(?:\s*(#.*))?$', line)
+                template_match = re.match(r'^([a-z0-9_]+):\s*(.+?)(?:\s*(#.*))?$', line)
                 trailing_comment = template_match.group(3) if template_match and template_match.group(3) else ""
                 new_line = f"{key}: {existing_data[key]}"
                 if trailing_comment:
-                    new_line += f" {trailing_comment}"
+                    # Preserve column alignment from the template
+                    comment_col = line.index('#')
+                    if len(new_line) < comment_col:
+                        new_line += ' ' * (comment_col - len(new_line))
+                    else:
+                        new_line += ' '
+                    new_line += trailing_comment
                 output_lines.append(new_line)
             else:
                 output_lines.append(line)

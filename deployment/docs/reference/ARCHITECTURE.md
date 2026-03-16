@@ -94,7 +94,7 @@ Local Machine                     AWS Cloud
 - `launch-ec2-instance.yml` - Launch EC2 instance with existing resources
 
 **Orchestration:**
-- `provision-infrastructure.yml` - Calls all 5 playbooks above in order
+- `provision-infrastructure.yml` - Calls all playbooks above in order, plus CloudFront if `enable_cloudfront: true`
 - `provision-complete.yml` - Complete deployment (infrastructure + app + SSL + monitoring)
 
 ### Application Deployment

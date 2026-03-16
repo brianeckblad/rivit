@@ -460,7 +460,7 @@ echo "✓ WAF deleted"
 
 ### Step 8: Delete CloudFront (optional)
 
-**Only if you ran `setup-cloudfront.yml` during deployment.**
+**Only if `enable_cloudfront: true` in your `all.yml`.**
 
 > **Note:** CloudFront distributions must be **disabled** before they can be deleted.
 > Disabling takes **10-15 minutes**. The playbook handles this automatically.

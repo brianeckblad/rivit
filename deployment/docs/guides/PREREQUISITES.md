@@ -474,13 +474,15 @@ s3_version_retention_days: 30           # Days to keep old S3 versions
 ec2_instance_type: "t3.micro"           # EC2 server instance type
                                         # Keep as t3.micro for free tier
                                         # Change for production: t3.small, t3.medium, etc.
-                                        # Note: Larger = higher monthly cost
 
-cloudfront_price_class: "PriceClass_100" # CloudFront pricing tier (if using CDN)
+enable_cloudfront: false                # false = serve directly from EC2 (default)
+                                        # true  = deploy CloudFront CDN in front of EC2
+                                        # Can be enabled later by changing to true
+
+cloudfront_price_class: "PriceClass_100" # Only applies when enable_cloudfront is true
                                         # PriceClass_100: US, Canada, Europe (cheapest)
-                                        # PriceClass_200: Above + Asia, Africa, Middle East, South America
-                                        # PriceClass_All: All worldwide locations (most expensive)
-                                        # Only matters if you use setup-cloudfront.yml
+                                        # PriceClass_200: + Asia, Africa, Middle East
+                                        # PriceClass_All: All worldwide locations
 ```
 
 **Don't know what to set?**

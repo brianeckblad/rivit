@@ -67,7 +67,7 @@ Complete Chapter 2 or 3. Your application is live.
 | `create-ssh-key.yml` | `delete-ssh-key.yml` | SSH Key Pair |
 | `launch-ec2-instance.yml` | `terminate-ec2-instance.yml` | EC2 Instance |
 | `setup-waf.yml` | `delete-waf.yml` | WAF Web ACL + IP set |
-| `setup-cloudfront.yml` | `delete-cloudfront.yml` | CloudFront distribution |
+| `setup-cloudfront.yml` | `delete-cloudfront.yml` | CloudFront distribution (`enable_cloudfront` in all.yml) |
 | `setup-secrets-manager.yml` | `delete-secrets-manager.yml` | Secrets Manager secret |
 
 ## Common Commands

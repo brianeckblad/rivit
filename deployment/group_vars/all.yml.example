@@ -114,42 +114,46 @@ app_storage_mount_path: "/{{ app_name }}"       # Mount point for application EB
                                                  #   • Application logs
                                                  #   • Cache files
 
-# EBS Volume Size (REQUIRED)
-ebs_volume_size: 100                             # Size in GB (default: 100)
+# EBS Volume Size
+ebs_volume_size: 100                             # Size in GB
                                                  # Minimum: 20 GB (for OS + app)
                                                  # Recommended: 50-100 GB for small apps
                                                  # Increase for large datasets
                                                  # Cost: ~$0.10/GB/month for gp3
 
-# EBS Volume Type (OPTIONAL)
-ebs_volume_type: "gp3"                           # Volume type (default: gp3)
-                                                 # gp3: General Purpose (recommended, fast, cost-effective)
+# EBS Volume Type
+ebs_volume_type: "gp3"                           # gp3: General Purpose (recommended, fast, cost-effective)
                                                  # gp2: Legacy general purpose (avoid)
                                                  # io1: High IOPS (for databases, expensive)
                                                  # st1: Throughput optimized (for big data)
 
-# EBS Encryption (OPTIONAL)
-ebs_volume_encrypted: true                       # Encrypt volume (default: true - recommended)
+# EBS Encryption
+ebs_volume_encrypted: true                       # Encrypt volume (recommended)
                                                  # Adds minimal performance cost
-                                                 # Improves security for sensitive data
 
-# EBS Volume From Snapshot (OPTIONAL)
-ebs_volume_snapshot_id: ""                       # Restore from previous snapshot (default: empty)
-                                                 # Leave empty for new volume
-                                                 # Set to snapshot ID to restore: snap-0123456789abcdef0
+# EBS Volume From Snapshot (leave empty for new volume)
+ebs_volume_snapshot_id: ""                       # Set to snapshot ID to restore: snap-0123456789abcdef0
                                                  # Useful for backup/restore or copying volumes
 
 # EC2 Instance Type
-# Default: t3.micro (AWS free tier eligible)
-# Larger options: t3.small, t3.medium, t3.large, etc.
-ec2_instance_type: "t3.micro"                   # Keep as t3.micro for free tier
+ec2_instance_type: "t3.micro"                    # Keep as t3.micro for free tier
                                                  # Change for production: t3.small or larger
-#                                                 # When true, all ebs_volume_* settings apply
 
-# CloudFront CDN Pricing (only if using CloudFront)
-# Default: PriceClass_100 (covers most users, cheapest)
-# Options: PriceClass_100, PriceClass_200, PriceClass_All
-cloudfront_price_class: "PriceClass_100"        # Only used if you deploy CloudFront
+# ----------------------------------------------------------------------------
+# 8. OPTIONAL FEATURES
+# ----------------------------------------------------------------------------
+# These can be left off on day 1 and enabled later by changing to true
+# and re-running the provisioning playbook
+
+# CloudFront CDN (adds global caching + edge-based rate limiting)
+# Set to true and run provision-infrastructure.yml to enable
+# Set to false and run delete-cloudfront.yml to remove
+enable_cloudfront: false                         # false = serve directly from EC2 (default)
+                                                 # true  = deploy CloudFront CDN in front of EC2
+
+# CloudFront CDN Pricing (only applies when enable_cloudfront is true)
+# Options: PriceClass_100 (cheapest), PriceClass_200, PriceClass_All
+cloudfront_price_class: "PriceClass_100"         # US, Canada, Europe only
 
 # ============================================================================
 # ⚠️ END USER CONFIGURATION ⚠️
@@ -218,13 +222,9 @@ ec2_termination_protection: "{{ ec2_termination_protection | default(false) }}"
 ec2_ebs_optimized: "{{ ec2_ebs_optimized | default(false) }}"
 ec2_source_dest_check: "{{ ec2_source_dest_check | default(true) }}"
 
-# EBS Volume Configuration (MANDATORY - application runs here)
-ebs_volume_size: "{{ ebs_volume_size | default(100) }}"
-ebs_volume_type: "{{ ebs_volume_type | default('gp3') }}"
-ebs_volume_mount_path: "{{ app_storage_mount_path }}"  # Mount point for application
-ebs_volume_encrypted: "{{ ebs_volume_encrypted | default(true) }}"
-ebs_volume_snapshot_id: "{{ ebs_volume_snapshot_id | default('') }}"
-ebs_device_name: "/dev/sdf"                      # Device name for block device mapping
+# EBS Volume (computed aliases used by playbooks)
+ebs_volume_mount_path: "{{ app_storage_mount_path }}"
+ebs_device_name: "/dev/sdf"
 
 # System packages (auto-configured)
 system_packages:

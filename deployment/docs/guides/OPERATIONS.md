@@ -641,7 +641,7 @@ ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 Add new secret with `_new` suffix:
 ```yaml
 # Example: Rotating eBay token
-vault_ebay_production_token: "v^1.1#i^1#...old-token..."
+ebay_production_token: "v^1.1#i^1#...old-token..."
 vault_ebay_production_token_new: "v^1.1#i^1#...NEW-TOKEN-HERE..."  # Add this
 ```
 
@@ -698,7 +698,7 @@ ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 Update vault:
 ```yaml
 # Remove _new suffix, update main value
-vault_ebay_production_token: "v^1.1#i^1#...NEW-TOKEN-HERE..."  # Updated
+ebay_production_token: "v^1.1#i^1#...NEW-TOKEN-HERE..."  # Updated
 # Remove: vault_ebay_production_token_new line
 ```
 

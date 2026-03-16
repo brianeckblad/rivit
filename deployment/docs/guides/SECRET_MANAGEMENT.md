@@ -62,7 +62,7 @@ Production:
 
 ### 2. AWS Secrets Manager (Runtime)
 
-**Secret Name:** `app-item-listing-tool/production`
+**Secret Name:** `{app_name}/secrets`
 
 **Contains:**
 - Same values as Ansible Vault
@@ -179,74 +179,40 @@ For compatible secrets (RDS, etc.), AWS can rotate automatically.
 
 For eBay tokens, API keys, etc.:
 
-**Step 1: Add new secret to vault**
+**Step 1: Add new secret value to vault**
 ```yaml
-# vault.yml
-vault_ebay_production_token: v^1.1#i^1#...old-token...
-vault_ebay_production_token_new: v^1.1#i^1#...new-token...  # ← Add this
+# vault.yml — add the _new suffix with the replacement value
+ebay_production_token: "v^1.1#i^1#...old-token..."
+vault_ebay_production_token_new: "v^1.1#i^1#...new-token..."  # ← Add this
 ```
 
-**Step 2: Deploy with new secret**
+**Step 2: Rotate via playbook**
 ```bash
-# This creates AWSPENDING version
-./scripts/rotate-secrets.sh ebay_production_token
+ansible-playbook playbooks/secret-rotate.yml \
+  -e secret_key=ebay_production_token \
+  --vault-password-file ~/.vault_pass
 ```
+This creates an AWSPENDING version in Secrets Manager.
 
-**Step 3: Test with new secret**
+**Step 3: Test your application**
 ```bash
-# Application can test AWSPENDING version
-# If successful, promote to AWSCURRENT
-aws secretsmanager update-secret-version-stage \
-  --secret-id <app_name>/production \
-  --version-stage AWSCURRENT \
-  --move-to-version-id <new-version-id>
+curl https://yourdomain.com/api/ebay/test
 ```
 
-**Step 4: Clean up old secret**
+**Step 4: Promote if successful**
+```bash
+ansible-playbook playbooks/secret-promote.yml \
+  -e secret_key=ebay_production_token \
+  --vault-password-file ~/.vault_pass
+```
+
+**Step 5: Clean up vault**
 ```yaml
-# vault.yml (after successful rotation)
-vault_ebay_production_token: v^1.1#i^1#...new-token...  # ← Now current
+# vault.yml — move new value to main key, remove _new
+ebay_production_token: "v^1.1#i^1#...new-token..."
 # Remove vault_ebay_production_token_new
 ```
 
-### Rotation Script
-
-**File:** `deployment/scripts/rotate-secrets.sh`
-
-```bash
-#!/bin/bash
-# Rotate a secret from Ansible Vault to AWS Secrets Manager
-# Usage: ./rotate-secrets.sh <secret-key>
-
-SECRET_KEY="$1"
-SECRET_NAME="app-item-listing-tool/production"
-
-# 1. Get new value from vault
-NEW_VALUE=$(ansible-vault view group_vars/vault.yml \
-  --vault-password-file ~/.vault_pass | \
-  grep "vault_${SECRET_KEY}_new:" | \
-  cut -d: -f2- | tr -d ' ')
-
-# 2. Get current secret JSON
-CURRENT=$(aws secretsmanager get-secret-value \
-  --secret-id "$SECRET_NAME" \
-  --query SecretString \
-  --output text)
-
-# 3. Update with new value (creates AWSPENDING)
-UPDATED=$(echo "$CURRENT" | jq --arg key "$SECRET_KEY" --arg val "$NEW_VALUE" \
-  '. + {($key): $val}')
-
-aws secretsmanager put-secret-value \
-  --secret-id "$SECRET_NAME" \
-  --secret-string "$UPDATED" \
-  --version-stages AWSPENDING
-
-echo "✓ New secret version created (AWSPENDING)"
-echo "  Test your application with the new secret"
-echo "  If successful, promote to AWSCURRENT:"
-echo "  ansible-playbook playbooks/secret-promote.yml -e secret_key=YOUR_KEY"
-```
 
 ---
 
@@ -259,42 +225,38 @@ echo "  ansible-playbook playbooks/secret-promote.yml -e secret_key=YOUR_KEY"
 # Production Secrets (Ansible Vault Encrypted)
 # Edit with: ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 
-# Application Secrets
-vault_secret_key: "64-char-hex-string-here"
-vault_app_secret_token: "32-char-hex-string-here"
+# Git Repository
+vault_git_repo: "https://github.com/youruser/yourapp.git"
 
 # AWS Configuration
 vault_aws_region: "us-east-2"
 vault_s3_bucket_name: "your-bucket-name"
+vault_s3_folder: "data"
+
+# Application Credentials
+app_default_username: "admin"
+app_default_password: "secure-password-here"
+users: "admin:secure-password-here"
+
+# Flask
+flask_secret_key: "your-secret-key-here"
+flask_port: "8000"
+flask_env: "production"
+
+# CloudFront (leave empty until enable_cloudfront is set to true in all.yml)
+cloudfront_domain: ""
+app_secret_token: ""
 
 # eBay Production Credentials
-vault_ebay_production_app_id: "YourApp-YourApp-PRD-1234567890-a1b2c3d4"
-vault_ebay_production_dev_id: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
-vault_ebay_production_cert_id: "PRD-1234567890ab-cdef-1234-5678-90ab"
-vault_ebay_production_token: "v^1.1#i^1#...long-token-here"
+ebay_environment: "production"
+ebay_production_app_id: "YourApp-PRD-1234567890-a1b2c3d4"
+ebay_production_dev_id: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
+ebay_production_cert_id: "PRD-1234567890ab-cdef-1234-5678"
+ebay_production_token: "v^1.1#i^1#...long-token-here"
+ebay_verification_token: "your-64-char-token"
 
-# eBay Sandbox Credentials (Optional)
-vault_ebay_sandbox_app_id: "YourApp-YourApp-SBX-1234567890-a1b2c3d4"
-vault_ebay_sandbox_dev_id: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
-vault_ebay_sandbox_cert_id: "SBX-1234567890ab-cdef-1234-5678-90ab"
-vault_ebay_sandbox_token: "v^1.1#i^1#...sandbox-token-here"
-
-# Admin Credentials
-vault_admin_username: "admin"
-vault_admin_password: "secure-password-here"
-
-# GitHub Deployment
-vault_github_token: "ghp_your_personal_access_token_here"
-vault_github_repo: "yourusername/your_app_name"
-vault_github_branch: "main"
-
-# CloudFront (Auto-populated during deployment)
-vault_cloudfront_domain: ""
-vault_cloudfront_distribution_id: ""
-
-# Rotation Support (Add _new suffix for rotation)
-# vault_ebay_production_token_new: "v^1.1#i^1#...new-token-during-rotation"
-# vault_admin_password_new: "new-password-during-rotation"
+# SNS (optional)
+vault_sns_topic_arn: ""
 ```
 
 ---
@@ -311,30 +273,7 @@ The deployment script now:
 
 ### Playbook Integration
 
-**File:** `deployment/playbooks/deploy.yml`
-
-```yaml
----
-- name: Deploy Application
-  hosts: production
-  become: yes
-  vars_files:
-    - ../group_vars/vault.yml
-  
-  tasks:
-    - name: Upload secrets to AWS Secrets Manager
-      command: |
-        aws secretsmanager put-secret-value \
-          --secret-id <app_name>/production \
-          --secret-string '{
-            "SECRET_KEY": "{{ vault_secret_key }}",
-            "EBAY_PRODUCTION_APP_ID": "{{ vault_ebay_production_app_id }}",
-            "EBAY_PRODUCTION_TOKEN": "{{ vault_ebay_production_token }}",
-            ...
-          }'
-      delegate_to: localhost
-      run_once: true
-```
+Secrets are synced to AWS Secrets Manager during deployment via `setup-secrets-manager.yml`. The `setup.yml` playbook generates the `.env` file with non-secret configuration, and the application fetches secrets from Secrets Manager at runtime using the `SECRET_NAME` environment variable.
 
 ---
 
@@ -383,7 +322,7 @@ aws cloudtrail lookup-events \
 
 # CloudWatch - Application logs
 aws logs filter-log-events \
-  --log-group-name /aws/lambda/app-item-listing-tool \
+  --log-group-name /{app_name}/application \
   --filter-pattern "Secret"
 ```
 
@@ -399,7 +338,7 @@ git log deployment/group_vars/vault.yml
 
 # 2. Export from Secrets Manager
 aws secretsmanager get-secret-value \
-  --secret-id app-item-listing-tool/production \
+  --secret-id {app_name}/secrets \
   --query SecretString \
   --output text > secrets-backup-$(date +%Y%m%d).json
 
@@ -448,13 +387,14 @@ cd deployment
 ```bash
 cd deployment
 
-# 1. Get new token from eBay
+# 1. Get new token from eBay Developer Portal
+#    https://developer.ebay.com/my/auth
 NEW_TOKEN="v^1.1#i^1#...new-token..."
 
 # 2. Add to vault as _new
 ansible-vault edit group_vars/vault.yml \
   --vault-password-file ~/.vault_pass
-# Add: vault_ebay_production_token_new: "..."
+# Add: vault_ebay_production_token_new: "v^1.1#i^1#...new-token..."
 
 # 3. Rotate secret
 ansible-playbook playbooks/secret-rotate.yml \
@@ -518,8 +458,9 @@ ansible-vault view deployment/group_vars/vault.yml
 
 **Fix:**
 ```bash
-# Manually upload
-./scripts/secrets-manager-setup.sh deployment/group_vars/vault.yml
+# Manually sync secrets from vault to Secrets Manager
+cd deployment
+ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
 ```
 
 ### "Application can't fetch secrets"
@@ -537,29 +478,6 @@ aws iam put-role-policy \
 
 ---
 
-## Migration from secrets.env
-
-If you currently use `secrets.env`:
-
-```bash
-# 1. Create vault from secrets.env
-./scripts/migrate-to-vault.sh secrets.env
-
-# 2. Verify vault contents
-ansible-vault view deployment/group_vars/vault.yml \
-  --vault-password-file ~/.vault_pass
-
-# 3. Deploy with vault
-./scripts/app-deploy.sh update --vault-password-file ~/.vault_pass
-
-# 4. Delete secrets.env
-rm secrets.env
-
-# 5. Confirm application works
-curl https://yourdomain.com/health
-```
-
----
 
 ## Next step
 
