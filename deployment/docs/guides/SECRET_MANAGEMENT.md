@@ -90,15 +90,23 @@ ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.va
 ```
 
 **This playbook:**
-1. ✅ Extracts vault variables from encrypted vault.yml
-2. ✅ Creates AWS Secrets Manager secret via Ansible AWS module (not shell command)
-3. ✅ Stores all secrets as JSON
-4. ✅ Enables automatic 30-day rotation
-5. ✅ Tags resources for tracking
+1. ✅ Extracts `vault_`-prefixed variables (AWS config, SNS, etc.)
+2. ✅ Maps application secrets to UPPERCASE keys (eBay credentials, app passwords, verification token)
+3. ✅ Creates AWS Secrets Manager secret via Ansible AWS module
+4. ✅ Stores all secrets as JSON
+5. ✅ Enables automatic 30-day rotation
+6. ✅ Tags resources for tracking
+
+**Secrets synced to Secrets Manager:**
+- `vault_*` variables (stripped of prefix): `aws_region`, `s3_bucket_name`, `s3_folder`, `sns_topic_arn`
+- eBay credentials (UPPERCASE keys): `EBAY_PRODUCTION_APP_ID`, `EBAY_VERIFICATION_TOKEN`, etc.
+- App credentials: `APP_DEFAULT_USERNAME`, `APP_DEFAULT_PASSWORD`
+- CloudFront: `CLOUDFRONT_DOMAIN`, `APP_SECRET_TOKEN`
 
 **Technical Details:**
-- Uses `query('varnames', '^vault_')` to safely extract vault variables (non-deprecated approach)
-- Uses `amazon.aws.secretsmanager_secret` module for AWS operations (no shell commands, no sudo)
+- Vault-prefixed variables extracted via `query('varnames', '^vault_')`
+- Application secrets explicitly mapped to UPPERCASE keys matching `config.py` `get_secret()` calls
+- Uses `amazon.aws.secretsmanager_secret` module for AWS operations
 - No passwords needed on EC2 instance (IAM role handles authentication)
 
 

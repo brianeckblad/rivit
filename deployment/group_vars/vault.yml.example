@@ -90,7 +90,6 @@ app_secret_token: ""
 flask_secret_key: "change-this-to-a-random-secret-key"  # Flask SECRET_KEY
                                                          # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
                                                          # Used for session encryption, CSRF protection, etc.
-                                                         # Note: Ansible auto-generates this on deploy if not already set in .env
 
 flask_port: "8000"                              # Application port (typically 8000 or 5000)
 flask_env: "production"                         # Flask environment (development or production)
@@ -102,13 +101,7 @@ flask_env: "production"                         # Flask environment (development
 # All credentials come from the eBay Developer Portal:
 #   https://developer.ebay.com/my/keys
 #
-# The portal shows two key sets: Sandbox (testing) and Production (live).
-# Click a key set title to expand its detail page containing:
-#   - App ID (also called Client ID)
-#   - Cert ID (also called Client Secret)
-#   - Dev ID (shared across both environments, shown at top of page)
-#
-# User tokens are generated separately:
+# The s
 #   https://developer.ebay.com/my/auth
 #   1. Select environment (Sandbox or Production) at the top
 #   2. Click "Get a User Token" tab
@@ -157,7 +150,7 @@ ebay_production_token: ""
 #   3. Paste this token into the "Verification token" field
 #   4. Set the endpoint URL to: https://your-domain.com/api/ebay/marketplace-account-deletion
 # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(48)[:64])"
-# Note: Ansible auto-generates this on deploy if not already set in .env
+# Stored in AWS Secrets Manager as EBAY_VERIFICATION_TOKEN (synced during deployment)
 ebay_verification_token: "your-64-character-token-here"
 
 # ============================================================================

@@ -246,11 +246,11 @@
     # - SECRET_NAME: Points to AWS Secrets Manager secret
     # - AWS_REGION: AWS region (from vault.yml)
     # - S3_BUCKET/FOLDER: S3 configuration (from vault.yml)
-    # - EBAY_VERIFICATION_TOKEN: eBay compliance token (auto-generated, persisted)
     #
     # What is NOT in .env:
     # - AWS credentials (IAM role provides access)
     # - eBay API credentials (from Secrets Manager)
+    # - eBay verification token (from Secrets Manager)
     # - Application passwords (from Secrets Manager)
     # - Any sensitive data (all in Secrets Manager)
     # =========================================================================

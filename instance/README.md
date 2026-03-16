@@ -79,12 +79,7 @@ S3_FOLDER=production
 # Application Configuration
 COMIC_IMAGE_PATH=/home/ubuntu/<app_name>/instance/item_images
 
-# eBay Verification Token (persisted across deployments)
-# Required for eBay Marketplace Account Deletion endpoint (32-80 chars)
-# This is auto-generated once and persists in .env
-EBAY_VERIFICATION_TOKEN=<generated-once-64-chars>
-
-# Note: All other secrets (eBay API credentials, admin passwords, GitHub tokens)
+# Note: All secrets (eBay API credentials, verification token, admin passwords)
 # are fetched from AWS Secrets Manager at runtime.
 # The IAM role attached to the EC2 instance provides access.
 ```
@@ -94,6 +89,7 @@ EBAY_VERIFICATION_TOKEN=<generated-once-64-chars>
 - ❌ AWS_SECRET_ACCESS_KEY (uses IAM role!)
 - ❌ EBAY_PRODUCTION_APP_ID (in Secrets Manager)
 - ❌ EBAY_PRODUCTION_TOKEN (in Secrets Manager)
+- ❌ EBAY_VERIFICATION_TOKEN (in Secrets Manager)
 - ❌ EBAY_SANDBOX credentials (in Secrets Manager)
 - ❌ ADMIN_USERNAME (in Secrets Manager)
 - ❌ ADMIN_PASSWORD (in Secrets Manager)
@@ -105,8 +101,8 @@ EBAY_VERIFICATION_TOKEN=<generated-once-64-chars>
 - Not in version control
 - Persists across updates
 - **No AWS credentials stored** - EC2 uses IAM role
-- **No sensitive API keys** - All in Secrets Manager
-- Only SECRET_KEY and EBAY_VERIFICATION_TOKEN persist locally
+- **No sensitive API keys or tokens** - All in Secrets Manager
+- Only SECRET_KEY persists locally (for session signing)
 
 ---
 

@@ -715,7 +715,8 @@ def ebay_marketplace_deletion() -> Response:
             # According to eBay docs, the response should be:
             # hash = SHA256(challengeCode + verificationToken + endpointUrl)
             import hashlib
-            verification_token = os.getenv('EBAY_VERIFICATION_TOKEN', 'your-verification-token-here')
+            from app.config import get_secret
+            verification_token = get_secret('EBAY_VERIFICATION_TOKEN', 'your-verification-token-here')
             endpoint_url = request.base_url
 
             combined_string = f"{challenge_code}{verification_token}{endpoint_url}"
