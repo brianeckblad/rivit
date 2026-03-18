@@ -31,6 +31,8 @@ inventories/hosts.yml
 
 # Deployment info files (contain real IPs, ARNs, instance IDs)
 instance-info.txt
+instances/*.txt
+!instances/.gitkeep
 secrets-manager-info.txt
 cloudfront-info.txt
 waf-info.txt

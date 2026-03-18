@@ -137,6 +137,11 @@
         - "{{ playbook_dir }}/../.last-rotation.txt"
       failed_when: false
 
+    - name: Remove all instance info files
+      shell: "rm -f {{ playbook_dir }}/../instances/*.txt"
+      changed_when: false
+      failed_when: false
+
     - name: Display decommission summary
       debug:
         msg:

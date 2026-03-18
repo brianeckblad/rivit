@@ -98,11 +98,11 @@
     - ../group_vars/all.yml
     - ../group_vars/vault.yml
   tasks:
-    - name: Load instance info
-      slurp:
-        src: "{{ playbook_dir }}/../instance-info.txt"
-      register: instance_info_file
-      ignore_errors: yes
+    - name: Find latest instance info file
+      find:
+        paths: "{{ playbook_dir }}/../instances"
+        patterns: "*.txt"
+      register: instance_files
 
     - name: Display summary
       debug:
@@ -119,7 +119,7 @@
           - "  - EC2 Instance"
           - "  - CloudFront CDN: {{ 'enabled' if (enable_cloudfront | default(false) | bool) else 'skipped (set enable_cloudfront: true in all.yml to add later)' }}"
           - ""
-          - "Instance info saved to: deployment/instance-info.txt"
+          - "Instance info saved to: deployment/instances/"
           - ""
           - "Next: Prepare server, then deploy application"
           - "  ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass"

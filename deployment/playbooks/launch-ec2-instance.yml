@@ -28,12 +28,9 @@
       when: not instance_type.startswith('t3.')
 
     # -----------------------------------------------------------------
-    # SAFETY CHECK: Detect existing instance BEFORE creating anything.
-    # The ec2_instance module matches on name + image_id.  Because the
-    # playbook always queries the *latest* AMI, a re-run after Canonical
-    # publishes a new image would NOT match the existing instance and
-    # would silently create a duplicate (new volumes, new IP).
-    # This pre-check prevents that by searching on the Name tag alone.
+    # SAFETY CHECK: Warn if an instance with this name already exists.
+    # Multiple instances are supported (e.g. during migration), but
+    # the user should be aware another one is already running.
     # -----------------------------------------------------------------
     - name: Check for existing EC2 instance with name tag
       amazon.aws.ec2_instance_info:
@@ -47,24 +44,18 @@
         region: "{{ aws_region }}"
       register: existing_instances
 
-    - name: Abort if instance already exists
-      fail:
-        msg: |
-          An EC2 instance named '{{ app_name }}' already exists:
-            Instance ID:  {{ existing_instances.instances[0].instance_id }}
-            State:        {{ existing_instances.instances[0].state.name }}
-            IP:           {{ existing_instances.instances[0].public_ip_address | default('N/A') }}
-            AMI:          {{ existing_instances.instances[0].image_id }}
-            Launched:     {{ existing_instances.instances[0].launch_time }}
-
-          To launch a replacement, first terminate the old instance:
-            ansible-playbook playbooks/terminate-ec2-instance.yml --vault-password-file ~/.vault_pass
-
-          To update an existing instance instead (no rebuild):
-            ansible-playbook playbooks/update.yml --vault-password-file ~/.vault_pass
+    - name: Warn if instance already exists
+      debug:
+        msg:
+          - "⚠️  {{ existing_instances.instances | length }} existing instance(s) named '{{ app_name }}':"
+          - "{% for i in existing_instances.instances %}  {{ i.instance_id }}  {{ i.state.name }}  {{ i.public_ip_address | default('no IP') }}  (launched {{ i.launch_time }}){% endfor %}"
+          - ""
+          - "A NEW instance will be created alongside the existing one(s)."
+          - "After migration, terminate the old instance:"
+          - "  ansible-playbook playbooks/terminate-ec2-instance.yml --vault-password-file ~/.vault_pass"
       when: existing_instances.instances | length > 0
 
-    - name: Remove stale instance-info.txt from previous launch
+    - name: Remove legacy instance-info.txt (replaced by instances/{id}.txt)
       file:
         path: "{{ playbook_dir }}/../instance-info.txt"
         state: absent
@@ -468,10 +459,10 @@
           For detailed pricing, visit: https://aws.amazon.com/ec2/pricing/
           
           ════════════════════════════════════════════════════════════
-        dest: "{{ playbook_dir }}/../instance-info.txt"
+        dest: "{{ playbook_dir }}/../instances/{{ instance_id }}.txt"
 
-    - name: Remove stale instance-info backup files
-      shell: "rm -f {{ playbook_dir }}/../instance-info.txt.*~"
+    - name: Remove stale instance info backup files
+      shell: "rm -f {{ playbook_dir }}/../instances/{{ instance_id }}.txt.*~"
       changed_when: false
 
     - name: Update inventory file — set server IP and SSH connection
@@ -582,7 +573,7 @@
           - "  Security Group:     {{ '✓ Ports: ' + (sg_check.stdout | trim) if sg_check.rc == 0 else '✗ Could not read security group' }}"
           - ""
           - "  Inventory updated:  inventories/hosts.yml → {{ instance_ip }}"
-          - "  Instance info:      instance-info.txt"
+          - "  Instance info:      instances/{{ instance_id }}.txt"
           - ""
           - "READY FOR SERVER SETUP:"
           - "  ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass"

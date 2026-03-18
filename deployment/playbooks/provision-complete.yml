@@ -137,10 +137,11 @@
     - ../group_vars/vault.yml
 
   tasks:
-    - name: Load instance info
-      slurp:
-        src: "{{ playbook_dir }}/../instance-info.txt"
-      register: instance_info_file
+    - name: Find instance info files
+      find:
+        paths: "{{ playbook_dir }}/../instances"
+        patterns: "*.txt"
+      register: instance_files
       ignore_errors: yes
 
     - name: Display completion summary
@@ -166,5 +167,5 @@
           - "  2. View logs: ssh ubuntu@INSTANCE_IP 'sudo journalctl -u {{ app_name }}'"
           - "  3. Setup domain (if needed): Update DNS to point to instance"
           - ""
-          - "Instance info saved to: deployment/instance-info.txt"
+          - "Instance info saved to: deployment/instances/"
 

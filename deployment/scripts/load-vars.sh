@@ -197,26 +197,103 @@ fi
 # Load all.yml variables (plain values)
 parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
 
-# Load SERVER_IP — try instance-info.txt first, fall back to inventories/hosts.yml
-INSTANCE_INFO="$DEPLOYMENT_DIR/instance-info.txt"
+# Load SERVER_IP — scan instances/*.txt files, fall back to inventories/hosts.yml
+INSTANCES_DIR="$DEPLOYMENT_DIR/instances"
 INVENTORY_FILE="$DEPLOYMENT_DIR/inventories/hosts.yml"
 
-_server_ip=""
+# Also check legacy instance-info.txt (from before the multi-instance change)
+LEGACY_INFO="$DEPLOYMENT_DIR/instance-info.txt"
 
-# Primary source: instance-info.txt (written by launch-ec2-instance.yml)
-if [ -f "$INSTANCE_INFO" ]; then
+_server_ip=""
+_instance_id=""
+
+# Collect instance info files (new format: instances/{id}.txt)
+_instance_files=()
+if [ -d "$INSTANCES_DIR" ]; then
+    while IFS= read -r f; do
+        _instance_files+=("$f")
+    done < <(find "$INSTANCES_DIR" -maxdepth 1 -name '*.txt' -type f 2>/dev/null | sort)
+fi
+
+# Also pick up legacy instance-info.txt if it exists and no new-format files were found
+if [ ${#_instance_files[@]} -eq 0 ] && [ -f "$LEGACY_INFO" ]; then
+    _instance_files=("$LEGACY_INFO")
+fi
+
+if [ ${#_instance_files[@]} -eq 1 ]; then
+    # Single instance — use it directly (bash=[0], zsh=[1], for-break works in both)
+    for _chosen_file in "${_instance_files[@]}"; do break; done
+elif [ ${#_instance_files[@]} -gt 1 ]; then
+    # Multiple instances — ask user to pick
+    echo ""
+    echo -e "${YELLOW}Found ${#_instance_files[@]} instances:${NC}"
+    echo ""
+    _idx=1
+    for _f in "${_instance_files[@]}"; do
+        _fname=$(basename "$_f" .txt)
+        _file_ip=$(python3 -c "
+import re
+with open('$_f') as fh:
+    for line in fh:
+        m = re.search(r'Public IP Address:\s+(\S+)', line)
+        if m:
+            print(m.group(1))
+            break
+" 2>/dev/null)
+        _file_state=$(python3 -c "
+import re
+with open('$_f') as fh:
+    for line in fh:
+        m = re.search(r'Instance State:\s+(\S+)', line)
+        if m:
+            print(m.group(1))
+            break
+" 2>/dev/null)
+        printf "  %d) %-24s  IP: %-16s  %s\n" "$_idx" "$_fname" "${_file_ip:-unknown}" "${_file_state:-}"
+        _idx=$((_idx+1))
+    done
+    echo ""
+    printf "Select instance [1-%d]: " "${#_instance_files[@]}"
+    read -r _choice
+
+    # Validate choice
+    if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "${#_instance_files[@]}" ]; then
+        _pick=1
+        _chosen_file=""
+        for _f in "${_instance_files[@]}"; do
+            if [ "$_pick" -eq "$_choice" ]; then
+                _chosen_file="$_f"
+                break
+            fi
+            _pick=$((_pick+1))
+        done
+    else
+        echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
+        _chosen_file=""
+    fi
+else
+    _chosen_file=""
+fi
+
+# Extract IP and instance ID from the chosen instance file
+if [ -n "$_chosen_file" ]; then
     _server_ip=$(python3 -c "
 import re
-with open('$INSTANCE_INFO') as f:
+with open('$_chosen_file') as f:
     for line in f:
         m = re.search(r'Public IP Address:\s+(\S+)', line)
         if m:
             print(m.group(1))
             break
 " 2>/dev/null)
+    # Instance ID comes from the filename (instances/{id}.txt)
+    _basename=$(basename "$_chosen_file" .txt)
+    if [[ "$_basename" == i-* ]]; then
+        _instance_id="$_basename"
+    fi
 fi
 
-# Fallback: read from inventories/hosts.yml if instance-info.txt missing or empty
+# Fallback: read from inventories/hosts.yml if no instance files found
 if [ -z "$_server_ip" ] && [ -f "$INVENTORY_FILE" ]; then
     _server_ip=$(python3 -c "
 import re
@@ -225,7 +302,6 @@ with open('$INVENTORY_FILE') as f:
         m = re.search(r'ansible_host:\s*(\S+)', line)
         if m:
             ip = m.group(1)
-            # Skip placeholder values (not a real IP)
             if re.match(r'\d+\.\d+\.\d+\.\d+', ip):
                 print(ip)
             break
@@ -234,6 +310,7 @@ fi
 
 if [ -n "$_server_ip" ]; then
     export SERVER_IP="$_server_ip"
+    [ -n "$_instance_id" ] && export INSTANCE_ID="$_instance_id"
 
     # Keep inventory in sync — update ansible_host if it differs
     if [ -f "$INVENTORY_FILE" ]; then
@@ -287,6 +364,7 @@ echo "  admin_user=$admin_user"
 echo "  server_name=$server_name"
 if [ -n "$SERVER_IP" ]; then
     echo "  SERVER_IP=$SERVER_IP"
+    [ -n "$INSTANCE_ID" ] && echo "  INSTANCE_ID=$INSTANCE_ID"
 else
     echo "  SERVER_IP=(not set — launch an instance first)"
 fi
@@ -302,7 +380,7 @@ echo "AWS resources (S3, IAM roles, security groups) don't exist yet."
 echo "They will be created when you run the deployment playbooks."
 echo ""
 echo "List all exported variables:"
-echo "  env | grep -E '^(app_|aws_|admin_|SERVER_)' | sort"
+echo "  env | grep -E '^(app_|aws_|admin_|SERVER_|INSTANCE_)' | sort"
 echo ""
 
 # Show vault status

@@ -67,7 +67,14 @@
       loop: "{{ ec2_instances.instances }}"
       when: ec2_instances.instances | length > 0
 
-    - name: Remove local instance info file
+    - name: Remove instance info files for terminated instances
+      file:
+        path: "{{ playbook_dir }}/../instances/{{ item.instance_id }}.txt"
+        state: absent
+      loop: "{{ ec2_instances.instances }}"
+      when: ec2_instances.instances | length > 0
+
+    - name: Remove legacy instance-info.txt (if present)
       file:
         path: "{{ playbook_dir }}/../instance-info.txt"
         state: absent
