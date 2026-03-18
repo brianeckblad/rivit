@@ -28,19 +28,29 @@
         - /etc/nginx/sites-available/badart-app
         - /etc/nginx/sites-enabled/badart-app
 
-    - name: Check if application code exists
+    - name: Check if git repo is initialized
       stat:
-        path: "{{ app_dir }}/runapp.py"
-      register: app_code_exists
+        path: "{{ app_dir }}/.git"
+      register: git_dir_exists
 
-    - name: Clone application code from git
+    - name: Initialize git repo in application directory
+      become_user: "{{ admin_user }}"
+      shell: |
+        cd {{ app_dir }}
+        git init
+        git remote add origin '{{ git_repo }}'
+        git fetch origin
+        git checkout -f {{ git_branch }}
+      when: not git_dir_exists.stat.exists
+
+    - name: Update application code from git
       become_user: "{{ admin_user }}"
       git:
         repo: "{{ git_repo }}"
         dest: "{{ app_dir }}"
         version: "{{ git_branch }}"
-        force: no
-      when: not app_code_exists.stat.exists
+        force: yes
+      when: git_dir_exists.stat.exists
 
     - name: Create Python virtual environment
       become_user: "{{ admin_user }}"
@@ -55,29 +65,17 @@
         state: latest
         virtualenv: "{{ venv_dir }}"
 
-    - name: Check if deployment requirements.txt exists
-      stat:
-        path: "{{ app_dir }}/deployment/requirements.txt"
-      register: deployment_requirements_file
-
     - name: Check if root requirements.txt exists
       stat:
         path: "{{ app_dir }}/requirements.txt"
       register: root_requirements_file
 
-    - name: Install Python dependencies from deployment directory
-      become_user: "{{ admin_user }}"
-      pip:
-        requirements: "{{ app_dir }}/deployment/requirements.txt"
-        virtualenv: "{{ venv_dir }}"
-      when: deployment_requirements_file.stat.exists
-
-    - name: Install Python dependencies from root (fallback)
+    - name: Install Python dependencies
       become_user: "{{ admin_user }}"
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
         virtualenv: "{{ venv_dir }}"
-      when: not deployment_requirements_file.stat.exists and root_requirements_file.stat.exists
+      when: root_requirements_file.stat.exists
 
     - name: Install gunicorn in virtual environment
       become_user: "{{ admin_user }}"

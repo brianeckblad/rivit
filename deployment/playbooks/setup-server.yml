@@ -162,16 +162,16 @@
       file:
         path: "{{ app_dir }}/instance"
         state: directory
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
         mode: '0755'
 
     - name: Create log directory
       file:
         path: "{{ log_dir }}"
         state: directory
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
         mode: '0755'
 
     # =========================================================================
