@@ -46,14 +46,14 @@
       when: app_user != admin_user
 
     # =========================================================================
-    # EBS VOLUME → /home (MANDATORY)
+    # EBS VOLUME → /opt/{app_name} (MANDATORY)
     # =========================================================================
-    # The 100 GB EBS volume replaces /home so that all user home directories
-    # and the application live on persistent storage.
+    # The EBS data volume is mounted at /opt/{app_name} so that all
+    # application code, logs, and data live on persistent storage.
     #
-    # On first run the existing /home (ubuntu SSH keys, etc.) is migrated
-    # to the EBS volume before the mount is switched.  Subsequent runs
-    # detect that /home is already on EBS and skip the migration.
+    # /home is left on the root volume.  This keeps the ubuntu user's
+    # SSH authorized_keys intact across reboots and avoids the fragile
+    # /home migration that previously broke SSH access.
     #
     # Nitro instances (t3 family) present EBS volumes as NVMe devices:
     #   EC2 API name /dev/sdf → on-instance /dev/nvme1n1
@@ -84,55 +84,14 @@
       register: ebs_uuid
       changed_when: false
 
-    # --- Check whether /home is already on EBS ---
-    - name: Check if /home is already mounted from EBS
-      shell: "findmnt -n -o SOURCE {{ ebs_volume_mount_path }} 2>/dev/null || true"
-      register: home_mount_source
-      changed_when: false
-
-    - name: Set home_already_on_ebs flag
-      set_fact:
-        home_already_on_ebs: "{{ ebs_actual_device in home_mount_source.stdout }}"
-
-    # --- First-run migration: copy /home to EBS, then mount over it ---
-    - name: Create temporary mount point
+    # --- Mount EBS at /opt/{app_name} (persists across reboots via fstab) ---
+    - name: Create EBS mount point
       file:
-        path: /mnt/ebs_temp
+        path: "{{ ebs_volume_mount_path }}"
         state: directory
-      when: not home_already_on_ebs
+        mode: '0755'
 
-    - name: Mount EBS at temporary location
-      mount:
-        path: /mnt/ebs_temp
-        src: "UUID={{ ebs_uuid.stdout }}"
-        fstype: xfs
-        state: mounted
-      when: not home_already_on_ebs
-
-    - name: Migrate existing /home to EBS volume
-      shell: "rsync -aAX /home/ /mnt/ebs_temp/"
-      when: not home_already_on_ebs
-
-    - name: Unmount EBS from temporary location
-      mount:
-        path: /mnt/ebs_temp
-        state: unmounted
-      when: not home_already_on_ebs
-
-    - name: Remove temporary mount point
-      file:
-        path: /mnt/ebs_temp
-        state: absent
-      when: not home_already_on_ebs
-
-    - name: Remove temporary fstab entry
-      mount:
-        path: /mnt/ebs_temp
-        state: absent
-      when: not home_already_on_ebs
-
-    # --- Mount EBS at /home (persists across reboots via fstab) ---
-    - name: Mount EBS volume at /home
+    - name: Mount EBS volume at {{ ebs_volume_mount_path }}
       mount:
         path: "{{ ebs_volume_mount_path }}"
         src: "UUID={{ ebs_uuid.stdout }}"
@@ -140,9 +99,13 @@
         opts: defaults,nofail
         state: mounted
 
-    - name: Set /home permissions
+    # After mount the XFS root inode is owned by root.
+    # Set ownership to admin_user so git clone/venv creation work.
+    - name: Set mount point ownership and permissions
       file:
         path: "{{ ebs_volume_mount_path }}"
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
         mode: '0755'
         state: directory
 
@@ -150,13 +113,6 @@
     # Create application directories on EBS volume
     # =========================================================================
 
-    - name: Create application directory
-      file:
-        path: "{{ app_dir }}"
-        state: directory
-        owner: "{{ admin_user }}"
-        group: "{{ admin_user }}"
-        mode: '0755'
 
     - name: Create instance directory for data persistence
       file:
@@ -189,7 +145,6 @@
           - "    Size: {{ ebs_volume_size }} GB ({{ ebs_volume_type }})"
           - "    Encrypted: {{ ebs_volume_encrypted }}"
           - "    UUID: {{ ebs_uuid.stdout }}"
-          - "    Migration: {{ 'skipped (already on EBS)' if home_already_on_ebs else 'completed' }}"
           - ""
           - "  Directories created:"
           - "    App:      {{ app_dir }}"

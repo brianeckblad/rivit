@@ -30,6 +30,14 @@
         msg: "⏭ No EC2 instance found with tag Name={{ app_name }} - nothing to terminate"
       when: ec2_instances.instances | length == 0
 
+    - name: Warn about multiple instances with same name
+      debug:
+        msg:
+          - "⚠️  WARNING: Found {{ ec2_instances.instances | length }} instances named '{{ app_name }}'."
+          - "This usually means launch-ec2-instance.yml ran twice with different AMIs."
+          - "ALL {{ ec2_instances.instances | length }} instances will be terminated."
+      when: ec2_instances.instances | length > 1
+
     - name: Show instance to be terminated
       debug:
         msg:

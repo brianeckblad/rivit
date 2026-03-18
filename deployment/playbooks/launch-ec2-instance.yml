@@ -27,6 +27,43 @@
         msg: "Only t3 instances are supported (Nitro/Intel/NVMe). Got: {{ instance_type }}"
       when: not instance_type.startswith('t3.')
 
+    # -----------------------------------------------------------------
+    # SAFETY CHECK: Detect existing instance BEFORE creating anything.
+    # The ec2_instance module matches on name + image_id.  Because the
+    # playbook always queries the *latest* AMI, a re-run after Canonical
+    # publishes a new image would NOT match the existing instance and
+    # would silently create a duplicate (new volumes, new IP).
+    # This pre-check prevents that by searching on the Name tag alone.
+    # -----------------------------------------------------------------
+    - name: Check for existing EC2 instance with name tag
+      amazon.aws.ec2_instance_info:
+        filters:
+          "tag:Name": "{{ app_name }}"
+          "instance-state-name":
+            - pending
+            - running
+            - stopping
+            - stopped
+        region: "{{ aws_region }}"
+      register: existing_instances
+
+    - name: Abort if instance already exists
+      fail:
+        msg: |
+          An EC2 instance named '{{ app_name }}' already exists:
+            Instance ID:  {{ existing_instances.instances[0].instance_id }}
+            State:        {{ existing_instances.instances[0].state.name }}
+            IP:           {{ existing_instances.instances[0].public_ip_address | default('N/A') }}
+            AMI:          {{ existing_instances.instances[0].image_id }}
+            Launched:     {{ existing_instances.instances[0].launch_time }}
+
+          To launch a replacement, first terminate the old instance:
+            ansible-playbook playbooks/terminate-ec2-instance.yml --vault-password-file ~/.vault_pass
+
+          To update an existing instance instead (no rebuild):
+            ansible-playbook playbooks/update.yml --vault-password-file ~/.vault_pass
+      when: existing_instances.instances | length > 0
+
     - name: Remove stale instance-info.txt from previous launch
       file:
         path: "{{ playbook_dir }}/../instance-info.txt"
@@ -54,7 +91,7 @@
               volume_size: 8
               volume_type: "gp3"
               delete_on_termination: "{{ ebs_boot_delete_on_termination }}"
-          # Data volume — mounted at /home, application data
+          # Data volume — mounted at /opt/{app_name}, application data
           - device_name: "{{ ebs_device_name }}"
             ebs:
               volume_size: "{{ ebs_volume_size }}"
@@ -225,9 +262,9 @@
           - "    Delete on Termination: {{ ebs_data_delete_on_termination }} {{ '⚠️  volume will be deleted with instance!' if ebs_data_delete_on_termination else '✓ PROTECTED — volume survives instance termination' }}"
           - ""
           - "  IMPORTANT:"
-          - "    EBS volume replaces /home — all user home dirs and app data persist"
-          - "    Application directory: {{ app_storage_mount_path }}"
-          - "      - Application code, Python venv, logs, instance data"
+          - "    EBS volume is mounted at {{ app_storage_mount_path }}"
+          - "    /home is untouched — SSH keys survive reboots"
+          - "    Application code, Python venv, logs, instance data on EBS"
           - ""
           - "MONITORING:"
           - "  CloudWatch:           {{ 'Enabled (detailed)' if monitoring_state == 'enabled' else 'Disabled (basic)' }}"

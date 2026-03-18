@@ -14,7 +14,6 @@
     group: "{{ app_user }}"
     mode: '0755'
   loop:
-    - "/home/{{ app_user }}"
     - "{{ app_dir }}"
     - "{{ app_dir }}/instance"
     - "{{ log_dir }}"
@@ -92,11 +91,11 @@
     mode: '0755'
     recurse: yes
 
-- name: Secure SSH authorized_keys
+- name: Secure SSH authorized_keys for admin user
   file:
-    path: "/home/{{ app_user }}/.ssh/authorized_keys"
-    owner: "{{ app_user }}"
-    group: "{{ app_user }}"
+    path: "/home/{{ admin_user }}/.ssh/authorized_keys"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
     mode: '0600'
   ignore_errors: yes
 

@@ -97,19 +97,17 @@ s3_version_retention_days: 30                    # Days to keep old S3 versions
 
 # EBS Volume Configuration
 # ⚠️ EBS VOLUME IS MANDATORY - Application runs on EBS volume
-# The 100 GB EBS volume replaces /home so that all user home directories
-# and application files live on persistent storage.
-# Root volume is only used for OS.
+# The EBS volume is mounted at /opt/{app_name} for application data.
+# Root volume is only used for OS.  /home is left untouched so that
+# the ubuntu user's SSH keys always survive a reboot.
 
-# EBS mount point — the volume replaces /home entirely.
-# On first run, existing /home contents (ubuntu SSH keys, etc.) are
-# migrated to the EBS volume before the mount is switched.
-ebs_volume_mount_path: "/home"
+# EBS mount point — dedicated directory for the application.
+# /home is NOT touched; SSH keys stay on the root volume.
+ebs_volume_mount_path: "/opt/{{ app_name }}"
 
-# Application Storage Location
-# The app lives under /home/{app_name} on the EBS volume.
-app_storage_mount_path: "/home/{{ app_name }}"   # Application directory on EBS volume
-                                                 # Example: /home/rampe, /home/myapp
+# Application Storage Location (same as mount point)
+app_storage_mount_path: "/opt/{{ app_name }}"    # Application directory on EBS volume
+                                                 # Example: /opt/rampe, /opt/myapp
                                                  # This directory contains:
                                                  #   • Application code
                                                  #   • Python virtual environment

@@ -45,7 +45,7 @@ ps aux | grep gunicorn
 # Should show: {app_name} as user
 
 # Test isolation (should fail - good!)
-sudo -u {app_name} touch /home/ubuntu/{app_name}/test.txt
+sudo -u {app_name} touch /opt/{app_name}/test.txt
 # Should fail: Permission denied
 
 # Verify security
@@ -101,10 +101,10 @@ This deployment uses a **dedicated, non-privileged application user** with no SS
 │     ├── Home: ❌ NONE (system user)                     │
 │     ├── Purpose: Run application ONLY                   │
 │     └── Permissions:                                    │
-│          ├── READ: /home/ubuntu/{app_name}/* (code)     │
-│          ├── READ: /home/ubuntu/.venv/* (dependencies)  │
-│          ├── WRITE: /var/log/{app_name}/* (logs)        │
-│          └── WRITE: /home/ubuntu/{app_name}/instance/* (data)│
+│          ├── READ: /opt/{app_name}/* (code)             │
+│          ├── READ: /opt/{app_name}/.venv/* (deps)       │
+│          ├── WRITE: /opt/{app_name}/logs/* (logs)       │
+│          └── WRITE: /opt/{app_name}/instance/* (data)   │
 │                                                          │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -143,11 +143,11 @@ SystemCallFilter=~@privileged @resources @mount
 
 # Make system directories read-only
 ProtectSystem=strict
-ProtectHome=read-only
+ProtectHome=true
 
 # Only these directories are writable
-ReadWritePaths=/var/log/{app_name}
-ReadWritePaths=/home/ubuntu/{app_name}/instance
+ReadWritePaths=/opt/{app_name}/logs
+ReadWritePaths=/opt/{app_name}/instance
 
 # Protect kernel
 ProtectKernelLogs=true
@@ -209,9 +209,9 @@ admin_user: ubuntu                # Standard EC2/Lightsail user
                                    # - Manages code and dependencies
 
 # Paths
-app_dir: /home/ubuntu/{app_name}   # Code owned by admin_user
-venv_dir: /home/ubuntu/.venv       # Python venv owned by admin_user
-log_dir: /var/log/{app_name}       # Logs owned by app_user
+app_dir: /opt/{app_name}           # Code owned by admin_user
+venv_dir: /opt/{app_name}/.venv    # Python venv owned by admin_user
+log_dir: /opt/{app_name}/logs      # Logs owned by app_user
 ```
 
 ### How It Works
@@ -222,9 +222,9 @@ log_dir: /var/log/{app_name}       # Logs owned by app_user
    ssh ubuntu@server
    
    # Pulls code, installs dependencies
-   cd /home/ubuntu/{app_name}
+   cd /opt/{app_name}
    git pull
-   source ~/.venv/bin/activate
+   source .venv/bin/activate
    pip install -r requirements.txt
    ```
 
@@ -236,12 +236,12 @@ log_dir: /var/log/{app_name}       # Logs owned by app_user
    # Process runs as:
    User={app_name}
    Group={app_name}
-   WorkingDirectory=/home/ubuntu/{app_name}
+   WorkingDirectory=/opt/{app_name}
    
    # Can only:
    # - Read code files
-   # - Write to /var/log/{app_name}/
-   # - Write to /home/ubuntu/{app_name}/instance/
+   # - Write to /opt/{app_name}/logs/
+   # - Write to /opt/{app_name}/instance/
    ```
 
 ## Verification
@@ -273,7 +273,7 @@ systemd-analyze security {app_name}
 # ✓ PrivateTmp=yes
 # ✓ NoNewPrivileges=yes
 # ✓ ProtectSystem=strict
-# ✓ ProtectHome=read-only
+# ✓ ProtectHome=yes
 # Overall exposure level: 2.3 MEDIUM 😀
 ```
 
@@ -281,15 +281,15 @@ systemd-analyze security {app_name}
 
 ```bash
 # App user should NOT be able to write to code directory
-sudo -u {app_name} touch /home/ubuntu/{app_name}/test.txt
+sudo -u {app_name} touch /opt/{app_name}/test.txt
 # Should fail: Permission denied
 
 # App user SHOULD be able to write logs
-sudo -u {app_name} touch /var/log/{app_name}/test.log
+sudo -u {app_name} touch /opt/{app_name}/logs/test.log
 # Should succeed
 
 # App user SHOULD be able to write instance data
-sudo -u {app_name} touch /home/ubuntu/{app_name}/instance/test.json
+sudo -u {app_name} touch /opt/{app_name}/instance/test.json
 # Should succeed
 ```
 
@@ -380,14 +380,14 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
 1. **Backup instance data**
    ```bash
    ssh ubuntu@your-server
-   cd /home/ubuntu/{app_name}
+   cd /opt/{app_name}
    tar -czf ~/instance-backup-$(date +%Y%m%d-%H%M%S).tar.gz instance/
    ```
 
 2. **Pull latest code**
    ```bash
    ssh ubuntu@your-server
-   cd /home/ubuntu/{app_name} && git pull
+   cd /opt/{app_name} && git pull
    ```
 
 3. **Run setup playbook** (creates dedicated user)
@@ -402,13 +402,13 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
    ssh ubuntu@your-server
    
    # Code directory (admin_user owns)
-   sudo chown -R ubuntu:ubuntu /home/ubuntu/{app_name}
+   sudo chown -R ubuntu:ubuntu /opt/{app_name}
    
    # Log directory (app_user owns)
-   sudo chown -R {app_name}:{app_name} /var/log/{app_name}
+   sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
    
    # Instance directory (app_user owns)
-   sudo chown -R {app_name}:{app_name} /home/ubuntu/{app_name}/instance
+   sudo chown -R {app_name}:{app_name} /opt/{app_name}/instance
    ```
 
 5. **Restart service**
@@ -453,17 +453,17 @@ admin_user: ubuntu
 ```bash
 # Problem: App cannot read code files
 # Solution: Ensure admin_user owns code directory
-sudo chown -R ubuntu:ubuntu /home/ubuntu/{app_name}
+sudo chown -R ubuntu:ubuntu /opt/{app_name}
 
 # Problem: App cannot write logs
 # Solution: Ensure app_user owns log directory
-sudo chown -R {app_name}:{app_name} /var/log/{app_name}
-sudo chmod 755 /var/log/{app_name}
+sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
+sudo chmod 755 /opt/{app_name}/logs
 
 # Problem: App cannot write instance data
 # Solution: Ensure app_user owns instance directory
-sudo chown -R {app_name}:{app_name} /home/ubuntu/{app_name}/instance
-sudo chmod 755 /home/ubuntu/{app_name}/instance
+sudo chown -R {app_name}:{app_name} /opt/{app_name}/instance
+sudo chmod 755 /opt/{app_name}/instance
 ```
 
 ### Service Won't Start
@@ -476,8 +476,8 @@ systemctl status {app_name}
 getent passwd {app_name}
 
 # Check permissions
-namei -l /home/ubuntu/{app_name}
-namei -l /var/log/{app_name}
+namei -l /opt/{app_name}
+namei -l /opt/{app_name}/logs
 
 # View detailed logs
 journalctl -u {app_name} -n 50 --no-pager

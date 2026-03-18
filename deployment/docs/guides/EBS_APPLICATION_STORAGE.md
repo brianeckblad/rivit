@@ -21,19 +21,20 @@ The application now runs **entirely on an EBS volume**, not on the EC2 root volu
 ```
 EC2 Instance
 ├── Root Volume (/dev/xvda)
-│   ├── Size: 20 GB (fixed)
+│   ├── Size: 8 GB (fixed)
 │   ├── Type: gp3 (encrypted)
 │   ├── Purpose: OS only (Ubuntu 22.04)
+│   ├── Contains: /home (SSH keys stay here)
 │   └── Delete on termination: Yes
 │
 └── Application Volume (/dev/sdf) ← MANDATORY
     ├── Size: Configurable (default: 100 GB)
     ├── Type: Configurable (default: gp3)
     ├── Encryption: Enabled (AES-256)
-    ├── Mount Point: /{app_name}
+    ├── Mount Point: /opt/{app_name}
     ├── Format: XFS
     │
-    └── /{app_name} (mounted at app_storage_mount_path)
+    └── /opt/{app_name} (mounted at app_storage_mount_path)
         ├── Application Code
         ├── .venv/ (Python environment)
         ├── logs/ (Application logs)
@@ -46,7 +47,7 @@ EC2 Instance
 After deployment:
 
 ```
-/{app_name}                          # EBS volume mount point
+/opt/{app_name}                      # EBS volume mount point
 ├── .env                             # Application configuration
 ├── .venv/                           # Python virtual environment
 │   ├── bin/
@@ -79,13 +80,13 @@ After deployment:
 ```
 Configuration Variable: app_storage_mount_path
         ↓
-    Default: /{app_name} (e.g., /myapp)
+    Default: /opt/{app_name} (e.g., /opt/myapp)
         ↓
     Used in:
-    - app_dir: /{app_name}
-    - venv_dir: /{app_name}/.venv
-    - log_dir: /{app_name}/logs
-    - instance_dir: /{app_name}/instance
+    - app_dir: /opt/{app_name}
+    - venv_dir: /opt/{app_name}/.venv
+    - log_dir: /opt/{app_name}/logs
+    - instance_dir: /opt/{app_name}/instance
 ```
 
 ---
@@ -98,7 +99,7 @@ All you need to set in `all.yml`:
 
 ```yaml
 # APPLICATION IDENTITY
-app_name: myapp                                  # Creates /{app_name} mount point
+app_name: myapp                                  # Creates /opt/{app_name} mount point
 
 # STORAGE CONFIGURATION (MANDATORY)
 ebs_volume_size: 100                             # Size in GB
@@ -112,7 +113,7 @@ That's it! Everything else is automatically configured.
 
 ```yaml
 # Override default mount path (not recommended)
-app_storage_mount_path: "/my-custom-path"       # Default: /{app_name}
+app_storage_mount_path: "/my-custom-path"       # Default: /opt/{app_name}
 
 # Use snapshot to restore data
 ebs_volume_snapshot_id: "snap-0123456789abcdef0"
@@ -149,7 +150,7 @@ ansible-playbook -i inventories playbooks/setup.yml \
 **Steps in order:**
 1. Install system dependencies
 2. Create application user
-3. **Mount EBS volume to /{app_name}**
+3. **Mount EBS volume to /opt/{app_name}**
 4. Clone application code
 5. Create Python virtual environment
 6. Install dependencies
@@ -161,7 +162,7 @@ ansible-playbook -i inventories playbooks/setup.yml \
 After deployment, all application files are at:
 
 ```
-/{app_name}/                    # Everything here is on EBS volume
+/opt/{app_name}/                    # Everything here is on EBS volume
 ├── Code
 ├── Environment
 ├── Logs
@@ -174,10 +175,11 @@ After deployment, all application files are at:
 
 | Purpose | Location | Volume | Owner |
 |---------|----------|--------|-------|
-| Application code | `/{app_name}` | EBS | ubuntu |
-| Python venv | `/{app_name}/.venv` | EBS | ubuntu |
-| App logs | `/{app_name}/logs` | EBS | {app_name} |
-| Runtime data | `/{app_name}/instance` | EBS | {app_name} |
+| Application code | `/opt/{app_name}` | EBS | ubuntu |
+| Python venv | `/opt/{app_name}/.venv` | EBS | ubuntu |
+| App logs | `/opt/{app_name}/logs` | EBS | {app_name} |
+| Runtime data | `/opt/{app_name}/instance` | EBS | {app_name} |
+| SSH keys | `/home/ubuntu/.ssh` | Root | ubuntu |
 | OS files | `/` | Root | root |
 
 ---

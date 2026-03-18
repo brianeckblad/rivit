@@ -491,7 +491,7 @@ If this fails, check:
 
 ### 5c: Prepare the Server
 
-This installs system packages, creates the app user, formats and mounts the 100 GB EBS volume at `/home`, and creates the application directories. No reboot is required — the mount happens live and fstab is written for persistence.
+This installs system packages, creates the app user, formats and mounts the 100 GB EBS volume at `/opt/{app_name}`, and creates the application directories. No reboot is required — the mount happens live and fstab is written for persistence.
 
 ```bash
 cd deployment
@@ -503,16 +503,16 @@ ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
 - ✅ Creates dedicated app user (restricted, no shell, no SSH)
 - ✅ Detects the NVMe device (`/dev/nvme1n1`)
 - ✅ Formats the EBS volume as XFS (first run only)
-- ✅ Migrates existing `/home` (ubuntu SSH keys) to EBS
-- ✅ Mounts EBS at `/home` with fstab entry
-- ✅ Creates `/home/{app_name}`, `/home/{app_name}/instance`, `/home/{app_name}/logs`
+- ✅ Mounts EBS at `/opt/{app_name}` with fstab entry
+- ✅ Creates `/opt/{app_name}`, `/opt/{app_name}/instance`, `/opt/{app_name}/logs`
+- ✅ `/home` is untouched — SSH keys survive reboots
 
 **Verify EBS mount:**
 ```bash
-ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP "df -h /home && ls -la /home/"
+ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP "df -h /opt/${app_name} && ls -la /opt/${app_name}/"
 ```
 
-You should see the 100 GB volume mounted at `/home` and your app directory listed.
+You should see the 100 GB volume mounted at `/opt/{app_name}` and your app directories listed.
 
 ---
 
@@ -530,7 +530,7 @@ ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
-- ✅ Clones your Git repository to `/home/{app_name}`
+- ✅ Clones your Git repository to `/opt/{app_name}`
 - ✅ Creates Python virtual environment and installs dependencies
 - ✅ Creates `.env` configuration file
 - ✅ Configures Nginx web server
@@ -580,10 +580,10 @@ sudo apt install -y python3 python3-pip python3-venv nginx git
 ### 3. Clone Application
 
 ```bash
-# Clone from Git repository
-cd /home/ubuntu
-git clone https://github.com/YOUR_USERNAME/your_app.git
-cd your_app
+# Clone from Git repository (EBS volume is mounted at /opt/${APP_NAME})
+cd /opt/${APP_NAME}
+sudo chown ubuntu:ubuntu /opt/${APP_NAME}
+git clone https://github.com/YOUR_USERNAME/your_app.git .
 
 # (If private repo, configure Git credentials first)
 ```
@@ -592,8 +592,8 @@ cd your_app
 
 ```bash
 # Create isolated Python environment
-python3 -m venv ~/.venv
-source ~/.venv/bin/activate
+python3 -m venv /opt/${APP_NAME}/.venv
+source /opt/${APP_NAME}/.venv/bin/activate
 
 # Install dependencies
 pip install --upgrade pip
@@ -624,9 +624,9 @@ After=network.target
 Type=simple
 User=${APP_USER}
 Group=${APP_USER}
-WorkingDirectory=/home/ubuntu/${APP_NAME}
-Environment="PATH=/home/ubuntu/.venv/bin"
-ExecStart=/home/ubuntu/.venv/bin/gunicorn \
+WorkingDirectory=/opt/${APP_NAME}
+Environment="PATH=/opt/${APP_NAME}/.venv/bin"
+ExecStart=/opt/${APP_NAME}/.venv/bin/gunicorn \
     --bind 127.0.0.1:8000 \
     --workers 4 \
     --timeout 120 \
@@ -657,7 +657,7 @@ server {
 
     # Serve static files directly
     location /static/ {
-        alias /home/ubuntu/${APP_NAME}/app/static/;
+        alias /opt/${APP_NAME}/app/static/;
     }
 
     # Forward everything else to Gunicorn

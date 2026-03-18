@@ -43,7 +43,7 @@ python app/scripts/util_validate_csv_schema.py
 
 # Run on server
 ssh user@server
-cd /{app_name}
+cd /opt/{app_name}
 python app/scripts/util_fix_missing_thumbnails.py
 ```
 

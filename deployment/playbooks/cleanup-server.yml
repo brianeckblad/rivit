@@ -38,7 +38,7 @@
 
         - name: Remove docs from parent (if exists)
           file:
-            path: /home/{{ app_user }}/docs
+            path: "{{ app_dir }}/../docs"
             state: absent
 
         - name: Remove tests directory

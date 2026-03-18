@@ -155,8 +155,8 @@ SystemCallFilter=~@privileged @resources @mount
 # ============================================================================
 # FILESYSTEM RESTRICTIONS
 # ============================================================================
-# ProtectHome=read-only: Can read /home but not write
-#                       (prevents modifying user files)
+# ProtectHome=true: Completely block access to /home, /root, /run/user
+#                  (app lives under /opt, does not need /home)
 #
 # ProtectSystem=strict: Root filesystem (/,/usr,/boot,/etc) read-only
 #                      (prevents modifying system)
@@ -167,8 +167,8 @@ SystemCallFilter=~@privileged @resources @mount
 #
 # Default: Everything else is read-only
 # ============================================================================
-# Prevent access to /home directories (except its own working directory)
-ProtectHome=read-only
+# Block all access to /home (app lives under /opt)
+ProtectHome=true
 
 # Make /usr, /boot, /etc read-only
 ProtectSystem=strict
