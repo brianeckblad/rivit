@@ -197,117 +197,160 @@ fi
 # Load all.yml variables (plain values)
 parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
 
-# Load SERVER_IP — scan instances/*.txt files, fall back to inventories/hosts.yml
+# =========================================================================
+# Load SERVER_IP — query AWS for live instance data, fall back to local files
+# =========================================================================
 INSTANCES_DIR="$DEPLOYMENT_DIR/instances"
 INVENTORY_FILE="$DEPLOYMENT_DIR/inventories/hosts.yml"
 
-# Also check legacy instance-info.txt (from before the multi-instance change)
-LEGACY_INFO="$DEPLOYMENT_DIR/instance-info.txt"
+# Resolve aws_region early (Jinja2 references aren't resolved until later,
+# but we need the region now for AWS queries)
+if [ -z "$aws_region" ] && [ -n "$vault_aws_region" ]; then
+    aws_region="$vault_aws_region"
+    export aws_region
+fi
 
 _server_ip=""
 _instance_id=""
 
-# Collect instance info files (new format: instances/{id}.txt)
-_instance_files=()
-if [ -d "$INSTANCES_DIR" ]; then
-    while IFS= read -r f; do
-        _instance_files+=("$f")
-    done < <(find "$INSTANCES_DIR" -maxdepth 1 -name '*.txt' -type f 2>/dev/null | sort)
+# Try AWS first — always has the true state (IPs change on stop/start)
+_aws_available=false
+if command -v aws &>/dev/null && [ -n "$aws_region" ]; then
+    _aws_json=$(aws ec2 describe-instances \
+        --filters "Name=tag:Name,Values=$app_name" \
+                  "Name=instance-state-name,Values=running,stopped,stopping,pending" \
+        --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,IP:PublicIpAddress,Type:InstanceType,Launch:LaunchTime}' \
+        --region "$aws_region" --output json 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$_aws_json" ] && [ "$_aws_json" != "[]" ]; then
+        _aws_available=true
+    fi
 fi
 
-# Also pick up legacy instance-info.txt if it exists and no new-format files were found
-if [ ${#_instance_files[@]} -eq 0 ] && [ -f "$LEGACY_INFO" ]; then
-    _instance_files=("$LEGACY_INFO")
-fi
+if [ "$_aws_available" = true ]; then
+    # Parse AWS response with Python (handles JSON reliably)
+    _aws_count=$(python3 -c "import json; print(len(json.loads('''$_aws_json''')))" 2>/dev/null)
 
-if [ ${#_instance_files[@]} -eq 1 ]; then
-    # Single instance — use it directly (bash=[0], zsh=[1], for-break works in both)
-    for _chosen_file in "${_instance_files[@]}"; do break; done
-elif [ ${#_instance_files[@]} -gt 1 ]; then
-    # Multiple instances — ask user to pick
-    echo ""
-    echo -e "${YELLOW}Found ${#_instance_files[@]} instances:${NC}"
-    echo ""
-    _idx=1
-    for _f in "${_instance_files[@]}"; do
-        _fname=$(basename "$_f" .txt)
-        _file_ip=$(python3 -c "
+    if [ "$_aws_count" -eq 1 ] 2>/dev/null; then
+        # Single instance — use it directly
+        eval "$(python3 -c "
+import json
+data = json.loads('''$_aws_json''')
+i = data[0]
+print(f'_server_ip=\"{i.get(\"IP\") or \"\"}\"')
+print(f'_instance_id=\"{i[\"ID\"]}\"')
+" 2>/dev/null)"
+        if [ -z "$_server_ip" ]; then
+            echo -e "${YELLOW}⚠️  Instance ${_instance_id} is ${_aws_count} but has no public IP (stopped?)${NC}"
+        fi
+
+    elif [ "$_aws_count" -gt 1 ] 2>/dev/null; then
+        # Multiple instances — show live data and ask user to pick
+        echo ""
+        echo -e "${YELLOW}Found $_aws_count instances named '$app_name' (live from AWS):${NC}"
+        echo ""
+        python3 -c "
+import json
+data = json.loads('''$_aws_json''')
+for idx, i in enumerate(data, 1):
+    ip = i.get('IP') or 'no public IP'
+    state = i.get('State', '?')
+    itype = i.get('Type', '?')
+    launched = (i.get('Launch') or '?')[:10]
+    print(f'  {idx}) {i[\"ID\"]}   {ip:<16s} {state:<10s} {itype}  launched {launched}')
+" 2>/dev/null
+        echo ""
+        printf "Select instance [1-%d]: " "$_aws_count"
+        read -r _choice
+
+        if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "$_aws_count" ]; then
+            eval "$(python3 -c "
+import json
+data = json.loads('''$_aws_json''')
+i = data[int('$_choice') - 1]
+print(f'_server_ip=\"{i.get(\"IP\") or \"\"}\"')
+print(f'_instance_id=\"{i[\"ID\"]}\"')
+" 2>/dev/null)"
+        else
+            echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
+        fi
+    fi
+
+else
+    # AWS not available — fall back to local instance files
+    _instance_files=()
+    if [ -d "$INSTANCES_DIR" ]; then
+        while IFS= read -r f; do
+            _instance_files+=("$f")
+        done < <(find "$INSTANCES_DIR" -maxdepth 1 -name '*.txt' -type f 2>/dev/null | sort)
+    fi
+    # Also check legacy instance-info.txt
+    if [ ${#_instance_files[@]} -eq 0 ] && [ -f "$DEPLOYMENT_DIR/instance-info.txt" ]; then
+        _instance_files=("$DEPLOYMENT_DIR/instance-info.txt")
+    fi
+
+    if [ ${#_instance_files[@]} -eq 1 ]; then
+        for _chosen_file in "${_instance_files[@]}"; do break; done
+    elif [ ${#_instance_files[@]} -gt 1 ]; then
+        echo ""
+        echo -e "${YELLOW}AWS credentials not available — reading from local files:${NC}"
+        echo ""
+        _idx=1
+        for _f in "${_instance_files[@]}"; do
+            _fname=$(basename "$_f" .txt)
+            _file_ip=$(python3 -c "
 import re
 with open('$_f') as fh:
     for line in fh:
         m = re.search(r'Public IP Address:\s+(\S+)', line)
-        if m:
-            print(m.group(1))
-            break
+        if m: print(m.group(1)); break
 " 2>/dev/null)
-        _file_state=$(python3 -c "
-import re
-with open('$_f') as fh:
-    for line in fh:
-        m = re.search(r'Instance State:\s+(\S+)', line)
-        if m:
-            print(m.group(1))
-            break
-" 2>/dev/null)
-        printf "  %d) %-24s  IP: %-16s  %s\n" "$_idx" "$_fname" "${_file_ip:-unknown}" "${_file_state:-}"
-        _idx=$((_idx+1))
-    done
-    echo ""
-    printf "Select instance [1-%d]: " "${#_instance_files[@]}"
-    read -r _choice
-
-    # Validate choice
-    if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "${#_instance_files[@]}" ]; then
-        _pick=1
-        _chosen_file=""
-        for _f in "${_instance_files[@]}"; do
-            if [ "$_pick" -eq "$_choice" ]; then
-                _chosen_file="$_f"
-                break
-            fi
-            _pick=$((_pick+1))
+            printf "  %d) %-24s  IP: %s\n" "$_idx" "$_fname" "${_file_ip:-unknown}"
+            _idx=$((_idx+1))
         done
-    else
-        echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
-        _chosen_file=""
-    fi
-else
-    _chosen_file=""
-fi
+        echo ""
+        printf "Select instance [1-%d]: " "${#_instance_files[@]}"
+        read -r _choice
 
-# Extract IP and instance ID from the chosen instance file
-if [ -n "$_chosen_file" ]; then
-    _server_ip=$(python3 -c "
+        if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "${#_instance_files[@]}" ]; then
+            _pick=1
+            for _f in "${_instance_files[@]}"; do
+                if [ "$_pick" -eq "$_choice" ]; then _chosen_file="$_f"; break; fi
+                _pick=$((_pick+1))
+            done
+        else
+            echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
+        fi
+    fi
+
+    # Extract from chosen local file
+    if [ -n "${_chosen_file:-}" ]; then
+        _server_ip=$(python3 -c "
 import re
 with open('$_chosen_file') as f:
     for line in f:
         m = re.search(r'Public IP Address:\s+(\S+)', line)
-        if m:
-            print(m.group(1))
-            break
+        if m: print(m.group(1)); break
 " 2>/dev/null)
-    # Instance ID comes from the filename (instances/{id}.txt)
-    _basename=$(basename "$_chosen_file" .txt)
-    if [[ "$_basename" == i-* ]]; then
-        _instance_id="$_basename"
+        _basename=$(basename "$_chosen_file" .txt)
+        [[ "$_basename" == i-* ]] && _instance_id="$_basename"
     fi
-fi
 
-# Fallback: read from inventories/hosts.yml if no instance files found
-if [ -z "$_server_ip" ] && [ -f "$INVENTORY_FILE" ]; then
-    _server_ip=$(python3 -c "
+    # Last fallback: inventories/hosts.yml
+    if [ -z "$_server_ip" ] && [ -f "$INVENTORY_FILE" ]; then
+        _server_ip=$(python3 -c "
 import re
 with open('$INVENTORY_FILE') as f:
     for line in f:
         m = re.search(r'ansible_host:\s*(\S+)', line)
         if m:
             ip = m.group(1)
-            if re.match(r'\d+\.\d+\.\d+\.\d+', ip):
-                print(ip)
+            if re.match(r'\d+\.\d+\.\d+\.\d+', ip): print(ip)
             break
 " 2>/dev/null)
+    fi
 fi
 
+# Export and sync inventory
 if [ -n "$_server_ip" ]; then
     export SERVER_IP="$_server_ip"
     [ -n "$_instance_id" ] && export INSTANCE_ID="$_instance_id"
@@ -319,12 +362,9 @@ import re
 with open('$INVENTORY_FILE') as f:
     for line in f:
         m = re.search(r'ansible_host:\s*(\S+)', line)
-        if m:
-            print(m.group(1))
-            break
+        if m: print(m.group(1)); break
 " 2>/dev/null)
         if [ "$_inv_ip" != "$_server_ip" ]; then
-            # Update the IP in hosts.yml and the comment header
             python3 -c "
 import re
 text = open('$INVENTORY_FILE').read()
@@ -335,6 +375,9 @@ open('$INVENTORY_FILE', 'w').write(text)
             echo -e "${YELLOW}ℹ️  Updated inventories/hosts.yml: $_inv_ip → $_server_ip${NC}"
         fi
     fi
+elif [ -n "$_instance_id" ]; then
+    # Instance exists but no public IP (stopped)
+    export INSTANCE_ID="$_instance_id"
 fi
 
 # Resolve Jinja2 references: {{ var | default('val') }}
@@ -363,10 +406,14 @@ echo "  aws_region=$aws_region"
 echo "  admin_user=$admin_user"
 echo "  server_name=$server_name"
 if [ -n "$SERVER_IP" ]; then
-    echo "  SERVER_IP=$SERVER_IP"
+    if [ "$_aws_available" = true ]; then
+        echo "  SERVER_IP=$SERVER_IP (live from AWS)"
+    else
+        echo "  SERVER_IP=$SERVER_IP (from local files — may be stale)"
+    fi
     [ -n "$INSTANCE_ID" ] && echo "  INSTANCE_ID=$INSTANCE_ID"
 else
-    echo "  SERVER_IP=(not set — launch an instance first)"
+    echo "  SERVER_IP=(not set — no running instances found)"
 fi
 echo ""
 echo "Variables are NOW AVAILABLE in your shell."
