@@ -97,16 +97,19 @@ s3_version_retention_days: 30                    # Days to keep old S3 versions
 
 # EBS Volume Configuration
 # ⚠️ EBS VOLUME IS MANDATORY - Application runs on EBS volume
-# The EBS volume contains all application code, data, and logs
-# Root volume is only used for OS
+# The 100 GB EBS volume replaces /home so that all user home directories
+# and application files live on persistent storage.
+# Root volume is only used for OS.
+
+# EBS mount point — the volume replaces /home entirely.
+# On first run, existing /home contents (ubuntu SSH keys, etc.) are
+# migrated to the EBS volume before the mount is switched.
+ebs_volume_mount_path: "/home"
 
 # Application Storage Location
-# Default: /{app_name} (e.g., /myapp)
-# This is where the EBS volume is mounted
-# ALL application files will be stored here
-app_storage_mount_path: "/{{ app_name }}"       # Mount point for application EBS volume
-                                                 # Format: /{app_name}
-                                                 # Example: /myapp, /inventory_tool, /comic_tracker
+# The app lives under /home/{app_name} on the EBS volume.
+app_storage_mount_path: "/home/{{ app_name }}"   # Application directory on EBS volume
+                                                 # Example: /home/rampe, /home/myapp
                                                  # This directory contains:
                                                  #   • Application code
                                                  #   • Python virtual environment
@@ -116,7 +119,7 @@ app_storage_mount_path: "/{{ app_name }}"       # Mount point for application EB
 
 # EBS Volume Size
 ebs_volume_size: 100                             # Size in GB
-                                                 # Minimum: 20 GB (for OS + app)
+                                                 # Minimum: 20 GB (for application data)
                                                  # Recommended: 50-100 GB for small apps
                                                  # Increase for large datasets
                                                  # Cost: ~$0.10/GB/month for gp3
@@ -131,19 +134,38 @@ ebs_volume_type: "gp3"                           # gp3: General Purpose (recomme
 ebs_volume_encrypted: true                       # Encrypt volume (recommended)
                                                  # Adds minimal performance cost
 
+# Per-volume: keep or delete when instance is terminated?
+#
+# {app_name}-boot (OS root, /dev/sda1)
+ebs_boot_delete_on_termination: true             # true  = boot volume is DELETED with instance (recommended)
+                                                 # false = boot volume survives (rarely needed — OS is rebuilt from AMI)
+
+# {app_name}-data (application data, /home)
+ebs_data_delete_on_termination: false            # false = data volume SURVIVES instance termination
+                                                 #         (becomes an unattached volume you can reattach)
+                                                 # true  = data volume is DELETED with the instance
+
 # EBS Volume From Snapshot (leave empty for new volume)
 ebs_volume_snapshot_id: ""                       # Set to snapshot ID to restore: snap-0123456789abcdef0
                                                  # Useful for backup/restore or copying volumes
 
-# EC2 Instance Type
-ec2_instance_type: "t3.micro"                    # Keep as t3.micro for free tier
-                                                 # Change for production: t3.small or larger
+# EC2 Instance Type (Nitro/Intel only — t3 family)
+# ⚠️ Only t3 instances are supported (Nitro hypervisor, Intel, NVMe storage)
+# t2 and other non-Nitro families will NOT work with the EBS volume detection
+ec2_instance_type: "t3.micro"                    # t3.micro  = 2 vCPU, 1 GB  (free tier eligible)
+                                                 # t3.small  = 2 vCPU, 2 GB
+                                                 # t3.medium = 2 vCPU, 4 GB
 
 # EC2 Instance Options
 assign_public_ip: true                           # Assign a public IP address
 ec2_monitoring_enabled: false                    # true = detailed CloudWatch (1-min, ~$2.10/mo)
                                                  # false = basic CloudWatch (5-min, free)
-ec2_termination_protection: false                # true = prevent accidental termination
+# EC2 Instance — prevent accidental termination via API/console?
+# This is a safety lock on the INSTANCE ITSELF (not the volumes).
+# When enabled, "aws ec2 terminate-instances" and the console
+# Terminate button are blocked until you disable it first.
+ec2_termination_protection: false                # true  = block terminate API calls (must disable to delete)
+                                                 # false = instance can be terminated freely
 ec2_ebs_optimized: false                         # true = dedicated EBS throughput (not needed for t3)
 ec2_source_dest_check: true                      # true = standard networking (disable for NAT instances)
 
@@ -179,10 +201,9 @@ service_name: "{{ app_name }}"
 
 # APPLICATION DIRECTORY (ON EBS VOLUME)
 # All application files, code, data, and logs reside on EBS volume
-# EBS volume is mounted at: /{app_name}
-# Example: /myapp, /inventory_tool, /comic_tracker
-app_dir: "{{ app_storage_mount_path }}"         # Application directory on EBS volume
-                                                 # Contains: code, data, cache, instance files
+# EBS volume is mounted at: /home
+# Application directory: /home/{app_name}
+app_dir: "{{ app_storage_mount_path }}"         # /home/{app_name}
 
 # VIRTUAL ENVIRONMENT (ON EBS VOLUME)
 # Python venv is also on EBS volume for better performance
@@ -210,7 +231,9 @@ gunicorn_bind: "127.0.0.1:8000"
 app_port: "{{ gunicorn_bind.split(':')[1] }}"
 
 # Git repository from vault
-git_repo: "{{ vault_git_repo }}"
+# For private repos, vault_git_token is inserted into the URL automatically.
+# Ansible decrypts the token locally and passes it to the remote git module.
+git_repo: "{{ vault_git_repo | replace('https://', 'https://' + vault_git_token + '@') if vault_git_token | default('') else vault_git_repo }}"
 
 # AWS Configuration from vault
 aws_region: "{{ vault_aws_region | default('us-east-2') }}"
@@ -223,10 +246,9 @@ sns_topic_arn: "{{ vault_sns_topic_arn | default('') }}"
 app_username: "{{ app_default_username }}"
 app_password: "{{ app_default_password }}"
 
-
-# EBS Volume (computed aliases used by playbooks)
-ebs_volume_mount_path: "{{ app_storage_mount_path }}"
-ebs_device_name: "/dev/sdf"
+# EBS Volume device names (used by playbooks)
+ebs_device_name: "/dev/sdf"                      # EC2 API attachment name (used by launch playbook)
+ebs_nvme_device: "/dev/nvme1n1"                  # Actual device on Nitro instances (used by setup playbook)
 
 # System packages (auto-configured)
 system_packages:

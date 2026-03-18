@@ -96,7 +96,14 @@
   import_playbook: provision-infrastructure.yml
 
 # ========================================
-# Phase 3: Deploy Application
+# Phase 3: Prepare Server
+# ========================================
+
+- name: Prepare Server (system packages, EBS mount)
+  import_playbook: setup-server.yml
+
+# ========================================
+# Phase 4: Deploy Application
 # ========================================
 
 - name: Deploy Application

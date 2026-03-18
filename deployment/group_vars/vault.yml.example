@@ -25,8 +25,21 @@
 # GIT REPOSITORY (REQUIRED)
 # ============================================================================
 # Your GitHub repository URL where your application code is stored
-# This is where deployment pulls your code from
 vault_git_repo: "https://github.com/YOUR_USERNAME/YOUR_APP_NAME.git"
+
+# GitHub Personal Access Token (REQUIRED for private repos)
+# Ansible uses this token to clone your repo on the EC2 instance.
+# The token is decrypted locally and passed to the server — no need for
+# AWS Secrets Manager or any credentials stored on the instance.
+#
+# Create a fine-grained PAT at: https://github.com/settings/personal-access-tokens/new
+#   Token name:         your-app-deploy
+#   Repository access:  Only select repositories → your repo
+#   Permissions:        Contents → Read-only
+#   Copy the token (starts with github_pat_...)
+#
+# Leave empty for public repos.
+vault_git_token: ""
 
 # ============================================================================
 # AWS CONFIGURATION (REQUIRED)

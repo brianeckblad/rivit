@@ -65,6 +65,42 @@ Your Local Machine
 
 ---
 
+## Step 0: Create GitHub Personal Access Token
+
+**Required for private repositories.** Ansible decrypts your vault locally and passes the token to the server during `git clone`. No credentials are stored on the instance and no AWS Secrets Manager is involved.
+
+1. Go to [github.com → Settings → Developer settings → Fine-grained tokens](https://github.com/settings/personal-access-tokens/new).
+2. Create a token:
+   - **Name:** `{app_name}-deploy`
+   - **Repository access:** Only select repositories → your repo
+   - **Permissions:** Contents → Read-only
+3. Copy the token (starts with `github_pat_...`).
+4. Add it to your vault:
+
+```bash
+cd deployment
+EDITOR=nano ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
+```
+
+Set these two lines (the URL stays plain — the token is separate):
+
+```
+vault_git_repo: "https://github.com/YOUR_USERNAME/YOUR_APP_NAME.git"
+vault_git_token: "github_pat_YOUR_TOKEN_HERE"
+```
+
+Save and exit. The playbooks construct the authenticated URL automatically.
+
+**Verify:**
+
+```bash
+ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep vault_git
+```
+
+You should see both `vault_git_repo` and `vault_git_token` with your values.
+
+---
+
 ## Step 1: Create S3 Bucket
 
 **Cloud storage for your application data**
@@ -345,25 +381,30 @@ ls -la ~/.ssh/${app_name}-key.pem
 
 ---
 
-## Step 5: Launch EC2 Instance
+## Step 5: Launch EC2 Instance & Prepare Server
 
-**Create the actual server that runs your application**
+**Create the server, mount the EBS data volume, and install system packages**
 
 📚 **What is EC2?** [INFRASTRUCTURE.md#ec2-instance](INFRASTRUCTURE.md#ec2-instance)
 
-### Option A: Ansible Playbook (Recommended - 3 minutes)
+### 5a: Launch the Instance
+
+#### Option A: Ansible Playbook (Recommended - 3 minutes)
 
 ```bash
 cd deployment
 ansible-playbook playbooks/launch-ec2-instance.yml --vault-password-file ~/.vault_pass
 ```
 
-**Check results:**
-```bash
-cat instance-info.txt
-```
+The playbook automatically:
+- Launches the instance and waits for SSH
+- Updates `inventories/hosts.yml` with the new IP
+- Saves full details to `instance-info.txt`
+- **Validates** SSH, EBS volume, IAM role, S3 bucket, and security group
 
-### Option B: AWS CLI (5 minutes)
+After it completes, `$SERVER_IP` is available via `source scripts/load-vars.sh`.
+
+#### Option B: AWS CLI (5 minutes)
 
 **First, load variables:**
 ```bash
@@ -429,69 +470,72 @@ echo "Save this for next steps:"
 echo "  SERVER_IP=$PUBLIC_IP"
 ```
 
-**Verify:**
-```bash
-# Check instance is running
-aws ec2 describe-instances \
-    --filters "Name=tag:Name,Values=${app_name}" \
-    --query 'Reservations[0].Instances[0].{ID:InstanceId,State:State.Name,IP:PublicIpAddress}'
-```
-
-### Option C: AWS Console (Point and Click)
+#### Option C: AWS Console (Point and Click)
 
 → [Console Deployment — Step 5: Launch EC2 Instance](AWS_CONSOLE_DEPLOYMENT.md#step-5-launch-ec2-instance)
 
----
+### 5b: Test SSH Connectivity
 
-## Step 6: Deploy Application to Server
-
-**Install application code, dependencies, and start services**
-
-### Before You Continue
-
-You now have infrastructure. Next step: deploy the application on it.
-
-**Get your server IP first:**
 ```bash
-# If you just launched the instance
-export SERVER_IP=<YOUR_SERVER_IP>
-
-# Or retrieve it
 cd deployment
 source scripts/load-vars.sh
-export SERVER_IP=$(aws ec2 describe-instances \
-    --filters "Name=tag:Name,Values=${app_name}" \
-    --query 'Reservations[0].Instances[0].PublicIpAddress' \
-    --output text)
+echo $SERVER_IP
 
-echo "Server IP: $SERVER_IP"
+ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP "echo 'SSH OK — connected to $(hostname)'"
 ```
 
-**Option A: Full Automated Setup (Recommended - 10 minutes)**
+If this fails, check:
+- Security group allows port 22 (`aws ec2 describe-security-groups --group-names ${app_name}-sg`)
+- SSH key has correct permissions (`chmod 400 ~/.ssh/${app_name}-key.pem`)
+- Instance is running (`aws ec2 describe-instances --filters "Name=tag:Name,Values=${app_name}" --query 'Reservations[0].Instances[0].State.Name'`)
 
-> **Inventory is managed automatically.** The `launch-ec2-instance.yml` playbook
-> writes your server IP to `inventories/hosts.yml` (which is gitignored — no
-> secrets in git). You don't need to edit it manually.
+### 5c: Prepare the Server
+
+This installs system packages, creates the app user, formats and mounts the 100 GB EBS volume at `/home`, and creates the application directories. No reboot is required — the mount happens live and fstab is written for persistence.
 
 ```bash
 cd deployment
+ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
+```
 
-# If you launched via CLI (not the playbook), update inventory manually:
-# sed -i.bak "s/ansible_host:.*/ansible_host: $SERVER_IP/" inventories/hosts.yml
-# sed -i.bak "s/ansible_connection:.*/ansible_connection: ssh/" inventories/hosts.yml
+**What it does:**
+- ✅ Installs Python, Nginx, git, and system dependencies
+- ✅ Creates dedicated app user (restricted, no shell, no SSH)
+- ✅ Detects the NVMe device (`/dev/nvme1n1`)
+- ✅ Formats the EBS volume as XFS (first run only)
+- ✅ Migrates existing `/home` (ubuntu SSH keys) to EBS
+- ✅ Mounts EBS at `/home` with fstab entry
+- ✅ Creates `/home/{app_name}`, `/home/{app_name}/instance`, `/home/{app_name}/logs`
 
-# Deploy everything
+**Verify EBS mount:**
+```bash
+ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP "df -h /home && ls -la /home/"
+```
+
+You should see the 100 GB volume mounted at `/home` and your app directory listed.
+
+---
+
+## Step 6: Deploy Application
+
+**Clone code, install dependencies, configure Nginx and Supervisor, start the app**
+
+> Prerequisite: Step 5 must be complete (server prepared, EBS mounted).
+
+### Option A: Ansible Playbook (Recommended - 5 minutes)
+
+```bash
+cd deployment
 ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
 ```
 
 **What it does:**
-- ✅ Installs Python, Nginx, dependencies
-- ✅ Creates app user (restricted permissions)
-- ✅ Clones your Git repository
-- ✅ Sets up Python virtual environment
+- ✅ Clones your Git repository to `/home/{app_name}`
+- ✅ Creates Python virtual environment and installs dependencies
+- ✅ Creates `.env` configuration file
 - ✅ Configures Nginx web server
-- ✅ Creates systemd service (auto-start)
-- ✅ Applies security hardening
+- ✅ Configures Supervisor process manager
+- ✅ Applies security permissions
 - ✅ Starts the application
 
 **Verify it worked:**
@@ -742,13 +786,13 @@ Now that logs are being collected, create alarms to detect problems and dashboar
 
 ## Verification
 
-After deployment, run these checks:
+> **Note:** If you used the Ansible playbook for Step 5, SSH, EBS, IAM, S3, and security group were already validated during launch. These commands are for manual or post-deploy checks.
 
 ```bash
 cd deployment
-source scripts/load-vars.sh
+source scripts/load-vars.sh    # loads $SERVER_IP, $app_name, $aws_region, etc.
 
-# Application responds
+# Application responds (after setup.yml has run)
 curl http://$SERVER_IP
 
 # EC2 instance is running
@@ -757,7 +801,7 @@ aws ec2 describe-instances \
   --query 'Reservations[0].Instances[0].{ID:InstanceId,State:State.Name,IP:PublicIpAddress}'
 
 # S3 bucket exists
-aws s3api list-buckets --query 'Buckets[].Name'
+aws s3api head-bucket --bucket $vault_s3_bucket_name
 
 # IAM role exists
 aws iam get-role --role-name ${app_name}-ec2-role --query 'Role.RoleName'

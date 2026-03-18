@@ -121,6 +121,7 @@
           - ""
           - "Instance info saved to: deployment/instance-info.txt"
           - ""
-          - "Next: Deploy application"
-          - "ansible-playbook -i inventories playbooks/setup.yml"
+          - "Next: Prepare server, then deploy application"
+          - "  ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass"
+          - "  ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass"
 

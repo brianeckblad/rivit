@@ -147,6 +147,12 @@ if [ "$MODE" = "new" ]; then
         echo "✅ Created: inventories/hosts.yml (auto-updated on deploy)"
     fi
 
+    # Fresh environment — remove stale instance info
+    if [ -f "$DEPLOYMENT_DIR/instance-info.txt" ]; then
+        rm -f "$DEPLOYMENT_DIR/instance-info.txt"
+        echo "✅ Removed: instance-info.txt (will be created on next launch)"
+    fi
+
     echo ""
     echo "=================================================="
     echo "✅ New Configuration Files Created!"
@@ -338,6 +344,19 @@ if [ "$MODE" = "merge" ]; then
     echo "=================================================="
     echo "✅ Configuration Merge Complete!"
     echo "=================================================="
+
+    # Check for stale instance-info.txt
+    if [ -f "$DEPLOYMENT_DIR/instance-info.txt" ]; then
+        echo ""
+        echo -e "${YELLOW}ℹ️  Found instance-info.txt from a previous deployment.${NC}"
+        read -p "Delete it? (y = fresh start, n = keep current instance) [y/N]: " -r DELETE_INFO < /dev/tty
+        if [[ "$DELETE_INFO" =~ ^[Yy]$ ]]; then
+            rm -f "$DEPLOYMENT_DIR/instance-info.txt"
+            echo "✅ Removed: instance-info.txt"
+        else
+            echo "  Kept: instance-info.txt"
+        fi
+    fi
     echo ""
     echo "Your existing values have been merged into the new templates."
     echo "Only NEW values (from template updates) need to be configured."

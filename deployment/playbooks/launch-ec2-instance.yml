@@ -22,6 +22,16 @@
     ami_name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
 
   tasks:
+    - name: Validate instance type is Nitro (t3 family)
+      fail:
+        msg: "Only t3 instances are supported (Nitro/Intel/NVMe). Got: {{ instance_type }}"
+      when: not instance_type.startswith('t3.')
+
+    - name: Remove stale instance-info.txt from previous launch
+      file:
+        path: "{{ playbook_dir }}/../instance-info.txt"
+        state: absent
+
     - name: Get latest Ubuntu 22.04 AMI
       amazon.aws.ec2_ami_info:
         region: "{{ aws_region }}"
@@ -30,19 +40,26 @@
           name: "{{ ami_name }}"
       register: amis
 
-    - name: Set AMI ID (latest)
+    - name: Set AMI details (latest)
       set_fact:
         ami_id: "{{ (amis.images | sort(attribute='creation_date') | last).image_id }}"
+        ami_root_device: "{{ (amis.images | sort(attribute='creation_date') | last).root_device_name }}"
 
     - name: Build EBS volumes list
       set_fact:
         instance_volumes:
-          # Data/Application volume (application code, logs, data all live here)
+          # Root volume — OS boot disk
+          - device_name: "{{ ami_root_device }}"
+            ebs:
+              volume_size: 8
+              volume_type: "gp3"
+              delete_on_termination: "{{ ebs_boot_delete_on_termination }}"
+          # Data volume — mounted at /home, application data
           - device_name: "{{ ebs_device_name }}"
             ebs:
               volume_size: "{{ ebs_volume_size }}"
               volume_type: "{{ ebs_volume_type }}"
-              delete_on_termination: true
+              delete_on_termination: "{{ ebs_data_delete_on_termination }}"
               encrypted: "{{ ebs_volume_encrypted }}"
               snapshot_id: "{{ ebs_volume_snapshot_id if ebs_volume_snapshot_id else omit }}"
 
@@ -102,6 +119,54 @@
         monitoring_state: "{{ ec2.instances[0].monitoring.state | default('disabled') }}"
         instance_state: "{{ ec2.instances[0].state.name }}"
 
+    # -----------------------------------------------------------------
+    # Tag EBS volumes with distinct names so they are identifiable
+    # in the AWS console:  {app_name}-boot  /  {app_name}-data
+    # -----------------------------------------------------------------
+    - name: Get root volume ID
+      shell: >
+        aws ec2 describe-volumes
+        --region {{ aws_region }}
+        --filters "Name=attachment.instance-id,Values={{ instance_id }}"
+                  "Name=attachment.device,Values={{ ami_root_device }}"
+        --query "Volumes[0].VolumeId" --output text
+      register: root_vol
+      changed_when: false
+
+    - name: Get data volume ID
+      shell: >
+        aws ec2 describe-volumes
+        --region {{ aws_region }}
+        --filters "Name=attachment.instance-id,Values={{ instance_id }}"
+                  "Name=attachment.device,Values={{ ebs_device_name }}"
+        --query "Volumes[0].VolumeId" --output text
+      register: data_vol
+      changed_when: false
+
+    - name: Tag root volume (boot)
+      amazon.aws.ec2_tag:
+        region: "{{ aws_region }}"
+        resource: "{{ root_vol.stdout }}"
+        tags:
+          Name: "{{ app_name }}-boot"
+          Application: "{{ app_name }}"
+          Role: boot
+          ManagedBy: Ansible
+      when: root_vol.stdout != "None"
+
+    - name: Tag data volume (data)
+      amazon.aws.ec2_tag:
+        region: "{{ aws_region }}"
+        resource: "{{ data_vol.stdout }}"
+        tags:
+          Name: "{{ app_name }}-data"
+          Application: "{{ app_name }}"
+          Role: data
+          MountPoint: "{{ ebs_volume_mount_path }}"
+          DeleteOnTermination: "{{ ebs_data_delete_on_termination | string }}"
+          ManagedBy: Ansible
+      when: data_vol.stdout != "None"
+
     - name: Wait for SSH to become available
       wait_for:
         host: "{{ instance_ip }}"
@@ -140,32 +205,35 @@
           - "  SSH Port:             22"
           - ""
           - "STORAGE CONFIGURATION:"
-          - "  Root Volume (OS):       8 GB gp3 (AMI default)"
+          - "  Root Volume ({{ app_name }}-boot):"
+          - "    Volume ID:            {{ root_vol.stdout }}"
+          - "    Size:                 8 GB gp3"
+          - "    Delete on Termination: {{ ebs_boot_delete_on_termination }} {{ '— deleted with instance' if ebs_boot_delete_on_termination else '✓ PROTECTED' }}"
           - ""
-          - "  Application Data Volume:"
-          - "    Device Name:          /dev/sdf"
+          - "  Data Volume ({{ app_name }}-data):"
+          - "    Volume ID:            {{ data_vol.stdout }}"
+          - "    Device Name:          /dev/sdf (appears as /dev/nvme1n1 on instance)"
           - "    Size:                 {{ ebs_volume_size }} GB"
           - "    Type:                 {{ ebs_volume_type }}"
           - "    Encrypted:            {{ ebs_volume_encrypted }}"
-          - "    Mount Point:          {{ app_storage_mount_path }}"
-          - "    Delete on Termination: Yes"
+          - "    Mount Point:          {{ ebs_volume_mount_path }}"
+          - "    App Directory:        {{ app_storage_mount_path }}"
+          - "    Delete on Termination: {{ ebs_data_delete_on_termination }} {{ '⚠️  volume will be deleted with instance!' if ebs_data_delete_on_termination else '✓ PROTECTED — volume survives instance termination' }}"
           - ""
           - "  IMPORTANT:"
-          - "    ALL application files are stored on the {{ ebs_volume_size }} GB EBS volume"
-          - "    This includes:"
-          - "      - Application code ({{ app_storage_mount_path }})"
-          - "      - Python virtual environment ({{ venv_dir }})"
-          - "      - Application logs ({{ log_dir }})"
-          - "      - Instance data ({{ instance_dir }})"
+          - "    EBS volume replaces /home — all user home dirs and app data persist"
+          - "    Application directory: {{ app_storage_mount_path }}"
+          - "      - Application code, Python venv, logs, instance data"
           - ""
           - "MONITORING:"
           - "  CloudWatch:           {{ 'Enabled (detailed)' if monitoring_state == 'enabled' else 'Disabled (basic)' }}"
-          - "  Termination Protect:  Disabled (enable for production)"
+          - "  Termination Protect:  {{ 'Enabled' if ec2_termination_protection else 'Disabled' }}"
           - ""
           - "NEXT STEPS:"
           - "  1. Inventory auto-updated: ansible_host={{ instance_ip }}"
-          - "  2. Run setup: ansible-playbook playbooks/setup.yml"
-          - "  3. Application will be available at: http://{{ instance_ip }}"
+          - "  2. Prepare server: ansible-playbook playbooks/setup-server.yml"
+          - "  3. Deploy app:     ansible-playbook playbooks/setup.yml"
+          - "  4. Application will be available at: http://{{ instance_ip }}"
           - ""
 
     - name: Save comprehensive instance information to file
@@ -219,19 +287,23 @@
           STORAGE CONFIGURATION
           ════════════════════════════════════════════════════════════
           
-          Root Volume:
+          Root Volume ({{ app_name }}-boot):
+            Volume ID:              {{ root_vol.stdout }}
             Device Name:            /dev/sda1
-            Size:                   8 GB (AMI default)
+            Size:                   8 GB
             Type:                   gp3
+            Delete on Termination:  {{ ebs_boot_delete_on_termination }}
           
           {% if ebs_volume_size is defined %}
-          Application Data Volume:
-            Device Name:            /dev/sdf
+          Data Volume ({{ app_name }}-data):
+            Volume ID:              {{ data_vol.stdout }}
+            Device Name:            /dev/sdf (appears as /dev/nvme1n1)
             Size:                   {{ ebs_volume_size }} GB
             Type:                   {{ ebs_volume_type }}
             Encrypted:              {{ ebs_volume_encrypted }}
             Mount Path:             {{ ebs_volume_mount_path }}
-            Delete on Termination:  Yes
+            App Directory:          {{ app_storage_mount_path }}
+            Delete on Termination:  {{ ebs_data_delete_on_termination }}
           {% endif %}
           
           ════════════════════════════════════════════════════════════
@@ -274,8 +346,11 @@
           1. VERIFY SSH ACCESS
              ssh -i ~/.ssh/{{ app_name }}-key.pem ubuntu@{{ instance_ip }}
           
-          2. RUN APPLICATION SETUP
+          2. PREPARE SERVER (system packages, EBS mount, app user)
              Inventory was auto-updated with the server IP.
+             ansible-playbook playbooks/setup-server.yml
+          
+          3. DEPLOY APPLICATION (code, venv, nginx, supervisor)
              ansible-playbook playbooks/setup.yml
           
           3. VERIFY APPLICATION
@@ -353,7 +428,10 @@
           
           ════════════════════════════════════════════════════════════
         dest: "{{ playbook_dir }}/../instance-info.txt"
-        backup: yes
+
+    - name: Remove stale instance-info backup files
+      shell: "rm -f {{ playbook_dir }}/../instance-info.txt.*~"
+      changed_when: false
 
     - name: Update inventory file — set server IP and SSH connection
       copy:
@@ -388,5 +466,87 @@
               ansible_user: ubuntu
               ansible_python_interpreter: /usr/bin/python3
         dest: "{{ playbook_dir }}/../inventories/hosts.yml"
-        backup: yes
+
+    - name: Remove stale inventory backup files
+      shell: "rm -f {{ playbook_dir }}/../inventories/hosts.yml.*~"
+      changed_when: false
+
+    # =========================================================================
+    # POST-LAUNCH VALIDATION
+    # =========================================================================
+    # Automatically verify the instance is healthy and all prerequisites
+    # are working before the user runs setup.yml.
+
+    - name: Validate SSH connectivity
+      command: >
+        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15
+        -i ~/.ssh/{{ app_name }}-key.pem
+        ubuntu@{{ instance_ip }} echo "SSH_OK"
+      register: ssh_check
+      retries: 3
+      delay: 10
+      until: ssh_check.rc == 0
+      changed_when: false
+
+    - name: Validate EBS data volume is visible on instance
+      command: >
+        ssh -o StrictHostKeyChecking=no
+        -i ~/.ssh/{{ app_name }}-key.pem
+        ubuntu@{{ instance_ip }} test -b {{ ebs_nvme_device }}
+      register: ebs_check
+      failed_when: false
+      changed_when: false
+
+    - name: Validate IAM instance profile is attached
+      command: >
+        aws ec2 describe-instances
+        --instance-ids {{ instance_id }}
+        --region {{ aws_region }}
+        --query "Reservations[0].Instances[0].IamInstanceProfile.Arn"
+        --output text
+      register: iam_check
+      changed_when: false
+
+    - name: Validate S3 bucket exists
+      command: >
+        aws s3api head-bucket
+        --bucket {{ s3_bucket_name }}
+        --region {{ aws_region }}
+      register: s3_check
+      failed_when: false
+      changed_when: false
+
+    - name: Validate security group ports
+      shell: >
+        aws ec2 describe-security-groups
+        --group-names {{ app_name }}-sg
+        --region {{ aws_region }}
+        --query "SecurityGroups[0].IpPermissions[].FromPort"
+        --output text
+      register: sg_check
+      changed_when: false
+
+    - name: Display validation results
+      debug:
+        msg:
+          - ""
+          - "╔════════════════════════════════════════════════════════════╗"
+          - "║               POST-LAUNCH VALIDATION                      ║"
+          - "╚════════════════════════════════════════════════════════════╝"
+          - ""
+          - "  SSH Connectivity:    {{ '✓ Connected to ' + instance_ip if ssh_check.rc == 0 else '✗ FAILED — check security group port 22' }}"
+          - "  EBS Data Volume:    {{ '✓ ' + ebs_nvme_device + ' detected' if ebs_check.rc == 0 else '✗ ' + ebs_nvme_device + ' NOT found — check volume attachment' }}"
+          - "  IAM Instance Role:  {{ '✓ ' + (iam_check.stdout | trim) if 'instance-profile' in iam_check.stdout else '✗ No IAM role attached' }}"
+          - "  S3 Bucket:          {{ '✓ ' + s3_bucket_name + ' accessible' if s3_check.rc == 0 else '✗ ' + s3_bucket_name + ' NOT accessible — check bucket exists' }}"
+          - "  Security Group:     {{ '✓ Ports: ' + (sg_check.stdout | trim) if sg_check.rc == 0 else '✗ Could not read security group' }}"
+          - ""
+          - "  Inventory updated:  inventories/hosts.yml → {{ instance_ip }}"
+          - "  Instance info:      instance-info.txt"
+          - ""
+          - "READY FOR SERVER SETUP:"
+          - "  ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass"
+          - ""
+          - "THEN DEPLOY APPLICATION:"
+          - "  ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass"
+          - ""
 

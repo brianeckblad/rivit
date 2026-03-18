@@ -197,6 +197,69 @@ fi
 # Load all.yml variables (plain values)
 parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
 
+# Load SERVER_IP — try instance-info.txt first, fall back to inventories/hosts.yml
+INSTANCE_INFO="$DEPLOYMENT_DIR/instance-info.txt"
+INVENTORY_FILE="$DEPLOYMENT_DIR/inventories/hosts.yml"
+
+_server_ip=""
+
+# Primary source: instance-info.txt (written by launch-ec2-instance.yml)
+if [ -f "$INSTANCE_INFO" ]; then
+    _server_ip=$(python3 -c "
+import re
+with open('$INSTANCE_INFO') as f:
+    for line in f:
+        m = re.search(r'Public IP Address:\s+(\S+)', line)
+        if m:
+            print(m.group(1))
+            break
+" 2>/dev/null)
+fi
+
+# Fallback: read from inventories/hosts.yml if instance-info.txt missing or empty
+if [ -z "$_server_ip" ] && [ -f "$INVENTORY_FILE" ]; then
+    _server_ip=$(python3 -c "
+import re
+with open('$INVENTORY_FILE') as f:
+    for line in f:
+        m = re.search(r'ansible_host:\s*(\S+)', line)
+        if m:
+            ip = m.group(1)
+            # Skip placeholder values (not a real IP)
+            if re.match(r'\d+\.\d+\.\d+\.\d+', ip):
+                print(ip)
+            break
+" 2>/dev/null)
+fi
+
+if [ -n "$_server_ip" ]; then
+    export SERVER_IP="$_server_ip"
+
+    # Keep inventory in sync — update ansible_host if it differs
+    if [ -f "$INVENTORY_FILE" ]; then
+        _inv_ip=$(python3 -c "
+import re
+with open('$INVENTORY_FILE') as f:
+    for line in f:
+        m = re.search(r'ansible_host:\s*(\S+)', line)
+        if m:
+            print(m.group(1))
+            break
+" 2>/dev/null)
+        if [ "$_inv_ip" != "$_server_ip" ]; then
+            # Update the IP in hosts.yml and the comment header
+            python3 -c "
+import re
+text = open('$INVENTORY_FILE').read()
+text = re.sub(r'(ansible_host:\s*)\S+', r'\g<1>$_server_ip', text)
+text = re.sub(r'(# Server IP:\s*)\S+', r'\g<1>$_server_ip', text)
+open('$INVENTORY_FILE', 'w').write(text)
+" 2>/dev/null
+            echo -e "${YELLOW}ℹ️  Updated inventories/hosts.yml: $_inv_ip → $_server_ip${NC}"
+        fi
+    fi
+fi
+
 # Resolve Jinja2 references: {{ var | default('val') }}
 # Uses Python for reliable regex parsing (avoids zsh regex/typeset issues)
 # Handles lines like: aws_region: "{{ vault_aws_region | default('us-east-2') }}"
@@ -222,6 +285,11 @@ echo "  app_display_name=$app_display_name"
 echo "  aws_region=$aws_region"
 echo "  admin_user=$admin_user"
 echo "  server_name=$server_name"
+if [ -n "$SERVER_IP" ]; then
+    echo "  SERVER_IP=$SERVER_IP"
+else
+    echo "  SERVER_IP=(not set — launch an instance first)"
+fi
 echo ""
 echo "Variables are NOW AVAILABLE in your shell."
 echo ""
@@ -234,7 +302,7 @@ echo "AWS resources (S3, IAM roles, security groups) don't exist yet."
 echo "They will be created when you run the deployment playbooks."
 echo ""
 echo "List all exported variables:"
-echo "  env | grep -E '^(app_|aws_|admin_)' | sort"
+echo "  env | grep -E '^(app_|aws_|admin_|SERVER_)' | sort"
 echo ""
 
 # Show vault status

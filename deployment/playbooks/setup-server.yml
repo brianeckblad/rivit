@@ -1,0 +1,203 @@
+---
+# Server preparation: system packages, app user, EBS volume mount
+# Run this ONCE after launching an EC2 instance (Step 5).
+# Usage: ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
+
+- name: Prepare Server — System Config & EBS Volume
+  hosts: all
+  become: yes
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install system dependencies
+      apt:
+        name: "{{ system_packages }}"
+        state: present
+
+    # =========================================================================
+    # SECURITY: Create dedicated application user
+    # =========================================================================
+    # This user:
+    #   - Has no shell access (nologin)
+    #   - Has no home directory
+    #   - Cannot SSH to the server
+    #   - Is a system user (UID < 1000)
+    #   - Can only run the application (via systemd)
+    # Benefits:
+    #   - Principle of least privilege
+    #   - Limited blast radius if app compromised
+    #   - Separates deployment from runtime permissions
+    - name: Create dedicated application user (no shell, no SSH)
+      user:
+        name: "{{ app_user }}"
+        comment: "{{ app_display_name }} Application User (no login)"
+        shell: /usr/sbin/nologin
+        system: yes
+        create_home: no
+        state: present
+      when: app_user != admin_user
+
+    # =========================================================================
+    # EBS VOLUME → /home (MANDATORY)
+    # =========================================================================
+    # The 100 GB EBS volume replaces /home so that all user home directories
+    # and the application live on persistent storage.
+    #
+    # On first run the existing /home (ubuntu SSH keys, etc.) is migrated
+    # to the EBS volume before the mount is switched.  Subsequent runs
+    # detect that /home is already on EBS and skip the migration.
+    #
+    # Nitro instances (t3 family) present EBS volumes as NVMe devices:
+    #   EC2 API name /dev/sdf → on-instance /dev/nvme1n1
+    # The volume is a raw block device (no partition table).
+
+    - name: Wait for EBS data volume (NVMe)
+      wait_for:
+        path: "{{ ebs_nvme_device }}"
+        state: present
+        timeout: 120
+
+    - name: Set actual EBS device path
+      set_fact:
+        ebs_actual_device: "{{ ebs_nvme_device }}"
+
+    - name: Check if EBS volume is already formatted
+      command: "blkid {{ ebs_actual_device }}"
+      register: ebs_formatted
+      failed_when: false
+      changed_when: false
+
+    - name: Create XFS filesystem on EBS volume (if needed)
+      command: "mkfs.xfs -f {{ ebs_actual_device }}"
+      when: ebs_formatted.rc != 0
+
+    - name: Get UUID of EBS volume
+      command: "blkid -s UUID -o value {{ ebs_actual_device }}"
+      register: ebs_uuid
+      changed_when: false
+
+    # --- Check whether /home is already on EBS ---
+    - name: Check if /home is already mounted from EBS
+      shell: "findmnt -n -o SOURCE {{ ebs_volume_mount_path }} 2>/dev/null || true"
+      register: home_mount_source
+      changed_when: false
+
+    - name: Set home_already_on_ebs flag
+      set_fact:
+        home_already_on_ebs: "{{ ebs_actual_device in home_mount_source.stdout }}"
+
+    # --- First-run migration: copy /home to EBS, then mount over it ---
+    - name: Create temporary mount point
+      file:
+        path: /mnt/ebs_temp
+        state: directory
+      when: not home_already_on_ebs
+
+    - name: Mount EBS at temporary location
+      mount:
+        path: /mnt/ebs_temp
+        src: "UUID={{ ebs_uuid.stdout }}"
+        fstype: xfs
+        state: mounted
+      when: not home_already_on_ebs
+
+    - name: Migrate existing /home to EBS volume
+      shell: "rsync -aAX /home/ /mnt/ebs_temp/"
+      when: not home_already_on_ebs
+
+    - name: Unmount EBS from temporary location
+      mount:
+        path: /mnt/ebs_temp
+        state: unmounted
+      when: not home_already_on_ebs
+
+    - name: Remove temporary mount point
+      file:
+        path: /mnt/ebs_temp
+        state: absent
+      when: not home_already_on_ebs
+
+    - name: Remove temporary fstab entry
+      mount:
+        path: /mnt/ebs_temp
+        state: absent
+      when: not home_already_on_ebs
+
+    # --- Mount EBS at /home (persists across reboots via fstab) ---
+    - name: Mount EBS volume at /home
+      mount:
+        path: "{{ ebs_volume_mount_path }}"
+        src: "UUID={{ ebs_uuid.stdout }}"
+        fstype: xfs
+        opts: defaults,nofail
+        state: mounted
+
+    - name: Set /home permissions
+      file:
+        path: "{{ ebs_volume_mount_path }}"
+        mode: '0755'
+        state: directory
+
+    # =========================================================================
+    # Create application directories on EBS volume
+    # =========================================================================
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
+        mode: '0755'
+
+    - name: Create instance directory for data persistence
+      file:
+        path: "{{ app_dir }}/instance"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Create log directory
+      file:
+        path: "{{ log_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    # =========================================================================
+    # Display summary
+    # =========================================================================
+
+    - name: Display server setup summary
+      debug:
+        msg:
+          - "✓ Server Preparation Complete"
+          - ""
+          - "  EBS Volume:"
+          - "    Device: {{ ebs_actual_device }}"
+          - "    Mount: {{ ebs_volume_mount_path }}"
+          - "    Size: {{ ebs_volume_size }} GB ({{ ebs_volume_type }})"
+          - "    Encrypted: {{ ebs_volume_encrypted }}"
+          - "    UUID: {{ ebs_uuid.stdout }}"
+          - "    Migration: {{ 'skipped (already on EBS)' if home_already_on_ebs else 'completed' }}"
+          - ""
+          - "  Directories created:"
+          - "    App:      {{ app_dir }}"
+          - "    Data:     {{ app_dir }}/instance"
+          - "    Logs:     {{ log_dir }}"
+          - ""
+          - "  App user: {{ app_user }} (nologin)"
+          - ""
+          - "  Ready for application deployment:"
+          - "    ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass"
+
