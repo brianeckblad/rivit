@@ -127,9 +127,11 @@
       shell: >
         aws ec2 describe-volumes
         --region {{ aws_region }}
-        --filters "Name=attachment.instance-id,Values={{ instance_id }}"
-                  "Name=attachment.device,Values={{ ami_root_device }}"
-        --query "Volumes[0].VolumeId" --output text
+        --filters
+        "Name=attachment.instance-id,Values={{ instance_id }}"
+        "Name=attachment.device,Values={{ ami_root_device }}"
+        --query "Volumes[0].VolumeId"
+        --output text
       register: root_vol
       changed_when: false
 
@@ -137,9 +139,11 @@
       shell: >
         aws ec2 describe-volumes
         --region {{ aws_region }}
-        --filters "Name=attachment.instance-id,Values={{ instance_id }}"
-                  "Name=attachment.device,Values={{ ebs_device_name }}"
-        --query "Volumes[0].VolumeId" --output text
+        --filters
+        "Name=attachment.instance-id,Values={{ instance_id }}"
+        "Name=attachment.device,Values={{ ebs_device_name }}"
+        --query "Volumes[0].VolumeId"
+        --output text
       register: data_vol
       changed_when: false
 
