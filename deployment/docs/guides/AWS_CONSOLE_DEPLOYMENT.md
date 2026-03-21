@@ -6,7 +6,7 @@ Deploy every resource using the AWS web console (point and click). This guide co
 
 > **Naming matters.** Every resource name in this guide matches what the Ansible playbooks and decommission scripts expect. Use the exact names shown or teardown will not find your resources.
 
-Replace `{app_name}` with the value of `app_name` from your `deployment/group_vars/all.yml` (e.g., `rampe`).
+Replace `{app_name}` with the value of `app_name` from your encrypted vault (e.g., `rampe`). Check with: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | head -5`
 
 ---
 
@@ -20,8 +20,8 @@ S3 stores your application images, uploads, and backups.
 
 | Setting | Value |
 |---------|-------|
-| Bucket name | Use the value of `vault_s3_bucket_name` from your vault. To check: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass \| grep s3_bucket` |
-| AWS Region | Same as `aws_region` in `all.yml` (e.g., `us-east-2`) |
+| Bucket name | Use the value of `s3_bucket_name` from your vault. To check: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass \| grep s3_bucket` |
+| AWS Region | Same as `aws_region` in vault.yml (e.g., `us-east-2`) |
 | Object Ownership | ACLs disabled (recommended) |
 | Block all public access | Check all 4 boxes |
 | Bucket Versioning | Enable |
@@ -46,7 +46,7 @@ S3 stores your application images, uploads, and backups.
 
 ### Verify
 
-Your bucket should appear in the S3 bucket list. The bucket name must match your `vault_s3_bucket_name` exactly — the application reads this value from AWS Secrets Manager at runtime.
+Your bucket should appear in the S3 bucket list. The bucket name must match your `s3_bucket_name` exactly — the application reads this value from AWS Secrets Manager at runtime.
 
 ---
 
@@ -120,7 +120,7 @@ The role needs three inline policies for S3, Secrets Manager, and CloudWatch acc
 }
 ```
 
-Replace `YOUR_BUCKET_NAME` with your `vault_s3_bucket_name` value.
+Replace `YOUR_BUCKET_NAME` with your `s3_bucket_name` value.
 
 5. Click **Next**
 6. **Policy name:** `{app_name}-s3-access`
@@ -521,7 +521,7 @@ Go to [Secrets Manager](https://console.aws.amazon.com/secretsmanager/listsecret
 
 | Resource | Console location | What to look for |
 |----------|-----------------|-----------------|
-| S3 Bucket | [S3](https://s3.console.aws.amazon.com/s3/) | Bucket with your `vault_s3_bucket_name` |
+| S3 Bucket | [S3](https://s3.console.aws.amazon.com/s3/) | Bucket with your `s3_bucket_name` |
 | IAM Role | [IAM → Roles](https://console.aws.amazon.com/iam/home#/roles) | `{app_name}-ec2-role` with 4 policies |
 | Security Group | [EC2 → Security Groups](https://console.aws.amazon.com/ec2/home#SecurityGroups) | `{app_name}-sg` with ports 22, 80, 443 |
 | SSH Key Pair | [EC2 → Key Pairs](https://console.aws.amazon.com/ec2/home#KeyPairs) | `{app_name}-key` |
@@ -560,5 +560,5 @@ Continue to [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md).
 ## See also
 
 - [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) — CLI and Playbook versions of the same steps
-- [Infrastructure Components](INFRASTRUCTURE.md) — what each AWS resource does
+- [Infrastructure Reference](INFRASTRUCTURE.md) — what each AWS resource does
 - [Chapter 13: Decommission](DECOMMISSION.md) — full teardown guide

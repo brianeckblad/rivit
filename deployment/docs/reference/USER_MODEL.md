@@ -35,7 +35,7 @@ Two-user security model for deployment and runtime operations.
 
 ### 2. Application User (`app_user`)
 
-**Default:** `{app_name}` (configured as `app_name` variable in `all.yml`)
+**Default:** `{app_name}` (configured as `app_user` variable in vault.yml)
 
 **Purpose:** Runtime application execution (principle of least privilege)
 
@@ -70,7 +70,7 @@ Two-user security model for deployment and runtime operations.
 
 ### Setting User Names
 
-In `deployment/group_vars/all.yml`:
+In `deployment/group_vars/vault.yml` (edit with `ansible-vault edit`):
 
 ```yaml
 # ============================================================================
@@ -125,9 +125,9 @@ EC2 Instance
 ### 2. Runtime
 
 ```
-Systemd
+Supervisor
     ↓
-systemctl start {app_name}
+supervisorctl start {app_name}
     ↓
 Gunicorn (as app_user)
     ├─ Reads code (owned by admin_user, readable by app_user)
@@ -148,7 +148,7 @@ ansible-playbook (update.yml)
 SSH as ubuntu (admin_user)
     ├─ git pull
     ├─ pip install requirements
-    └─ systemctl restart {app_name}
+    └─ supervisorctl restart {app_name}
        └─ Service restarts as app_user
 ```
 
@@ -256,7 +256,7 @@ sudo -u {app_name} /bin/bash
 If you want to use a different user for SSH/deployment (e.g., `deploy`):
 
 ```yaml
-# In all.yml
+# In vault.yml
 admin_user: deploy          # Instead of ubuntu
 app_user: "{{ app_name }}"  # Leave as is
 ```
@@ -264,7 +264,7 @@ app_user: "{{ app_name }}"  # Leave as is
 **Steps:**
 1. Create the `deploy` user on the EC2 instance
 2. Add your SSH key to `deploy` user's authorized_keys
-3. Set `admin_user: deploy` in your `all.yml`
+3. Set `admin_user: deploy` in your vault.yml
 4. Run deployment playbooks
 
 ### Using Different Application User
@@ -272,7 +272,7 @@ app_user: "{{ app_name }}"  # Leave as is
 If you want a different username for the runtime user:
 
 ```yaml
-# In all.yml
+# In vault.yml
 admin_user: ubuntu          # Keep as is
 app_user: myapp_runtime     # Custom name instead of app_name
 ```
@@ -309,7 +309,7 @@ The application will then run as `myapp_runtime` instead of `myapp`.
 
 If you had a different user model before, to migrate:
 
-1. Update `all.yml`:
+1. Update vault.yml:
    ```yaml
    admin_user: ubuntu        # Your deployment user
    app_user: myapp           # Your app runtime user
@@ -337,11 +337,12 @@ If you had a different user model before, to migrate:
 **Solution:**
 ```bash
 # Check ownership
-ls -ld /var/log/{app_name}
+ls -ld /opt/{app_name}/logs
 
-# Should be owned by app_user
+# Should be owned by {app_name}:{app_name} with setgid (drwxrwsr-x)
 # Fix with:
-sudo chown -R {app_name}:{app_name} /var/log/{app_name}
+sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
+sudo chmod 2775 /opt/{app_name}/logs
 ```
 
 ### App runs but logs not showing
@@ -364,12 +365,12 @@ sudo chmod 755 /var/log/{app_name}
 
 **Solution:**
 ```bash
-# Code should be owned by admin_user
-ls -ld /home/ubuntu/{app_name}
+# Code should be owned by admin_user with shared group
+ls -ld /opt/{app_name}
 
 # Fix with:
-sudo chown -R ubuntu:ubuntu /home/ubuntu/{app_name}
-sudo chmod -R 755 /home/ubuntu/{app_name}
+sudo chown -R ubuntu:{app_name} /opt/{app_name}
+sudo chmod 2775 /opt/{app_name}
 ```
 
 ---

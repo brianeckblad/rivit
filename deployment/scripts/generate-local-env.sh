@@ -80,7 +80,7 @@ ENVEOF
 # Extract and add Flask configuration
 echo "" >> "$ENV_FILE"
 echo "# Flask Configuration" >> "$ENV_FILE"
-FLASK_SECRET=$(extract_var "flask_secret_key")
+FLASK_SECRET=$(extract_var "secret_key")
 FLASK_PORT=$(extract_var "flask_port")
 FLASK_ENV=$(extract_var "flask_env")
 

@@ -6,19 +6,7 @@ Global content delivery for static assets.
 
 ## What is CloudFront?
 
-**CDN = Content Delivery Network**
-
-Think of it as:
-- **Global cache** - Copies of your content on servers worldwide
-- **Fast delivery** - Users download from nearest server
-- **Lower bandwidth** - AWS charges less for CloudFront bandwidth
-- **DDoS protection** - Built-in with AWS Shield
-
-**Real-world example:**
-- Without CloudFront:
-  - User in Tokyo → Request to US server → 200ms latency
-- With CloudFront:
-  - User in Tokyo → Request to Tokyo CDN edge → 20ms latency (10x faster!)
+CloudFront is a Content Delivery Network (CDN) that caches your content on servers worldwide. It reduces latency by serving users from the nearest edge location, lowers bandwidth costs, and provides built-in DDoS protection via AWS Shield.
 
 **Cost:** ~$0.085 per GB (varies by region, cheaper than S3)
 
@@ -49,7 +37,8 @@ Think of it as:
 cd deployment
 
 # Enable CloudFront in your config
-# In group_vars/all.yml, set: enable_cloudfront: true
+# In vault.yml, set: enable_cloudfront: true
+# ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 
 # Then run provisioning (or just the CloudFront playbook)
 ansible-playbook playbooks/setup-cloudfront.yml \
@@ -571,16 +560,6 @@ convert image.jpg -quality 85 -strip image-optimized.jpg
 
 ---
 
-## Next step
-
-Continue to [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md).
-
-## See also
-
-- [Chapter 5: Operations](OPERATIONS.md) — ongoing monitoring
-- [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md) — combine with CloudFront for full protection
-
----
 
 ## Summary
 

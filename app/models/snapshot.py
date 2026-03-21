@@ -1,6 +1,6 @@
 """Snapshot model for inventory backups."""
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 
@@ -86,7 +86,7 @@ class Snapshot:
         try:
             dt = datetime.strptime(self.id, '%Y%m%d_%H%M%S')
             return dt.strftime('%Y-%m-%d %I:%M %p')
-        except:
+        except (ValueError, TypeError):
             return self.created_at
 
     def age_days(self):
@@ -98,10 +98,10 @@ class Snapshot:
         """
         try:
             created = datetime.fromisoformat(self.created_at)
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             delta = now - created
             return delta.days
-        except:
+        except (ValueError, TypeError):
             return 0
 
     def is_expired(self, retention_days=730):  # 2 years default

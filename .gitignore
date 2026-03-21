@@ -32,9 +32,10 @@ instance/*
 **/vault_pass
 **/vault_password
 
-# Deployment user config (copied from .example files)
+# Deployment user config
+# all.yml is an empty stub (all config is in encrypted vault.yml)
 deployment/group_vars/all.yml
-deployment/group_vars/vault.yml
+# vault.yml is encrypted and safe to commit — do NOT commit it unencrypted
 
 
 

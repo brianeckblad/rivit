@@ -5,14 +5,19 @@
 #
 # This is a task file (not a playbook) - it has no hosts/become/vars_files
 # It must be included by a playbook that provides those
+#
+# Group strategy:
+#   All files use group {{ app_name }} which contains both
+#   {{ admin_user }} (deploy) and {{ app_user }} (runtime).
+#   Setgid on directories ensures new files inherit the group.
 
 - name: Ensure base application directory is traversable
   file:
     path: "{{ item }}"
     state: directory
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0755'
+    group: "{{ app_name }}"
+    mode: '2775'
   loop:
     - "{{ app_dir }}"
     - "{{ app_dir }}/instance"
@@ -22,37 +27,37 @@
   file:
     path: "{{ app_dir }}/.env"
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0600'
+    group: "{{ app_name }}"
+    mode: '0640'
   when: app_dir is defined
 
 - name: Secure user credentials file
   file:
     path: "{{ app_dir }}/instance/user_preferences.json"
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0600'
-  ignore_errors: yes
+    group: "{{ app_name }}"
+    mode: '0640'
+  failed_when: false
 
 - name: Secure instance subdirectories
   file:
     path: "{{ app_dir }}/instance/{{ item }}"
     state: directory
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0750'
+    group: "{{ app_name }}"
+    mode: '2775'
   loop:
     - uploads
     - all_comic_delete
     - single_comic_delete
-  ignore_errors: yes
+  failed_when: false
 
 - name: Secure data files in instance
   file:
     path: "{{ app_dir }}/instance/{{ item }}"
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0644'
+    group: "{{ app_name }}"
+    mode: '0664'
   loop:
     - items.csv
     - sku.txt
@@ -63,8 +68,8 @@
     path: "{{ app_dir }}/app/static"
     state: directory
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0755'
+    group: "{{ app_name }}"
+    mode: '2775'
     recurse: yes
 
 - name: Find log files
@@ -77,8 +82,8 @@
   file:
     path: "{{ item.path }}"
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0644'
+    group: "{{ app_name }}"
+    mode: '0664'
   loop: "{{ log_files.files }}"
   when: log_files.matched > 0
 
@@ -87,8 +92,8 @@
     path: "{{ app_dir }}/scripts"
     state: directory
     owner: "{{ app_user }}"
-    group: "{{ app_user }}"
-    mode: '0755'
+    group: "{{ app_name }}"
+    mode: '2775'
     recurse: yes
 
 - name: Secure SSH authorized_keys for admin user
@@ -97,5 +102,5 @@
     owner: "{{ admin_user }}"
     group: "{{ admin_user }}"
     mode: '0600'
-  ignore_errors: yes
+  failed_when: false
 

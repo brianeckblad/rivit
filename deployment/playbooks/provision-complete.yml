@@ -1,17 +1,17 @@
 ---
-# Complete Infrastructure Orchestration Playbook
-# This replaces infra-complete-setup.sh and orchestrates all infrastructure provisioning
+# Complete Deployment Orchestration Playbook
+# Runs infrastructure provisioning, server prep, app deploy, plus optional SSL and monitoring
 #
 # Usage: ansible-playbook playbooks/provision-complete.yml
 #
 # What it does:
-# 1. Creates IAM roles and instance profile
-# 2. Provisions EC2 instance with security group
-# 3. Sets up SSL certificates (if domain configured)
-# 4. Configures monitoring and CloudWatch
-# 5. Deploys application
+# 1. Provisions infrastructure (S3, IAM, SG, SSH, EC2, Secrets Manager, CloudFront)
+# 2. Prepares server (system packages, app user, EBS mount)
+# 3. Deploys application (code, dependencies, Nginx, Supervisor)
+# 4. Sets up SSL certificates (if confirmed)
+# 5. Configures monitoring and CloudWatch (if confirmed)
 
-- name: Complete Infrastructure Provisioning
+- name: Complete Deployment
   hosts: localhost
   gather_facts: yes
   vars_files:
@@ -34,10 +34,8 @@
       debug:
         msg:
           - "╔══════════════════════════════════════════════════════════╗"
-          - "║                                                          ║"
-          - "║   Complete Infrastructure Provisioning                  ║"
+          - "║   Complete Deployment                                    ║"
           - "║   {{ app_display_name }}                                ║"
-          - "║                                                          ║"
           - "╚══════════════════════════════════════════════════════════╝"
 
     - name: Check prerequisites
@@ -53,7 +51,7 @@
 
         - name: Check app_name is configured
           fail:
-            msg: "app_name must be set in group_vars/all.yml (currently: {{ app_name }})"
+            msg: "app_name must be set in group_vars/vault.yml (currently: {{ app_name }})"
           when: app_name == "CHANGEME" or app_name is not defined
 
         - name: Check S3 bucket is configured
@@ -62,58 +60,31 @@
           when: s3_bucket_name is not defined or s3_bucket_name == ""
 
 # ========================================
-# Phase 1: Create S3 Bucket
+# Phase 1: Provision Infrastructure
 # ========================================
 
-- name: Create S3 Bucket
-  hosts: localhost
-  gather_facts: no
-  vars_files:
-    - ../group_vars/all.yml
-    - ../group_vars/vault.yml
-
-  tasks:
-    - name: Create S3 bucket for application data
-      amazon.aws.s3_bucket:
-        name: "{{ s3_bucket_name }}"
-        region: "{{ aws_region }}"
-        state: present
-        versioning: yes
-        tags:
-          Application: "{{ app_name }}"
-          ManagedBy: Ansible
-      register: s3_result
-
-    - name: Display S3 bucket info
-      debug:
-        msg: "✓ S3 Bucket created: {{ s3_bucket_name }}"
-
-# ========================================
-# Phase 2: Provision Infrastructure
-# ========================================
-
-- name: Provision Infrastructure
+- name: Phase 1 - Provision Infrastructure
   import_playbook: provision-infrastructure.yml
 
 # ========================================
-# Phase 3: Prepare Server
+# Phase 2: Prepare Server
 # ========================================
 
-- name: Prepare Server (system packages, EBS mount)
+- name: Phase 2 - Prepare Server
   import_playbook: setup-server.yml
 
 # ========================================
-# Phase 4: Deploy Application
+# Phase 3: Deploy Application
 # ========================================
 
-- name: Deploy Application
+- name: Phase 3 - Deploy Application
   import_playbook: setup.yml
 
 # ========================================
 # Phase 4: Setup SSL (Optional)
 # ========================================
 
-- name: Setup SSL Certificate
+- name: Phase 4 - Setup SSL Certificate
   import_playbook: setup-ssl.yml
   when: hostvars['localhost']['setup_ssl'] | bool
 
@@ -121,7 +92,7 @@
 # Phase 5: Setup Monitoring (Optional)
 # ========================================
 
-- name: Setup Monitoring
+- name: Phase 5 - Setup Monitoring
   import_playbook: setup-monitoring.yml
   when: hostvars['localhost']['setup_monitoring'] | bool
 
@@ -137,35 +108,26 @@
     - ../group_vars/vault.yml
 
   tasks:
-    - name: Find instance info files
-      find:
-        paths: "{{ playbook_dir }}/../instances"
-        patterns: "*.txt"
-      register: instance_files
-      ignore_errors: yes
-
     - name: Display completion summary
       debug:
         msg:
           - "╔══════════════════════════════════════════════════════════╗"
-          - "║                                                          ║"
-          - "║   Infrastructure Provisioning Complete!                 ║"
-          - "║                                                          ║"
+          - "║   Deployment Complete                                    ║"
           - "╚══════════════════════════════════════════════════════════╝"
           - ""
-          - "Resources Created:"
+          - "Resources created:"
           - "  ✓ S3 Bucket: {{ s3_bucket_name }}"
           - "  ✓ IAM Role: {{ app_name }}-ec2-role"
-          - "  ✓ EC2 Instance: {{ app_name }}"
           - "  ✓ Security Group: {{ app_name }}-sg"
           - "  ✓ SSH Key: ~/.ssh/{{ app_name }}-key.pem"
+          - "  ✓ EC2 Instance: {{ app_name }}"
+          - "  ✓ Secrets Manager: {{ secret_name }}"
           - ""
-          - "Application deployed and running!"
+          - "Application deployed and running."
           - ""
-          - "Next Steps:"
-          - "  1. Test application: curl http://INSTANCE_IP"
-          - "  2. View logs: ssh ubuntu@INSTANCE_IP 'sudo journalctl -u {{ app_name }}'"
-          - "  3. Setup domain (if needed): Update DNS to point to instance"
+          - "Next steps:"
+          - "  1. Test: curl http://<SERVER_IP>"
+          - "  2. Logs: ssh ubuntu@<SERVER_IP> 'sudo supervisorctl status {{ service_name }}'"
+          - "  3. Domain: Update DNS to point to instance (if needed)"
           - ""
           - "Instance info saved to: deployment/instances/"
-

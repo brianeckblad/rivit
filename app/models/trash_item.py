@@ -1,6 +1,6 @@
 """Trash item model for deleted comics."""
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 import json
 
@@ -29,7 +29,7 @@ class TrashItem:
     cost_per_item: float = 0.0
     listing_type: str = 'For Sale'
     image_urls: List[str] = field(default_factory=list)
-    deleted_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    deleted_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self):
         """
@@ -93,7 +93,7 @@ class TrashItem:
             condition=data.get('condition', ''),
             comic_type=data.get('comic_type', ''),
             image_urls=data.get('image_urls', []),
-            deleted_at=data.get('deleted_at', datetime.utcnow().isoformat())
+            deleted_at=data.get('deleted_at', datetime.now(timezone.utc).isoformat())
         )
 
     @classmethod
@@ -190,8 +190,8 @@ class TrashItem:
                 deleted = deleted.replace(tzinfo=None)
         except (ValueError, AttributeError):
             # Fallback if parsing fails
-            deleted = datetime.utcnow()
-        now = datetime.utcnow()
+            deleted = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         delta = now - deleted
         return delta.days
 

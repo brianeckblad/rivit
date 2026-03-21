@@ -35,6 +35,12 @@
     #   - Principle of least privilege
     #   - Limited blast radius if app compromised
     #   - Separates deployment from runtime permissions
+
+    - name: Create shared application group
+      group:
+        name: "{{ app_name }}"
+        state: present
+
     - name: Create dedicated application user (no shell, no SSH)
       user:
         name: "{{ app_user }}"
@@ -42,8 +48,16 @@
         shell: /usr/sbin/nologin
         system: yes
         create_home: no
+        groups: "{{ app_name }}"
+        append: yes
         state: present
       when: app_user != admin_user
+
+    - name: Add admin user to application group
+      user:
+        name: "{{ admin_user }}"
+        groups: "{{ app_name }}"
+        append: yes
 
     # =========================================================================
     # EBS VOLUME → /opt/{app_name} (MANDATORY)
@@ -100,13 +114,15 @@
         state: mounted
 
     # After mount the XFS root inode is owned by root.
-    # Set ownership to admin_user so git clone/venv creation work.
+    # Set ownership to admin_user with shared app group + setgid.
+    # Setgid (2xxx) ensures all new files/dirs inherit the app group,
+    # so both admin_user and app_user can access everything.
     - name: Set mount point ownership and permissions
       file:
         path: "{{ ebs_volume_mount_path }}"
         owner: "{{ admin_user }}"
-        group: "{{ admin_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
         state: directory
 
     # =========================================================================
@@ -119,16 +135,16 @@
         path: "{{ app_dir }}/instance"
         state: directory
         owner: "{{ admin_user }}"
-        group: "{{ admin_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
 
     - name: Create log directory
       file:
         path: "{{ log_dir }}"
         state: directory
         owner: "{{ admin_user }}"
-        group: "{{ admin_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
 
     # =========================================================================
     # Display summary

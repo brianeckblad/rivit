@@ -4,7 +4,7 @@
 # Reusable for any project - automatically sets email to app_name@brianeckblad.dev
 #
 # Usage:
-#   ./scripts/configure-git.sh                    # Auto-detect from group_vars/all.yml
+#   ./scripts/configure-git.sh                    # Auto-detect from vault.yml
 #   ./scripts/configure-git.sh myapp              # Set for specific app name
 #   ./scripts/configure-git.sh --global myapp     # Set globally for all repos
 
@@ -60,17 +60,25 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# If app name not provided, try to read from config
+# If app name not provided, try to read from vault config
 if [ -z "$APP_NAME" ]; then
-    if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
-        APP_NAME=$(grep "^app_name:" "$GROUP_VARS_DIR/all.yml" | awk '{print $2}' | tr -d '"' | tr -d ' ')
+    if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+        # Check if vault is encrypted
+        if head -1 "$GROUP_VARS_DIR/vault.yml" 2>/dev/null | grep -q "ANSIBLE_VAULT"; then
+            # Try decrypting with vault password file
+            if [ -f "$HOME/.vault_pass" ]; then
+                APP_NAME=$(ansible-vault view "$GROUP_VARS_DIR/vault.yml" --vault-password-file "$HOME/.vault_pass" 2>/dev/null | grep "^app_name:" | awk '{print $2}' | tr -d '"' | tr -d ' ')
+            fi
+        else
+            APP_NAME=$(grep "^app_name:" "$GROUP_VARS_DIR/vault.yml" | awk '{print $2}' | tr -d '"' | tr -d ' ')
+        fi
     fi
 
     if [ -z "$APP_NAME" ]; then
         echo "❌ Error: Could not determine app name"
         echo ""
         echo "Usage:"
-        echo "  $0                          # Auto-detect from group_vars/all.yml"
+        echo "  $0                          # Auto-detect from vault.yml"
         echo "  $0 myapp                    # Set for myapp (myapp@brianeckblad.dev)"
         echo "  $0 --global myapp           # Set globally for all repositories"
         echo ""

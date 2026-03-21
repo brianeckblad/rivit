@@ -1,4 +1,4 @@
-# EBS Application Storage
+# EBS Storage Reference
 
 How the application uses EBS volumes for persistent storage.
 
@@ -95,7 +95,7 @@ Configuration Variable: app_storage_mount_path
 
 ### Minimal Setup
 
-All you need to set in `all.yml`:
+All you need to set in `vault.yml`:
 
 ```yaml
 # APPLICATION IDENTITY
@@ -231,7 +231,7 @@ aws ec2 create-snapshot \
    cd deployment
    
    # Update configuration
-   nano group_vars/all.yml
+   ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
    # Change: ebs_volume_size: 200    (increase from 100 to 200 GB)
    
    # Create new instance with larger volume
@@ -420,11 +420,11 @@ sudo nano /etc/fstab
 
 **Solution**:
 ```bash
-# Fix permissions
-sudo chown -R {app_name}:{app_name} /{app_name}/logs
-sudo chown -R {app_name}:{app_name} /{app_name}/instance
-sudo chmod -R 755 /{app_name}/logs
-sudo chmod -R 755 /{app_name}/instance
+# Fix permissions with shared group and setgid
+sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
+sudo chown -R {app_name}:{app_name} /opt/{app_name}/instance
+sudo chmod 2775 /opt/{app_name}/logs
+sudo chmod 2775 /opt/{app_name}/instance
 ```
 
 ### Out of Space

@@ -1,14 +1,14 @@
 # Instance Directory
 
-**Location:** `/home/ubuntu/<app_name>/instance/`  
+**Location:** `/opt/{app_name}/instance/`  
 **Purpose:** Application runtime data and persistent storage  
 **Created:** Automatically during deployment
 
-**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml`
+**Note:** `{app_name}` is configured in `deployment/group_vars/vault.yml`
 
 ---
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 instance/
@@ -43,7 +43,7 @@ instance/
 
 ---
 
-## 📄 Core Files
+## Core Files
 
 ### `.env`
 **Created:** By Ansible playbook during deployment  
@@ -66,7 +66,7 @@ HOST=0.0.0.0
 
 # AWS Secrets Manager Configuration
 # EC2 instance uses IAM role to access Secrets Manager (no AWS credentials!)
-SECRET_NAME=app-item-listing-tool/production
+SECRET_NAME={app_name}/production
 AWS_REGION=us-east-2
 
 # S3 Configuration  
@@ -75,79 +75,44 @@ S3_BUCKET_NAME=your-bucket-name
 S3_FOLDER=production
 
 # Application Configuration
-COMIC_IMAGE_PATH=/home/ubuntu/<app_name>/instance/item_images
+COMIC_IMAGE_PATH=/opt/{app_name}/instance/item_images
 
 # Note: All secrets (SECRET_KEY, eBay credentials, admin passwords)
 # are fetched from AWS Secrets Manager at runtime.
 # The IAM role attached to the EC2 instance provides access.
 ```
 
-**What's NOT in .env (all in AWS Secrets Manager):**
-- ❌ SECRET_KEY (in Secrets Manager)
-- ❌ AWS_ACCESS_KEY_ID (uses IAM role!)
-- ❌ AWS_SECRET_ACCESS_KEY (uses IAM role!)
-- ❌ EBAY_PRODUCTION_APP_ID (in Secrets Manager)
-- ❌ EBAY_PRODUCTION_TOKEN (in Secrets Manager)
-- ❌ EBAY_VERIFICATION_TOKEN (in Secrets Manager)
-- ❌ EBAY_SANDBOX credentials (in Secrets Manager)
-- ❌ ADMIN_USERNAME (in Secrets Manager)
-- ❌ ADMIN_PASSWORD (in Secrets Manager)
-- ❌ GITHUB_TOKEN (in Secrets Manager)
-- ❌ APP_SECRET_TOKEN (in Secrets Manager)
-
 **Security:** 
 - Permissions: `0600` (read/write owner only)
 - Not in version control
 - Persists across updates
-- **No AWS credentials stored** - EC2 uses IAM role
-- **No secrets on disk** - All secrets fetched from Secrets Manager at runtime
+- No AWS credentials stored — EC2 uses IAM role
+- No secrets on disk — all secrets fetched from Secrets Manager at runtime
 
 ---
 
 ### AWS Secrets Manager (Production Secrets)
-**Location:** AWS Secrets Manager (not on disk!)  
-**Secret Name:** `app-item-listing-tool/production`  
+**Location:** AWS Secrets Manager (not on disk)  
+**Secret Name:** `{app_name}/production`  
 **Access Method:** IAM role attached to EC2 instance  
 
-**Contains:**
-```json
-{
-  "SECRET_KEY": "<from vault.yml flask_secret_key>",
-  "AWS_REGION": "us-east-2",
-  "S3_BUCKET_NAME": "your-bucket-name",
-  "S3_FOLDER": "production",
-  "SNS_TOPIC_ARN": "",
-  "EBAY_PRODUCTION_APP_ID": "YourApp-PRD-...",
-  "EBAY_PRODUCTION_DEV_ID": "...",
-  "EBAY_PRODUCTION_CERT_ID": "PRD-...",
-  "EBAY_PRODUCTION_TOKEN": "v^1.1#...",
-  "EBAY_SANDBOX_APP_ID": "...",
-  "EBAY_SANDBOX_DEV_ID": "...",
-  "EBAY_SANDBOX_CERT_ID": "...",
-  "EBAY_SANDBOX_TOKEN": "...",
-  "EBAY_VERIFICATION_TOKEN": "<64-char-token>",
-  "APP_DEFAULT_USERNAME": "admin",
-  "APP_DEFAULT_PASSWORD": "...",
-  "CLOUDFRONT_DOMAIN": "",
-  "APP_SECRET_TOKEN": ""
-}
-```
+All application secrets (Flask secret key, eBay credentials, admin passwords,
+CloudFront tokens) are stored in Secrets Manager. The key names match
+the UPPERCASE names used by `config.py` `get_secret()` calls. See
+`secret-sync.yml` for the full list.
 
 **How it works:**
 1. Application starts, reads `SECRET_NAME` from .env
-2. Uses boto3 with IAM role (no credentials needed!)
+2. Uses boto3 with IAM role (no credentials needed)
 3. Fetches all secrets from Secrets Manager
 4. Secrets available via `config.get_secret('KEY_NAME')`
 
 **Benefits:**
-- ✅ No credentials on disk (except .env minimal config)
-- ✅ Secrets encrypted at rest in AWS
-- ✅ Centralized secret management
-- ✅ Easy secret rotation without redeploying app
-- ✅ IAM role controls access (no keys to leak)
-
-**Rotation:**
-See `/home/ubuntu/<app_name>/deployment/SECRET_MANAGEMENT.md`
+- No credentials on disk (except .env minimal config)
+- Secrets encrypted at rest in AWS
+- Centralized secret management
+- Easy secret rotation without redeploying app
+- IAM role controls access (no keys to leak)
 
 ---
 
@@ -245,13 +210,13 @@ SKU,Title,Category,Price,Quantity,Condition,Description,Location,Image URLs,Stat
 
 ---
 
-## 📊 Log Files
+## Log Files
 
 ### `app.log`
 **Purpose:** Application runtime logs  
 **Rotation:** Daily via logrotate (keep 14 days)  
 **Max Size:** 10MB per file  
-**Location:** Also copied to `/var/log/<app_name>/app.log`
+**Location:** Also copied to `/var/log/{app_name}/app.log`
 
 **Contents:**
 - Application errors and warnings
@@ -283,7 +248,7 @@ SKU,Title,Category,Price,Quantity,Condition,Description,Location,Image URLs,Stat
 
 ---
 
-## 📂 Directories
+## Directories
 
 ### `analytics/`
 **Purpose:** Analytics data and reports  
@@ -393,49 +358,49 @@ images/
 
 ---
 
-## 🔒 Security & Permissions
+## Security and Permissions
 
 ### File Permissions
 ```bash
 # Directory
-drwxr-xr-x  ubuntu:ubuntu  instance/
+drwxr-xr-x  {app_user}:{app_user}  instance/
 
 # Configuration (sensitive)
--rw-------  ubuntu:ubuntu  .env
--rw-------  ubuntu:ubuntu  blocked_ips.json
+-rw-------  {app_user}:{app_user}  .env
+-rw-------  {app_user}:{app_user}  blocked_ips.json
 
 # Data files
--rw-r--r--  ubuntu:ubuntu  items.csv
--rw-r--r--  ubuntu:ubuntu  items.csv.bak
--rw-r--r--  ubuntu:ubuntu  sku.txt
+-rw-r--r--  {app_user}:{app_user}  items.csv
+-rw-r--r--  {app_user}:{app_user}  items.csv.bak
+-rw-r--r--  {app_user}:{app_user}  sku.txt
 
 # Logs
--rw-r--r--  ubuntu:ubuntu  *.log
+-rw-r--r--  {app_user}:{app_user}  *.log
 
 # Subdirectories
-drwxr-xr-x  ubuntu:ubuntu  analytics/
-drwxr-xr-x  ubuntu:ubuntu  exports/
-drwxr-xr-x  ubuntu:ubuntu  images/
-drwxr-xr-x  ubuntu:ubuntu  snapshots/
-drwxr-xr-x  ubuntu:ubuntu  trash/
-drwxr-xr-x  ubuntu:ubuntu  uploads/
+drwxr-xr-x  {app_user}:{app_user}  analytics/
+drwxr-xr-x  {app_user}:{app_user}  exports/
+drwxr-xr-x  {app_user}:{app_user}  images/
+drwxr-xr-x  {app_user}:{app_user}  snapshots/
+drwxr-xr-x  {app_user}:{app_user}  trash/
+drwxr-xr-x  {app_user}:{app_user}  uploads/
 ```
 
 ### Protected Files
-- `.env` - Contains secrets (0600 permissions)
+- `.env` - Contains configuration (0600 permissions)
 - `blocked_ips.json` - Security data (0600 permissions)
 - All other files readable by app user
 
 ---
 
-## 🔄 Backup Strategy
+## Backup Strategy
 
 ### Automatic Backups
 
 **Daily Snapshots:**
 ```bash
 # Cron job (3:00 AM daily)
-0 3 * * * cd /home/ubuntu/<app_name> && ~/.venv/bin/python scripts/cleanup_old_backups.py
+0 3 * * * cd /opt/{app_name} && .venv/bin/python scripts/cleanup_old_backups.py
 ```
 
 **Before Changes:**
@@ -456,7 +421,7 @@ cp instance/items.csv items_backup_$(date +%Y%m%d).csv
 
 ---
 
-## 📈 Disk Usage
+## Disk Usage
 
 **Typical Usage:**
 - Fresh install: ~10 MB
@@ -472,16 +437,13 @@ cp instance/items.csv items_backup_$(date +%Y%m%d).csv
 
 **Monitoring:**
 ```bash
-# Check instance directory size
-du -sh /home/ubuntu/<app_name>/instance
-
-# Check disk usage
-df -h /home/ubuntu
+du -sh /opt/{app_name}/instance
+df -h
 ```
 
 ---
 
-## 🛠️ Maintenance
+## Maintenance
 
 ### Daily
 - Automatic snapshot creation (3 AM)
@@ -499,8 +461,7 @@ df -h /home/ubuntu
 
 ### Commands
 ```bash
-# Set your app directory (configured in deployment/group_vars/all.yml)
-APP_DIR="/home/ubuntu/<app_name>"  # Replace <app_name> with actual name from group_vars/all.yml
+APP_DIR="/opt/{app_name}"
 
 # View recent logs
 tail -f $APP_DIR/instance/app.log
@@ -520,10 +481,10 @@ du -sh $APP_DIR/instance
 
 ---
 
-## ⚠️ Important Notes
+## Important Notes
 
 ### Do NOT Delete
-- `.env` - Application won't start
+- `.env` - Application will not start
 - `items.csv` - Primary database
 - `sku.txt` - SKU generation will break
 
@@ -535,7 +496,7 @@ du -sh $APP_DIR/instance
 
 ### Edit with Caution
 - `items.csv` - Backup first, validate CSV format
-- `sku.txt` - Ensure it's an integer
+- `sku.txt` - Ensure it is an integer
 - `blocked_ips.json` - Maintain JSON structure
 
 ### Never Edit
@@ -544,9 +505,9 @@ du -sh $APP_DIR/instance
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
-### Issue: Application won't start
+### Issue: Application will not start
 **Check:**
 1. `.env` file exists and is readable
 2. `items.csv` exists (create empty if missing)
@@ -561,57 +522,21 @@ du -sh $APP_DIR/instance
 ### Issue: Disk space full
 **Check:**
 ```bash
-APP_DIR="/home/ubuntu/<app_name>"  # Replace with actual name
+APP_DIR="/opt/{app_name}"
 du -sh $APP_DIR/instance/snapshots/
 du -sh $APP_DIR/instance/exports/
-du -sh /var/log/<app_name>/  # Replace with actual name
+du -sh /var/log/{app_name}/
 ```
 
 **Clean up:**
 ```bash
-# Run cleanup script manually
-cd $APP_DIR
-~/.venv/bin/python scripts/cleanup_old_backups.py
+cd /opt/{app_name}
+.venv/bin/python scripts/cleanup_old_backups.py
 ```
 
-### Issue: Can't create new items
+### Issue: Cannot create new items
 **Check:**
 1. `sku.txt` is a valid integer
 2. `items.csv` is writable
 3. Disk space available
-
----
-
-## 📚 Related Documentation
-
-- **Deployment:** `/home/ubuntu/<app_name>/deployment/README.md`
-- **Operations:** `/home/ubuntu/<app_name>/deployment/OPERATIONS.md`
-- **Security:** `/home/ubuntu/<app_name>/app/SECURITY.md`
-
----
-
-## 🔗 File Locations
-
-**Development:**
-```
-/Users/brian/Development/<app_name>/instance/
-```
-
-**Production:**
-```
-/home/ubuntu/<app_name>/instance/
-```
-
-**Note:** `<app_name>` is configured in `deployment/group_vars/all.yml`
-
-**Logs (also at):**
-```
-/var/log/<app_name>/
-```
-
----
-
-**Last Updated:** February 9, 2026  
-**Version:** 1.0  
-**Managed By:** Application runtime and deployment scripts
 

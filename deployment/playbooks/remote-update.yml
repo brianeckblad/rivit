@@ -27,14 +27,14 @@
     - name: Display current status
       block:
         - name: Get current branch
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git branch --show-current
           args:
             chdir: "{{ app_dir }}"
           register: current_branch
 
         - name: Get current commit
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git log -1 --oneline
           args:
             chdir: "{{ app_dir }}"
@@ -49,14 +49,14 @@
     - name: Pull latest code from GitHub
       block:
         - name: Configure git credential cache (15 min timeout)
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git config credential.helper 'cache --timeout=900'
           args:
             chdir: "{{ app_dir }}"
           changed_when: false
 
         - name: Stash local changes if any
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git stash
           args:
             chdir: "{{ app_dir }}"
@@ -64,14 +64,14 @@
           changed_when: "'No local changes to save' not in git_stash.stdout"
 
         - name: Fetch latest from GitHub
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git fetch origin
           args:
             chdir: "{{ app_dir }}"
           register: git_fetch
 
         - name: Pull latest code
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git pull origin {{ git_branch | default('main') }}
           args:
             chdir: "{{ app_dir }}"
@@ -85,14 +85,14 @@
           register: deployment_requirements
 
         - name: Install Python dependencies from deployment directory
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           pip:
             requirements: "{{ app_dir }}/deployment/requirements.txt"
             virtualenv: "{{ venv_dir }}"
           when: deployment_requirements.stat.exists
 
         - name: Install Python dependencies from root (fallback)
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           pip:
             requirements: "{{ app_dir }}/requirements.txt"
             virtualenv: "{{ venv_dir }}"
@@ -107,13 +107,13 @@
         path: "{{ app_dir }}/instance"
         state: directory
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
 
     - name: Update app version
       block:
         - name: Get commit count for version
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git rev-list --count HEAD
           args:
             chdir: "{{ app_dir }}"
@@ -125,8 +125,8 @@
             content: "{{ commit_count.stdout }}\n"
             dest: "{{ app_dir }}/instance/app_version"
             owner: "{{ app_user }}"
-            group: "{{ app_user }}"
-            mode: '0644'
+            group: "{{ app_name }}"
+            mode: '0664'
 
         - name: Display new version
           debug:
@@ -163,7 +163,7 @@
     - name: Get new commit info
       block:
         - name: Get new commit hash
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git log -1 --oneline
           args:
             chdir: "{{ app_dir }}"
@@ -206,7 +206,7 @@
               command: pip cache purge
               args:
                 chdir: "{{ app_dir }}"
-              become_user: "{{ app_user }}"
+              become_user: "{{ admin_user }}"
               changed_when: false
               failed_when: false
 

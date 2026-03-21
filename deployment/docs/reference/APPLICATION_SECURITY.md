@@ -476,16 +476,9 @@ if rate_limiter.is_rate_limited(client_ip, max_requests=200, window_seconds=60):
 
 ## Related Documentation
 
-- **AWS WAF Configuration:** `deployment/DEPLOYMENT_COMPLETE_GUIDE.md`
-- **CloudFront Setup:** `deployment/DEPLOYMENT_COMPLETE_GUIDE.md`
-- **Nginx Configuration:** `deployment/templates/nginx-*.conf.j2`
+- **WAF Configuration:** [Chapter 11: WAF Configuration](../guides/WAF_CONFIGURATION.md)
+- **CloudFront Setup:** [Chapter 10: CloudFront CDN](../guides/CLOUDFRONT_CDN.md)
+- **Nginx Configuration:** `deployment/templates/nginx.conf.j2`
 - **Security Admin API:** `app/routes/api/admin.py`
 
----
-
-**Version:** 5.0  
-**Last Updated:** February 8, 2026  
-**Status:** ✅ Production Ready
-
-Your application now has **enterprise-grade security** with multiple protection layers! 🛡️
 

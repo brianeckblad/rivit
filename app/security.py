@@ -11,7 +11,7 @@ Provides:
 import time
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import request, abort, g, current_app
 from functools import wraps
 from pathlib import Path
@@ -78,7 +78,7 @@ class IPBlocklist:
             current_app.logger.warning(
                 f"🚫 IP BLOCKED: {ip} for {duration_hours} hours (expires: {datetime.fromtimestamp(expiration)})"
             )
-        except:
+        except RuntimeError:
             print(f"🚫 IP BLOCKED: {ip} for {duration_hours} hours")
 
     def is_blocked(self, ip):

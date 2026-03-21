@@ -4,7 +4,7 @@ Backups, restarts, scaling, log management, and troubleshooting.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Daily Operations](#daily-operations)
 2. [Weekly Maintenance](#weekly-maintenance)
@@ -23,14 +23,14 @@ Backups, restarts, scaling, log management, and troubleshooting.
 
 ## Quick Links to Detailed Guides
 
-- **Application Updates** → [UPDATING_APPLICATION.md](UPDATING_APPLICATION.md)
-- **Security Hardening** → [SECURITY_HARDENING.md](SECURITY_HARDENING.md)
-- **WAF Configuration** → [WAF_CONFIGURATION.md](WAF_CONFIGURATION.md)
-- **CloudFront CDN** → [CLOUDFRONT_CDN.md](CLOUDFRONT_CDN.md)
+- [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md)
+- [Chapter 8: Security Hardening](SECURITY_HARDENING.md)
+- [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md)
+- [Chapter 10: CloudFront CDN](CLOUDFRONT_CDN.md)
 
 ---
 
-## 🔧 AWS CLI Profiles
+## AWS CLI Profiles
 
 **Managing Multiple AWS Accounts/Regions**
 

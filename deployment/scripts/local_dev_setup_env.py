@@ -93,7 +93,7 @@ def generate_env_file(vault_data, env_file):
         "",
         "# Flask Configuration",
         f"FLASK_ENV={vault_data.get('flask_env', 'development')}",
-        f"SECRET_KEY={vault_data.get('flask_secret_key', 'dev-secret-key')}",
+        f"SECRET_KEY={vault_data.get('secret_key', 'dev-secret-key')}",
         f"PORT={vault_data.get('flask_port', '8000')}",
     ])
 

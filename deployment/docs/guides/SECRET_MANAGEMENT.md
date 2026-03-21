@@ -98,16 +98,12 @@ ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.va
 6. ✅ Tags resources for tracking
 
 **Secrets synced to Secrets Manager:**
-- `vault_*` variables (stripped of prefix): `aws_region`, `s3_bucket_name`, `s3_folder`, `sns_topic_arn`
-- Flask: `SECRET_KEY` (from `flask_secret_key`)
-- AWS config (UPPERCASE): `S3_BUCKET_NAME`, `S3_FOLDER`, `AWS_REGION`, `SNS_TOPIC_ARN`
-- eBay credentials (UPPERCASE): `EBAY_PRODUCTION_APP_ID`, `EBAY_VERIFICATION_TOKEN`, etc.
-- App credentials: `APP_DEFAULT_USERNAME`, `APP_DEFAULT_PASSWORD`
-- CloudFront: `CLOUDFRONT_DOMAIN`, `APP_SECRET_TOKEN`
+
+Vault variables are synced as UPPERCASE keys matching `config.py` `get_secret()` calls
+(e.g., `secret_key` → `SECRET_KEY`, `s3_bucket_name` → `S3_BUCKET_NAME`).
+The mapping is defined inline in `secret-sync.yml` and `setup-secrets-manager.yml`.
 
 **Technical Details:**
-- Vault-prefixed variables extracted via `query('varnames', '^vault_')`
-- Application secrets explicitly mapped to UPPERCASE keys matching `config.py` `get_secret()` calls
 - Uses `amazon.aws.secretsmanager_secret` module for AWS operations
 - No passwords needed on EC2 instance (IAM role handles authentication)
 
@@ -236,12 +232,12 @@ ebay_production_token: "v^1.1#i^1#...new-token..."
 # Edit with: ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 
 # Git Repository
-vault_git_repo: "https://github.com/youruser/yourapp.git"
+git_repo_url: "https://github.com/youruser/yourapp.git"
 
 # AWS Configuration
-vault_aws_region: "us-east-2"
-vault_s3_bucket_name: "your-bucket-name"
-vault_s3_folder: "data"
+aws_region: "us-east-2"
+s3_bucket_name: "your-bucket-name"
+s3_folder: "data"
 
 # Application Credentials
 app_default_username: "admin"
@@ -249,11 +245,11 @@ app_default_password: "secure-password-here"
 users: "admin:secure-password-here"
 
 # Flask
-flask_secret_key: "your-secret-key-here"
+secret_key: "your-secret-key-here"
 flask_port: "8000"
 flask_env: "production"
 
-# CloudFront (leave empty until enable_cloudfront is set to true in all.yml)
+# CloudFront (leave empty until enable_cloudfront is set to true)
 cloudfront_domain: ""
 app_secret_token: ""
 
@@ -266,7 +262,7 @@ ebay_production_token: "v^1.1#i^1#...long-token-here"
 ebay_verification_token: "your-64-char-token"
 
 # SNS (optional)
-vault_sns_topic_arn: ""
+sns_topic_arn: ""
 ```
 
 ---

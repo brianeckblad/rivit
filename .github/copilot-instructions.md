@@ -104,7 +104,7 @@ All docs in `deployment/docs/` follow a consistent vendor-guide style. See [AGEN
 - **Stack:** Python / Flask application with Ansible deployment to AWS EC2
 - **Shell:** zsh on macOS
 - **Deployment config:** `deployment/` directory with Ansible playbooks, group_vars, vault
-- **Ansible variables:** Loaded from `deployment/group_vars/all.yml` and encrypted `vault.yml`
+- **Ansible variables:** All configuration in encrypted `deployment/group_vars/vault.yml`
 - **Vault secrets:** Access with `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass`
-- **S3 bucket name:** Comes from `vault_s3_bucket_name` in vault (not derived from `app_name`)
+- **S3 bucket name:** Comes from `s3_bucket_name` in vault (not derived from `app_name`)
 

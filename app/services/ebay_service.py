@@ -46,7 +46,7 @@ class EbayService:
     Service for interacting with eBay's Finding and Browse APIs.
     
     This service provides methods for searching completed listings (for pricing),
-    active listings, and searching by image (visual search). it handles OAuth
+    active listings, and searching by image (visual search). It handles OAuth
     authentication, rate limit tracking, and caching of results.
     """
 

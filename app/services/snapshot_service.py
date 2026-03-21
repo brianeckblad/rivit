@@ -1,6 +1,6 @@
 """Service for managing inventory snapshots."""
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import current_app
 import shutil
 from app.models.snapshot import Snapshot
@@ -118,7 +118,7 @@ class SnapshotService:
                 id=snapshot_id,
                 name=name,
                 comic_count=comic_count,
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(timezone.utc).isoformat(),
                 description=description
             )
 

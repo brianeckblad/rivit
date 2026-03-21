@@ -3,7 +3,7 @@ Sync state management for backup synchronization.
 Tracks the progress and status of S3 to local backup sync.
 """
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict
 
 
@@ -44,7 +44,7 @@ class SyncState:
             self.completed_backups = 0
             self.current_backup = None
             self.error_message = None
-            self.started_at = datetime.utcnow()
+            self.started_at = datetime.now(timezone.utc)
             self.completed_at = None
             self.is_app_locked = True  # Lock app during sync
             self.retry_count = 0
@@ -60,7 +60,7 @@ class SyncState:
         """Mark sync as successfully completed."""
         with self._state_lock:
             self.status = 'synchronized'
-            self.completed_at = datetime.utcnow()
+            self.completed_at = datetime.now(timezone.utc)
             self.current_backup = None
             self.is_app_locked = False  # Unlock app
 
@@ -69,7 +69,7 @@ class SyncState:
         with self._state_lock:
             self.status = 'failed'
             self.error_message = error_message
-            self.completed_at = datetime.utcnow()
+            self.completed_at = datetime.now(timezone.utc)
             self.is_app_locked = False  # Unlock app even on failure
 
     def get_state(self) -> Dict:

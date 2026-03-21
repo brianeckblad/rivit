@@ -192,10 +192,10 @@ App User ({app_name})
 ### File Permissions
 
 ```
-/home/ubuntu/{app_name}/        # Code (ubuntu:ubuntu)
-/home/ubuntu/.venv/             # Virtual env (ubuntu:ubuntu)
-/var/log/{app_name}/            # Logs (app_user:app_user)
-/home/ubuntu/{app_name}/instance/  # Data (app_user:app_user)
+/opt/{app_name}/                   # Mount point (ubuntu:{app_name}, setgid 2775)
+/opt/{app_name}/.venv/             # Virtual env (ubuntu:{app_name})
+/opt/{app_name}/logs/              # Logs ({app_name}:{app_name}, setgid 2775)
+/opt/{app_name}/instance/          # Data ({app_name}:{app_name}, setgid 2775)
 ```
 
 ### Network Security
@@ -354,9 +354,8 @@ deployment/
 │   └── cloudwatch-config.json.j2
 │
 ├── group_vars/            # Ansible variables
-│   ├── all.yml           # Common variables
-│   └── production/
-│       └── vault.yml     # Encrypted secrets
+│   ├── all.yml           # Empty stub (all config in vault.yml)
+│   └── vault.yml         # Encrypted — all configuration
 │
 ├── inventories/           # Server lists
 │   └── production/

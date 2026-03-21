@@ -61,12 +61,7 @@ Set up your AWS account, local tools, and configuration files.
 
 #### Alarms: Required for CloudWatch Alarms
 
-**CloudWatch** is AWS's logging and monitoring service. Think of it as:
-- **Centralized log storage** - All your app logs in one place
-- **Searchable** - Find errors across days of logs instantly
-- **Metrics** - Track performance (response time, errors, requests)
-- **Alarms** - Automated alerts when something goes wrong
-- **Dashboards** - Visual monitoring of key metrics
+**CloudWatch** is AWS's logging, monitoring, and alerting service. It provides centralized log storage, searchable log analysis, performance metrics, automated alarms, and visual dashboards.
 
 **Three separate capabilities:**
 
@@ -360,9 +355,9 @@ ansible-playbook --version
 
 **Create your personal deployment settings (not tracked in Git)**
 
-### ⚠️ Updating Existing Configuration?
+### Updating Existing Configuration?
 
-If you already have `all.yml` and `vault.yml`, merge them with the new templates:
+If you already have `vault.yml`, merge it with the new template:
 
 ```bash
 cd deployment
@@ -395,111 +390,17 @@ cd deployment
 ```
 
 **This creates/updates:**
-- `group_vars/all.yml` - Your application settings (ignored by Git)
-- `group_vars/vault.yml` - Your secrets (ignored by Git)
+- `group_vars/vault.yml` - All deployment configuration (encrypted, safe to commit)
 
-**Why?** Your configuration contains sensitive data and personal choices. It should **never** be committed to Git.
+**Why encrypted?** The vault contains identity, credentials, and infrastructure details. Encrypting lets you commit it to Git safely.
 
-### Step 2: Edit Application Configuration
+### Step 2: Edit & Encrypt Vault
 
-```bash
-cd deployment
-nano group_vars/all.yml
-```
+`vault.yml` is the single source of truth for all deployment configuration — identity, credentials, tuning, and infrastructure sizing.
 
-**Key variables to change (at top of file):**
+#### Step 2a: Create Vault Password File
 
-```yaml
-# ============================================================================
-# APPLICATION IDENTITY (REQUIRED)
-# ============================================================================
-
-app_name: "myapp"                       # CHANGE THIS - Your app's technical name
-                                        # Examples: myapp, comic_tracker, inventory_tool
-                                        # Used for: service name, directories, logs, etc.
-
-app_display_name: "My Application"      # CHANGE THIS - Your app's display name
-                                        # Examples: "My App", "Comic Tracker", "Inventory Tool"
-
-server_name: "_"                        # CHANGE THIS - Domain or "_" for IP-only access
-                                        # "_" = access via IP only (no SSL)
-                                        # "your-domain.com" = use domain with SSL
-
-ssl_email: "admin@example.com"          # CHANGE THIS - Email for SSL certificate alerts
-                                        # Only needed if using SSL (server_name is not "_")
-
-# ============================================================================
-# USERS (OPTIONAL - defaults are secure)
-# ============================================================================
-
-admin_user: ubuntu                      # Admin/SSH user for deployment
-                                        # This user can SSH and manage the server
-                                        # Default: ubuntu (standard for Ubuntu EC2 AMI)
-
-app_user: "{{ app_name }}"              # Application runtime user (restricted, no SSH access)
-                                        # This user runs the application process
-                                        # Default: same as app_name
-                                        # Uncomment and change if you want different username:
-                                        # app_user: "myapp_runtime"
-
-# ============================================================================
-# GIT CONFIGURATION
-# ============================================================================
-
-git_branch: main                        # Git branch to deploy
-                                        # (usually: main or master)
-                                        # Your GitHub repo URL is in vault.yml
-
-# ============================================================================
-# PERFORMANCE SETTINGS (OPTIONAL)
-# ============================================================================
-
-gunicorn_workers: 4                     # Number of worker processes
-                                        # Typical: 2-4 x CPU cores
-python_version: "3.10"                  # Python version to use
-
-# ============================================================================
-# LOG & BACKUP SETTINGS (OPTIONAL)
-# ============================================================================
-
-log_retention_days: 20                  # Days to keep logs
-log_max_size: "10M"                     # Max size per log file
-backup_retention_days: 30               # Days to keep backups
-s3_version_retention_days: 30           # Days to keep old S3 versions
-
-# ============================================================================
-# ADVANCED SETTINGS (OPTIONAL - Production Use)
-# ============================================================================
-
-ec2_instance_type: "t3.micro"           # EC2 server instance type
-                                        # Keep as t3.micro for free tier
-                                        # Change for production: t3.small, t3.medium, etc.
-
-enable_cloudfront: false                # false = serve directly from EC2 (default)
-                                        # true  = deploy CloudFront CDN in front of EC2
-                                        # Can be enabled later by changing to true
-
-cloudfront_price_class: "PriceClass_100" # Only applies when enable_cloudfront is true
-                                        # PriceClass_100: US, Canada, Europe (cheapest)
-                                        # PriceClass_200: + Asia, Africa, Middle East
-                                        # PriceClass_All: All worldwide locations
-```
-
-**Don't know what to set?**
-- `app_name`: Your application name (lowercase, no spaces). Example: `myapp`, `comic_tracker`
-- `app_display_name`: Friendly display name. Example: `"My Application"`, `"Comic Tracker"`
-- `server_name`: Use `"_"` if you're just using IP address. Use `"your-domain.com"` if you have a domain.
-- `ssl_email`: Email for Let's Encrypt certificate notifications (only needed if using domain)
-- `admin_user`: Leave as `ubuntu` (default for Ubuntu 22.04 AMI, used for SSH and deployment)
-- `app_user`: Automatically set to `app_name` - this user runs your application (no SSH access, no shell)
-
-### Step 3: Create & Encrypt Secrets Vault
-
-**⚠️ SECURITY:** The vault file contains secrets. You MUST encrypt it.
-
-#### Step 3a: Create Vault Password File
-
-This is your master password for encrypting/decrypting secrets:
+This is your master password for encrypting/decrypting the vault:
 
 ```bash
 # Create vault password file (OPTIONAL but RECOMMENDED - for convenience)
@@ -524,7 +425,7 @@ chmod 600 ~/.vault_pass
 - Simplicity: Just type password when prompted
 - Flexibility: Different password per deployment if needed
 
-#### Step 3b: Copy & Edit Vault
+#### Step 2b: Copy & Edit Vault
 
 ```bash
 cd deployment
@@ -532,64 +433,52 @@ cd deployment
 # Copy template to your config
 cp group_vars/vault.yml.example group_vars/vault.yml
 
-# Edit with your secrets (plain text for now)
+# Edit with your values (plain text for now)
 nano group_vars/vault.yml
 ```
 
-**All required vault variables:**
+**Key variables to set (see vault.yml.example for full list):**
 
 ```yaml
 ---
 # ============================================================================
 # GIT REPOSITORY (REQUIRED)
 # ============================================================================
-# Where your application code is stored on GitHub
-vault_git_repo: "https://github.com/YOUR_USERNAME/your_app.git"
+git_repo_url: "https://github.com/YOUR_USERNAME/your_app.git"
 
 # ============================================================================
 # AWS CONFIGURATION (REQUIRED)
 # ============================================================================
-# These values configure where your data is stored and which region
+aws_region: "us-east-2"                         # Same region as your EC2 instance
 
-vault_aws_region: "us-east-2"                   # Same region as your EC2 instance
-                                                 # (should match aws configure region)
-
-vault_s3_bucket_name: "yourname-myapp-2026"     # S3 bucket name (MUST BE GLOBALLY UNIQUE)
+s3_bucket_name: "yourname-myapp-2026"           # S3 bucket name (MUST BE GLOBALLY UNIQUE)
                                                  # Pattern: yourname-appname-year
-                                                 # Used for: storing application data
 
-vault_s3_folder: "data"                         # Folder within bucket
-                                                 # Used for: organizing data in S3
+s3_folder: "data"                               # Folder within bucket
 
 # ============================================================================
 # APPLICATION CREDENTIALS (REQUIRED)
 # ============================================================================
-# Default login credentials for your application
-# You can change these after deployment
-
 app_default_username: "admin"                   # Default app login username
 app_default_password: "change-this-password"    # Default app login password
-                                                 # IMPORTANT: Change this after first login
 
 # ============================================================================
 # SNS TOPIC (OPTIONAL - for monitoring and alerts)
 # ============================================================================
-# If you want to receive alerts (emails, SMS, etc.)
-# Leave blank ("") if not needed
-vault_sns_topic_arn: ""                         # Example: arn:aws:sns:us-east-2:123456789012:my-topic
+sns_topic_arn: ""                               # Example: arn:aws:sns:us-east-2:123456789012:my-topic
 ```
 
 **How to fill in each value:**
 
 | Variable | Where to Get It | Example |
 |----------|-----------------|---------|
-| `vault_git_repo` | Your GitHub repo URL | `https://github.com/myusername/myapp.git` |
-| `vault_aws_region` | Same as AWS CLI region | `us-east-2` |
-| `vault_s3_bucket_name` | Create a unique name | `john-myapp-2026` |
-| `vault_s3_folder` | Choose folder name | `data` or `uploads` |
+| `git_repo_url` | Your GitHub repo URL | `https://github.com/myusername/myapp.git` |
+| `aws_region` | Same as AWS CLI region | `us-east-2` |
+| `s3_bucket_name` | Create a unique name | `john-myapp-2026` |
+| `s3_folder` | Choose folder name | `data` or `uploads` |
 | `app_default_username` | Choose app login | `admin` or `myusername` |
 | `app_default_password` | Create strong password | `Tr0pic@lBanana99!` |
-| `vault_sns_topic_arn` | Optional - skip if not using | Leave as empty string `""` |
+| `sns_topic_arn` | Optional - skip if not using | Leave as empty string `""` |
 
 **IMPORTANT about S3 bucket name:**
 - Must be **globally unique** across ALL AWS accounts (not just yours)
@@ -598,7 +487,7 @@ vault_sns_topic_arn: ""                         # Example: arn:aws:sns:us-east-2
 - 3-63 characters long
 - Recommended pattern: `yourname-appname-year` (e.g., `john-myapp-2026`)
 
-#### Step 3c: Encrypt the Vault File
+#### Step 2c: Encrypt the Vault File
 
 **NOW encrypt your vault.yml file:**
 
@@ -620,44 +509,35 @@ ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
 **Vault Security:**
 - ✅ Your vault.yml is now encrypted on disk
 - ✅ Only readable with the vault password
-- ✅ Safe to commit to Git (though ignored by .gitignore)
-- ✅ GitHub credentials and AWS settings stay private
+- ✅ Safe to commit to Git (encrypted content is unreadable)
+- ✅ All identity, credentials, and infrastructure details stay private
 - ✅ Playbooks automatically decrypt with password from `~/.vault_pass` OR prompt if missing
-- ✅ If `~/.vault_pass` doesn't exist, playbooks will ask for password
 
 **⚠️ CRITICAL - Save Your Vault Password:**
 - Store `~/.vault_pass` securely (don't lose this file!)
 - Back up your vault password in a password manager
 - If you lose it, you cannot decrypt vault.yml
 
-### Step 4: Verify Configuration
+### Step 3: Verify Configuration
 
 ```bash
 cd deployment
 
-# 1. Check all.yml exists and shows your settings
-grep -E "^app_name:|^app_display_name:|^server_name:|^admin_user:|^app_user:" group_vars/all.yml
-# Should show your values
-
-# 2. Check vault.yml is encrypted
-file group_vars/vault.yml
-# Should show: vault.yml: ASCII text (encrypted vault file)
-# OR check first line:
+# 1. Check vault.yml is encrypted
 head -1 group_vars/vault.yml
 # Should show: $ANSIBLE_VAULT;1.2;AES256; (encryption header, not plain text)
 
-# 3. Verify vault can be decrypted with your password
-ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | head -5
-# Should show your secrets without error (looking for vault_git_repo, vault_aws_region, etc.)
+# 2. Verify vault can be decrypted and shows your variables
+ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | head -20
+# Should show: app_name, server_name, git_repo_url, etc.
 
-# 4. Verify AWS CLI uses correct profile/region
+# 3. Verify AWS CLI uses correct profile/region
 aws sts get-caller-identity
 # Should show your account ID and IAM user
 
-# 5. Verify all configuration files exist and have correct permissions
-ls -la group_vars/all.yml group_vars/vault.yml ~/.vault_pass
+# 4. Verify configuration files exist and have correct permissions
+ls -la group_vars/vault.yml ~/.vault_pass
 # Should show:
-#  - group_vars/all.yml (readable)
 #  - group_vars/vault.yml (readable)
 #  - ~/.vault_pass with -rw------- permissions (600)
 ```
@@ -674,7 +554,6 @@ ansible --version                     # Version 2.9+
 python3 --version                     # Version 3.8+
 
 cd deployment
-ls group_vars/all.yml                 # Exists
 head -1 group_vars/vault.yml          # Shows $ANSIBLE_VAULT;1.2;AES256
 ls -la ~/.vault_pass                  # Permissions: -rw-------
 

@@ -88,8 +88,8 @@
         path: "{{ log_dir }}"
         state: directory
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
 
     - name: Verify only {{ app_name }} configuration exists
       block:
@@ -128,8 +128,8 @@
         path: "{{ app_dir }}/instance"
         state: directory
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
 
     - name: Update app_version with commit count
       block:
@@ -146,8 +146,8 @@
             content: "{{ commit_count.stdout }}\n"
             dest: "{{ app_dir }}/instance/app_version"
             owner: "{{ app_user }}"
-            group: "{{ app_user }}"
-            mode: '0644'
+            group: "{{ app_name }}"
+            mode: '0664'
 
         - name: Display updated version
           debug:
@@ -158,14 +158,14 @@
         path: "{{ app_dir }}/scripts"
         state: directory
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
 
     - name: Ensure backup cleanup script is executable
       file:
         path: "{{ app_dir }}/app/scripts/cleanup_old_backups.py"
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
+        group: "{{ app_name }}"
         mode: '0755'
 
     - name: Ensure cron job exists for backup cleanup

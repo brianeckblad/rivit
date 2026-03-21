@@ -4,7 +4,7 @@ Add user accounts and manage access.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [How It Works](#how-it-works)
@@ -410,7 +410,7 @@ If a user completely forgets their password, admin must reset it:
 USERS=brian:newpassword123
 
 # Restart app
-sudo systemctl restart {app_name}
+sudo supervisorctl restart {app_name}
 
 # Remove from .env after user logs in and changes password
 ```
@@ -446,7 +446,7 @@ cp user_preferences.json user_preferences.json.bak
 nano user_preferences.json
 
 # Restart app
-sudo systemctl restart {app_name}
+sudo supervisorctl restart {app_name}
 ```
 
 **Best Practices:**
@@ -712,7 +712,7 @@ rm users-to-add.txt
 USERS=existing_user:pass,new_user:TempPass123
 
 # Restart app
-sudo systemctl restart {app_name}
+sudo supervisorctl restart {app_name}
 
 # IMPORTANT: Remove from .env after users are created!
 # Users are now stored in user_preferences.json
@@ -962,8 +962,8 @@ ls -la instance/data/
 touch instance/data/brian-items.csv
 
 # Fix permissions
-chown ubuntu:ubuntu instance/data/brian-items.csv
-chmod 644 instance/data/brian-items.csv
+chown ubuntu:{app_name} instance/data/brian-items.csv
+chmod 664 instance/data/brian-items.csv
 ```
 
 ### eBay API errors

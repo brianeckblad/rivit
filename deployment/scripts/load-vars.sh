@@ -78,14 +78,14 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Check if files exist
-if [ ! -f "$GROUP_VARS_DIR/all.yml" ]; then
-    echo -e "${RED}❌ Configuration file not found: $GROUP_VARS_DIR/all.yml${NC}"
+# Check if vault.yml exists (single source of truth for all configuration)
+if [ ! -f "$GROUP_VARS_DIR/vault.yml" ]; then
+    echo -e "${RED}❌ Configuration file not found: $GROUP_VARS_DIR/vault.yml${NC}"
     echo ""
     echo "You need to create it from the template. Run:"
     echo "  ./scripts/local-dev-setup.sh"
     echo ""
-    echo "This will create all.yml from all.yml.example and vault.yml from vault.yml.example"
+    echo "This will create vault.yml from vault.yml.example"
     echo ""
     return 1 2>/dev/null || exit 1
 fi
@@ -194,61 +194,70 @@ if [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
     fi
 fi
 
-# Load all.yml variables (plain values)
-parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
+# all.yml is an empty stub — all config is in vault.yml
+# Parse it anyway for backwards compatibility (no-op on an empty file)
+if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
+    parse_yaml_simple "$GROUP_VARS_DIR/all.yml"
+fi
 
 # =========================================================================
-# Load SERVER_IP — query AWS for live instance data, fall back to local files
+# Load SERVER_IP — query AWS or start fresh for a new deployment
 # =========================================================================
-INSTANCES_DIR="$DEPLOYMENT_DIR/instances"
 INVENTORY_FILE="$DEPLOYMENT_DIR/inventories/hosts.yml"
 
-# Resolve aws_region early (Jinja2 references aren't resolved until later,
-# but we need the region now for AWS queries)
-if [ -z "$aws_region" ] && [ -n "$vault_aws_region" ]; then
-    aws_region="$vault_aws_region"
-    export aws_region
-fi
 
 _server_ip=""
 _instance_id=""
 
-# Try AWS first — always has the true state (IPs change on stop/start)
-_aws_available=false
-if command -v aws &>/dev/null && [ -n "$aws_region" ]; then
-    _aws_json=$(aws ec2 describe-instances \
-        --filters "Name=tag:Name,Values=$app_name" \
-                  "Name=instance-state-name,Values=running,stopped,stopping,pending" \
-        --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,IP:PublicIpAddress,Type:InstanceType,Launch:LaunchTime}' \
-        --region "$aws_region" --output json 2>/dev/null)
-    if [ $? -eq 0 ] && [ -n "$_aws_json" ] && [ "$_aws_json" != "[]" ]; then
-        _aws_available=true
-    fi
-fi
+# ---- Menu: AWS instance or new deployment ----
 
-if [ "$_aws_available" = true ]; then
-    # Parse AWS response with Python (handles JSON reliably)
-    _aws_count=$(python3 -c "import json; print(len(json.loads('''$_aws_json''')))" 2>/dev/null)
+echo ""
+echo "  1) Use an existing AWS instance"
+echo "  2) New deployment (no instance yet)"
+echo ""
+printf "  Select [1-2]: "
+read -r _menu_choice
 
-    if [ "$_aws_count" -eq 1 ] 2>/dev/null; then
-        # Single instance — use it directly
-        eval "$(python3 -c "
+case "$_menu_choice" in
+
+    # ── Option 1: Query AWS for live instances ────────────────────
+    1)
+        if ! command -v aws &>/dev/null; then
+            echo -e "${RED}ERROR: AWS CLI not installed.${NC}"
+            return 1 2>/dev/null || exit 1
+        fi
+
+        _aws_json=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=$app_name" \
+                      "Name=instance-state-name,Values=running,stopped,stopping,pending" \
+            --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,IP:PublicIpAddress,Type:InstanceType,Launch:LaunchTime}' \
+            --region "$aws_region" --output json 2>/dev/null) || true
+
+        _aws_count=0
+        if [ -n "$_aws_json" ] && [ "$_aws_json" != "[]" ]; then
+            _aws_count=$(python3 -c "import json; print(len(json.loads('''$_aws_json''')))" 2>/dev/null || echo 0)
+        fi
+
+        if [ "$_aws_count" -eq 0 ] 2>/dev/null; then
+            echo ""
+            echo "No instances found. Re-run and select option 2 for a new deployment."
+            return 0 2>/dev/null || exit 0
+        elif [ "$_aws_count" -eq 1 ] 2>/dev/null; then
+            eval "$(python3 -c "
 import json
 data = json.loads('''$_aws_json''')
 i = data[0]
 print(f'_server_ip=\"{i.get(\"IP\") or \"\"}\"')
 print(f'_instance_id=\"{i[\"ID\"]}\"')
 " 2>/dev/null)"
-        if [ -z "$_server_ip" ]; then
-            echo -e "${YELLOW}⚠️  Instance ${_instance_id} is ${_aws_count} but has no public IP (stopped?)${NC}"
-        fi
-
-    elif [ "$_aws_count" -gt 1 ] 2>/dev/null; then
-        # Multiple instances — show live data and ask user to pick
-        echo ""
-        echo -e "${YELLOW}Found $_aws_count instances named '$app_name' (live from AWS):${NC}"
-        echo ""
-        python3 -c "
+            if [ -z "$_server_ip" ]; then
+                echo -e "${YELLOW}⚠️  Instance ${_instance_id} has no public IP (stopped?)${NC}"
+            fi
+        else
+            echo ""
+            echo -e "${YELLOW}Found $_aws_count instances named '$app_name' in AWS:${NC}"
+            echo ""
+            python3 -c "
 import json
 data = json.loads('''$_aws_json''')
 for idx, i in enumerate(data, 1):
@@ -258,104 +267,56 @@ for idx, i in enumerate(data, 1):
     launched = (i.get('Launch') or '?')[:10]
     print(f'  {idx}) {i[\"ID\"]}   {ip:<16s} {state:<10s} {itype}  launched {launched}')
 " 2>/dev/null
-        echo ""
-        printf "Select instance [1-%d]: " "$_aws_count"
-        read -r _choice
+            echo ""
+            printf "  Select instance [1-%d]: " "$_aws_count"
+            read -r _choice
 
-        if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "$_aws_count" ]; then
-            eval "$(python3 -c "
+            if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "$_aws_count" ]; then
+                eval "$(python3 -c "
 import json
 data = json.loads('''$_aws_json''')
 i = data[int('$_choice') - 1]
 print(f'_server_ip=\"{i.get(\"IP\") or \"\"}\"')
 print(f'_instance_id=\"{i[\"ID\"]}\"')
 " 2>/dev/null)"
-        else
-            echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
+            else
+                echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
+            fi
         fi
-    fi
+        ;;
 
-else
-    # AWS not available — fall back to local instance files
-    _instance_files=()
-    if [ -d "$INSTANCES_DIR" ]; then
-        while IFS= read -r f; do
-            _instance_files+=("$f")
-        done < <(find "$INSTANCES_DIR" -maxdepth 1 -name '*.txt' -type f 2>/dev/null | sort)
-    fi
-    # Also check legacy instance-info.txt
-    if [ ${#_instance_files[@]} -eq 0 ] && [ -f "$DEPLOYMENT_DIR/instance-info.txt" ]; then
-        _instance_files=("$DEPLOYMENT_DIR/instance-info.txt")
-    fi
+    # ── Option 2: New deployment ──────────────────────────────────
+    2)
+        # Clear stale instance data from previous runs in this shell
+        unset SERVER_IP 2>/dev/null
+        unset INSTANCE_ID 2>/dev/null
 
-    if [ ${#_instance_files[@]} -eq 1 ]; then
-        for _chosen_file in "${_instance_files[@]}"; do break; done
-    elif [ ${#_instance_files[@]} -gt 1 ]; then
         echo ""
-        echo -e "${YELLOW}AWS credentials not available — reading from local files:${NC}"
+        echo "Setting up for a new deployment."
         echo ""
-        _idx=1
-        for _f in "${_instance_files[@]}"; do
-            _fname=$(basename "$_f" .txt)
-            _file_ip=$(python3 -c "
-import re
-with open('$_f') as fh:
-    for line in fh:
-        m = re.search(r'Public IP Address:\s+(\S+)', line)
-        if m: print(m.group(1)); break
-" 2>/dev/null)
-            printf "  %d) %-24s  IP: %s\n" "$_idx" "$_fname" "${_file_ip:-unknown}"
-            _idx=$((_idx+1))
-        done
-        echo ""
-        printf "Select instance [1-%d]: " "${#_instance_files[@]}"
-        read -r _choice
+        echo "Resetting inventories/hosts.yml to localhost..."
 
-        if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "${#_instance_files[@]}" ]; then
-            _pick=1
-            for _f in "${_instance_files[@]}"; do
-                if [ "$_pick" -eq "$_choice" ]; then _chosen_file="$_f"; break; fi
-                _pick=$((_pick+1))
-            done
+        # Reset hosts.yml to the pre-deploy template (localhost / local)
+        if [ -f "$DEPLOYMENT_DIR/inventories/hosts.yml.example" ]; then
+            cp "$DEPLOYMENT_DIR/inventories/hosts.yml.example" "$INVENTORY_FILE"
+            echo -e "${GREEN}✓ hosts.yml reset to localhost${NC}"
         else
-            echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
+            echo -e "${YELLOW}⚠️  hosts.yml.example not found — hosts.yml not changed${NC}"
         fi
-    fi
+        ;;
 
-    # Extract from chosen local file
-    if [ -n "${_chosen_file:-}" ]; then
-        _server_ip=$(python3 -c "
-import re
-with open('$_chosen_file') as f:
-    for line in f:
-        m = re.search(r'Public IP Address:\s+(\S+)', line)
-        if m: print(m.group(1)); break
-" 2>/dev/null)
-        _basename=$(basename "$_chosen_file" .txt)
-        [[ "$_basename" == i-* ]] && _instance_id="$_basename"
-    fi
+    *)
+        echo -e "${RED}Invalid choice — SERVER_IP not set${NC}"
+        ;;
+esac
 
-    # Last fallback: inventories/hosts.yml
-    if [ -z "$_server_ip" ] && [ -f "$INVENTORY_FILE" ]; then
-        _server_ip=$(python3 -c "
-import re
-with open('$INVENTORY_FILE') as f:
-    for line in f:
-        m = re.search(r'ansible_host:\s*(\S+)', line)
-        if m:
-            ip = m.group(1)
-            if re.match(r'\d+\.\d+\.\d+\.\d+', ip): print(ip)
-            break
-" 2>/dev/null)
-    fi
-fi
+# ---- Export and sync inventory ----
 
-# Export and sync inventory
 if [ -n "$_server_ip" ]; then
     export SERVER_IP="$_server_ip"
     [ -n "$_instance_id" ] && export INSTANCE_ID="$_instance_id"
 
-    # Keep inventory in sync — update ansible_host if it differs
+    # Update hosts.yml with the live IP from AWS
     if [ -f "$INVENTORY_FILE" ]; then
         _inv_ip=$(python3 -c "
 import re
@@ -369,6 +330,7 @@ with open('$INVENTORY_FILE') as f:
 import re
 text = open('$INVENTORY_FILE').read()
 text = re.sub(r'(ansible_host:\s*)\S+', r'\g<1>$_server_ip', text)
+text = re.sub(r'(ansible_connection:\s*)\S+', r'\g<1>ssh', text)
 text = re.sub(r'(# Server IP:\s*)\S+', r'\g<1>$_server_ip', text)
 open('$INVENTORY_FILE', 'w').write(text)
 " 2>/dev/null
@@ -376,75 +338,36 @@ open('$INVENTORY_FILE', 'w').write(text)
         fi
     fi
 elif [ -n "$_instance_id" ]; then
-    # Instance exists but no public IP (stopped)
     export INSTANCE_ID="$_instance_id"
 fi
 
-# Resolve Jinja2 references: {{ var | default('val') }}
-# Uses Python for reliable regex parsing (avoids zsh regex/typeset issues)
-# Handles lines like: aws_region: "{{ vault_aws_region | default('us-east-2') }}"
-eval "$(python3 -c "
-import re, os
-with open('$GROUP_VARS_DIR/all.yml') as f:
-    for line in f:
-        m = re.match(r'^([a-z0-9_]+):\s*\"?\{\{\s*([a-z0-9_]+)\s*\|\s*default\([\\x27\"](.*?)[\\x27\"]\)\s*\}\}\"?', line)
-        if m:
-            key, src, fallback = m.groups()
-            value = os.environ.get(src, fallback)
-            # Escape double quotes and backslashes in value
-            value = value.replace(chr(92), chr(92)*2).replace('\"', '\\\\\"')
-            print(f'export {key}=\"{value}\"')
-" 2>/dev/null)"
+# ---- Display results ----
 
-# Display status and available variables
-echo -e "${GREEN}✅ Variables loaded and EXPORTED successfully${NC}"
 echo ""
-echo "Available variables (exported to this shell):"
+echo -e "${GREEN}✅ Variables loaded${NC}"
+echo ""
 echo "  app_name=$app_name"
-echo "  app_display_name=$app_display_name"
+echo "  app_display_name=${app_display_name:-}"
 echo "  aws_region=$aws_region"
-echo "  admin_user=$admin_user"
-echo "  server_name=$server_name"
-if [ -n "$SERVER_IP" ]; then
-    if [ "$_aws_available" = true ]; then
-        echo "  SERVER_IP=$SERVER_IP (live from AWS)"
-    else
-        echo "  SERVER_IP=$SERVER_IP (from local files — may be stale)"
-    fi
-    [ -n "$INSTANCE_ID" ] && echo "  INSTANCE_ID=$INSTANCE_ID"
-else
-    echo "  SERVER_IP=(not set — no running instances found)"
+echo "  admin_user=${admin_user:-ubuntu}"
+echo "  server_name=${server_name:-}"
+
+if [ -n "${SERVER_IP:-}" ]; then
+    echo "  SERVER_IP=$SERVER_IP"
+    [ -n "${INSTANCE_ID:-}" ] && echo "  INSTANCE_ID=$INSTANCE_ID"
+elif [ -n "${INSTANCE_ID:-}" ]; then
+    echo "  INSTANCE_ID=$INSTANCE_ID (no public IP — instance may be stopped)"
 fi
-echo ""
-echo "Variables are NOW AVAILABLE in your shell."
-echo ""
-echo "You can use them in scripts and with deployment playbooks:"
-echo "  - Configuration: app_name=$app_name, aws_region=$aws_region, etc."
-echo "  - In scripts: \$app_name, \$aws_region, \$admin_user, etc."
-echo "  - In playbooks: variables passed to ansible-playbook"
-echo ""
-echo "AWS resources (S3, IAM roles, security groups) don't exist yet."
-echo "They will be created when you run the deployment playbooks."
-echo ""
-echo "List all exported variables:"
-echo "  env | grep -E '^(app_|aws_|admin_|SERVER_|INSTANCE_)' | sort"
+
+
 echo ""
 
-# Show vault status
-if [ "$vault_encrypted" = true ]; then
-    if [ "$vault_loaded" = true ]; then
-        echo -e "${GREEN}🔓 vault.yml decrypted and loaded${NC}"
-    else
-        echo -e "${YELLOW}⚠️  vault.yml is encrypted but could not be decrypted${NC}"
-        echo "Variables from vault.yml (aws_region, etc.) are not available."
-        echo ""
-        echo "To fix:"
-        echo "  1. Create ~/.vault_pass with your vault password"
-        echo "  2. Or run: source scripts/load-vars.sh (will prompt for password)"
-    fi
-else
-    echo -e "${YELLOW}⚠️  Warning: vault.yml is NOT encrypted!${NC}"
-    echo "Your secrets are visible in plain text. Encrypt it with:"
+# Show vault status only if there is a problem
+if [ "$vault_encrypted" = true ] && [ "$vault_loaded" != true ]; then
+    echo -e "${YELLOW}⚠️  vault.yml is encrypted but could not be decrypted${NC}"
+    echo "  Create ~/.vault_pass or run: source scripts/load-vars.sh (will prompt)"
+elif [ "$vault_encrypted" != true ] && [ -f "$GROUP_VARS_DIR/vault.yml" ]; then
+    echo -e "${YELLOW}⚠️  vault.yml is NOT encrypted${NC}"
     echo "  ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass"
 fi
 

@@ -1,174 +1,156 @@
 ---
 # ============================================================================
-# SECRETS VAULT FILE - MUST BE ENCRYPTED
+# DEPLOYMENT CONFIGURATION — SINGLE SOURCE OF TRUTH
 # ============================================================================
-# ⚠️ THIS FILE CONTAINS SECRETS AND MUST BE ENCRYPTED!
+# This file contains ALL deployment variables: identity, credentials,
+# tuning, infrastructure sizing, and computed paths.
 #
-# Complete setup in PREREQUISITES.md (see deployment docs):
-# 1. Create vault password file (OPTIONAL but RECOMMENDED):
-#    echo 'strong-password' > ~/.vault_pass && chmod 600 ~/.vault_pass
-#    (If you skip this, playbooks will prompt you for password)
+# Setup:
+#   1. Copy this file:   cp vault.yml.example vault.yml
+#   2. Edit your values: nano vault.yml
+#   3. Encrypt it:       ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
+#   4. Verify:           ansible-vault view vault.yml --vault-password-file ~/.vault_pass
 #
-# 2. Copy this file: cp vault.yml.example vault.yml
-# 3. Edit with your credentials: nano vault.yml
-# 4. ENCRYPT IT: ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
-# 5. Verify: ansible-vault view vault.yml --vault-password-file ~/.vault_pass
+# After encryption, commit to git (encrypted content only).
 #
-# ✅ After encryption, it's SAFE to commit to Git (encrypted content only)
-# ✅ Playbooks automatically decrypt:
-#    - With password from ~/.vault_pass if it exists (no prompt)
-#    - By prompting you if ~/.vault_pass doesn't exist
-# ⚠️ NEVER commit unencrypted vault.yml with real secrets!
+# Edit later:  ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
+# View later:  ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
 # ============================================================================
 
 # ============================================================================
-# GIT REPOSITORY (REQUIRED)
+# APPLICATION IDENTITY (REQUIRED)
 # ============================================================================
-# Your GitHub repository URL where your application code is stored
-vault_git_repo: "https://github.com/YOUR_USERNAME/YOUR_APP_NAME.git"
-
-# GitHub Personal Access Token (REQUIRED for private repos)
-# Ansible uses this token to clone your repo on the EC2 instance.
-# The token is decrypted locally and passed to the server — no need for
-# AWS Secrets Manager or any credentials stored on the instance.
-#
-# Create a fine-grained PAT at: https://github.com/settings/personal-access-tokens/new
-#   Token name:         your-app-deploy
-#   Repository access:  Only select repositories → your repo
-#   Permissions:        Contents → Read-only
-#   Copy the token (starts with github_pat_...)
-#
-# Leave empty for public repos.
-vault_git_token: ""
+app_name: "your_app_name"                        # Technical name (e.g., myapp, comic_tracker)
+app_display_name: "My Application"               # Human-readable name for systemd/UI
+server_name: "_"                                 # Domain for SSL (e.g., myapp.example.com)
+                                                 # "_" = no domain, access via IP only
+ssl_email: ""                                    # Email for Let's Encrypt SSL notifications
+service_name: "{{ app_name }}"                   # systemd service name (usually same as app_name)
 
 # ============================================================================
-# AWS CONFIGURATION (REQUIRED)
+# USERS (REQUIRED)
 # ============================================================================
-# NOTE: AWS credentials (access keys) are NOT stored here!
-# The EC2 instance uses an IAM role for authentication (more secure)
-# These just specify which region and buckets to use
+admin_user: "ubuntu"                             # SSH/deployment user (ubuntu for EC2 Ubuntu AMI)
+app_user: "app_runtime"                          # Application runtime user (no SSH, no shell)
 
-vault_aws_region: "us-east-2"                   # AWS region for your resources
-                                                 # Must match what you configured in AWS CLI
+# ============================================================================
+# GIT (REQUIRED)
+# ============================================================================
+git_branch: "main"                               # Git branch to deploy
+git_repo_url: "https://github.com/YOUR_USERNAME/YOUR_APP.git"
+git_token: ""                                    # GitHub PAT (required for private repos, empty for public)
+git_repo: "{{ git_repo_url | replace('https://', 'https://' + git_token + '@') if git_token | default('') else git_repo_url }}"
 
-vault_s3_bucket_name: "your-unique-bucket-name" # S3 storage bucket for application data
-                                                 # MUST be globally unique (not just in your account)
-                                                 # Recommended: yourname-appname-year
-                                                 # Example: john-myapp-2026
-
-vault_s3_folder: "data"                         # Folder/prefix within S3 bucket
-                                                 # Where app stores files
-                                                 # Example: data, uploads, backup, etc.
-
-# For local development ONLY (EC2 instances use IAM roles instead):
-# aws_access_key_id: "your_access_key_here"
-# aws_secret_access_key: "your_secret_key_here"
+# ============================================================================
+# AWS (REQUIRED)
+# ============================================================================
+aws_region: "us-east-2"                          # AWS region for your resources
+s3_bucket_name: "your-unique-bucket-name"        # S3 bucket (must be globally unique)
+s3_folder: "data"                                # Folder/prefix within S3 bucket
+secret_name: "{{ app_name }}/production"            # AWS Secrets Manager secret name
+sns_topic_arn: ""                                # SNS topic for alerts (optional)
 
 # ============================================================================
 # APPLICATION CREDENTIALS (REQUIRED)
 # ============================================================================
-# Default login credentials for your application web interface
-# Change these after your first login to the application!
-
-app_default_username: "admin"                   # Default username for app login
-app_default_password: "change-this-to-strong-pwd" # Default password for app login
-                                                 # IMPORTANT: Change this after deployment!
+app_default_username: "admin"                    # Default web login username
+app_default_password: "change-this-password"     # Default web login password
+users: "admin:change-this-password"              # Format: user1:pass1,user2:pass2
 
 # ============================================================================
-# USER AUTHENTICATION (OPTIONAL)
+# FLASK (REQUIRED)
 # ============================================================================
-# Format: username:password or username1:password1,username2:password2
-# Default: admin:admin123 (if not set)
-# Multiple users: admin:password1,user2:password2
-# This is for basic application user authentication
-users: "admin:admin123"                         # Change to your secure passwords!
+secret_key: "change-this-to-a-random-secret-key"    # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+flask_port: "8000"
+flask_env: "production"
 
 # ============================================================================
 # CLOUDFRONT & RATE LIMITING (OPTIONAL)
 # ============================================================================
-# Controlled by enable_cloudfront in all.yml (default: false)
-# Leave empty until enabled — the app works without CloudFront
-#
-# After enabling and running provisioning, fill in:
-#   cloudfront_domain: from the playbook output (e.g., d1234567.cloudfront.net)
-#   app_secret_token: generate with python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-cloudfront_domain: ""
-app_secret_token: ""
+enable_cloudfront: false                         # true = deploy CloudFront CDN
+cloudfront_price_class: "PriceClass_100"         # PriceClass_100 | PriceClass_200 | PriceClass_All
+cloudfront_domain: ""                            # Filled after CloudFront provisioning
+app_secret_token: ""                             # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 
 # ============================================================================
-# FLASK CONFIGURATION (REQUIRED)
+# PERFORMANCE (OPTIONAL)
 # ============================================================================
-# These are the core application secrets
-
-flask_secret_key: "change-this-to-a-random-secret-key"  # Flask SECRET_KEY
-                                                         # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-                                                         # Used for session encryption, CSRF protection, etc.
-
-flask_port: "8000"                              # Application port (typically 8000 or 5000)
-flask_env: "production"                         # Flask environment (development or production)
-
+gunicorn_workers: 4                              # Worker processes (2-4 x CPU cores)
+gunicorn_timeout: 120                            # Request timeout in seconds
+gunicorn_bind: "127.0.0.1:8000"                 # Gunicorn bind address
+app_port: "{{ gunicorn_bind.split(':')[1] }}"    # Derived from gunicorn_bind
+python_version: "3.10"                           # Python version on target server
 
 # ============================================================================
-# eBay API CONFIGURATION (REQUIRED IF USING eBay)
+# LOG RETENTION (OPTIONAL)
 # ============================================================================
-# All credentials come from the eBay Developer Portal:
-#   https://developer.ebay.com/my/keys
-#
-# The s
-#   https://developer.ebay.com/my/auth
-#   1. Select environment (Sandbox or Production) at the top
-#   2. Click "Get a User Token" tab
-#   3. Select your app from the dropdown
-#   4. Sign in and authorize with your eBay account
-#   5. Copy the generated OAuth user token
-#   Note: Production tokens expire after 18 months and must be refreshed
+log_retention_days: 20                           # Days to keep logs before rotation
+log_max_size: "10M"                              # Max size per log file
+
 # ============================================================================
+# BACKUPS (OPTIONAL)
+# ============================================================================
+backup_cleanup_hour: "3"                         # Hour to run cleanup (0-23, UTC)
+backup_cleanup_minute: "0"                       # Minute to run cleanup (0-59)
+backup_retention_days: 30                        # Days to keep backups
+s3_version_retention_days: 30                    # Days to keep old S3 versions
 
-# Which eBay environment to use: "sandbox" for testing, "production" for live
-ebay_environment: "production"
+# ============================================================================
+# STORAGE (EBS VOLUME)
+# ============================================================================
+# app_dir is the single base path — all other paths derive from it.
+app_dir: "/opt/{{ app_name }}"
+app_storage_mount_path: "{{ app_dir }}"
+ebs_volume_mount_path: "{{ app_dir }}"
+venv_dir: "{{ app_dir }}/.venv"
+log_dir: "{{ app_dir }}/logs"
+instance_dir: "{{ app_dir }}/instance"
 
-# --- Sandbox credentials (for testing, no real transactions) ---
+ebs_volume_size: 100                             # EBS volume size in GB
+ebs_volume_type: "gp3"                           # gp3 recommended
+ebs_volume_encrypted: true
+ebs_boot_delete_on_termination: true
+ebs_data_delete_on_termination: false
+ebs_volume_snapshot_id: ""                       # Set to restore from snapshot
+ebs_device_name: "/dev/sdf"
+ebs_nvme_device: "/dev/nvme1n1"
 
-# Dev ID: shown at the top of the keys page (shared across both environments)
-ebay_sandbox_dev_id: ""
+# ============================================================================
+# EC2
+# ============================================================================
+ec2_instance_type: "t3.micro"                    # Instance type
+assign_public_ip: true
+ec2_monitoring_enabled: false
+ec2_termination_protection: true
+ec2_ebs_optimized: false
+ec2_source_dest_check: true
 
-# Cert ID: under Sandbox key set details
-ebay_sandbox_cert_id: ""
-
-# App ID: under Sandbox key set details
-ebay_sandbox_app_id: ""
-
-# User Token: generate via auth flow with sandbox environment selected
-ebay_sandbox_token: ""
-
-# --- Production credentials (for live transactions) ---
-
-# Dev ID: same value as sandbox (shared)
+# ============================================================================
+# eBay API (OPTIONAL — only if using eBay features)
+# ============================================================================
+ebay_environment: "production"                   # sandbox or production
 ebay_production_dev_id: ""
-
-# Cert ID: under Production key set details
 ebay_production_cert_id: ""
-
-# App ID: under Production key set details
 ebay_production_app_id: ""
-
-# User Token: generate via auth flow with production environment selected
 ebay_production_token: ""
+ebay_verification_token: ""
 
-# eBay Verification Token - for Marketplace Account Deletion endpoint
-# This is a random string YOU generate (not from eBay).
-# After generating, paste it into the Developer Portal:
-#   1. Click your app title to expand details
-#   2. Scroll to "Marketplace Account Deletion" section
-#   3. Paste this token into the "Verification token" field
-#   4. Set the endpoint URL to: https://your-domain.com/api/ebay/marketplace-account-deletion
-# Generate: python3 -c "import secrets; print(secrets.token_urlsafe(48)[:64])"
-# Stored in AWS Secrets Manager as EBAY_VERIFICATION_TOKEN (synced during deployment)
-ebay_verification_token: "your-64-character-token-here"
 
 # ============================================================================
-# SNS TOPIC (OPTIONAL - for monitoring alerts)
+# SYSTEM PACKAGES
 # ============================================================================
-# If you want automated alerts (error notifications, monitoring, etc.)
-# Leave this blank ("") if you don't need it
-vault_sns_topic_arn: ""
+system_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - python3-dev
+  - build-essential
+  - nginx
+  - git
+  - curl
+  - supervisor
+  - libjpeg-dev
+  - zlib1g-dev
+  - libpng-dev
+  - net-tools
+  - xfsprogs

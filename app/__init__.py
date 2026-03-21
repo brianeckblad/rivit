@@ -380,7 +380,7 @@ def create_app(config_name='development'):
             with open(user_prefs_file, 'r') as f:
                 local_prefs = json.load(f)
                 local_user_count = len(local_prefs)
-        except:
+        except (json.JSONDecodeError, IOError, TypeError):
             local_user_count = 0
 
     prefs_data_from_s3 = s3_service.restore_user_preferences_from_s3()
@@ -639,9 +639,9 @@ def create_app(config_name='development'):
             except Exception:
                 pass
             return {
-                'app_version': app_version,
-                'app_stage': app_stage,
-                'app_version_display': app_version_display
+                'app_version': 'vP.unavailable',
+                'app_stage': 'Private',
+                'app_version_display': 'Private (Build unavailable)'
             }
 
     # Startup Health Check: Validate CSV integrity

@@ -78,8 +78,22 @@ source scripts/load-vars.sh
 
 ```bash
 cd deployment
-ansible-playbook playbooks/decommission.yml --vault-password-file ~/.vault_pass
+./scripts/decommission.sh
 ```
+
+The script presents a discovery menu:
+
+| Choice | What it does |
+|--------|-------------|
+| **1) Query AWS** | Checks for live EC2 instances. Exits cleanly if none found. |
+| **2) New deployment** | Exits immediately — nothing to tear down. |
+
+When resources are found, the script asks you to type the app name to confirm, then calls the decommission playbook.
+
+> **Direct playbook usage (advanced):** If you want to skip the discovery menu:
+> ```bash
+> ansible-playbook playbooks/decommission.yml --vault-password-file ~/.vault_pass -e decommission_confirmed=true
+> ```
 
 **What it does (in order):**
 
@@ -128,7 +142,7 @@ The playbook will:
 - Find the instance by `Name` tag
 - Disable termination protection if enabled
 - Terminate the instance and wait for completion
-- Remove local `instance-info.txt`
+- Remove local instance info files from `instances/`
 
 #### Option B: CLI
 
@@ -319,7 +333,7 @@ aws iam get-role --role-name ${app_name}-ec2-role 2>&1
 
 > ⚠️ **ALL DATA WILL BE PERMANENTLY LOST.** Back up first.
 >
-> The bucket name comes from `vault_s3_bucket_name` in your vault, not from `app_name`.
+> The bucket name comes from `s3_bucket_name` in your vault, not from `app_name`.
 > Check it: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep s3_bucket`
 
 #### Option A: Playbook
@@ -338,7 +352,7 @@ The playbook will:
 #### Option B: CLI
 
 ```bash
-# Set your bucket name (must match vault_s3_bucket_name)
+# Set your bucket name (must match s3_bucket_name)
 S3_BUCKET="your-bucket-name-here"  # ⚠️ Change to YOUR vault value
 
 # Empty all objects
@@ -460,7 +474,7 @@ echo "✓ WAF deleted"
 
 ### Step 8: Delete CloudFront (optional)
 
-**Only if `enable_cloudfront: true` in your `all.yml`.**
+**Only if `enable_cloudfront: true` in your vault.yml.**
 
 > **Note:** CloudFront distributions must be **disabled** before they can be deleted.
 > Disabling takes **10-15 minutes**. The playbook handles this automatically.
@@ -644,5 +658,5 @@ This is normal — it means the resource was already deleted. The playbooks use 
 - [Chapter 5: Operations — Server Decommissioning](OPERATIONS.md#server-decommissioning) — pre-decommission backup checklist
 - [Chapter 2: Quick Start](QUICKSTART.md) — redeploy from scratch
 - [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) — step-by-step redeploy
-- [Infrastructure Components](INFRASTRUCTURE.md) — what each resource does
+- [Infrastructure Reference](INFRASTRUCTURE.md) — what each resource does
 

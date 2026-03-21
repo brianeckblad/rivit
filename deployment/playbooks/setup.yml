@@ -13,20 +13,6 @@
   tasks:
 
 
-    - name: Remove legacy supervisor configuration
-      file:
-        path: /etc/supervisor/conf.d/badartlistingtool.conf
-        state: absent
-
-    - name: Remove legacy nginx configuration
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/nginx/sites-available/badartlistingtool
-        - /etc/nginx/sites-enabled/badartlistingtool
-        - /etc/nginx/sites-available/badart-app
-        - /etc/nginx/sites-enabled/badart-app
 
     - name: Check if git repo is initialized
       stat:
@@ -111,8 +97,8 @@
         src: ../templates/env.j2
         dest: "{{ app_dir }}/.env"
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: '0600'
+        group: "{{ app_name }}"
+        mode: '0640'
 
     - name: Create supervisor configuration
       template:
@@ -159,14 +145,14 @@
         path: "{{ app_dir }}/scripts"
         state: directory
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-        mode: '0755'
+        group: "{{ app_name }}"
+        mode: '2775'
 
     - name: Ensure backup cleanup script is executable
       file:
         path: "{{ app_dir }}/app/scripts/cleanup_old_backups.py"
         owner: "{{ app_user }}"
-        group: "{{ app_user }}"
+        group: "{{ app_name }}"
         mode: '0755'
 
     - name: Create daily cron job for backup cleanup

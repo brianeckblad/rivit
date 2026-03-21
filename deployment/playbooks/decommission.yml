@@ -5,7 +5,12 @@
 # ⚠️  WARNING: This is DESTRUCTIVE and IRREVERSIBLE
 # All data in S3, EC2 instances, and associated resources will be PERMANENTLY deleted
 #
-# Usage: ansible-playbook playbooks/decommission.yml --vault-password-file ~/.vault_pass
+# Recommended usage (interactive menu with graceful exits):
+#   cd deployment
+#   ./scripts/decommission.sh
+#
+# Direct playbook usage (skips discovery menu):
+#   ansible-playbook playbooks/decommission.yml --vault-password-file ~/.vault_pass -e decommission_confirmed=true
 #
 # What gets deleted (in order):
 #   1. EC2 Instance (terminated)
@@ -36,26 +41,20 @@
     - ../group_vars/all.yml
     - ../group_vars/vault.yml
 
-  vars_prompt:
-    - name: confirm_app_name
-      prompt: |
-
-        ╔══════════════════════════════════════════════════════════╗
-        ║  ⚠️  DESTRUCTIVE OPERATION - ALL DATA WILL BE DELETED   ║
-        ╚══════════════════════════════════════════════════════════╝
-
-        This will permanently delete ALL resources for this application.
-
-        Type the app name to confirm
-      private: no
-
   tasks:
-    - name: Validate confirmation
+    - name: Check confirmation flag
       fail:
         msg: |
-          Confirmation failed. You typed '{{ confirm_app_name }}' but app_name is '{{ app_name }}'.
-          Run again and type '{{ app_name }}' to confirm.
-      when: confirm_app_name != app_name
+          This playbook should be run through the wrapper script:
+            cd deployment
+            ./scripts/decommission.sh
+
+          The script provides a discovery menu and graceful exits when
+          there are no resources to decommission.
+
+          To bypass the script and run directly, pass:
+            -e decommission_confirmed=true
+      when: decommission_confirmed | default(false) | bool != true
 
     - name: Display decommission plan
       debug:
@@ -131,7 +130,6 @@
         state: absent
       loop:
         - "{{ playbook_dir }}/../instance-info.txt"
-        - "{{ playbook_dir }}/../secrets-manager-info.txt"
         - "{{ playbook_dir }}/../cloudfront-info.txt"
         - "{{ playbook_dir }}/../waf-info.txt"
         - "{{ playbook_dir }}/../.last-rotation.txt"
@@ -161,7 +159,7 @@
           - "Optional Features (deleted if present):"
           - "  ✓ WAF Web ACL:        {{ app_name }}-web-acl"
           - "  ✓ CloudFront:         {{ app_name }} distribution"
-          - "  ✓ Secrets Manager:    {{ app_name }}/production"
+          - "  ✓ Secrets Manager:    {{ secret_name }}"
           - ""
           - "All AWS resources for {{ app_name }} have been removed."
           - ""

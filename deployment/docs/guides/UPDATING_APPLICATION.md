@@ -40,7 +40,7 @@ python -m unittest discover
 
 # Test manually
 python runapp.py
-# Visit http://localhost:5000
+# Visit http://localhost:8000
 ```
 
 **What to test:**
@@ -128,13 +128,13 @@ pip install -r requirements.txt
 # python manage.py migrate
 
 # Restart application
-sudo systemctl restart {app_name}
+sudo supervisorctl restart {app_name}
 
 # Check if it started
-sudo systemctl status {app_name}
+sudo supervisorctl status {app_name}
 
 # View recent logs
-sudo journalctl -u {app_name} -n 20
+sudo tail -20 /opt/{app_name}/logs/app.log
 
 # Exit server
 exit
@@ -166,13 +166,13 @@ curl http://YOUR_SERVER_IP/health
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # View recent application logs
-sudo journalctl -u {app_name} -n 50 --no-pager
+sudo tail -50 /opt/{app_name}/logs/app.log
 
 # Follow logs in real-time (useful while testing)
-sudo journalctl -u {app_name} -f
+sudo tail -f /opt/{app_name}/logs/app.log
 
 # Check for errors
-sudo journalctl -u {app_name} | grep ERROR
+sudo grep ERROR /opt/{app_name}/logs/app.log
 
 # Exit
 exit
@@ -185,8 +185,8 @@ exit
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Check if service is running
-sudo systemctl status {app_name}
-# Should show: active (running)
+sudo supervisorctl status {app_name}
+# Should show: RUNNING
 
 # Check if Nginx is running
 sudo systemctl status nginx
@@ -209,10 +209,10 @@ exit
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Check the error
-sudo journalctl -u {app_name} -n 100 --no-pager
+sudo tail -100 /opt/{app_name}/logs/app.log
 
-# Check application logs
-sudo tail -50 /var/log/{app_name}/error.log
+# Check error log
+sudo tail -50 /opt/{app_name}/logs/error.log
 
 # Check if dependencies installed
 source ~/.venv/bin/activate
@@ -254,7 +254,7 @@ python -m alembic downgrade -1
 python manage.py migrate app_name 0001_previous
 
 # Check logs for detailed error
-less /var/log/{app_name}/error.log
+less /opt/{app_name}/logs/error.log
 
 exit
 ```
@@ -276,7 +276,7 @@ exit
 2. **Check error logs:**
    ```bash
    ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
-   sudo journalctl -u {app_name} | grep ERROR | tail -20
+   sudo grep ERROR /opt/{app_name}/logs/app.log | tail -20
    exit
    ```
 
@@ -301,10 +301,10 @@ cd /home/ubuntu/{app_name}
 git reset --hard HEAD~1
 
 # Restart application
-sudo systemctl restart {app_name}
+sudo supervisorctl restart {app_name}
 
-# Verify it's working
-sudo systemctl status {app_name}
+# Verify it started
+sudo supervisorctl status {app_name}
 
 exit
 ```
@@ -336,10 +336,10 @@ git checkout COMMIT_HASH
 git reset --hard HEAD~5
 
 # Restart
-sudo systemctl restart {app_name}
+sudo supervisorctl restart {app_name}
 
 # Verify
-sudo systemctl status {app_name}
+sudo supervisorctl status {app_name}
 
 exit
 ```
@@ -518,16 +518,6 @@ Then every push to `main` auto-deploys!
 
 ---
 
-## Next Steps
-
-- **Automate more:** Set up CI/CD pipeline
-- **Monitor:** Watch CloudWatch dashboards after deploy
-- **Feedback:** Get user feedback on new features
-- **Operations:** See [OPERATIONS.md](OPERATIONS.md) for ongoing maintenance
-
----
-
----
 
 ## Next step
 

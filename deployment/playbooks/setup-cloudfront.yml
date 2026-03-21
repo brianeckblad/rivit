@@ -2,7 +2,7 @@
 # Playbook to create and configure CloudFront distribution
 # For CDN and edge caching of static assets
 #
-# Controlled by: enable_cloudfront in group_vars/all.yml
+# Controlled by: enable_cloudfront in group_vars/vault.yml
 # To enable: set enable_cloudfront: true, then run this playbook
 # To force:  ansible-playbook playbooks/setup-cloudfront.yml -e enable_cloudfront=true
 #
@@ -19,7 +19,7 @@
   tasks:
     - name: Check if CloudFront is enabled
       debug:
-        msg: "Skipping CloudFront setup (enable_cloudfront is false in all.yml)"
+        msg: "Skipping CloudFront setup (enable_cloudfront is false in vault.yml)"
       when: not (enable_cloudfront | default(false) | bool)
 
     - name: End play if CloudFront is disabled

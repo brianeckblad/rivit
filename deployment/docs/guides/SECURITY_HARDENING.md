@@ -6,13 +6,7 @@ Server permissions, firewall rules, and SSH lockdown.
 
 ## Overview
 
-Security hardening means making your server resistant to attacks. Think of it like:
-- Locking doors (close unnecessary ports)
-- Adding alarms (detect break-ins)
-- Using strong locks (encryption)
-- Limiting access (least privilege)
-
-This guide covers what hardening does and how to apply it.
+Security hardening reduces the attack surface of your server by closing unnecessary ports, enforcing strong authentication, encrypting data, and applying the principle of least privilege.
 
 ---
 
@@ -31,48 +25,48 @@ The deployment includes automatic hardening of:
 
 The `setup.yml` playbook automatically applies hardening. You get:
 
-### ✅ SSH Security
+### SSH Security
 - **SSH Keys Only** - No password login (more secure)
 - **Key Rotation** - Use strong RSA keys
 - **Limited SSH Users** - Only `ubuntu` user (main), then app runs as unprivileged user
 - **SSH Port** - Open on port 22 (standard)
 - **Root Login Disabled** - Can't SSH as root
 
-### ✅ Network Security
+### Network Security
 - **Firewall (UFW)** - Only allow ports 22, 80, 443
 - **Port Scanning** - Configured to fail closed
 - **IPv6** - Disabled on unused interfaces
 
-### ✅ File Permissions
+### File Permissions
 - **Application Files** - Owned by app user, not root
 - **Configuration Files** - Restricted permissions (600/700)
 - **Secret Files** - Encryption at rest, restricted access
 - **Logs** - Readable only by app or admin
 
-### ✅ User Accounts
+### User Accounts
 - **App User** - Unprivileged, can't login
 - **No Default Passwords** - All passwords set to strong values
 - **sudo Restrictions** - Limited what app can elevate to
 - **User Auditing** - Track who did what
 
-### ✅ System Updates
+### System Updates
 - **Auto-Updates** - Security patches applied automatically
 - **Unattended Upgrades** - OS updates without manual intervention
 - **Automatic Restarts** - Server reboots when needed (during low-traffic)
 
-### ✅ Application Security
+### Application Security
 - **Dependencies** - Pinned versions (no unexpected updates)
 - **Gunicorn** - Runs as unprivileged user
 - **Systemd** - App auto-restarts if crashed
 - **Sandboxing** - Limited file access
 
-### ✅ Logging & Monitoring
+### Logging and Monitoring
 - **Syslog** - All events logged
 - **Access Logs** - HTTP requests logged
 - **Error Logs** - Application errors logged
 - **Audit Trail** - Track all changes
 
-### ✅ SSL/HTTPS
+### SSL/HTTPS
 - **Let's Encrypt** - Free, automated certificates
 - **Auto-Renewal** - Certificates auto-renew before expiry
 - **TLS 1.2+** - Modern encryption only
@@ -151,18 +145,26 @@ exit
 ```bash
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
-# Check app directory ownership
-ls -la /home/ubuntu/{app_name} | head -3
+# Check app directory ownership and setgid
+ls -la /opt/{app_name}/ | head -5
 
-# Expected: owned by ubuntu:ubuntu or {app_username}:{app_username}
+# Expected: drwxrwsr-x  owner:group = ubuntu:{app_name}
+#           The 's' in group-execute confirms setgid is set.
 
 # Check config file permissions
-ls -la /home/ubuntu/{app_name}/.env 2>/dev/null || echo "Encrypted or not visible"
+ls -la /opt/{app_name}/.env 2>/dev/null || echo "Not created yet"
+
+# Expected: -rw-r-----  owner:group = {app_name}:{app_name}
 
 # Check log directory
-ls -la /var/log/{app_name}/
+ls -la /opt/{app_name}/logs/
 
-# Expected: owned by {app_username}:{app_username}
+# Expected: drwxrwsr-x  owner:group = {app_name}:{app_name}
+
+# Verify both users are in the shared group
+getent group {app_name}
+
+# Expected: {app_name}:x:NNN:ubuntu,{app_name}
 
 exit
 ```
@@ -429,7 +431,7 @@ sudo awk '{print $7}' /var/log/{app_name}/nginx_access.log | sort | uniq -c | so
 sudo ufw deny from ATTACKER_IP
 
 # Check if application is still running
-sudo systemctl status {app_name}
+sudo supervisorctl status {app_name}
 
 exit
 ```
@@ -499,14 +501,6 @@ nmap --script ssl-cert,ssl-enum-ciphers -p 443 YOUR_SERVER_IP
 
 ---
 
-## Next Steps
-
-- **WAF Setup:** [WAF_CONFIGURATION.md](WAF_CONFIGURATION.md) (coming soon)
-- **Operations:** [OPERATIONS.md](OPERATIONS.md)
-- **Incident Response:** See OPERATIONS.md for attack response procedures
-- **Compliance:** If needed, implement CIS benchmarks
-
----
 
 ## Summary
 

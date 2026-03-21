@@ -2,7 +2,7 @@
 #
 # Infrastructure Complete Setup
 # Supported shells: bash, zsh
-# Wrapper script that runs provision-infrastructure.yml playbook
+# Runs all three deployment playbooks: provision, server prep, app deploy
 #
 # Usage: ./deployment/scripts/infra-complete-setup.sh
 
@@ -58,21 +58,31 @@ fi
 echo "✓ All prerequisites met"
 echo ""
 
-# Run the playbook
+# Run the playbooks
 cd "$DEPLOYMENT_DIR"
-echo "Running provision-infrastructure.yml..."
-echo ""
 
+echo "Step 1/3: Provisioning infrastructure..."
+echo ""
 ansible-playbook playbooks/provision-infrastructure.yml
 
 echo ""
+echo "Step 2/3: Preparing server..."
+echo ""
+ansible-playbook playbooks/setup-server.yml
+
+echo ""
+echo "Step 3/3: Deploying application..."
+echo ""
+ansible-playbook playbooks/setup.yml
+
+echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║   Infrastructure Provisioning Complete!                  ║"
+echo "║   Deployment Complete!                                   ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "Next steps:"
-echo "  1. Check instance-info.txt for server details"
-echo "  2. Update inventories/hosts.yml with IP"
-echo "  3. Run: ansible-playbook -i inventories playbooks/setup.yml"
+echo "  1. Check deployment/instances/ for server details"
+echo "  2. Test: curl http://<SERVER_IP>"
+echo "  3. Optional: ansible-playbook playbooks/setup-ssl.yml"
 echo ""
 

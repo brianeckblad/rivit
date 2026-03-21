@@ -29,7 +29,7 @@
 #   journalctl -u {{ app_name }} -f     # Follow logs in real-time
 #
 # ⚠️  DO NOT manually edit - will be overwritten on redeploy
-#     Edit group_vars/all.yml and rerun setup.yml instead
+#     Edit group_vars/vault.yml and rerun setup.yml instead
 # ============================================================================
 
 # ============================================================================
@@ -42,7 +42,7 @@
 [Service]
 Type=simple
 User={{ app_user }}
-Group={{ app_user }}
+Group={{ app_name }}
 WorkingDirectory={{ app_dir }}
 Environment="PATH={{ venv_dir }}/bin"
 Environment="FLASK_APP=app"
@@ -54,10 +54,10 @@ Environment="APP_SERVICE_NAME={{ service_name }}"
 # The app config.py uses these to fetch secrets from Secrets Manager
 #
 # SECRET_NAME: The AWS Secrets Manager secret name
-#              Format: {app_name}/secrets
+#              Format: {app_name}/production
 # AWS_REGION: The AWS region where the secret is stored
 # ============================================================================
-Environment="SECRET_NAME={{ app_name }}/secrets"
+Environment="SECRET_NAME={{ secret_name }}"
 Environment="AWS_REGION={{ aws_region }}"
 
 # ============================================================================

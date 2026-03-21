@@ -36,7 +36,8 @@
           - "  3. Security group (ports 22, 80, 443)"
           - "  4. SSH key pair"
           - "  5. EC2 instance (Ubuntu 22.04)"
-          - "  6. CloudFront CDN: {{ 'YES' if (enable_cloudfront | default(false) | bool) else 'no (change enable_cloudfront in all.yml to add later)' }}"
+          - "  6. Secrets Manager secret (synced from vault)"
+          - "  7. CloudFront CDN: {{ 'YES' if (enable_cloudfront | default(false) | bool) else 'no (change enable_cloudfront in vault.yml to add later)' }}"
           - ""
           - "App: {{ app_display_name }}"
           - "Region: {{ aws_region }}"
@@ -79,12 +80,21 @@
   import_playbook: launch-ec2-instance.yml
 
 # ==============================================================================
-# Step 6: CloudFront CDN (if enabled)
+# Step 6: Setup Secrets Manager
 # ==============================================================================
-# Controlled by enable_cloudfront in group_vars/all.yml
+# Creates the Secrets Manager secret and syncs vault values into it.
+# Must run after IAM role (Step 2) so the role can access the secret.
+
+- name: Step 6 - Setup Secrets Manager
+  import_playbook: setup-secrets-manager.yml
+
+# ==============================================================================
+# Step 7: CloudFront CDN (if enabled)
+# ==============================================================================
+# Controlled by enable_cloudfront in group_vars/vault.yml
 # The playbook skips itself if enable_cloudfront is false
 
-- name: Step 6 - Setup CloudFront (if enabled)
+- name: Step 7 - Setup CloudFront (if enabled)
   import_playbook: setup-cloudfront.yml
 
 # ==============================================================================
@@ -117,7 +127,8 @@
           - "  - Security Group: {{ app_name }}-sg"
           - "  - SSH Key: ~/.ssh/{{ app_name }}-key.pem"
           - "  - EC2 Instance"
-          - "  - CloudFront CDN: {{ 'enabled' if (enable_cloudfront | default(false) | bool) else 'skipped (set enable_cloudfront: true in all.yml to add later)' }}"
+          - "  - Secrets Manager: {{ secret_name }}"
+          - "  - CloudFront CDN: {{ 'enabled' if (enable_cloudfront | default(false) | bool) else 'skipped (set enable_cloudfront: true in vault.yml to add later)' }}"
           - ""
           - "Instance info saved to: deployment/instances/"
           - ""

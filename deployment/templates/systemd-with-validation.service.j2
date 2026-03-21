@@ -29,9 +29,9 @@
 #   journalctl -u {{ app_name }} -f     # Follow logs in real-time
 #
 # ⚠️  DO NOT manually edit - will be overwritten on redeploy
-#     Edit group_vars/all.yml and rerun setup.yml instead
+#     Edit group_vars/vault.yml and rerun setup.yml instead
 #
-# Variables from all.yml:
+# Variables from vault.yml:
 #   - app_display_name: Friendly name for service description
 #   - app_user: Non-privileged user to run as
 #   - app_dir: Application directory (on EBS volume)
@@ -50,7 +50,7 @@
 [Service]
 Type=simple
 User={{ app_user }}
-Group={{ app_user }}
+Group={{ app_name }}
 WorkingDirectory={{ app_dir }}
 
 # ============================================================================
@@ -65,8 +65,8 @@ WorkingDirectory={{ app_dir }}
 # Environment
 Environment="PATH={{ venv_dir }}/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="PYTHONUNBUFFERED=1"
-Environment="SECRET_NAME={{ secret_name | default(app_name ~ '/secrets') }}"
-Environment="AWS_REGION={{ aws_region | default('us-east-2') }}"
+Environment="SECRET_NAME={{ secret_name }}"
+Environment="AWS_REGION={{ aws_region }}"
 # Optional: Load additional variables from .env file if it exists
 # The '-' prefix makes this optional (won't fail if file doesn't exist)
 EnvironmentFile=-{{ app_dir }}/.env

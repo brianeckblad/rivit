@@ -12,7 +12,7 @@ For a point-and-click walkthrough using the AWS web console, see [AWS Console De
 
 ## Load Configuration Variables
 
-CLI commands in this guide use `$app_name`, `$aws_region`, and other variables from `group_vars/all.yml` and `vault.yml`. Load them once per terminal session:
+CLI commands in this guide use `$app_name`, `$aws_region`, and other variables from `group_vars/vault.yml`. Load them once per terminal session:
 
 ```bash
 cd deployment
@@ -21,17 +21,25 @@ source scripts/load-vars.sh
 
 The script decrypts `vault.yml` automatically using `~/.vault_pass`. If that file does not exist, it prompts for the vault password.
 
+After loading variables, the script asks how to set `SERVER_IP`:
+
+| Choice | When to use |
+|--------|------------|
+| **1) Use an existing AWS instance** | You already provisioned an EC2 instance. The script queries AWS for the public IP and updates `inventories/hosts.yml`. |
+| **2) New deployment** | No instance exists yet. The script resets `hosts.yml` to localhost so infrastructure playbooks work. |
+
 Verify the variables loaded:
 
 ```bash
 echo $app_name       # e.g., rampe
 echo $aws_region     # e.g., us-east-2
+echo $SERVER_IP      # e.g., 18.191.85.21 (set after choosing option 1)
 ```
 
 If `echo $app_name` is blank:
 - Confirm you are in the `deployment/` directory (`pwd` should end with `rampe/deployment`)
 - Use `source` not `./` — running `./scripts/load-vars.sh` creates a subshell and the variables are lost
-- If `group_vars/all.yml` does not exist, run `./scripts/local-dev-setup.sh` first
+- If `group_vars/vault.yml` does not exist, run `./scripts/local-dev-setup.sh` first
 
 
 ---
@@ -43,7 +51,7 @@ If `echo $app_name` is blank:
 ```
 Your Local Machine
        ↓
- [Infrastructure Layer] ← Steps 1-5 below
+ [Infrastructure Layer] ← Steps 1-6 below
        ↓
 ┌─────────────────────────┐
 │   AWS Region (us-east-2) │
@@ -56,6 +64,9 @@ Your Local Machine
 │                         │
 │  ↓ Stores data to:      │
 │  S3 Bucket (storage)    │
+│                         │
+│  ↓ Reads secrets from:  │
+│  Secrets Manager         │
 │                         │
 │  ↓ Uses role:           │
 │  IAM Role (permissions) │
@@ -85,8 +96,8 @@ EDITOR=nano ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vau
 Set these two lines (the URL stays plain — the token is separate):
 
 ```
-vault_git_repo: "https://github.com/YOUR_USERNAME/YOUR_APP_NAME.git"
-vault_git_token: "github_pat_YOUR_TOKEN_HERE"
+git_repo_url: "https://github.com/YOUR_USERNAME/YOUR_APP_NAME.git"
+git_token: "github_pat_YOUR_TOKEN_HERE"
 ```
 
 Save and exit. The playbooks construct the authenticated URL automatically.
@@ -94,10 +105,10 @@ Save and exit. The playbooks construct the authenticated URL automatically.
 **Verify:**
 
 ```bash
-ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep vault_git
+ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep git_
 ```
 
-You should see both `vault_git_repo` and `vault_git_token` with your values.
+You should see both `git_repo_url` and `git_token` with your values.
 
 ---
 
@@ -105,7 +116,7 @@ You should see both `vault_git_repo` and `vault_git_token` with your values.
 
 **Cloud storage for your application data**
 
-📚 **What is S3?** [INFRASTRUCTURE.md#s3-bucket](INFRASTRUCTURE.md#s3-bucket)
+See [Infrastructure Reference — S3 Bucket](INFRASTRUCTURE.md#s3-bucket) for background.
 
 ### Option A: Ansible Playbook (Recommended - 1 minute)
 
@@ -124,12 +135,12 @@ source scripts/load-vars.sh
 
 **Then create S3 bucket:**
 
-> **Important:** The bucket name below must match `vault_s3_bucket_name` in your vault.yml.
+> **Important:** The bucket name below must match `s3_bucket_name` in your vault.yml.
 > Check it with: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep s3_bucket`
 
 ```bash
-# Set your bucket name (must match vault_s3_bucket_name)
-S3_BUCKET="rampe-ipix-io"  # ⚠️ Change to YOUR vault_s3_bucket_name value
+# Set your bucket name (must match s3_bucket_name)
+S3_BUCKET="rampe-ipix-io"  # ⚠️ Change to YOUR s3_bucket_name value
 
 # Create bucket with encryption
 aws s3api create-bucket \
@@ -167,7 +178,7 @@ aws s3api put-public-access-block \
 
 **Verify:**
 
-> **Note:** The bucket name comes from `vault_s3_bucket_name` in your encrypted vault, not from `app_name`.
+> **Note:** The bucket name comes from `s3_bucket_name` in your encrypted vault, not from `app_name`.
 > To find your bucket name: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep s3_bucket`
 
 ```bash
@@ -181,7 +192,7 @@ aws s3api list-buckets --query 'Buckets[].Name'
 
 **Permissions for EC2 to access S3 and other AWS services**
 
-📚 **What is IAM?** [INFRASTRUCTURE.md#iam-role](INFRASTRUCTURE.md#iam-role)
+See [Infrastructure Reference — IAM Role](INFRASTRUCTURE.md#iam-role) for background.
 
 ### Option A: Ansible Playbook (Recommended - 1 minute)
 
@@ -220,8 +231,8 @@ aws iam create-role \
     --assume-role-policy-document file:///tmp/trust-policy.json
 
 # Create inline policy for S3 access
-# ⚠️ S3_BUCKET must match vault_s3_bucket_name from your vault
-S3_BUCKET="rampe-ipix-io"  # Change to YOUR vault_s3_bucket_name value
+# ⚠️ S3_BUCKET must match s3_bucket_name from your vault
+S3_BUCKET="rampe-ipix-io"  # Change to YOUR s3_bucket_name value
 
 cat > /tmp/s3-policy.json <<EOF
 {
@@ -272,7 +283,7 @@ aws iam get-role --role-name ${app_name}-ec2-role
 
 **Firewall rules - which ports can receive traffic**
 
-📚 **What is a Security Group?** [INFRASTRUCTURE.md#security-group](INFRASTRUCTURE.md#security-group)
+See [Infrastructure Reference — Security Group](INFRASTRUCTURE.md#security-group) for background.
 
 ### Option A: Ansible Playbook (Recommended - 1 minute)
 
@@ -343,7 +354,7 @@ aws ec2 describe-security-groups --group-names ${app_name}-sg
 
 **Password-less authentication to your server**
 
-📚 **What is SSH?** [INFRASTRUCTURE.md#ssh-key-pair](INFRASTRUCTURE.md#ssh-key-pair)
+See [Infrastructure Reference — SSH Key Pair](INFRASTRUCTURE.md#ssh-key-pair) for background.
 
 ### Option A: Ansible Playbook (Recommended - 1 minute)
 
@@ -385,7 +396,7 @@ ls -la ~/.ssh/${app_name}-key.pem
 
 **Create the server, mount the EBS data volume, and install system packages**
 
-📚 **What is EC2?** [INFRASTRUCTURE.md#ec2-instance](INFRASTRUCTURE.md#ec2-instance)
+See [Infrastructure Reference — EC2 Instance](INFRASTRUCTURE.md#ec2-instance) for background.
 
 ### 5a: Launch the Instance
 
@@ -399,7 +410,7 @@ ansible-playbook playbooks/launch-ec2-instance.yml --vault-password-file ~/.vaul
 The playbook automatically:
 - Launches the instance and waits for SSH
 - Updates `inventories/hosts.yml` with the new IP
-- Saves full details to `instance-info.txt`
+- Saves full details to `instances/`
 - **Validates** SSH, EBS volume, IAM role, S3 bucket, and security group
 
 After it completes, `$SERVER_IP` is available via `source scripts/load-vars.sh`.
@@ -516,7 +527,52 @@ You should see the 100 GB volume mounted at `/opt/{app_name}` and your app direc
 
 ---
 
-## Step 6: Deploy Application
+## Step 6: Setup Secrets Manager
+
+**Store application secrets securely in AWS — the app fetches them at startup**
+
+The application reads secrets (Flask key, eBay credentials, admin passwords) from AWS Secrets Manager at runtime using the IAM role created in Step 2. This step creates the secret and syncs your vault values into it.
+
+### Option A: Ansible Playbook (Recommended - 1 minute)
+
+```bash
+cd deployment
+ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
+```
+
+### Option B: AWS CLI (5 minutes)
+
+**First, load variables:**
+```bash
+cd deployment
+source scripts/load-vars.sh
+```
+
+**Create and populate the secret:**
+```bash
+# Create the Secrets Manager secret
+aws secretsmanager create-secret \
+    --name "${app_name}/production" \
+    --description "Secrets for ${app_display_name}" \
+    --secret-string '{}' \
+    --region $aws_region
+
+# Sync secrets from vault using the secret-sync playbook
+ansible-playbook playbooks/secret-sync.yml --vault-password-file ~/.vault_pass
+```
+
+**Verify:**
+```bash
+# Confirm the secret exists
+aws secretsmanager describe-secret \
+    --secret-id "${app_name}/production" \
+    --region $aws_region \
+    --query '{Name:Name,ARN:ARN}'
+```
+
+---
+
+## Step 7: Deploy Application
 
 **Clone code, install dependencies, configure Nginx and Supervisor, start the app**
 
@@ -546,11 +602,11 @@ curl http://$SERVER_IP
 
 **Option B: Manual SSH Setup (Educational - 30 minutes)**
 
-→ [Step 6b: Deploy via SSH](#step-6b-deploy-via-ssh-manual) (below)
+→ [Step 7b: Deploy via SSH](#step-7b-deploy-via-ssh-manual) (below)
 
 ---
 
-## Step 6b: Deploy via SSH (Manual)
+## Step 7b: Deploy via SSH (Manual)
 
 **For learning - do everything yourself on the server**
 
@@ -582,7 +638,7 @@ sudo apt install -y python3 python3-pip python3-venv nginx git
 ```bash
 # Clone from Git repository (EBS volume is mounted at /opt/${APP_NAME})
 cd /opt/${APP_NAME}
-sudo chown ubuntu:ubuntu /opt/${APP_NAME}
+sudo chown ubuntu:${APP_NAME} /opt/${APP_NAME}
 git clone https://github.com/YOUR_USERNAME/your_app.git .
 
 # (If private repo, configure Git credentials first)
@@ -686,11 +742,11 @@ sudo systemctl restart nginx
 
 ```bash
 # Check services are running
-sudo systemctl status ${APP_NAME}
+sudo supervisorctl status ${APP_NAME}
 sudo systemctl status nginx
 
 # Check logs
-sudo journalctl -u ${APP_NAME} -n 20
+sudo tail -20 /opt/${APP_NAME}/logs/app.log
 ```
 
 ### 9. Exit Server
@@ -708,13 +764,12 @@ curl http://$SERVER_IP
 
 ---
 
-## Step 7: Configure SSL/HTTPS (Optional)
+## Step 8: Configure SSL/HTTPS (Optional)
 
 **Only if you have a custom domain**
 
 If you're just using IP address, you can skip this.
 
-📚 **How to configure SSL?** See:
 
 **First, load variables:**
 ```bash
@@ -755,7 +810,7 @@ For console-based SSL setup, see [Console Deployment — Step 7: Configure SSL](
 
 ---
 
-## Step 8: Setup Monitoring (Optional)
+## Step 9: Setup Monitoring (Optional)
 
 **Track logs and metrics in CloudWatch**
 
@@ -780,7 +835,7 @@ For creating alarms and dashboards in the console, see [Console Deployment — S
 
 Now that logs are being collected, create alarms to detect problems and dashboards to monitor health.
 
-→ **[MONITORING.md](MONITORING.md)** - Full guide to set up alarms for errors, high CPU, disk space, and attacks
+See [Chapter 6: Monitoring](MONITORING.md) for alarms, dashboards, and alerting.
 
 ---
 
@@ -801,7 +856,7 @@ aws ec2 describe-instances \
   --query 'Reservations[0].Instances[0].{ID:InstanceId,State:State.Name,IP:PublicIpAddress}'
 
 # S3 bucket exists
-aws s3api head-bucket --bucket $vault_s3_bucket_name
+aws s3api head-bucket --bucket $s3_bucket_name
 
 # IAM role exists
 aws iam get-role --role-name ${app_name}-ec2-role --query 'Role.RoleName'
@@ -811,7 +866,14 @@ On the server:
 
 ```bash
 ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP
+
+# If deployed via Ansible (Steps 7):
+sudo supervisorctl status ${app_name}
+
+# If deployed via SSH (Step 7b):
 sudo systemctl status ${app_name}
+
+# Nginx (both paths):
 sudo systemctl status nginx
 exit
 ```
@@ -844,10 +906,10 @@ ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP -v
 ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP
 
 # Check service status
-sudo systemctl status ${app_name}
+sudo supervisorctl status ${app_name}
 
 # View error logs
-sudo journalctl -u ${app_name} -n 50 --no-pager
+sudo tail -50 /opt/${app_name}/logs/app.log
 
 # Check if port 8000 is listening
 sudo netstat -tulpn | grep 8000

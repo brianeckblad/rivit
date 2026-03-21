@@ -55,7 +55,7 @@ cd deployment
 ```
 
 **Sets up for:** This repository only (local config)  
-**Email:** Extracted from `group_vars/all.yml`
+**Email:** Extracted from `group_vars/vault.yml`
 
 ---
 

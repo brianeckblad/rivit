@@ -9,7 +9,7 @@ Applications run with minimum privileges, not as administrative users.
 ### Default Configuration (Secure)
 
 ```yaml
-# deployment/group_vars/all.yml
+# deployment/group_vars/vault.yml
 
 app_name: your_app_name           # Your app name (e.g., myapp, inventory_tool, comic_tracker)
 app_user: "{{ app_name }}"        # Runtime user (defaults to app_name)
@@ -53,7 +53,7 @@ systemd-analyze security {app_name}
 # Should show: MEDIUM or better
 
 # Check logs
-journalctl -u {app_name} -n 50
+sudo tail -50 /opt/{app_name}/logs/app.log
 ```
 
 ### Security Score
@@ -82,32 +82,49 @@ This deployment uses a **dedicated, non-privileged application user** with no SS
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Server (EC2/Lightsail)                                  │
+│ Server (EC2)                                            │
 ├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  Group: {app_name}                                      │
+│     Members: ubuntu, {app_name}                         │
+│     Setgid on /opt/{app_name} — new files inherit group │
 │                                                          │
 │  👤 ubuntu (admin_user)                                │
 │     ├── SSH Access: ✅ YES                              │
 │     ├── Shell: /bin/bash                                │
 │     ├── sudo: ✅ YES (via Ansible)                      │
-│     ├── Purpose: Deployment, git, system management     │
+│     ├── Group: {app_name} (shared)                      │
+│     ├── Purpose: Deployment, git, pip, system mgmt      │
 │     └── Home: /home/ubuntu/                             │
-│          ├── {app_name}/ (application code)             │
-│          └── .venv/ (Python virtual environment)        │
 │                                                          │
 │  👤 {app_name} (app_user)                               │
 │     ├── SSH Access: ❌ NO                               │
 │     ├── Shell: /usr/sbin/nologin                        │
 │     ├── sudo: ❌ NO                                     │
+│     ├── Group: {app_name} (shared)                      │
 │     ├── Home: ❌ NONE (system user)                     │
 │     ├── Purpose: Run application ONLY                   │
 │     └── Permissions:                                    │
-│          ├── READ: /opt/{app_name}/* (code)             │
-│          ├── READ: /opt/{app_name}/.venv/* (deps)       │
+│          ├── READ:  /opt/{app_name}/* (code, via group) │
+│          ├── READ:  /opt/{app_name}/.venv/* (deps)      │
 │          ├── WRITE: /opt/{app_name}/logs/* (logs)       │
 │          └── WRITE: /opt/{app_name}/instance/* (data)   │
 │                                                          │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### Shared Group Model
+
+Both users belong to the `{app_name}` group. All directories under `/opt/{app_name}` have the setgid bit set (`2775`), so every new file or directory automatically inherits the `{app_name}` group regardless of which user creates it.
+
+| Resource | Owner | Group | Mode | Why |
+|----------|-------|-------|------|-----|
+| `/opt/{app_name}` | ubuntu | {app_name} | 2775 | Admin deploys, setgid propagates group |
+| `.env` | {app_name} | {app_name} | 0640 | Runtime user owns secrets, admin can read |
+| `instance/` | {app_name} | {app_name} | 2775 | Runtime writes data, admin can read/manage |
+| `logs/` | {app_name} | {app_name} | 2775 | Runtime writes logs, admin can read |
+| `app/static/` | {app_name} | {app_name} | 2775 | Nginx reads, both users can manage |
+| Log files | {app_name} | {app_name} | 0664 | Both users can read/write |
 
 ## Security Benefits
 
@@ -166,7 +183,7 @@ AmbientCapabilities=
 
 ## What Gets Protected
 
-### ✅ Protected Against
+### Protected Against
 
 | Threat | Protection | How |
 |--------|-----------|-----|
@@ -179,7 +196,7 @@ AmbientCapabilities=
 | File System Attacks | ✅ Medium | Limited write access to logs and instance data |
 | Memory Exploitation | ⚠️ Medium | Memory protections enabled (some exceptions for Python) |
 
-### ⚠️ Application-Level Risks (Not Mitigated by User Isolation)
+### Application-Level Risks (Not Mitigated by User Isolation)
 
 These require application-level security:
 - SQL Injection (if using raw SQL)
@@ -193,7 +210,7 @@ These require application-level security:
 ### Variables
 
 ```yaml
-# File: deployment/group_vars/all.yml
+# File: deployment/group_vars/vault.yml
 
 # Application user (runs the app, no SSH)
 app_user: your_app_name            # Defaults to app_name
@@ -203,15 +220,19 @@ app_user: your_app_name            # Defaults to app_name
                                    # - System user (UID < 1000)
 
 # Deployment user (SSH, git, ansible)
-admin_user: ubuntu                # Standard EC2/Lightsail user
+admin_user: ubuntu                # Standard EC2 user
                                    # - Has SSH access
                                    # - Has sudo (for ansible)
                                    # - Manages code and dependencies
 
+# Shared group: {app_name}
+# Created automatically — contains both admin_user and app_user.
+# All directories have setgid so new files inherit the group.
+
 # Paths
-app_dir: /opt/{app_name}           # Code owned by admin_user
-venv_dir: /opt/{app_name}/.venv    # Python venv owned by admin_user
-log_dir: /opt/{app_name}/logs      # Logs owned by app_user
+app_dir: /opt/{app_name}           # Mount point, group {app_name}
+venv_dir: /opt/{app_name}/.venv    # Python venv, group {app_name}
+log_dir: /opt/{app_name}/logs      # Logs, owner app_user, group {app_name}
 ```
 
 ### How It Works
@@ -226,6 +247,7 @@ log_dir: /opt/{app_name}/logs      # Logs owned by app_user
    git pull
    source .venv/bin/activate
    pip install -r requirements.txt
+   # New files inherit group {app_name} via setgid
    ```
 
 2. **Runtime (as `{app_name}`):**
@@ -239,9 +261,17 @@ log_dir: /opt/{app_name}/logs      # Logs owned by app_user
    WorkingDirectory=/opt/{app_name}
    
    # Can only:
-   # - Read code files
+   # - Read code files (via group membership)
    # - Write to /opt/{app_name}/logs/
    # - Write to /opt/{app_name}/instance/
+   ```
+
+3. **Operations (as `ubuntu`):**
+   ```bash
+   # ubuntu can do everything without su:
+   tail -f /opt/{app_name}/logs/app.log    # View logs
+   sudo systemctl restart {app_name}       # Restart service
+   cat /opt/{app_name}/instance/items.csv  # Check data
    ```
 
 ## Verification
@@ -357,7 +387,7 @@ If you're already running with `app_user: ubuntu`, you can migrate:
 **Option 2: Keep Existing (Less Secure)**
 Keep using `ubuntu` user by not changing the config:
 ```yaml
-# deployment/group_vars/all.yml
+# deployment/group_vars/vault.yml
 app_user: ubuntu
 admin_user: ubuntu
 ```
@@ -401,13 +431,14 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
    ```bash
    ssh ubuntu@your-server
    
-   # Code directory (admin_user owns)
-   sudo chown -R ubuntu:ubuntu /opt/{app_name}
+   # Set shared group on everything
+   sudo chgrp -R {app_name} /opt/{app_name}
    
-   # Log directory (app_user owns)
+   # Setgid on all directories
+   sudo find /opt/{app_name} -type d -exec chmod 2775 {} +
+   
+   # App user owns logs and instance data
    sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
-   
-   # Instance directory (app_user owns)
    sudo chown -R {app_name}:{app_name} /opt/{app_name}/instance
    ```
 
@@ -437,7 +468,7 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
 
 To continue using ubuntu user:
 ```yaml
-# deployment/group_vars/all.yml
+# deployment/group_vars/vault.yml
 app_user: ubuntu
 admin_user: ubuntu
 ```
@@ -452,18 +483,24 @@ admin_user: ubuntu
 
 ```bash
 # Problem: App cannot read code files
-# Solution: Ensure admin_user owns code directory
-sudo chown -R ubuntu:ubuntu /opt/{app_name}
+# Solution: Ensure shared group and setgid on app directory
+sudo chown -R ubuntu:{app_name} /opt/{app_name}
+sudo chmod 2775 /opt/{app_name}
 
 # Problem: App cannot write logs
-# Solution: Ensure app_user owns log directory
+# Solution: Ensure app_user owns log directory with shared group
 sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
-sudo chmod 755 /opt/{app_name}/logs
+sudo chmod 2775 /opt/{app_name}/logs
 
 # Problem: App cannot write instance data
-# Solution: Ensure app_user owns instance directory
+# Solution: Ensure app_user owns instance directory with shared group
 sudo chown -R {app_name}:{app_name} /opt/{app_name}/instance
-sudo chmod 755 /opt/{app_name}/instance
+sudo chmod 2775 /opt/{app_name}/instance
+
+# Problem: ubuntu cannot write after permission hardening
+# Solution: Ensure ubuntu is in the app group
+sudo usermod -aG {app_name} ubuntu
+# Log out and back in for group change to take effect
 ```
 
 ### Service Won't Start
@@ -480,7 +517,7 @@ namei -l /opt/{app_name}
 namei -l /opt/{app_name}/logs
 
 # View detailed logs
-journalctl -u {app_name} -n 50 --no-pager
+sudo tail -50 /opt/{app_name}/logs/app.log
 ```
 
 ### Systemd Security Warnings

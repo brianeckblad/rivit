@@ -16,7 +16,7 @@ def get_log_prefix():
         if username and username != 'default':
             return f"[User: {username}] "
         return ""
-    except:
+    except Exception:
         return ""
 
 
@@ -56,12 +56,12 @@ def log_service_error(message):
     get_service_logger().error(message)
 
 
-def log_app_error(message):
+def log_app_error(message, exc_info=False):
     """Log application error to app logger (not service logger)."""
     try:
-        current_app.logger.error(message)
+        current_app.logger.error(message, exc_info=exc_info)
     except RuntimeError:
-        logging.getLogger('app').error(message)
+        logging.getLogger('app').error(message, exc_info=exc_info)
 
 
 def get_cleanup_logger():

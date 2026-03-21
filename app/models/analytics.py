@@ -1,5 +1,5 @@
 """Analytics data models for tracking user interactions."""
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import os
 
@@ -16,7 +16,7 @@ class AnalyticsEvent:
         self.y = y  # Mouse Y position
         self.viewport_width = viewport_width
         self.viewport_height = viewport_height
-        self.timestamp = timestamp or datetime.utcnow().isoformat()
+        self.timestamp = timestamp or datetime.now(timezone.utc).isoformat()
 
     def to_dict(self):
         return {
@@ -87,12 +87,10 @@ class AnalyticsStore:
 
     def clear_old_events(self, days=30):
         """Remove events older than specified days."""
-        from datetime import timedelta
-
         if not os.path.exists(self.events_file):
             return
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         events = self.get_all_events()
 
         # Filter events

@@ -1,7 +1,7 @@
 """Service for sending custom metrics to AWS CloudWatch."""
 import boto3
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import current_app
 
 
@@ -43,7 +43,7 @@ class CloudWatchService:
                 'MetricName': metric_name,
                 'Value': value,
                 'Unit': unit,
-                'Timestamp': datetime.utcnow()
+                'Timestamp': datetime.now(timezone.utc)
             }
 
             if dimensions:

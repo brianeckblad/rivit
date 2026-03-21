@@ -534,15 +534,6 @@ aws wafv2 list-resources-for-web-acl \
 
 ---
 
-## Next Steps
-
-- **Setup:** Run `ansible-playbook playbooks/setup-waf.yml`
-- **Monitor:** Check CloudWatch for blocked requests
-- **Adjust:** Fine-tune rules based on traffic patterns
-- **Operations:** See [OPERATIONS.md](OPERATIONS.md) for ongoing monitoring
-- **Security:** See [SECURITY_HARDENING.md](SECURITY_HARDENING.md) for overall security
-
----
 
 ## Summary
 

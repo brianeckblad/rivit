@@ -17,8 +17,8 @@ def get_secrets_from_aws():
     Returns dict of secrets or empty dict if unavailable.
     Falls back to environment variables if Secrets Manager is not accessible.
     """
-    secret_name = os.environ.get('SECRET_NAME', 'app-item-listing-tool/production')
-    region_name = os.environ.get('AWS_REGION', 'us-east-1')
+    secret_name = os.environ.get('SECRET_NAME', 'rampe/production')
+    region_name = os.environ.get('AWS_REGION', 'us-east-2')
 
     # Try to fetch from Secrets Manager
     try:
@@ -163,7 +163,8 @@ class ProductionConfig(Config):
     Configuration for the production environment.
     
     Disables debug mode, enforces secure session cookies, and
-    requires the SECRET_KEY to be explicitly set via environment variables.
+    requires the SECRET_KEY to be explicitly set via Secrets Manager
+    or environment variables.
     """
     DEBUG = False
     # SESSION_COOKIE_SECURE should be True when using HTTPS
@@ -178,10 +179,13 @@ class ProductionConfig(Config):
             app (Flask): The Flask application instance.
             
         Raises:
-            RuntimeError: If SECRET_KEY is not set in the environment.
+            RuntimeError: If SECRET_KEY is not set via Secrets Manager or environment.
         """
-        if not os.environ.get('SECRET_KEY'):
-            raise RuntimeError("SECRET_KEY must be set in production environment!")
+        secret_key = app.config.get('SECRET_KEY')
+        if not secret_key or secret_key == 'dev-secret-key-change-in-production':
+            raise RuntimeError(
+                "SECRET_KEY must be set in production (via Secrets Manager or environment variable)!"
+            )
 
 
 config = {

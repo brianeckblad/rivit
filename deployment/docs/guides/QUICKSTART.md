@@ -54,55 +54,42 @@ cd deployment
 # Variables already loaded from previous step
 # Now run the deployment playbooks
 
+# 1. Create AWS resources (S3, IAM, SG, SSH key, EC2, Secrets Manager)
 ansible-playbook playbooks/provision-infrastructure.yml \
     --vault-password-file ~/.vault_pass
 
-ansible-playbook -i inventories playbooks/setup.yml \
+# 2. Prepare the server (system packages, app user, EBS volume mount)
+ansible-playbook playbooks/setup-server.yml \
+    --vault-password-file ~/.vault_pass
+
+# 3. Deploy the application (code, dependencies, Nginx, Supervisor)
+ansible-playbook playbooks/setup.yml \
     --vault-password-file ~/.vault_pass
 ```
 
 **What it does automatically:**
+
+`provision-infrastructure.yml`:
 1. ✅ Creates S3 bucket for application data
 2. ✅ Creates IAM role with proper permissions
 3. ✅ Creates security group (allows ports 22, 80, 443)
 4. ✅ Creates SSH key pair
 5. ✅ Launches EC2 instance (Ubuntu 22.04)
-6. ✅ Sets up CloudFront CDN (if `enable_cloudfront: true` in `all.yml`)
-7. ✅ Configures EC2 with your app
-7. ✅ Sets up Nginx web server
-8. ✅ Sets up Gunicorn app server
-9. ✅ Configures auto-restart with Systemd
-10. ✅ Saves server info to `deployment/instance-info.txt`
+6. ✅ Creates Secrets Manager secret (synced from vault)
+7. ✅ Sets up CloudFront CDN (if `enable_cloudfront: true` in vault.yml)
 
-**Duration:** 10-15 minutes  
+`setup-server.yml`:
+8. ✅ Installs system packages (Python, Nginx, git)
+9. ✅ Creates dedicated app user
+10. ✅ Formats and mounts EBS data volume
+
+`setup.yml`:
+11. ✅ Clones code and installs Python dependencies
+12. ✅ Configures Nginx and Supervisor
+13. ✅ Starts the application
+
+**Duration:** 10-15 minutes
 **Cost:** ~$0.01 (minimal during creation)
-
-**Alternative: All-in-one script (if available):**
-```bash
-./scripts/infra-complete-setup.sh
-```
----
-
-## Monitoring Progress
-
-While the script runs, you'll see:
-
-```
-[AWS Resources]
-✅ S3 Bucket: creating...
-✅ IAM Role: creating...
-✅ Security Group: creating...
-✅ SSH Key: creating...
-✅ EC2 Instance: launching...
-
-[Configuration]
-✅ Deploying application code...
-✅ Setting up web server...
-✅ Setting up app server...
-✅ Starting services...
-
-✅ Deployment Complete!
-```
 
 ---
 
@@ -110,10 +97,11 @@ While the script runs, you'll see:
 
 ### 1. Get Your Server IP
 
-Your server information is saved in:
+Your server information is saved in `deployment/instances/`:
 
 ```bash
-cat deployment/instance-info.txt
+ls deployment/instances/
+cat deployment/instances/*.txt
 ```
 
 Shows:
@@ -133,24 +121,21 @@ http://1.2.3.4
 curl http://1.2.3.4
 ```
 
-**See your app running!** 🎉
-
 ### 3. Connect via SSH
 
 ```bash
-# From deployment/instance-info.txt
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@1.2.3.4
 
-# Then check app status
-sudo systemctl status {app_name}
+# Check app status
+sudo supervisorctl status {app_name}
 ```
 
 ### 4. View Application Logs
 
 ```bash
 # From your EC2 instance
-sudo journalctl -u {app_name} -f  # Follow logs in real-time
-sudo journalctl -u {app_name} -n 50  # Last 50 lines
+sudo tail -f /opt/{app_name}/logs/app.log      # Application logs
+sudo tail -f /var/log/nginx/access.log          # Nginx access logs
 ```
 
 ---
@@ -161,7 +146,7 @@ Your app is currently running on HTTP. To add SSL (HTTPS):
 
 ```bash
 cd deployment
-ansible-playbook -i inventories playbooks/setup-ssl.yml
+ansible-playbook playbooks/setup-ssl.yml --vault-password-file ~/.vault_pass
 ```
 
 **This will:**
@@ -173,26 +158,26 @@ ansible-playbook -i inventories playbooks/setup-ssl.yml
 **Requirements:**
 - Must have a domain name (not IP address)
 - Domain must point to your server IP
-- Need to update `server_name` in `group_vars/all.yml`
+- Need to update `server_name` in vault.yml (`ansible-vault edit group_vars/vault.yml`)
 
 ---
 
 ## Troubleshooting
 
-### Script Fails Early
+### Playbook Fails Early
 
 **Common issues:**
 1. AWS CLI not working
    ```bash
    aws sts get-caller-identity
    ```
-   
+
 2. Vault not encrypted
    ```bash
    head -1 deployment/group_vars/vault.yml
    # Should show: $ANSIBLE_VAULT;1.1;AES256
    ```
-   
+
 3. Vault password file missing
    ```bash
    ls -la ~/.vault_pass
@@ -201,49 +186,41 @@ ansible-playbook -i inventories playbooks/setup-ssl.yml
 
 4. Ansible not installed
    ```bash
-   pip3 install ansible
+   cd deployment
+   pip install -r requirements.txt
    ```
 
-### Script Fails in Middle
+### Playbook Fails in Middle
 
-If the script fails partway through:
+If a playbook fails partway through:
 
-1. **Check logs:**
-   ```bash
-   cat deployment/.deployment.log  # Full deployment log
-   ```
+1. **Fix the issue** and re-run the same playbook — Ansible is idempotent, it skips completed steps.
 
-2. **Resume from that step:**
-   - Run individual playbooks instead
-   - See [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md) for individual commands
+2. **Or run individual playbooks** for the failed step only. See [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) for individual commands.
 
-3. **Clean up and retry:**
-   ```bash
-   # Delete the failed infrastructure first (see OPERATIONS.md)
-   # Then run the script again
-   ```
-
-### Script Completes But App Not Working
+### Deployment Completes But App Not Working
 
 1. **Check EC2 is running:**
    ```bash
-   aws ec2 describe-instances --region us-east-2
+   aws ec2 describe-instances --region $aws_region \
+       --filters "Name=tag:Name,Values=$app_name" \
+       --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,IP:PublicIpAddress}'
    ```
 
-2. **Check logs on server:**
+2. **Check app on server:**
    ```bash
    ssh -i ~/.ssh/{app_name}-key.pem ubuntu@<IP>
-   sudo journalctl -u {app_name} -n 50
+   sudo supervisorctl status {app_name}
+   sudo tail -50 /opt/{app_name}/logs/app.log
    ```
 
-3. **Check website:**
-   - Wait 2-3 minutes for services to fully start
-   - Try: `curl http://<IP>`
-   - Check browser console for errors
+3. **Check web server:**
+   ```bash
+   sudo nginx -t
+   sudo systemctl status nginx
+   ```
 
-4. **Check security group:**
-   - Make sure ports 80 and 443 are open
-   - See [MANUAL_DEPLOYMENT.md#step-3-create-security-group](MANUAL_DEPLOYMENT.md#step-3-create-security-group)
+4. **Wait 2-3 minutes** for services to fully start, then try `curl http://<IP>`.
 
 ---
 

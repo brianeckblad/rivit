@@ -1,4 +1,4 @@
-# Infrastructure Components
+# Infrastructure Reference
 
 AWS resource details — S3, IAM, EC2, and Security Groups.
 
@@ -35,11 +35,11 @@ ansible-playbook playbooks/create-s3-bucket.yml \
 ```
 
 **What it does:**
-- ✅ Creates S3 bucket with unique name from `group_vars/all.yml`
+- ✅ Creates S3 bucket with unique name from `group_vars/vault.yml`
 - ✅ Enables versioning (recover deleted files)
 - ✅ Enables encryption (AES-256)
 - ✅ Blocks public access (only authorized access)
-- ✅ Saves bucket info to `instance-info.txt`
+- ✅ Saves bucket info to `instances/`
 
 **Verify in AWS Console:**
 - Go to [S3 Console](https://s3.console.aws.amazon.com/s3/)
@@ -96,8 +96,8 @@ aws s3 ls | grep $BUCKET_NAME
 
 1. Go to [S3 Console](https://s3.console.aws.amazon.com/s3/)
 2. Click **Create bucket**
-3. **Bucket name:** Use the same value you set for `vault_s3_bucket_name` in your vault. Must be globally unique.
-4. **Region:** Same as `aws_region` in `all.yml` (e.g. `us-east-2`)
+3. **Bucket name:** Use the same value you set for `s3_bucket_name` in your vault. Must be globally unique.
+4. **Region:** Same as `aws_region` in vault.yml (e.g. `us-east-2`)
 5. **Block all public access:** Check all 4 boxes
 6. Click **Create bucket**
 7. Open the bucket, then go to **Properties**:
@@ -355,7 +355,7 @@ ansible-playbook playbooks/create-ssh-key.yml \
 - ✅ Saves private key to `~/.ssh/{app_name}-key.pem`
 - ✅ Sets correct permissions (600 = read-only by owner)
 - ✅ Creates public key on AWS
-- ✅ Saves key info to `instance-info.txt`
+- ✅ Saves key info to `instances/`
 
 **Verify:**
 ```bash
@@ -455,14 +455,14 @@ ansible-playbook playbooks/launch-ec2-instance.yml \
 - ✅ Attaches IAM role
 - ✅ Waits for instance to start
 - ✅ Gets instance IP
-- ✅ Saves to `instance-info.txt`
+- ✅ Saves to `instances/`
 
 **Duration:** 2-3 minutes
 
 **Verify:**
 ```bash
-# Check instance-info.txt
-cat deployment/instance-info.txt
+# Check instance info
+cat deployment/instances/*.txt
 
 # Or check AWS Console
 # Go to EC2 Dashboard → Instances
