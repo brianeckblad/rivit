@@ -114,9 +114,9 @@
       changed_when: false
       failed_when: false
 
-    - name: Create scripts directory
+    - name: Ensure app scripts directory has proper permissions
       file:
-        path: "{{ app_dir }}/scripts"
+        path: "{{ app_dir }}/app/scripts"
         state: directory
         owner: "{{ app_user }}"
         group: "{{ app_name }}"

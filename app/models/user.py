@@ -103,6 +103,12 @@ class UserManager:
                 except (json.JSONDecodeError, IOError) as e:
                     _log_user_message(f"Error loading users file: {e}", level='error')
                     self._users_cache = {}
+
+            # If file exists but has zero users, re-initialize from secrets/env.
+            # This handles the case where a previous failed boot created an empty file.
+            if not self._users_cache:
+                _log_user_message("⚠️  user_preferences.json exists but has no users - re-initializing from secrets", level='warning')
+                self._initialize_from_env()
         else:
             # File doesn't exist yet
             if self._users_cache and len(self._users_cache) > 0:

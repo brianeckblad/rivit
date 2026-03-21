@@ -82,7 +82,7 @@
 
 - name: Secure scripts directory
   file:
-    path: "{{ app_dir }}/scripts"
+    path: "{{ app_dir }}/app/scripts"
     state: directory
     owner: "{{ app_user }}"
     group: "{{ app_name }}"

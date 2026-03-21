@@ -154,9 +154,9 @@
           debug:
             msg: "✓ Updated app_version to: {{ commit_count.stdout }}"
 
-    - name: Ensure scripts directory exists
+    - name: Ensure app scripts directory exists
       file:
-        path: "{{ app_dir }}/scripts"
+        path: "{{ app_dir }}/app/scripts"
         state: directory
         owner: "{{ app_user }}"
         group: "{{ app_name }}"
