@@ -162,13 +162,14 @@ class ProductionConfig(Config):
     """
     Configuration for the production environment.
     
-    Disables debug mode, enforces secure session cookies, and
-    requires the SECRET_KEY to be explicitly set via Secrets Manager
-    or environment variables.
+    Disables debug mode, enforces secure session cookies when HTTPS
+    is available, and requires the SECRET_KEY to be explicitly set
+    via Secrets Manager or environment variables.
     """
     DEBUG = False
-    # SESSION_COOKIE_SECURE should be True when using HTTPS
-    SESSION_COOKIE_SECURE = True
+    # Only enforce Secure cookies when HTTPS is active (SSL cert exists)
+    # This allows HTTP-only deployments to work before SSL is configured
+    SESSION_COOKIE_SECURE = bool(get_secret('CLOUDFRONT_DOMAIN') or os.environ.get('SSL_ENABLED'))
 
     @classmethod
     def init_app(cls, app):

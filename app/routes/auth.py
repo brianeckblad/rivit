@@ -163,13 +163,10 @@ def login():
     POST: Authenticate user credentials and create session.
     """
     if request.method == 'POST':
-        from flask import current_app
         # Validate CSRF token on form submission
         token = session.get('_csrf_token')
         form_token = request.form.get('_csrf_token')
-        current_app.logger.info(f"Login attempt: session_token={'present' if token else 'MISSING'}, form_token={'present' if form_token else 'MISSING'}, match={token == form_token if token and form_token else 'N/A'}")
         if not token or token != form_token:
-            current_app.logger.warning(f"Login CSRF failure: session_token={token!r}, form_token={form_token[:16] + '...' if form_token else 'None'}")
             flash('Invalid session. Please try again.', 'error')
             return redirect(url_for('auth.login'))
 
@@ -187,7 +184,6 @@ def login():
             session['session_created'] = time.time()  # Track session creation time
             session.permanent = True
             session.pop('_csrf_token', None)  # Clear old CSRF token
-            current_app.logger.info(f"Login successful for user: {username}")
             flash('Login successful!', 'success')
 
             # Redirect to the page they were trying to access, or to landing page
@@ -197,7 +193,6 @@ def login():
             return redirect(url_for('main.landing'))
         else:
             # Authentication failed
-            current_app.logger.warning(f"Login password failure for user: {username}")
             flash('Invalid username or password.', 'error')
             return redirect(url_for('auth.login'))
 
