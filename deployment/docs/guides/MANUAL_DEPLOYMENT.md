@@ -139,23 +139,20 @@ source scripts/load-vars.sh
 > Check it with: `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | grep s3_bucket`
 
 ```bash
-# Set your bucket name (must match s3_bucket_name)
-S3_BUCKET="rampe-ipix-io"  # ⚠️ Change to YOUR s3_bucket_name value
-
 # Create bucket with encryption
 aws s3api create-bucket \
-    --bucket $S3_BUCKET \
+    --bucket $s3_bucket_name \
     --region $aws_region \
     --create-bucket-configuration LocationConstraint=$aws_region
 
 # Enable versioning
 aws s3api put-bucket-versioning \
-    --bucket $S3_BUCKET \
+    --bucket $s3_bucket_name \
     --versioning-configuration Status=Enabled
 
 # Enable encryption
 aws s3api put-bucket-encryption \
-    --bucket $S3_BUCKET \
+    --bucket $s3_bucket_name \
     --server-side-encryption-configuration '{
       "Rules": [{
         "ApplyServerSideEncryptionByDefault": {
@@ -166,7 +163,7 @@ aws s3api put-bucket-encryption \
 
 # Block public access
 aws s3api put-public-access-block \
-    --bucket $S3_BUCKET \
+    --bucket $s3_bucket_name \
     --public-access-block-configuration \
     "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
 ```
@@ -231,9 +228,6 @@ aws iam create-role \
     --assume-role-policy-document file:///tmp/trust-policy.json
 
 # Create inline policy for S3 access
-# ⚠️ S3_BUCKET must match s3_bucket_name from your vault
-S3_BUCKET="rampe-ipix-io"  # Change to YOUR s3_bucket_name value
-
 cat > /tmp/s3-policy.json <<EOF
 {
   "Version": "2012-10-17",
@@ -246,8 +240,8 @@ cat > /tmp/s3-policy.json <<EOF
       "s3:ListBucket"
     ],
     "Resource": [
-      "arn:aws:s3:::${S3_BUCKET}",
-      "arn:aws:s3:::${S3_BUCKET}/*"
+      "arn:aws:s3:::${s3_bucket_name}",
+      "arn:aws:s3:::${s3_bucket_name}/*"
     ]
   }]
 }
@@ -492,7 +486,7 @@ cd deployment
 source scripts/load-vars.sh
 echo $SERVER_IP
 
-ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP "echo 'SSH OK — connected to $(hostname)'"
+ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP "echo 'SSH OK — connected to '\$(hostname)"
 ```
 
 If this fails, check:
@@ -610,20 +604,25 @@ curl http://$SERVER_IP
 
 **For learning - do everything yourself on the server**
 
-**First, set your server IP:**
+**First, load variables:**
 ```bash
-export SERVER_IP=<YOUR_SERVER_IP>
-export APP_NAME=rampe  # Change this to your app_name
-export APP_USER=${APP_NAME}
-export APP_DISPLAY_NAME="Rampe Application"  # Change to your app_display_name
+cd deployment
+source scripts/load-vars.sh
 ```
 
 ### 1. Connect to Server
 
 ```bash
-ssh -i ~/.ssh/${APP_NAME}-key.pem ubuntu@$SERVER_IP
+ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP
+```
 
-# Commands after this run on the SERVER
+Once connected, set variables for the server session (these do not carry over from your local machine):
+
+```bash
+# Run these on the server after connecting
+export APP_NAME=rampe               # Change to your app_name
+export APP_USER=app_runtime         # Change to your app_user
+export APP_DISPLAY_NAME="Rampe"     # Change to your app_display_name
 ```
 
 ### 2. Update System
@@ -639,9 +638,10 @@ sudo apt install -y python3 python3-pip python3-venv nginx git
 # Clone from Git repository (EBS volume is mounted at /opt/${APP_NAME})
 cd /opt/${APP_NAME}
 sudo chown ubuntu:${APP_NAME} /opt/${APP_NAME}
-git clone https://github.com/YOUR_USERNAME/your_app.git .
+git clone https://github.com/YOUR_USERNAME/${APP_NAME}.git .
 
-# (If private repo, configure Git credentials first)
+# (If private repo, configure Git credentials first —
+#  see Step 0: Create GitHub Personal Access Token)
 ```
 
 ### 4. Create Python Virtual Environment
@@ -783,26 +783,24 @@ ansible-playbook -i inventories playbooks/setup-ssl.yml --vault-password-file ~/
 ```
 
 **Manual way:**
+
+> **Note:** `$ssl_email` and `$server_name` are local variables from `load-vars.sh`. They are passed to the SSH command below automatically — do not run this from inside an interactive SSH session.
+
 ```bash
-ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP
-
-# Install certbot
-sudo apt install -y certbot python3-certbot-nginx
-
-# Get certificate
-sudo certbot --nginx \
-  --non-interactive \
-  --agree-tos \
-  --email your.email@example.com \
-  --domains ${server_name} \
-  --redirect
-
-exit
+ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP bash -s <<REMOTE
+  sudo apt install -y certbot python3-certbot-nginx
+  sudo certbot --nginx \
+    --non-interactive \
+    --agree-tos \
+    --email $ssl_email \
+    --domains $server_name \
+    --redirect
+REMOTE
 ```
 
 **Verify:**
 ```bash
-curl https://${server_name}
+curl https://$server_name
 # Should show application over HTTPS
 ```
 
