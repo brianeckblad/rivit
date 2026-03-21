@@ -44,14 +44,16 @@ Set up your AWS account, local tools, and configuration files.
 
 The playbook creates the user, attaches all required policies (including CloudWatch alarms), and generates access keys in one step.
 
+> **Note:** `vault.yml` does not exist yet at this stage, so you pass your app name directly on the command line.
+
 ```bash
 # Configure AWS CLI with root credentials temporarily
 aws configure
 # Enter your root access key, secret key, region (e.g., us-east-2), and json
 
-# Run the playbook
+# Run the playbook (replace {app_name} with your actual app name, e.g., rampe)
 cd deployment
-ansible-playbook playbooks/create-iam-user.yml -e app_name=your_app_name
+ansible-playbook playbooks/create-iam-user.yml -e app_name={app_name}
 ```
 
 The playbook creates `{app_name}-deployer` with these permissions:
