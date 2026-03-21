@@ -218,7 +218,6 @@ def get_preferences() -> Response:
         return jsonify({'success': True, 'preferences': preferences}), 200
 
     except Exception as e:
-        from flask import session
         username = session.get('username', 'unknown')
         current_app.logger.error(f"[User: {username}] Error getting preferences: {e}")
         return jsonify({'success': False, 'error': 'An error occurred while getting preferences'}), 500
@@ -393,7 +392,6 @@ def list_users() -> Response:
         }), 200
 
     except Exception as e:
-        from flask import session
         current_username = session.get('username', 'unknown')
         current_app.logger.error(f"[User: {current_username}] Error listing users: {e}")
         return jsonify({'success': False, 'error': 'An error occurred while listing users'}), 500
@@ -460,7 +458,6 @@ def create_user() -> Response:
         success, message = user_manager.create_user(username, password)
 
         if success:
-            from flask import session
             admin_user = session.get('username', 'admin')
             current_app.logger.info(f"[Admin: {admin_user}] User {username} created")
             return jsonify({'success': True, 'message': message}), 200
@@ -468,7 +465,6 @@ def create_user() -> Response:
             return jsonify({'success': False, 'error': message}), 400
 
     except Exception as e:
-        from flask import session
         admin_user = session.get('username', 'unknown')
         current_app.logger.error(f"[Admin: {admin_user}] Error creating user: {e}")
         return jsonify({'success': False, 'error': 'An error occurred while creating user'}), 500
@@ -577,7 +573,6 @@ def debug_users() -> Response:
         debug_info = user_manager.debug_users()
         return jsonify({'success': True, 'debug': debug_info}), 200
     except Exception as e:
-        from flask import session
         admin_user = session.get('username', 'unknown')
         current_app.logger.error(f"[Admin: {admin_user}] Error debugging users: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -615,7 +610,6 @@ def cleanup_default_admin() -> Response:
         - Custom admin passwords are preserved
     """
     try:
-        from flask import session
         admin_user = session.get('username', 'system')
         success, message = user_manager.cleanup_default_admin()
         if success:
@@ -624,7 +618,6 @@ def cleanup_default_admin() -> Response:
         else:
             return jsonify({'success': False, 'message': message}), 400
     except Exception as e:
-        from flask import session
         admin_user = session.get('username', 'unknown')
         current_app.logger.error(f"[Admin: {admin_user}] Error cleaning up admin: {e}")
         return jsonify({'success': False, 'error': 'An error occurred during cleanup'}), 500
@@ -679,7 +672,6 @@ def clear_user_cache() -> Response:
             'users': list(users.keys())
         }), 200
     except Exception as e:
-        from flask import session
         admin_user = session.get('username', 'unknown')
         current_app.logger.error(f"[Admin: {admin_user}] Error clearing cache: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -730,7 +722,6 @@ def get_ebay_credentials() -> Response:
     """
     try:
         from app.services.user_secrets_service import user_secrets_service
-        from flask import session
 
         username = session.get('username')
         if not username:
@@ -797,7 +788,6 @@ def get_ebay_credentials() -> Response:
         }), 200
 
     except Exception as e:
-        from flask import session
         username = session.get('username', 'unknown')
         current_app.logger.error(f"[User: {username}] Error getting eBay credentials: {e}")
         return jsonify({'success': False, 'error': 'An error occurred while getting eBay credentials'}), 500
@@ -865,7 +855,6 @@ def save_ebay_credentials() -> Response:
     """
     try:
         from app.services.user_secrets_service import user_secrets_service
-        from flask import session
 
         data = request.get_json()
         username = session.get('username')
@@ -914,7 +903,6 @@ def save_ebay_credentials() -> Response:
             return jsonify({'success': False, 'error': message}), 500
 
     except Exception as e:
-        from flask import session
         username = session.get('username', 'unknown')
         current_app.logger.error(f"[User: {username}] Error saving eBay credentials: {e}")
         import traceback
@@ -955,7 +943,6 @@ def delete_ebay_credentials() -> Response:
     """
     try:
         from app.services.user_secrets_service import user_secrets_service
-        from flask import session
 
         username = session.get('username')
 
@@ -982,7 +969,6 @@ def delete_ebay_credentials() -> Response:
             return jsonify({'success': False, 'error': message}), 500
 
     except Exception as e:
-        from flask import session
         username = session.get('username', 'unknown')
         current_app.logger.error(f"[User: {username}] Error deleting eBay credentials: {e}")
         return jsonify({'success': False, 'error': 'An error occurred while deleting eBay credentials'}), 500
