@@ -72,24 +72,17 @@
       changed_when: false
       failed_when: false
 
-    - name: Check if deployment requirements.txt exists
+    - name: Check if root requirements.txt exists
       stat:
-        path: "{{ app_dir }}/deployment/requirements.txt"
-      register: deployment_requirements
+        path: "{{ app_dir }}/requirements.txt"
+      register: root_requirements
 
-    - name: Update Python dependencies from deployment directory
-      become_user: "{{ admin_user }}"
-      pip:
-        requirements: "{{ app_dir }}/deployment/requirements.txt"
-        virtualenv: "{{ venv_dir }}"
-      when: deployment_requirements.stat.exists
-
-    - name: Update Python dependencies from root (fallback)
+    - name: Update Python dependencies
       become_user: "{{ admin_user }}"
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
         virtualenv: "{{ venv_dir }}"
-      when: not deployment_requirements.stat.exists
+      when: root_requirements.stat.exists
 
     - name: Ensure log directory exists
       file:
