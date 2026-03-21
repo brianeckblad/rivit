@@ -12,7 +12,9 @@
 
   tasks:
 
-
+    - name: Mark app directory as git safe.directory
+      command: git config --global --add safe.directory {{ app_dir }}
+      changed_when: false
 
     - name: Check if git repo is initialized
       stat:

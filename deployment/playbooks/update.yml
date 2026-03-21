@@ -11,6 +11,13 @@
 
   tasks:
 
+    # Git safe.directory: The repo is owned by admin_user but git operations
+    # may run as root (via become). Mark the directory as safe to prevent
+    # "dubious ownership" errors.
+    - name: Mark app directory as git safe.directory
+      command: git config --global --add safe.directory {{ app_dir }}
+      changed_when: false
+
     - name: Display current status
       block:
         - name: Get current branch
