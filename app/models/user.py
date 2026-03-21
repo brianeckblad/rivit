@@ -1,6 +1,5 @@
 """User authentication and profile management."""
 import json
-import os
 from pathlib import Path
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import current_app
@@ -130,13 +129,17 @@ class UserManager:
 
     def _initialize_from_env(self):
         """
-        Initialize the user_preferences.json file from the USERS environment variable.
+        Initialize the user_preferences.json file from the USERS secret or environment variable.
+
+        Checks AWS Secrets Manager first (via config.get_secret), then falls
+        back to the USERS environment variable.
 
         Expected format: 'username:password,user2:pass2'
-        If no USERS environment variable exists, this method will NOT create any default users
+        If no USERS value exists, this method will NOT create any default users
         to prevent admin user recreation issues.
         """
-        users_env = os.environ.get('USERS', '')
+        from app.config import get_secret
+        users_env = get_secret('USERS', '') or ''
 
         if not users_env:
             # SECURITY FIX: Do not create default admin user to prevent persistence issues
