@@ -2,15 +2,14 @@
 # Playbook to create the IAM deployer user
 # Single purpose: Create an IAM user with the policies needed to provision infrastructure
 #
-# This is a bootstrap playbook — run it once with root (or admin) credentials to
-# create the limited deployer user, then reconfigure the AWS CLI to use the new
-# user's access keys for all subsequent work.
+# Run once with root (or admin) AWS credentials to create the limited deployer
+# user, then reconfigure the AWS CLI to use the new user's access keys.
 #
-# Usage (before vault.yml exists):
-#   ansible-playbook playbooks/create-iam-user.yml -e app_name=myapp
-#
-# Usage (after vault.yml exists):
+# Usage (recommended — after vault.yml exists):
 #   ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pass
+#
+# Usage (fallback — before vault.yml exists):
+#   ansible-playbook playbooks/create-iam-user.yml -e app_name=myapp
 #
 # What gets created:
 #   1. IAM user:  {app_name}-deployer
@@ -18,13 +17,15 @@
 #   3. Inline policy:    CloudWatch Alarms
 #   4. Access key pair (printed once — save immediately)
 #
-# To delete: ansible-playbook playbooks/delete-iam-user.yml -e app_name=myapp
+# To delete: ansible-playbook playbooks/delete-iam-user.yml --vault-password-file ~/.vault_pass
 
 - name: Create IAM Deployer User
   hosts: localhost
   gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
   vars:
-    # app_name must be supplied via -e or vars_files
     iam_user_name: "{{ app_name }}-deployer"
 
     managed_policies:

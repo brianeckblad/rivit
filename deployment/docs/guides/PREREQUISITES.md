@@ -10,13 +10,14 @@ Set up your AWS account, local tools, and configuration files.
 2. [AWS CLI Configuration](#aws-cli-configuration)
 3. [Local Tools Installation](#local-tools-installation)
 4. [Deployment Configuration](#deployment-configuration)
-5. [Verification](#verification)
+5. [Create IAM Deployer User](#create-iam-deployer-user)
+6. [Verification](#verification)
 
 ---
 
 ## AWS Account Setup
 
-**If you already have an AWS account and IAM user, skip to [AWS CLI Configuration](#aws-cli-configuration)**
+**If you already have an AWS account, skip to [AWS CLI Configuration](#aws-cli-configuration).**
 
 ### Step 1: Create AWS Account
 
@@ -34,95 +35,23 @@ Set up your AWS account, local tools, and configuration files.
 **Your AWS Account ID:** Found in [AWS Console → Account](https://console.aws.amazon.com/billing/home#/account)
 - Write it down: `123456789012`
 
-**⚠️ Important:** Your root account has full access. **Never use it for daily work.** Create an IAM user instead.
+**⚠️ Important:** Your root account has full access. **Never use it for daily work.** You will create a limited IAM deployer user later in this chapter.
 
-### Step 2: Create IAM Deployer User
+### Step 2: Create Root Access Key (Temporary)
 
-**Why:** Root account should only be used for initial setup. Create a limited IAM user for all deployment work.
+You need a temporary root access key to bootstrap the deployer user. It will be deleted after the deployer user is created.
 
-#### Option A: Ansible Playbook (Recommended)
-
-The playbook creates the user, attaches all required policies (including CloudWatch alarms), and generates access keys in one step.
-
-> **Note:** `vault.yml` does not exist yet at this stage, so you pass your app name directly on the command line.
-
-```bash
-# Configure AWS CLI with root credentials temporarily
-aws configure
-# Enter your root access key, secret key, region (e.g., us-east-2), and json
-
-# Run the playbook (replace {app_name} with your actual app name, e.g., rampe)
-cd deployment
-ansible-playbook playbooks/create-iam-user.yml -e app_name={app_name}
-```
-
-The playbook creates `{app_name}-deployer` with these permissions:
-- `AmazonEC2FullAccess` — create/manage EC2 instances
-- `AmazonS3FullAccess` — create/manage S3 buckets
-- `IAMFullAccess` — create/manage IAM roles
-- `SecretsManagerReadWrite` — manage secrets
-- `CloudWatchLogsFullAccess` — application logs
-- `CloudWatchAlarmPolicy` (inline) — monitoring alarms and metrics
-
-**Save the access key and secret key** printed at the end — they cannot be retrieved again.
-
-#### Option B: AWS Console (Manual)
-
-1. Go to [IAM Console](https://console.aws.amazon.com/iam/home#/users)
-2. Click **Create User**
-3. User name: `{app_name}-deployer`
-4. Check **Access key - Programmatic access**
-5. Click **Attach existing policies directly** and search for each:
-   - `AmazonEC2FullAccess`
-   - `AmazonS3FullAccess`
-   - `IAMFullAccess`
-   - `SecretsManagerReadWrite`
-   - `CloudWatchLogsFullAccess`
-6. Create the user, then **download the .csv** with the access keys
-
-After creating the user manually, add the CloudWatch alarms inline policy:
-1. Select the user → **Add inline policy** → **JSON**
-2. Paste:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [{
-       "Effect": "Allow",
-       "Action": [
-         "cloudwatch:PutMetricAlarm",
-         "cloudwatch:DeleteAlarms",
-         "cloudwatch:DescribeAlarms",
-         "cloudwatch:GetMetricStatistics",
-         "cloudwatch:ListMetrics"
-       ],
-       "Resource": "*"
-     }]
-   }
-   ```
-3. Name it `CloudWatchAlarmPolicy` and save.
-
-### Step 3: Save and Switch to Deployer Credentials
-
-**IMPORTANT:** Save the Access Key ID and Secret Access Key immediately. You will not see them again.
-
-Store both values in a password manager or other secure location.
-
-⚠️ **NEVER commit these to Git or share them.**
-
-Now reconfigure the AWS CLI to use the deployer credentials instead of root:
-
-```bash
-aws configure
-# Enter the deployer user's access key, secret key, region, json
-```
-
-After this point, all AWS operations use the limited deployer account.
+1. Sign in to [AWS Console](https://console.aws.amazon.com) as root
+2. Click your account name (top-right) → **Security credentials**
+3. Under **Access keys**, click **Create access key**
+4. Acknowledge the warning and create it
+5. **Save the Access Key ID and Secret Access Key** — you need them next
 
 ---
 
 ## AWS CLI Configuration
 
-**Install AWS CLI and set up your credentials**
+**Install AWS CLI and configure it with your temporary root credentials**
 
 ### Step 1: Install AWS CLI
 
@@ -152,58 +81,31 @@ aws --version
 **Windows:**
 - Download and run [AWS CLI MSI installer](https://awscli.amazonaws.com/AWSCLIV2.msi)
 
-### Step 2: Configure AWS CLI Profile
-
-**For Single Account (Easiest):**
+### Step 2: Configure AWS CLI with Root Credentials
 
 ```bash
-# Interactive configuration
 aws configure
 
 # Follow prompts:
-AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
-AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS Access Key ID [None]: <root access key from previous step>
+AWS Secret Access Key [None]: <root secret key from previous step>
 Default region name [None]: us-east-2
 Default output format [None]: json
 ```
 
-**For Multiple Accounts (Recommended):**
-
-Use named profiles to manage multiple AWS accounts without reconfiguring.
-
-```bash
-# Configure first account
-aws configure --profile {app_name}-production
-# Enter credentials and region
-
-# Configure second account
-aws configure --profile {app_name}-staging
-# Enter credentials and different region
-
-# Use with commands
-aws s3 ls --profile {app_name}-production
-aws ec2 describe-instances --profile {app_name}-staging
-```
-
-**⚠️ Don't know which approach?** → Start with single account (profile `default`). You can add more profiles later.
-
-**For detailed setup:** → Configure AWS CLI profiles for your region and account
+> **This is temporary.** You will reconfigure the CLI with deployer credentials after the IAM user is created.
 
 ### Step 3: Verify Configuration
 
 ```bash
-# Test your credentials work
 aws sts get-caller-identity
 
-# Should output:
+# Should output something like:
 {
-    "UserId": "AIDAJ45Q7YFFAREXAMPLE",
+    "UserId": "123456789012",
     "Account": "123456789012",
-    "Arn": "arn:aws:iam::123456789012:user/{app_name}-deployer"
+    "Arn": "arn:aws:iam::123456789012:root"
 }
-
-# If using a named profile
-aws sts get-caller-identity --profile {app_name}-production
 ```
 
 **Problem?**
@@ -509,12 +411,100 @@ ls -la group_vars/vault.yml ~/.vault_pass
 
 ---
 
+## Create IAM Deployer User
+
+**Replace root credentials with a limited deployer account.**
+
+Your AWS CLI is currently configured with root credentials (from the earlier temporary step). Now that `vault.yml` exists, the playbook can read `app_name` automatically.
+
+### Option A: Ansible Playbook (Recommended)
+
+The playbook creates the user, attaches all required policies, and generates access keys in one step.
+
+```bash
+cd deployment
+ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pass
+```
+
+The playbook creates `{app_name}-deployer` with these permissions:
+- `AmazonEC2FullAccess` — create/manage EC2 instances
+- `AmazonS3FullAccess` — create/manage S3 buckets
+- `IAMFullAccess` — create/manage IAM roles
+- `SecretsManagerReadWrite` — manage secrets
+- `CloudWatchLogsFullAccess` — application logs
+- `CloudWatchAlarmPolicy` (inline) — monitoring alarms and metrics
+
+**Save the access key and secret key** printed at the end — they cannot be retrieved again.
+
+### Option B: AWS Console (Manual)
+
+1. Go to [IAM Console](https://console.aws.amazon.com/iam/home#/users)
+2. Click **Create User**
+3. User name: `{app_name}-deployer`
+4. Check **Access key - Programmatic access**
+5. Click **Attach existing policies directly** and search for each:
+   - `AmazonEC2FullAccess`
+   - `AmazonS3FullAccess`
+   - `IAMFullAccess`
+   - `SecretsManagerReadWrite`
+   - `CloudWatchLogsFullAccess`
+6. Create the user, then **download the .csv** with the access keys
+
+After creating the user manually, add the CloudWatch alarms inline policy:
+1. Select the user → **Add inline policy** → **JSON**
+2. Paste:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Effect": "Allow",
+       "Action": [
+         "cloudwatch:PutMetricAlarm",
+         "cloudwatch:DeleteAlarms",
+         "cloudwatch:DescribeAlarms",
+         "cloudwatch:GetMetricStatistics",
+         "cloudwatch:ListMetrics"
+       ],
+       "Resource": "*"
+     }]
+   }
+   ```
+3. Name it `CloudWatchAlarmPolicy` and save.
+
+### Switch to Deployer Credentials
+
+Reconfigure the AWS CLI to use the deployer credentials instead of root:
+
+```bash
+aws configure
+# Enter the deployer user's access key, secret key, region, json
+```
+
+Verify the switch:
+
+```bash
+aws sts get-caller-identity
+# Arn should now show: arn:aws:iam::123456789012:user/{app_name}-deployer
+```
+
+### Delete Root Access Key
+
+Now that the deployer user is active, remove the temporary root access key:
+
+1. Sign in to [AWS Console](https://console.aws.amazon.com) as root
+2. Click your account name (top-right) → **Security credentials**
+3. Under **Access keys**, click **Actions → Delete** on the key you created earlier
+
+After this point, all AWS operations use the limited deployer account.
+
+---
+
 ## Verification
 
 Run these checks before continuing. Every command should succeed.
 
 ```bash
-aws sts get-caller-identity           # Shows your account ID
+aws sts get-caller-identity           # Shows deployer user, not root
 ansible --version                     # Version 2.9+
 python3 --version                     # Version 3.8+
 
@@ -544,4 +534,3 @@ echo $app_name                        # Shows your application name
 ## Next step
 
 Continue to [Chapter 2: Quick Start](QUICKSTART.md) (automated, 15–20 min) or [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) (step-by-step, 1–2 hrs).
-

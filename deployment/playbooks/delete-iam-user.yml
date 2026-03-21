@@ -8,15 +8,20 @@
 #   3. Managed policy attachments
 #   4. IAM user
 #
-# Usage:
-#   ansible-playbook playbooks/delete-iam-user.yml -e app_name=myapp
+# Usage (recommended):
 #   ansible-playbook playbooks/delete-iam-user.yml --vault-password-file ~/.vault_pass
 #
-# To recreate: ansible-playbook playbooks/create-iam-user.yml -e app_name=myapp
+# Usage (fallback — if vault.yml unavailable):
+#   ansible-playbook playbooks/delete-iam-user.yml -e app_name=myapp
+#
+# To recreate: ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pass
 
 - name: Delete IAM Deployer User
   hosts: localhost
   gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
   vars:
     iam_user_name: "{{ app_name }}-deployer"
 
