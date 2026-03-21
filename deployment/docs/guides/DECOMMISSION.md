@@ -605,6 +605,7 @@ ansible-playbook playbooks/create-security-group.yml --vault-password-file ~/.va
 
 | Create | Delete | Resource |
 |--------|--------|----------|
+| `create-iam-user.yml` | `delete-iam-user.yml` | IAM deployer user + policies + access keys |
 | `create-s3-bucket.yml` | `delete-s3-bucket.yml` | S3 Bucket |
 | `create-iam-role.yml` | `delete-iam-role.yml` | IAM Role + all policies + all instance profiles |
 | `create-security-group.yml` | `delete-security-group.yml` | Security Group |

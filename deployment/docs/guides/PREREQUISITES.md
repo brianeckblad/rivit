@@ -36,122 +36,85 @@ Set up your AWS account, local tools, and configuration files.
 
 **⚠️ Important:** Your root account has full access. **Never use it for daily work.** Create an IAM user instead.
 
-### Step 2: Create IAM User
+### Step 2: Create IAM Deployer User
 
-**Why:** Root account should only be used for account setup. Create a limited IAM user for deployment.
+**Why:** Root account should only be used for initial setup. Create a limited IAM user for all deployment work.
+
+#### Option A: Ansible Playbook (Recommended)
+
+The playbook creates the user, attaches all required policies (including CloudWatch alarms), and generates access keys in one step.
+
+```bash
+# Configure AWS CLI with root credentials temporarily
+aws configure
+# Enter your root access key, secret key, region (e.g., us-east-2), and json
+
+# Run the playbook
+cd deployment
+ansible-playbook playbooks/create-iam-user.yml -e app_name=your_app_name
+```
+
+The playbook creates `{app_name}-deployer` with these permissions:
+- `AmazonEC2FullAccess` — create/manage EC2 instances
+- `AmazonS3FullAccess` — create/manage S3 buckets
+- `IAMFullAccess` — create/manage IAM roles
+- `SecretsManagerReadWrite` — manage secrets
+- `CloudWatchLogsFullAccess` — application logs
+- `CloudWatchAlarmPolicy` (inline) — monitoring alarms and metrics
+
+**Save the access key and secret key** printed at the end — they cannot be retrieved again.
+
+#### Option B: AWS Console (Manual)
 
 1. Go to [IAM Console](https://console.aws.amazon.com/iam/home#/users)
 2. Click **Create User**
 3. User name: `{app_name}-deployer`
 4. Check **Access key - Programmatic access**
-5. Click **Next: Permissions**
-6. Click **Attach existing policies directly**
-7. Search and attach:
-   - `AmazonEC2FullAccess` - Create/manage EC2 instances
-   - `AmazonS3FullAccess` - Create/manage S3 buckets
-   - `IAMFullAccess` - Create/manage IAM roles
-   - `SecretsManagerReadWrite` - Manage secrets
-   - `CloudWatchLogsFullAccess` - Application logs
-   
-   **Optional but recommended for production:**
-   - Create an inline policy for CloudWatch alarms (see [Alarms section](#alarms-required-for-cloudwatch-alarms) below for details)
+5. Click **Attach existing policies directly** and search for each:
+   - `AmazonEC2FullAccess`
+   - `AmazonS3FullAccess`
+   - `IAMFullAccess`
+   - `SecretsManagerReadWrite`
+   - `CloudWatchLogsFullAccess`
+6. Create the user, then **download the .csv** with the access keys
 
-8. Click **Next: Tags** (skip)
-9. Click **Create user**
-
-#### Alarms: Required for CloudWatch Alarms
-
-**CloudWatch** is AWS's logging, monitoring, and alerting service. It provides centralized log storage, searchable log analysis, performance metrics, automated alarms, and visual dashboards.
-
-**Three separate capabilities:**
-
-1. **Logs** (CloudWatchLogsFullAccess - AWS Managed Policy) ✅ REQUIRED
-   - ✅ Write application logs to CloudWatch
-   - ✅ Create log groups (organize logs)
-   - ✅ View/search logs
-   - What it does: Application automatically sends logs → You can view them anytime
-   - Required: **YES** - for application to send logs
-
-2. **Alarms** (Custom inline policy needed - no AWS managed policy) ⚠️ OPTIONAL
-   - ✅ Create automated alarms
-   - ✅ Send notifications (email, SNS, etc.)
-   - ✅ Alert you to attacks, failures, high CPU/memory
-   - What it does: Monitor metrics 24/7 → Alert you automatically if problems detected
-   - Required: **NO** - but HIGHLY RECOMMENDED for production
-   - AWS managed policy: **NONE EXISTS** - Create inline policy instead
-   
-   **To add alarm permissions, create inline policy:**
+After creating the user manually, add the CloudWatch alarms inline policy:
+1. Select the user → **Add inline policy** → **JSON**
+2. Paste:
    ```json
    {
      "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": [
-           "cloudwatch:PutMetricAlarm",
-           "cloudwatch:DeleteAlarms",
-           "cloudwatch:DescribeAlarms",
-           "cloudwatch:GetMetricStatistics",
-           "cloudwatch:ListMetrics"
-         ],
-         "Resource": "*"
-       }
-     ]
+     "Statement": [{
+       "Effect": "Allow",
+       "Action": [
+         "cloudwatch:PutMetricAlarm",
+         "cloudwatch:DeleteAlarms",
+         "cloudwatch:DescribeAlarms",
+         "cloudwatch:GetMetricStatistics",
+         "cloudwatch:ListMetrics"
+       ],
+       "Resource": "*"
+     }]
    }
    ```
-   
-   How to attach:
-   1. Go to [IAM Users](https://console.aws.amazon.com/iam/home#/users)
-   2. Select your user
-   3. Click **Add inline policy**
-   4. Choose **JSON** and paste above policy
-   5. Name it: `CloudWatchAlarmPolicy`
-   6. Click **Create policy**
+3. Name it `CloudWatchAlarmPolicy` and save.
 
-3. **Dashboards** (CloudWatchDashboardsFullAccess - part of CloudWatchFullAccess)
-   - ✅ Create visual dashboards
-   - ✅ Display metrics, logs, alarms
-   - ✅ Custom widgets and layouts
-   - What it does: Pretty visualizations of your app health
-   - Required: **NO** - optional but useful for status at a glance
+### Step 3: Save and Switch to Deployer Credentials
 
-**Deployment includes:**
-- ✅ CloudWatch agent (sends logs automatically)
-- ✅ Basic log rotation (keeps logs manageable)
-- ❌ Alarms (you create these with inline policy)
-- ❌ Dashboards (you create these manually)
+**IMPORTANT:** Save the Access Key ID and Secret Access Key immediately. You will not see them again.
 
-**What you get with required permissions:**
-- `CloudWatchLogsFullAccess` = Application logs automatically collected and searchable
+Store both values in a password manager or other secure location.
 
-**What you need to add for production:**
-- Inline policy for alarms (see above) = 24/7 automated monitoring and alerts
+⚠️ **NEVER commit these to Git or share them.**
 
-**How logs flow:**
-1. Your application runs on EC2
-2. Application writes to `/var/log/{app_name}/`
-3. CloudWatch agent (installed during deployment) reads those logs automatically
-4. Logs sent to CloudWatch Logs service
-5. You can:
-   - View them in AWS Console → CloudWatch → Logs → `/{app_name}/`
-   - Create alarms based on log patterns ("alert me if 5xx errors spike")
-   - Create dashboards showing error counts, request rates, etc.
+Now reconfigure the AWS CLI to use the deployer credentials instead of root:
 
-### Step 3: Save Access Keys
-
-**IMPORTANT:** Download and save these immediately. You won't see them again.
-
-1. After creating user, you'll see **Access key ID** and **Secret access key**
-2. Click **Download .csv** - Save this file securely
-3. Store in a safe place (password manager, secure location)
-
-**Example (fake credentials):**
-```
-Access key ID: AKIAIOSFODNN7EXAMPLE
-Secret access key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```bash
+aws configure
+# Enter the deployer user's access key, secret key, region, json
 ```
 
-⚠️ **NEVER commit these to Git or share them!**
+After this point, all AWS operations use the limited deployer account.
 
 ---
 
