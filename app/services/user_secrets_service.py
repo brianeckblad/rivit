@@ -11,7 +11,11 @@ class UserSecretsService:
     Service for managing user-specific secrets in AWS Secrets Manager.
 
     Each user can have their own eBay API credentials stored securely
-    in AWS Secrets Manager under the pattern: {username}/production
+    in AWS Secrets Manager under the pattern: {app_prefix}/users/{username}
+
+    The app_prefix is derived from the SECRET_NAME environment variable
+    (e.g., SECRET_NAME='rampe/production' → prefix='rampe'), which keeps
+    user secrets under the same IAM policy as the main app secret.
     """
 
     def __init__(self):
@@ -29,6 +33,19 @@ class UserSecretsService:
             )
         return self.client
 
+    def _get_app_prefix(self):
+        """
+        Get the app prefix from SECRET_NAME env var.
+
+        Extracts the first path component from the main secret name
+        so user secrets share the same IAM policy prefix.
+
+        Returns:
+            str: App prefix (e.g., 'rampe' from 'rampe/production')
+        """
+        secret_name = os.environ.get('SECRET_NAME', 'rampe/production')
+        return secret_name.split('/')[0]
+
     def get_user_secret_name(self, username):
         """
         Get the secret name for a user.
@@ -37,9 +54,10 @@ class UserSecretsService:
             username (str): The username
 
         Returns:
-            str: Secret name (e.g., 'brian/production')
+            str: Secret name (e.g., 'rampe/users/brian')
         """
-        return f"{username}/production"
+        prefix = self._get_app_prefix()
+        return f"{prefix}/users/{username}"
 
     def get_user_ebay_credentials(self, username):
         """

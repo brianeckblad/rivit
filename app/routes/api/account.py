@@ -736,19 +736,41 @@ def get_ebay_credentials() -> Response:
         if not username:
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
 
-        # Check if credentials exist
-        has_credentials = user_secrets_service.check_credentials_exist(username)
+        # Check if user-specific credentials exist
+        has_user_credentials = user_secrets_service.check_credentials_exist(username)
 
-        if not has_credentials:
+        credentials = None
+        source = None
+
+        if has_user_credentials:
+            # User has their own credentials in Secrets Manager
+            credentials = user_secrets_service.get_user_ebay_credentials(username)
+            source = 'user'
+        else:
+            # Fall back to app-level credentials (from main secret)
+            from app.config import get_secret
+            app_creds = {
+                'EBAY_PRODUCTION_APP_ID': get_secret('EBAY_PRODUCTION_APP_ID'),
+                'EBAY_PRODUCTION_CERT_ID': get_secret('EBAY_PRODUCTION_CERT_ID'),
+                'EBAY_PRODUCTION_DEV_ID': get_secret('EBAY_PRODUCTION_DEV_ID'),
+                'EBAY_PRODUCTION_TOKEN': get_secret('EBAY_PRODUCTION_TOKEN'),
+                'EBAY_SANDBOX_APP_ID': get_secret('EBAY_SANDBOX_APP_ID'),
+                'EBAY_SANDBOX_CERT_ID': get_secret('EBAY_SANDBOX_CERT_ID'),
+                'EBAY_SANDBOX_DEV_ID': get_secret('EBAY_SANDBOX_DEV_ID'),
+                'EBAY_SANDBOX_TOKEN': get_secret('EBAY_SANDBOX_TOKEN'),
+            }
+            # Only treat as "has credentials" if at least one value is set
+            if any(v for v in app_creds.values()):
+                credentials = app_creds
+                source = 'app'
+
+        if not credentials:
             return jsonify({
                 'success': True,
                 'has_credentials': False,
                 'production': {'app_id': '', 'cert_id': '', 'dev_id': '', 'token': ''},
                 'sandbox': {'app_id': '', 'cert_id': '', 'dev_id': '', 'token': ''}
             }), 200
-
-        # Get credentials and mask them
-        credentials = user_secrets_service.get_user_ebay_credentials(username)
 
         def mask_credential(value):
             """Mask credential showing only last 4 characters."""
@@ -759,6 +781,7 @@ def get_ebay_credentials() -> Response:
         return jsonify({
             'success': True,
             'has_credentials': True,
+            'source': source,
             'production': {
                 'app_id': mask_credential(credentials.get('EBAY_PRODUCTION_APP_ID')),
                 'cert_id': mask_credential(credentials.get('EBAY_PRODUCTION_CERT_ID')),

@@ -80,7 +80,7 @@ def get_user_secret_name(username=None):
         username (str, optional): Username. If None, uses current session user.
 
     Returns:
-        str: Secret name (e.g., 'brian/production' or 'app-item-listing-tool/production')
+        str: Secret name (e.g., 'rampe/users/brian' or 'rampe/production')
     """
     if username is None:
         username = get_current_username()
@@ -90,8 +90,11 @@ def get_user_secret_name(username=None):
         app_name = os.environ.get('APP_NAME', 'app-item-listing-tool')
         return os.environ.get('SECRET_NAME', f'{app_name}/production')
 
-    # Multi-user: username/production
-    return f"{username}/production"
+    # Multi-user: {app_prefix}/users/{username}
+    # Keeps user secrets under the same IAM policy prefix as the main app secret
+    secret_name = os.environ.get('SECRET_NAME', 'rampe/production')
+    prefix = secret_name.split('/')[0]
+    return f"{prefix}/users/{username}"
 
 
 def get_ebay_credentials(username=None):

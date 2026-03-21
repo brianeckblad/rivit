@@ -1236,9 +1236,13 @@
                 if (data.has_credentials) {
                     const prod = data.production;
                     const sandbox = data.sandbox;
+                    const sourceNote = data.source === 'app'
+                        ? '<div style="font-size: 11px; color: #6A6A6A; margin-bottom: 8px;">Using shared app credentials. Click Manage Credentials to set your own.</div>'
+                        : '';
 
                     statusContainer.innerHTML = `
                         <div style="font-size: 12px; line-height: 1.8;">
+                            ${sourceNote}
                             <div style="font-weight: 600; color: #FFE500; margin-bottom: 8px;">Production:</div>
                             <div style="color: #9A9A9A; margin-left: 12px;">
                                 App ID: ${prod.app_id || '<span style="color: #FF4A4A;">Not set</span>'}<br>

@@ -65,6 +65,10 @@
               Action:
                 - secretsmanager:GetSecretValue
                 - secretsmanager:DescribeSecret
+                - secretsmanager:CreateSecret
+                - secretsmanager:PutSecretValue
+                - secretsmanager:DeleteSecret
+                - secretsmanager:TagResource
               Resource: "arn:aws:secretsmanager:{{ aws_region }}:*:secret:{{ app_name }}/*"
 
     - name: Attach CloudWatch access policy to role
