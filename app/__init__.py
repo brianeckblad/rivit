@@ -121,6 +121,8 @@ def _setup_service_logger(app, config_name):
 
     except Exception as e:
         app.logger.warning(f"Could not set up service logger: {e}")
+        # Fallback: use the main app logger so app.service_logger always exists
+        app.service_logger = app.logger
 
 
 def _setup_cleanup_logger(app, config_name):
@@ -172,6 +174,8 @@ def _setup_cleanup_logger(app, config_name):
 
     except Exception as e:
         app.logger.warning(f"Could not set up cleanup logger: {e}")
+        # Fallback: use the main app logger so app.cleanup_logger always exists
+        app.cleanup_logger = app.logger
 
 
 def create_app(config_name='development'):

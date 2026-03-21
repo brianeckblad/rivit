@@ -15,6 +15,7 @@ from datetime import datetime
 from flask import request, abort, g, current_app
 from functools import wraps
 from pathlib import Path
+from typing import Optional
 import json
 
 
@@ -207,58 +208,42 @@ class RateLimiter:
 
 
 # Global instances (initialized in init_security_middleware)
-ip_blocklist = None
-rate_limiter = None
+ip_blocklist: Optional[IPBlocklist] = None
+rate_limiter: Optional[RateLimiter] = None
 
 
 # Suspicious patterns that indicate attack attempts
+# NOTE: nginx already blocks most attack paths (wp-admin, phpmyadmin, .env, etc.)
+# These patterns are a secondary check for requests that reach Flask.
+# Do NOT include paths the app itself uses (e.g., /admin/analytics).
 ATTACK_PATTERNS = [
     # Config/environment file access attempts
-    r'\.env',
-    r'\.git',
-    r'\.aws',
+    r'\.env$',
+    r'\.git/',
+    r'\.aws/',
     r'config\.php',
     r'wp-config',
     r'\.htaccess',
     r'web\.config',
 
-    # Admin/management panels
-    r'/admin',
+    # Common vulnerability scanners / CMS probes
     r'/phpmyadmin',
     r'/phpMyAdmin',
     r'/mysql',
     r'/dbadmin',
     r'/wp-admin',
-    r'/administrator',
-
-    # Common vulnerability scanners
-    r'/\.well-known/security\.txt',
-    r'/\.DS_Store',
-    r'/xmlrpc\.php',
     r'/wp-login\.php',
-
-    # SQL injection patterns
-    r"union.*select",
-    r"concat\(.*\)",
-    r"0x[0-9a-f]+",
-    r"--\s",
-    r"/\*.*\*/",
-
-    # Command injection
-    r";.*cat\s",
-    r"\|.*ls\s",
-    r"&&.*whoami",
+    r'/xmlrpc\.php',
+    r'/administrator',
 
     # Path traversal
     r"\.\./",
     r"\.\.\\",
 
-    # Common exploits
-    r"eval\s*\(",
-    r"exec\s*\(",
-    r"system\s*\(",
-    r"passthru",
-    r"shell_exec",
+    # SQL injection (query-string only — checked separately)
+    r"union.*select",
+    r"concat\(.*\)",
+    r"--\s",
 ]
 
 # Compile patterns for performance
@@ -320,12 +305,9 @@ def security_middleware():
     Main security middleware - runs before every request.
 
     Checks:
-    1. IP blocklist
-    2. Attack pattern detection
-    3. Rate limiting
-    4. Validates request
-
-    Blocks malicious requests and logs security events.
+    1. IP blocklist (only for previously banned repeat offenders)
+    2. Attack pattern detection (rejects request, does NOT auto-block)
+    3. Rate limiting (rejects request, does NOT auto-block)
     """
     # Get real client IP
     client_ip = get_real_ip(request)
@@ -333,36 +315,36 @@ def security_middleware():
 
     # Check if IP is blocked
     if ip_blocklist and ip_blocklist.is_blocked(client_ip):
-        current_app.logger.warning(f"🚫 Blocked IP attempted access: {client_ip} - {request.path}")
+        current_app.logger.warning(f"Blocked IP attempted access: {client_ip} - {request.path}")
         abort(403, description="Access denied")
 
     # Record request for rate limiting
     if rate_limiter:
         rate_limiter.record_request(client_ip)
 
-    # Check for attack patterns
-    is_attack, pattern = is_attack_attempt(request.path, request.query_string.decode('utf-8'))
+    # Check for attack patterns — reject but do NOT auto-block
+    is_attack, pattern = is_attack_attempt(request.path, request.query_string.decode('utf-8', errors='replace'))
     if is_attack:
         current_app.logger.warning(
-            f"🚨 ATTACK DETECTED from {client_ip}: {request.method} {request.path} "
-            f"(matched pattern: {pattern})"
+            f"ATTACK DETECTED from {client_ip}: {request.method} {request.path} "
+            f"(matched: {pattern})"
         )
-
-        # Block IP for 24 hours
-        if ip_blocklist:
-            ip_blocklist.block_ip(client_ip, duration_hours=24)
+        # Only block if this IP has triggered 5+ attack patterns in the last minute
+        if rate_limiter:
+            attack_key = f"attack_{client_ip}"
+            rate_limiter.requests[attack_key].append(time.time())
+            attack_count = rate_limiter.get_request_count(attack_key, 60)
+            if attack_count >= 5 and ip_blocklist:
+                ip_blocklist.block_ip(client_ip, duration_hours=1)
+                current_app.logger.warning(f"IP blocked after {attack_count} attack attempts: {client_ip}")
 
         abort(403, description="Access denied")
 
-    # Check rate limiting (100 requests per minute per IP)
-    if rate_limiter and rate_limiter.is_rate_limited(client_ip, max_requests=100, window_seconds=60):
+    # Rate limiting: 600 requests per minute per IP — just 429, no auto-block
+    if rate_limiter and rate_limiter.is_rate_limited(client_ip, max_requests=600, window_seconds=60):
         current_app.logger.warning(
-            f"⚠️  RATE LIMIT EXCEEDED: {client_ip} - {rate_limiter.get_request_count(client_ip, 60)} req/min"
+            f"Rate limit exceeded: {client_ip} - {rate_limiter.get_request_count(client_ip, 60)} req/min"
         )
-
-        # Block IP for 1 hour on rate limit violation
-        if ip_blocklist:
-            ip_blocklist.block_ip(client_ip, duration_hours=1)
 
         abort(429, description="Too many requests")
 
@@ -434,7 +416,7 @@ def init_security_middleware(app):
 
     app.logger.info("✓ Security middleware initialized")
     app.logger.info(f"  - IP blocklist: {len(ip_blocklist.get_blocked_ips())} IPs currently blocked")
-    app.logger.info("  - Rate limiting: 100 requests/minute per IP")
+    app.logger.info("  - Rate limiting: 600 requests/minute per IP")
     app.logger.info("  - Attack pattern detection: Enabled")
 
 
@@ -484,7 +466,7 @@ def create_security_admin_blueprint():
 
     Must be registered in a protected admin area!
     """
-    from flask import Blueprint, jsonify, request
+    from flask import Blueprint, jsonify
 
     bp = Blueprint('security_admin', __name__, url_prefix='/admin/security')
 
