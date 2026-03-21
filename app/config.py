@@ -167,9 +167,9 @@ class ProductionConfig(Config):
     via Secrets Manager or environment variables.
     """
     DEBUG = False
-    # Only enforce Secure cookies when HTTPS is active (SSL cert exists)
-    # This allows HTTP-only deployments to work before SSL is configured
-    SESSION_COOKIE_SECURE = bool(get_secret('CLOUDFRONT_DOMAIN') or os.environ.get('SSL_ENABLED'))
+    # Only enforce Secure cookies when HTTPS is active
+    # Set SSL_ENABLED=true in environment or Secrets Manager when HTTPS is configured
+    SESSION_COOKIE_SECURE = bool(os.environ.get('SSL_ENABLED'))
 
     @classmethod
     def init_app(cls, app):
