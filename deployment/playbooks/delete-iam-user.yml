@@ -54,7 +54,7 @@
         user_name: "{{ iam_user_name }}"
         access_key_id: "{{ item.access_key_id }}"
         state: absent
-      loop: "{{ existing_keys.iam_access_keys | default([]) }}"
+      loop: "{{ existing_keys.access_keys | default([]) }}"
       failed_when: false
 
     # ── Step 2: Delete inline policies ─────────────────────────────────────

@@ -94,7 +94,7 @@
         user_name: "{{ iam_user_name }}"
         state: present
       register: new_key
-      when: existing_keys.iam_access_keys | length == 0
+      when: existing_keys.access_keys | length == 0
 
     - name: Display new access key
       debug:
@@ -131,7 +131,7 @@
     - name: Access key already exists
       debug:
         msg:
-          - "✓ IAM user {{ iam_user_name }} already has {{ existing_keys.iam_access_keys | length }} access key(s)."
+          - "✓ IAM user {{ iam_user_name }} already has {{ existing_keys.access_keys | length }} access key(s)."
           - "  No new key was created."
           - ""
           - "  To rotate keys, delete the old key first:"
