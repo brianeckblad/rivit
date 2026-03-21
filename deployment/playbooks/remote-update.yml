@@ -25,6 +25,7 @@
   tasks:
 
     - name: Mark app directory as git safe.directory
+      become_user: "{{ admin_user }}"
       command: git config --global --add safe.directory {{ app_dir }}
       changed_when: false
 
