@@ -19,7 +19,7 @@
 #   ✓ Limited device access (no raw sockets)
 #   ✓ Automatic restart on failure
 #   ✓ Gunicorn with gthread workers
-#   ✓ Environment variables from .env
+#   ✓ Environment variables for AWS Secrets Manager
 #
 # Usage:
 #   systemctl start {{ app_name }}      # Start the service
@@ -48,7 +48,8 @@ Environment="PATH={{ venv_dir }}/bin"
 Environment="FLASK_APP=app"
 Environment="APP_SERVICE_NAME={{ service_name }}"
 
-# ============================================================================# AWS CONFIGURATION FOR SECRETS MANAGER
+# ============================================================================
+# AWS CONFIGURATION FOR SECRETS MANAGER
 # ============================================================================
 # These environment variables tell the app to read secrets from AWS
 # The app config.py uses these to fetch secrets from Secrets Manager
@@ -61,15 +62,13 @@ Environment="SECRET_NAME={{ secret_name }}"
 Environment="AWS_REGION={{ aws_region }}"
 
 # ============================================================================
-# OPTIONAL: LEGACY .ENV FILE SUPPORT (for development only)
+# APPLICATION CONFIGURATION
 # ============================================================================
-# If a .env file exists in the app directory, it will be loaded
-# This is ONLY for local development, not used in production
-# On production: secrets come from AWS Secrets Manager above
+# Non-secret infrastructure config the app reads via os.environ.get()
+# All actual secrets (keys, passwords, tokens) come from Secrets Manager
 # ============================================================================
-# EnvironmentFile: Load .env file if it exists (optional, for local dev)
-# NOTE: Commented out because we use AWS Secrets Manager in production
-# EnvironmentFile={{ app_dir }}/.env
+Environment="COMIC_IMAGE_PATH={{ app_dir }}/instance/item_images"
+Environment="CLOUDWATCH_NAMESPACE={{ app_display_name }}"
 
 # ============================================================================
 # APPLICATION STARTUP WITH GUNICORN

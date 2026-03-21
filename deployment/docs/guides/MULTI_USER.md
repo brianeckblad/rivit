@@ -280,15 +280,24 @@ To restrict users to their own S3 prefixes (optional advanced security):
 
 Users are managed in `instance/user_preferences.json` or via environment variable:
 
-**Option A: Environment Variable (Initial Setup)**
+**Option A: AWS Secrets Manager (Initial Setup)**
+
+The `users` variable in `vault.yml` is synced to Secrets Manager by `secret-sync.yml`:
+
+```yaml
+# In vault.yml
+users: "brian:password123,sarah:password456,john:password789"
+```
+
 ```bash
-# In .env file
-USERS=brian:password123,sarah:password456,john:password789
+# Sync to Secrets Manager
+cd deployment
+ansible-playbook playbooks/secret-sync.yml --vault-password-file ~/.vault_pass
 ```
 
 **⚠️ IMPORTANT:** These are temporary default passwords. Users MUST change them after first login!
 
-**After deployment, remove USERS from .env** - users are now stored in `instance/user_preferences.json`
+**After first login, users are stored in `instance/user_preferences.json`** — the Secrets Manager value is only used as a fallback.
 
 **Option B: Web Interface (Preferred)**
 - Log in as admin

@@ -18,7 +18,7 @@
 #   ✓ Systemd socket activation ready
 #   ✓ Resource limits (file descriptor limit: 65536)
 #   ✓ Gunicorn with gthread workers (multi-threading for I/O bound tasks)
-#   ✓ Environment variables from .env file
+#   ✓ Environment variables for AWS Secrets Manager
 #   ✓ Separate error and access logs
 #
 # Usage:
@@ -60,16 +60,15 @@ WorkingDirectory={{ app_dir }}
 # PYTHONUNBUFFERED=1: Disable Python buffering (see logs in real-time)
 # SECRET_NAME: Points to AWS Secrets Manager secret
 # AWS_REGION: Required for AWS API calls
-# EnvironmentFile: Optional .env file (- prefix = don't fail if missing)
 # ============================================================================
 # Environment
 Environment="PATH={{ venv_dir }}/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="PYTHONUNBUFFERED=1"
 Environment="SECRET_NAME={{ secret_name }}"
 Environment="AWS_REGION={{ aws_region }}"
-# Optional: Load additional variables from .env file if it exists
-# The '-' prefix makes this optional (won't fail if file doesn't exist)
-EnvironmentFile=-{{ app_dir }}/.env
+Environment="APP_SERVICE_NAME={{ service_name }}"
+Environment="COMIC_IMAGE_PATH={{ app_dir }}/instance/item_images"
+Environment="CLOUDWATCH_NAMESPACE={{ app_display_name }}"
 
 # ============================================================================
 # PRE-START VALIDATION

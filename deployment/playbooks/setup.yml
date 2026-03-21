@@ -70,35 +70,6 @@
         virtualenv: "{{ venv_dir }}"
         state: present
 
-    # =========================================================================
-    # Create .env file with application configuration
-    # =========================================================================
-    # This .env file contains NON-SECRET configuration only.
-    # All secrets (SECRET_KEY, API keys, passwords, tokens) are stored in
-    # AWS Secrets Manager. The application reads this .env file for config,
-    # then fetches secrets from Secrets Manager using SECRET_NAME.
-    #
-    # Contents of auto-generated .env:
-    # - FLASK_ENV: Environment mode (development/production)
-    # - PORT/HOST: Server settings
-    # - SECRET_NAME: Points to AWS Secrets Manager secret
-    # - AWS_REGION: AWS region (from vault.yml)
-    # - S3_BUCKET/FOLDER: S3 configuration (from vault.yml)
-    # - COMIC_IMAGE_PATH, APP_SERVICE_NAME: Application paths
-    #
-    # What is NOT in .env (all in Secrets Manager):
-    # - SECRET_KEY (Flask session signing)
-    # - eBay API credentials and verification token
-    # - Application passwords
-    # - CloudFront tokens
-    # =========================================================================
-    - name: Create .env file from template
-      template:
-        src: ../templates/env.j2
-        dest: "{{ app_dir }}/.env"
-        owner: "{{ app_user }}"
-        group: "{{ app_name }}"
-        mode: '0640'
 
     - name: Create supervisor configuration
       template:

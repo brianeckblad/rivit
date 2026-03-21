@@ -20,13 +20,13 @@ APP_START_TIME = time.time()
 #   1. User runs: python scripts/local_dev_setup_env.py
 #   2. This generates: .env file (auto-generated from vault.yml)
 #   3. App loads .env via load_dotenv() below
-#   4. Secrets come from .env file
+#   4. Secrets come from .env file (Secrets Manager fallback)
 #
 # PRODUCTION DEPLOYMENT:
-#   1. Deployment does NOT create a .env file on the server
+#   1. No .env file exists on the server
 #   2. Systemd service sets environment variables:
-#      - SECRET_NAME={{ app_name }}/secrets
-#      - AWS_REGION={{ aws_region }}
+#      - SECRET_NAME, AWS_REGION, APP_SERVICE_NAME,
+#        COMIC_IMAGE_PATH, CLOUDWATCH_NAMESPACE
 #   3. App skips load_dotenv() (file doesn't exist)
 #   4. Secrets come from AWS Secrets Manager (via config.py)
 #

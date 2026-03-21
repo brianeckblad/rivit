@@ -23,13 +23,6 @@
     - "{{ app_dir }}/instance"
     - "{{ log_dir }}"
 
-- name: Secure .env file
-  file:
-    path: "{{ app_dir }}/.env"
-    owner: "{{ app_user }}"
-    group: "{{ app_name }}"
-    mode: '0640'
-  when: app_dir is defined
 
 - name: Secure user credentials file
   file:

@@ -582,7 +582,6 @@ ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
 **What it does:**
 - ✅ Clones your Git repository to `/opt/{app_name}`
 - ✅ Creates Python virtual environment and installs dependencies
-- ✅ Creates `.env` configuration file
 - ✅ Configures Nginx web server
 - ✅ Configures Supervisor process manager
 - ✅ Applies security permissions
