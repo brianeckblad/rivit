@@ -205,22 +205,22 @@
       changed_when: false
       failed_when: false
 
-    - name: Reload systemd daemon
-      systemd:
-        daemon_reload: yes
+    - name: Update supervisor processes
+      command: supervisorctl update
+      changed_when: false
+      failed_when: false
 
-    - name: Restart application service
-      systemd:
-        name: "{{ service_name }}.service"
+    - name: Restart application via supervisor
+      supervisorctl:
+        name: "{{ service_name }}"
         state: restarted
-        enabled: yes
 
     - name: Wait for application to start
       wait_for:
         timeout: 5
 
     - name: Check application status
-      command: systemctl status {{ service_name }}.service
+      command: supervisorctl status {{ service_name }}
       register: app_status
       changed_when: false
       failed_when: false
@@ -243,7 +243,7 @@
     - name: Show new commit info
       block:
         - name: Get new commit
-          become_user: "{{ app_user }}"
+          become_user: "{{ admin_user }}"
           command: git log -1 --oneline
           args:
             chdir: "{{ app_dir }}"
