@@ -1114,41 +1114,44 @@ class S3Service:
             _log_error(f"Error in bi-directional {label} sync: {e}")
             return None
 
-    def sync_images_from_s3(self):
+    def sync_images_from_s3(self, username=None):
         """
         Synchronize the local image directory with S3 (bi-directional).
         
+        Args:
+            username (str, optional): Username to sync for. If None, uses current session user.
+
         Returns:
             dict: Summary of the sync results (downloaded, uploaded, skipped).
         """
-        from pathlib import Path
         from app.utils.user_context import get_user_images_dir, get_user_s3_images_prefix
 
-        local_images_dir = get_user_images_dir()
+        local_images_dir = get_user_images_dir(username)
         local_images_dir.mkdir(parents=True, exist_ok=True)
         
-        s3_images_prefix = get_user_s3_images_prefix()
+        s3_images_prefix = get_user_s3_images_prefix(username)
         return self._bidirectional_sync(local_images_dir, s3_images_prefix, label="images")
 
-    def sync_exports_from_s3(self):
+    def sync_exports_from_s3(self, username=None):
         """
         Synchronize the local exports directory with S3 (bi-directional).
         
+        Args:
+            username (str, optional): Username to sync for. If None, uses current session user.
+
         Returns:
             dict: Summary of the sync results (downloaded, uploaded, skipped).
         """
-        from pathlib import Path
         from app.utils.user_context import get_user_exports_dir, get_user_s3_exports_prefix
 
-        exports_dir = get_user_exports_dir()
+        exports_dir = get_user_exports_dir(username)
         exports_dir.mkdir(parents=True, exist_ok=True)
         
         # Enforce local limit before sync
         self._cleanup_old_local_exports(keep_count=100)
         
-        s3_exports_prefix = get_user_s3_exports_prefix()
+        s3_exports_prefix = get_user_s3_exports_prefix(username)
         return self._bidirectional_sync(exports_dir, s3_exports_prefix, label="exports")
-        return self._bidirectional_sync(exports_dir, 'exports/', label="exports")
 
     def duplicate_images(self, target_sku, image_urls_to_copy):
         """

@@ -1,5 +1,5 @@
 """Logging utilities for services."""
-from flask import current_app
+from flask import current_app, has_request_context
 import logging
 
 
@@ -11,6 +11,8 @@ def get_log_prefix():
         str: Log prefix like "[User: brian] " or "" if no user context
     """
     try:
+        if not has_request_context():
+            return ""
         from flask import session
         username = session.get('username', 'default')
         if username and username != 'default':

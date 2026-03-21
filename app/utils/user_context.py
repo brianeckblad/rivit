@@ -6,7 +6,7 @@ Each user has their own CSV file, SKU counter, and can optionally
 have their own eBay API credentials.
 """
 from pathlib import Path
-from flask import session, current_app
+from flask import session, current_app, has_request_context
 import os
 
 
@@ -15,8 +15,10 @@ def get_current_username():
     Get the current logged-in username from session.
 
     Returns:
-        str: The username, or 'default' if not logged in
+        str: The username, or 'default' if not logged in or outside request context
     """
+    if not has_request_context():
+        return 'default'
     return session.get('username', 'default')
 
 

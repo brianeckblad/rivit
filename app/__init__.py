@@ -427,19 +427,24 @@ def create_app(config_name='development'):
     with app.app_context():
         users = user_manager._load_users()
         user_count = len(users)
+        registered_usernames = []
         if user_count > 0:
-            usernames = [user['username'] for user in users.values()]
-            app.logger.info(f"✅ User authentication initialized with {user_count} user(s): {', '.join(usernames)}")
+            registered_usernames = [user['username'] for user in users.values()]
+            app.logger.info(f"✅ User authentication initialized with {user_count} user(s): {', '.join(registered_usernames)}")
         else:
             app.logger.warning("⚠️  No users found - create users via web interface or set USERS environment variable")
 
-    # Cleanup expired trash items on startup
+    # Cleanup expired trash items on startup (for all registered users)
     with app.app_context():
-        from app.services.trash_service import trash_service
-        try:
-            trash_service.cleanup_expired()
-        except Exception as e:
-            app.logger.error(f"Error cleaning up trash on startup: {e}")
+        from app.services.trash_service import TrashService
+        from app.utils.user_context import get_user_trash_dir
+        for username in registered_usernames:
+            try:
+                user_trash_dir = get_user_trash_dir(username)
+                user_trash_service = TrashService(trash_path=user_trash_dir / 'recent')
+                user_trash_service.cleanup_expired()
+            except Exception as e:
+                app.logger.error(f"Error cleaning up trash for {username} on startup: {e}")
 
     # Sync backups from S3 to local storage on startup (in background thread)
     # NOTE: Health check runs AFTER sync to ensure local images exist first
@@ -474,11 +479,16 @@ def create_app(config_name='development'):
                 # Acquire lock to prevent other workers from syncing
                 sync_state.lock_sync()
 
-                # 1. Sync Images (Bi-directional)
-                img_summary = s3_service.sync_images_from_s3()
+                # Sync images and exports for each registered user
+                for username in registered_usernames:
+                    try:
+                        # 1. Sync Images (Bi-directional)
+                        s3_service.sync_images_from_s3(username=username)
 
-                # 2. Sync Exports (Bi-directional)
-                exp_summary = s3_service.sync_exports_from_s3()
+                        # 2. Sync Exports (Bi-directional)
+                        s3_service.sync_exports_from_s3(username=username)
+                    except Exception as user_err:
+                        app.logger.error(f"Error syncing data for {username}: {user_err}")
 
                 # 3. Run health check AFTER sync completes
                 # This ensures local images are downloaded from S3 before checking for orphans
