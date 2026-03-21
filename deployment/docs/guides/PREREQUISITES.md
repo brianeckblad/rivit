@@ -83,12 +83,14 @@ aws --version
 
 ### Step 2: Configure AWS CLI with Root Credentials
 
+Enter the Access Key ID and Secret Access Key you saved in [AWS Account Setup → Step 2](#step-2-create-root-access-key-temporary).
+
 ```bash
 aws configure
 
 # Follow prompts:
-AWS Access Key ID [None]: <root access key from previous step>
-AWS Secret Access Key [None]: <root secret key from previous step>
+AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
+AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 Default region name [None]: us-east-2
 Default output format [None]: json
 ```
