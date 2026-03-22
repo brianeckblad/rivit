@@ -22,9 +22,9 @@
 # ============================================================================
 app_name: "your_app_name"                        # Technical name (e.g., myapp, comic_tracker)
 app_display_name: "My Application"               # Human-readable name for systemd/UI
-server_name: "_"                                 # Domain for SSL (e.g., myapp.example.com)
-                                                 # "_" = no domain, access via IP only
-ssl_email: ""                                    # Email for Let's Encrypt SSL notifications
+server_name: "your-domain.example.com"           # REQUIRED: Domain for SSL (e.g., myapp.example.com)
+                                                 # Must be a real domain pointed at your server
+ssl_email: "your-email@example.com"              # REQUIRED: Email for Let's Encrypt SSL notifications
 service_name: "{{ app_name }}"                   # systemd service name (usually same as app_name)
 
 # ============================================================================

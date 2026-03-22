@@ -2,7 +2,9 @@
 
 **Deploy, operate, and maintain a Python web application on AWS.**
 
-Start at Chapter 1 and follow the chapters in order. Chapters 8–12 are optional.
+Start at Chapter 1 and follow the chapters in order. Chapters 9–12 are optional.
+
+> **Note:** Security hardening (Chapter 8) and SSL are applied automatically during deployment. Chapter 8 serves as a verification and tuning guide.
 
 ---
 

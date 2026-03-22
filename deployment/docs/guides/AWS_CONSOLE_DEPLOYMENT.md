@@ -391,9 +391,11 @@ curl http://YOUR_PUBLIC_IP
 
 ---
 
-## Step 7: Configure SSL/HTTPS (Optional)
+## Step 7: Configure SSL/HTTPS
 
-SSL requires a custom domain pointed at your server. Skip this if using an IP address only.
+SSL is required for all production deployments. If you deployed with `setup.yml`, the certificate was installed automatically. If not, follow these steps.
+
+SSL requires a custom domain pointed at your server.
 
 ### Point your domain to the server
 

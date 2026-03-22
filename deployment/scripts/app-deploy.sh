@@ -165,9 +165,9 @@ cmd_setup() {
     success "Setup complete!"
     echo ""
     echo "Next steps:"
-    echo "  1. Run security hardening: $0 hardening"
-    echo "  2. Verify application: ssh ubuntu@your-server-ip"
-    echo "  3. Check logs: $0 logs"
+    echo "  1. Verify application: $0 status"
+    echo "  2. Check logs: $0 logs"
+    echo "  3. Test HTTPS: curl https://your-domain"
 }
 
 # Update command

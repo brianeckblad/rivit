@@ -183,6 +183,15 @@
         path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
       register: ssl_cert_check
 
+    - name: Warn if SSL certificate is missing
+      debug:
+        msg: >
+          ⚠️  SSL certificate not found for {{ server_name }}.
+          SSL is required for production. Run setup.yml to install the certificate,
+          or run setup-ssl.yml separately:
+          ansible-playbook playbooks/setup-ssl.yml --vault-password-file ~/.vault_pass
+      when: not ssl_cert_check.stat.exists
+
     - name: Update nginx configuration
       template:
         src: ../templates/nginx.conf.j2

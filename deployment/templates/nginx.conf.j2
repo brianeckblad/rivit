@@ -67,7 +67,10 @@ server {
     # HSTS (1 year, includes subdomains for better security if applicable)
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 {% else %}
-# HTTP - main application server
+# HTTP - temporary bootstrap server (certbot needs HTTP to validate domain)
+# After setup.yml completes, the SSL branch above is used instead.
+# If you see this block active in production, SSL setup may have failed.
+# Re-run: ansible-playbook playbooks/setup-ssl.yml --vault-password-file ~/.vault_pass
 server {
     listen 80;
     server_name {{ server_name | default('_') }};

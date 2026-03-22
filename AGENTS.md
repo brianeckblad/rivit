@@ -8,6 +8,108 @@
 
 ---
 
+## Project Context
+
+- **Stack:** Python 3.8+ / Flask 3.0+ web application
+- **Storage:** CSV files (inventory), AWS S3 (images), JSON (settings/preferences) — no database
+- **Deployment:** Ansible playbooks to AWS EC2 (Ubuntu 22.04), Gunicorn + Nginx + Systemd
+- **Shell:** zsh on macOS (development)
+- **Secrets:** AWS Secrets Manager in production; `.env` file for local dev (generated from vault)
+- **Deployment config:** `deployment/group_vars/vault.yml` (Ansible-vault encrypted, contains all variables)
+- **Vault access:** `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass`
+- **S3 bucket name:** Comes from `s3_bucket_name` in vault (not derived from `app_name`)
+- **No tests:** The project has no test suite. There is no CI/CD pipeline.
+
+---
+
+## Architecture
+
+### Entry points
+
+| Entry | Purpose |
+|-------|---------|
+| `runapp.py` | Web server (Flask app via `create_app()` factory) |
+| `main.py` | CLI tool for batch CSV processing, S3 image management |
+
+### Application structure
+
+```
+app/
+├── __init__.py          # App factory (create_app), logging, S3 sync on startup
+├── config.py            # Config classes (Dev/Prod), secrets from AWS Secrets Manager
+├── security.py          # IP blocklist, rate limiting, attack detection middleware
+├── models/              # Dataclasses (Comic, User, Snapshot, TrashItem, Analytics)
+│   └── user.py          # UserManager: auth, credentials, preferences (JSON file)
+├── routes/
+│   ├── auth.py          # login_required, csrf_required, sync_not_locked decorators
+│   ├── main.py          # Page routes (landing, browse, add, download, price-lookup, account, ebay-listings, analytics)
+│   └── api/             # 11 API modules (67 routes), registered on api_bp at /api
+├── services/            # Business logic layer
+│   ├── comic_service.py # Comic CRUD orchestration (user-specific CSV + SKU)
+│   ├── csv_service.py   # CSV read/write with file locking
+│   ├── s3_service.py    # S3 uploads, thumbnails (WebP), sync, restore
+│   ├── ebay_service.py  # eBay API integration (search, listings, taxonomy)
+│   ├── snapshot_service.py  # Manual backup/restore to S3
+│   ├── trash_service.py     # Soft-delete with 30-day retention
+│   ├── health_check_service.py  # CSV ↔ S3 image consistency checks
+│   ├── cloudwatch_service.py    # CloudWatch metrics
+│   ├── sns_service.py           # SNS notifications
+│   ├── user_secrets_service.py  # Per-user eBay credentials in Secrets Manager
+│   └── analytics_service.py     # Click heatmap analytics
+├── scripts/             # App-level utility scripts (image checks, CSV validation, labels)
+├── utils/               # Helpers, validators, logging, monitoring decorators
+│   ├── user_context.py  # Multi-user file path resolution (CSV, SKU, S3, trash, exports)
+│   ├── logging_utils.py # Service/cleanup/app logger helpers
+│   ├── mass_deletion_protection.py  # Safety circuit breakers
+│   ├── whatnot_validators.py        # CSV field validation rules
+│   ├── ebay_validators.py          # eBay CSV export field definitions
+│   ├── ebay_helpers.py             # eBay description parsing helpers
+│   ├── defaults_helpers.py         # User preferences and app defaults
+│   ├── helpers.py                  # Filename generation, CSRF tokens, directory size
+│   ├── monitoring.py               # CloudWatch @monitor_endpoint decorator
+│   └── sync_state.py              # Thread-safe singleton for S3 sync progress
+├── templates/           # Jinja2 HTML templates (10 pages)
+└── static/              # CSS, JS, images, error pages
+```
+
+### Key patterns
+
+- **App factory:** `create_app(config_name)` in `app/__init__.py` — handles config, logging, security, S3 sync, blueprint registration.
+- **Blueprints:** Three blueprints — `auth_bp`, `main_bp`, `api_bp` (mounted at `/api`). API routes split into 11 domain modules in `app/routes/api/`.
+- **Service singletons:** Most services are module-level instances (`s3_service`, `comic_service`, `ebay_service`). Import and use directly; do not re-instantiate.
+- **Multi-user isolation:** Each user gets their own CSV (`instance/data/{username}-items.csv`), SKU counter, snapshots, trash, exports, and images directory. Use `app/utils/user_context.py` helpers.
+- **Secret precedence:** AWS Secrets Manager → environment variable → default value (see `get_secret()` in `config.py`).
+- **Logging:** Three dedicated loggers — `app.logger` (app.log), `service` (service.log), `cleanup` (cleanup.log). Use helpers from `app/utils/logging_utils.py`.
+- **Authentication:** Session-based via `login_required` decorator in `app/routes/auth.py`. Sessions invalidated on app restart. Additional decorators: `csrf_required`, `sync_not_locked`, `disk_space_required`.
+- **User management:** `UserManager` in `app/models/user.py` — credentials and preferences stored in `instance/user_preferences.json`, synced to S3.
+- **Startup sync:** On boot, the app factory syncs SKU (highest-wins), CSV inventory, and user preferences between local files and S3. Images/exports sync in a background thread, followed by a health check.
+- **Version injection:** `inject_version()` context processor reads `instance/app_version` (set by deploy), falls back to `git rev-list --count HEAD`.
+
+### Local development
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+# Generate .env from vault (requires ansible-vault):
+cd deployment && python scripts/local_dev_setup_env.py && cd ..
+# Or create .env manually (see README.md)
+python runapp.py   # http://localhost:8000
+```
+
+### Deployment commands
+
+```bash
+cd deployment
+source scripts/load-vars.sh
+ansible-playbook playbooks/provision-infrastructure.yml --vault-password-file ~/.vault_pass
+ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
+ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
+# Update existing deployment:
+ansible-playbook playbooks/update.yml --vault-password-file ~/.vault_pass
+```
+
+---
+
 ## Shell Command Safety - CRITICAL
 
 ### Problem
@@ -78,7 +180,6 @@ If the terminal produces no output or you suspect it is stuck:
 ### Problem Solved
 The project experienced recurring `dquote>` console errors when making git commits. This has been analyzed and resolved.
 
-**See detailed explanation:** [WHY_DQUOTE_ERROR_AND_FIX.md](WHY_DQUOTE_ERROR_AND_FIX.md)
 
 ### Rule 1: Keep Git Commit Messages Simple (Primary Method)
 
@@ -253,11 +354,7 @@ git commit -m "feat: implement 'validation' and 'testing'"
 
 ## Reference Documents
 
-For detailed information about the git commit quote issue:
-
-- **WHY_DQUOTE_ERROR_AND_FIX.md** - Complete explanation
-- **GIT_COMMIT_QUOTE_FIX.md** - Solutions and best practices
-- **deployment/scripts/git-commit-safe.sh** - Helper script
+- **deployment/scripts/git-commit-safe.sh** - Helper script for safe git commits
 
 ---
 
@@ -325,25 +422,26 @@ Content...
 
 ### Chapter Numbers
 
-Guides are numbered 1–13. The table of contents is `deployment/docs/README.md`.
+Guides are numbered 1–13 and live in `deployment/docs/guides/`. Reference docs live in
+`deployment/docs/reference/`. The table of contents is `deployment/docs/README.md`.
 When adding a new guide, assign the next number and update the README.
 
 | Chapter | File |
 |---------|------|
-| 1 | PREREQUISITES.md |
-| 2 | QUICKSTART.md |
-| 3 | MANUAL_DEPLOYMENT.md |
-| 3b | AWS_CONSOLE_DEPLOYMENT.md |
-| 4 | UPDATING_APPLICATION.md |
-| 5 | OPERATIONS.md |
-| 6 | MONITORING.md |
-| 7 | SECRET_MANAGEMENT.md |
-| 8 | SECURITY_HARDENING.md |
-| 9 | MULTI_USER.md |
-| 10 | CLOUDFRONT_CDN.md |
-| 11 | WAF_CONFIGURATION.md |
-| 12 | GIT_CONFIGURATION.md |
-| 13 | DECOMMISSION.md |
+| 1 | guides/PREREQUISITES.md |
+| 2 | guides/QUICKSTART.md |
+| 3 | guides/MANUAL_DEPLOYMENT.md |
+| 3b | guides/AWS_CONSOLE_DEPLOYMENT.md |
+| 4 | guides/UPDATING_APPLICATION.md |
+| 5 | guides/OPERATIONS.md |
+| 6 | guides/MONITORING.md |
+| 7 | guides/SECRET_MANAGEMENT.md |
+| 8 | guides/SECURITY_HARDENING.md |
+| 9 | guides/MULTI_USER.md |
+| 10 | guides/CLOUDFRONT_CDN.md |
+| 11 | guides/WAF_CONFIGURATION.md |
+| 12 | guides/GIT_CONFIGURATION.md |
+| 13 | guides/DECOMMISSION.md |
 
 ### Writing Checklist
 
@@ -376,6 +474,5 @@ Before finalizing any documentation change:
 
 ---
 
-**Last Updated:** February 26, 2026
-**Status:** Operational Guidelines Established
+**Last Updated:** March 22, 2026
 

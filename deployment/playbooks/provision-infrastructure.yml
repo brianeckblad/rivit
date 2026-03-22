@@ -132,7 +132,7 @@
           - ""
           - "Instance info saved to: deployment/instances/"
           - ""
-          - "Next: Prepare server, then deploy application"
+          - "Next: Prepare server (with hardening), then deploy application (with SSL)"
           - "  ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass"
           - "  ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass"
 

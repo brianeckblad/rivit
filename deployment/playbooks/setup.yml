@@ -12,6 +12,22 @@
 
   tasks:
 
+    - name: Validate SSL prerequisites
+      block:
+        - name: Check server_name is configured for SSL
+          fail:
+            msg: >
+              server_name must be set to a real domain in group_vars/vault.yml (currently '{{ server_name }}').
+              SSL certificates require a domain name. Set server_name and ssl_email before deploying.
+          when: server_name is not defined or server_name == '_' or server_name == ''
+
+        - name: Check ssl_email is configured
+          fail:
+            msg: >
+              ssl_email must be set in group_vars/vault.yml (currently empty).
+              Let's Encrypt requires an email for certificate notifications.
+          when: ssl_email is not defined or ssl_email == ''
+
     - name: Mark app directory as git safe.directory
       become_user: "{{ admin_user }}"
       command: git config --global --add safe.directory {{ app_dir }}
@@ -200,6 +216,92 @@
         name: "{{ service_name }}"
         state: started
       when: supervisor_status.rc != 0 and supervisor_status.rc != 3
+
+    # =========================================================================
+    # SSL CERTIFICATE (required for all production deployments)
+    # =========================================================================
+    # Certbot uses the nginx plugin, so nginx must be running first.
+    # On first run it obtains the cert; re-runs skip if cert exists.
+
+    - name: Install certbot and nginx plugin
+      apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+        update_cache: yes
+
+    - name: Check if SSL certificate already exists
+      stat:
+        path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+      register: ssl_cert_exists
+
+    - name: Obtain SSL certificate from Let's Encrypt
+      command: >
+        certbot --nginx
+        --non-interactive
+        --agree-tos
+        --email {{ ssl_email | default('admin@' + server_name) }}
+        --domains {{ server_name }}
+        --redirect
+      when: not ssl_cert_exists.stat.exists
+
+    - name: Re-check SSL certificate after certbot
+      stat:
+        path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+      register: ssl_cert_after
+
+    - name: Regenerate nginx config with SSL enabled
+      template:
+        src: ../templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/{{ service_name }}
+        mode: '0644'
+      vars:
+        has_ssl: "{{ ssl_cert_after.stat.exists }}"
+      notify: restart nginx
+
+    - name: Setup automatic certificate renewal
+      cron:
+        name: "Renew Let's Encrypt certificates"
+        job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+        special_time: daily
+        user: root
+
+    - name: Ensure Certbot renewal timer is active
+      systemd:
+        name: certbot.timer
+        enabled: yes
+        state: started
+
+    - name: Configure Certbot post-renewal hook for Nginx
+      copy:
+        content: |
+          #!/bin/sh
+          systemctl reload nginx
+        dest: /etc/letsencrypt/renewal-hooks/post/reload-nginx
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Test nginx configuration after SSL
+      command: nginx -t
+      register: nginx_ssl_test
+      changed_when: false
+
+    - name: Reload nginx after SSL setup
+      systemd:
+        name: nginx
+        state: reloaded
+      when: nginx_ssl_test.rc == 0
+
+    - name: Display SSL status
+      debug:
+        msg:
+          - "✓ SSL Certificate: {{ 'installed' if ssl_cert_after.stat.exists else 'FAILED - check certbot output' }}"
+          - "  Domain: {{ server_name }}"
+          - "  Certificate: /etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+          - "  Auto-renewal: enabled (daily check)"
+          - "  Test your site: https://{{ server_name }}"
 
 
   handlers:

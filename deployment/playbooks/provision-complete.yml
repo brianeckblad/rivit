@@ -1,15 +1,15 @@
 ---
 # Complete Deployment Orchestration Playbook
-# Runs infrastructure provisioning, server prep, app deploy, plus optional SSL and monitoring
+# Runs infrastructure provisioning, server prep (with hardening), app deploy (with SSL),
+# plus optional monitoring
 #
 # Usage: ansible-playbook playbooks/provision-complete.yml
 #
 # What it does:
 # 1. Provisions infrastructure (S3, IAM, SG, SSH, EC2, Secrets Manager, CloudFront)
-# 2. Prepares server (system packages, app user, EBS mount)
-# 3. Deploys application (code, dependencies, Nginx, Supervisor)
-# 4. Sets up SSL certificates (if confirmed)
-# 5. Configures monitoring and CloudWatch (if confirmed)
+# 2. Prepares server (system packages, app user, EBS mount, security hardening)
+# 3. Deploys application (code, dependencies, Nginx, Supervisor, SSL certificate)
+# 4. Configures monitoring and CloudWatch (if confirmed)
 
 - name: Complete Deployment
   hosts: localhost
@@ -19,10 +19,6 @@
     - ../group_vars/vault.yml
 
   vars_prompt:
-    - name: setup_ssl
-      prompt: "Do you want to setup SSL? (yes/no)"
-      default: "no"
-      private: no
 
     - name: setup_monitoring
       prompt: "Do you want to setup monitoring? (yes/no)"
@@ -81,18 +77,10 @@
   import_playbook: setup.yml
 
 # ========================================
-# Phase 4: Setup SSL (Optional)
+# Phase 4: Setup Monitoring (Optional)
 # ========================================
 
-- name: Phase 4 - Setup SSL Certificate
-  import_playbook: setup-ssl.yml
-  when: hostvars['localhost']['setup_ssl'] | bool
-
-# ========================================
-# Phase 5: Setup Monitoring (Optional)
-# ========================================
-
-- name: Phase 5 - Setup Monitoring
+- name: Phase 4 - Setup Monitoring
   import_playbook: setup-monitoring.yml
   when: hostvars['localhost']['setup_monitoring'] | bool
 
@@ -122,12 +110,13 @@
           - "  ✓ SSH Key: ~/.ssh/{{ app_name }}-key.pem"
           - "  ✓ EC2 Instance: {{ app_name }}"
           - "  ✓ Secrets Manager: {{ secret_name }}"
+          - "  ✓ Security Hardening: SSH lockdown, fail2ban, auto-updates, sysctl"
+          - "  ✓ SSL Certificate: https://{{ server_name }}"
           - ""
-          - "Application deployed and running."
+          - "Application deployed and running over HTTPS."
           - ""
           - "Next steps:"
-          - "  1. Test: curl http://<SERVER_IP>"
-          - "  2. Logs: ssh ubuntu@<SERVER_IP> 'sudo supervisorctl status {{ service_name }}'"
-          - "  3. Domain: Update DNS to point to instance (if needed)"
+          - "  1. Test: curl https://{{ server_name }}"
+          - "  2. Logs: ssh ubuntu@{{ server_name }} 'sudo supervisorctl status {{ service_name }}'"
           - ""
           - "Instance info saved to: deployment/instances/"

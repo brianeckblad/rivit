@@ -1,8 +1,8 @@
 ---
-# Basic security hardening for Ubuntu servers
-# Follows security best practices without excessive complexity
-# Can be run independently: ansible-playbook playbooks/security-hardening.yml \
-#          --vault-password-file ~/.vault_pass
+# Security hardening for Ubuntu servers
+# NOTE: These tasks are automatically applied by setup-server.yml during
+# initial deployment. This standalone playbook exists to re-apply hardening
+# or update settings after the initial deploy.
 #
 # Usage: ansible-playbook playbooks/security-hardening.yml \
 #          --vault-password-file ~/.vault_pass
@@ -42,8 +42,8 @@
       debug:
         msg: |
           ℹ️  Firewall Configuration:
-          Lightsail provides network firewall at the instance level.
-          Ensure these ports are open in Lightsail console:
+          EC2 Security Group controls network-level access.
+          Ensure these ports are open in your security group:
           - Port 22 (SSH)
           - Port 80 (HTTP)
           - Port 443 (HTTPS)
@@ -51,7 +51,7 @@
           Port 8000 (Gunicorn) is bound to 127.0.0.1 (localhost only)
           and NOT exposed externally - this is correct and secure.
 
-          UFW is not used as Lightsail handles network-level firewall.
+          UFW is not used as EC2 Security Groups handle network-level firewall.
           This reduces complexity and avoids potential conflicts.
 
     - name: Security Hardening - Automatic Security Updates

@@ -510,6 +510,7 @@ ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
 - ✅ Formats the EBS volume as XFS (first run only)
 - ✅ Mounts EBS at `/opt/{app_name}` with fstab entry
 - ✅ Creates `/opt/{app_name}`, `/opt/{app_name}/instance`, `/opt/{app_name}/logs`
+- ✅ Applies security hardening (SSH lockdown, fail2ban, auto-updates, sysctl)
 - ✅ `/home` is untouched — SSH keys survive reboots
 
 **Verify EBS mount:**
@@ -586,11 +587,12 @@ ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
 - ✅ Configures Supervisor process manager
 - ✅ Applies security permissions
 - ✅ Starts the application
+- ✅ Installs SSL certificate (Let's Encrypt, auto-renewal enabled)
 
 **Verify it worked:**
 ```bash
-curl http://$SERVER_IP
-# Should show your application
+curl https://$server_name
+# Should show your application over HTTPS
 ```
 
 **Option B: Manual SSH Setup (Educational - 30 minutes)**
@@ -763,12 +765,18 @@ curl http://$SERVER_IP
 
 ---
 
-## Step 8: Configure SSL/HTTPS (Optional)
+## Step 8: Configure SSL/HTTPS
 
-**Only if you have a custom domain**
+SSL is required for all production deployments. The `setup.yml` playbook installs the certificate automatically. If you ran `setup.yml` in Step 7, SSL is already configured.
 
-If you're just using IP address, you can skip this.
+**Prerequisites (must be set in vault.yml before deploying):**
+- `server_name` — your domain (e.g., `myapp.example.com`)
+- `ssl_email` — email for Let's Encrypt notifications
+- DNS A record pointing your domain to the server IP
 
+### If SSL was not installed during Step 7
+
+If `setup.yml` could not reach the domain (DNS not propagated yet), run SSL separately:
 
 **First, load variables:**
 ```bash
@@ -801,9 +809,12 @@ REMOTE
 ```bash
 curl https://$server_name
 # Should show application over HTTPS
+
+curl -I http://$server_name
+# Should show 301 redirect to HTTPS
 ```
 
-For console-based SSL setup, see [Console Deployment — Step 7: Configure SSL](AWS_CONSOLE_DEPLOYMENT.md#step-7-configure-sslhttps-optional).
+For console-based SSL setup, see [Console Deployment — Step 7: Configure SSL](AWS_CONSOLE_DEPLOYMENT.md#step-7-configure-sslhttps).
 
 ---
 
@@ -838,14 +849,17 @@ See [Chapter 6: Monitoring](MONITORING.md) for alarms, dashboards, and alerting.
 
 ## Verification
 
-> **Note:** If you used the Ansible playbook for Step 5, SSH, EBS, IAM, S3, and security group were already validated during launch. These commands are for manual or post-deploy checks.
+> **Note:** If you used the Ansible playbook for Step 5, SSH, EBS, IAM, S3, and security group were already validated during launch. Security hardening (SSH lockdown, fail2ban, auto-updates) is applied automatically by `setup-server.yml`. SSL is installed automatically by `setup.yml`. These commands are for manual or post-deploy checks.
 
 ```bash
 cd deployment
 source scripts/load-vars.sh    # loads $SERVER_IP, $app_name, $aws_region, etc.
 
-# Application responds (after setup.yml has run)
-curl http://$SERVER_IP
+# Application responds over HTTPS (after setup.yml has run)
+curl https://$server_name
+
+# HTTP redirects to HTTPS
+curl -I http://$server_name
 
 # EC2 instance is running
 aws ec2 describe-instances \
@@ -964,4 +978,5 @@ Continue to [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md).
 
 - [Chapter 5: Operations](OPERATIONS.md) — backups, restarts, troubleshooting
 - [Chapter 7: Secret Management](SECRET_MANAGEMENT.md) — rotate credentials
+- [Chapter 8: Security Hardening](SECURITY_HARDENING.md) — verify and tune hardening settings
 - [Chapter 13: Decommission](DECOMMISSION.md) — tear down all resources

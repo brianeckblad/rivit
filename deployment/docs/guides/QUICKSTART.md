@@ -82,11 +82,13 @@ ansible-playbook playbooks/setup.yml \
 8. ✅ Installs system packages (Python, Nginx, git)
 9. ✅ Creates dedicated app user
 10. ✅ Formats and mounts EBS data volume
+11. ✅ Applies security hardening (SSH lockdown, fail2ban, auto-updates, sysctl)
 
 `setup.yml`:
-11. ✅ Clones code and installs Python dependencies
-12. ✅ Configures Nginx and Supervisor
-13. ✅ Starts the application
+12. ✅ Clones code and installs Python dependencies
+13. ✅ Configures Nginx and Supervisor
+14. ✅ Starts the application
+15. ✅ Installs SSL certificate (Let's Encrypt, auto-renewal enabled)
 
 **Duration:** 10-15 minutes
 **Cost:** ~$0.01 (minimal during creation)
@@ -115,10 +117,10 @@ SSH Command:   ssh -i ~/.ssh/{app_name}-key.pem ubuntu@1.2.3.4
 
 ```bash
 # In your browser:
-http://1.2.3.4
+https://{server_name}
 
 # Or from terminal:
-curl http://1.2.3.4
+curl https://{server_name}
 ```
 
 ### 3. Connect via SSH
@@ -140,25 +142,25 @@ sudo tail -f /var/log/nginx/access.log          # Nginx access logs
 
 ---
 
-## Optional: Add SSL/HTTPS
+## Verify SSL and Security Hardening
 
-Your app is currently running on HTTP. To add SSL (HTTPS):
+SSL and security hardening are applied automatically during deployment. Verify they are working:
 
 ```bash
-cd deployment
-ansible-playbook playbooks/setup-ssl.yml --vault-password-file ~/.vault_pass
+# Test HTTPS
+curl https://{server_name}
+
+# Test HTTP redirects to HTTPS
+curl -I http://{server_name}
+# Should show: 301 → https://...
 ```
 
-**This will:**
-- Install Let's Encrypt certificate
-- Configure Nginx for HTTPS
-- Redirect HTTP → HTTPS
-- Auto-renew certificate
+To verify hardening settings, see [Chapter 8: Security Hardening](SECURITY_HARDENING.md).
 
-**Requirements:**
-- Must have a domain name (not IP address)
-- Domain must point to your server IP
-- Need to update `server_name` in vault.yml (`ansible-vault edit group_vars/vault.yml`)
+**Requirements (configured before deploying):**
+- `server_name` set to a real domain in vault.yml
+- `ssl_email` set in vault.yml
+- Domain DNS pointing to your server IP
 
 ---
 
@@ -232,5 +234,6 @@ Continue to [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md).
 
 - [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) — deploy step-by-step instead
 - [Chapter 6: Monitoring](MONITORING.md) — set up CloudWatch dashboards and alarms
+- [Chapter 8: Security Hardening](SECURITY_HARDENING.md) — verify and tune hardening settings
 - [Architecture](../reference/ARCHITECTURE.md) — how the system is designed
 
