@@ -32,6 +32,17 @@ def _get_config(key, default=None):
         return os.environ.get(key, default)
 
 
+def _get_images_prefix():
+    """
+    Return the S3 prefix for product images based on the configured S3_FOLDER.
+
+    Returns:
+        str: e.g. 'production/images/' (always ends with '/')
+    """
+    s3_folder = _get_config('S3_FOLDER', 'production')
+    return f'{s3_folder}/images/'
+
+
 def _log_info(message):
     """
     Log an informational message through Flask service logger or standard print.
@@ -371,9 +382,13 @@ class S3Service:
                 _log_error("S3_BUCKET not configured")
                 return None
 
-            # Ensure image is in production/images/ folder (unless it's a system file or in other folders)
-            if not s3_key.startswith('production/') and not s3_key.startswith('exports/') and not s3_key.startswith('deleted/'):
-                s3_key = f"production/images/{s3_key}"
+            # Ensure image is in {s3_folder}/images/ folder unless the key
+            # is already fully qualified (starts with a known prefix).
+            s3_folder = _get_config('S3_FOLDER', 'production')
+            images_prefix = f'{s3_folder}/images/'
+            known_prefixes = (f'{s3_folder}/', 'users/', 'exports/', 'deleted/')
+            if not any(s3_key.startswith(p) for p in known_prefixes):
+                s3_key = f"{images_prefix}{s3_key}"
 
             # Upload full image (bucket policy handles public access)
             self.client().upload_file(
@@ -452,7 +467,7 @@ class S3Service:
         Delete a file and optionally its thumbnail from the S3 bucket.
         
         Extracts the S3 key from the provided URL. For safety, it restricts 
-        deletions to the 'production/images/' folder.
+        deletions to the configured images folder ({s3_folder}/images/).
         
         Args:
             s3_url (str): The full HTTPS URL of the S3 object to delete.
@@ -507,9 +522,10 @@ class S3Service:
                 _log_error(f"Could not parse S3 key from URL: {s3_url}")
                 return False
 
-            # Safety check: only delete files from production/images/ folder
-            if not s3_key.startswith('production/images/'):
-                _log_warning(f"Refusing to delete file outside production/images/ folder: {s3_key}")
+            # Safety check: only delete files from the images folder
+            images_prefix = _get_images_prefix()
+            if not s3_key.startswith(images_prefix):
+                _log_warning(f"Refusing to delete file outside {images_prefix} folder: {s3_key}")
                 return False
 
             # Delete the main image
@@ -931,7 +947,7 @@ class S3Service:
         if bucket_name:
             try:
                 paginator = self.client().get_paginator('list_objects_v2')
-                pages = paginator.paginate(Bucket=bucket_name, Prefix='production/images/')
+                pages = paginator.paginate(Bucket=bucket_name, Prefix=_get_images_prefix())
 
                 for page in pages:
                     if 'Contents' in page:
@@ -950,8 +966,8 @@ class S3Service:
 
     def delete_all_files(self):
         """
-        Delete all image files from the S3 bucket (production/images/ folder only).
-        Preserves: production/csv/, production/sku.txt, exports/, and deleted/
+        Delete all image files from the S3 bucket (images folder only).
+        Preserves: csv/, sku.txt, exports/, and deleted/
 
         Returns:
             tuple: (success: bool, count: int) - success status and number of files deleted
@@ -959,16 +975,18 @@ class S3Service:
         try:
             bucket_name = _get_config('S3_BUCKET')
 
+            images_prefix = _get_images_prefix()
+
             # List all objects in the bucket
             paginator = self.client().get_paginator('list_objects_v2')
-            pages = paginator.paginate(Bucket=bucket_name, Prefix='production/images/')
+            pages = paginator.paginate(Bucket=bucket_name, Prefix=images_prefix)
 
             objects_to_delete = []
             for page in pages:
                 if 'Contents' in page:
                     for obj in page['Contents']:
-                        # Only delete from production/images/ folder
-                        if obj['Key'].startswith('production/images/'):
+                        # Only delete from images folder
+                        if obj['Key'].startswith(images_prefix):
                             objects_to_delete.append({'Key': obj['Key']})
 
             if not objects_to_delete:
@@ -1169,20 +1187,22 @@ class S3Service:
         if not bucket_name:
             return []
 
+        images_prefix = _get_images_prefix()
+
         for image_url in image_urls_to_copy:
-            if not image_url or 'production/images/' not in image_url:
+            if not image_url or images_prefix not in image_url:
                 continue
 
             try:
                 # Extract the old key and filename
-                old_key = image_url.split('production/images/')[1]
-                old_full_key = f'production/images/{old_key}'
+                old_key = image_url.split(images_prefix)[1]
+                old_full_key = f'{images_prefix}{old_key}'
 
                 # Create new key with target SKU
                 if '_' in old_key:
                     file_suffix = old_key.split('_', 1)[1]
                     new_key = f'{target_sku}_{file_suffix}'
-                    new_full_key = f'production/images/{new_key}'
+                    new_full_key = f'{images_prefix}{new_key}'
 
                     # 1. Copy main image in S3
                     self.client().copy_object(

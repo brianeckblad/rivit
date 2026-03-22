@@ -88,18 +88,21 @@ class SnapshotService:
 
                 # Copy images from S3 to snapshot
                 images_copied = 0
+                from app.services.s3_service import _get_images_prefix
+                images_prefix = _get_images_prefix()
+                images_prefix_in_url = f'/{images_prefix}'
                 for img_url in image_urls:
                     if img_url:
                         try:
                             # Extract filename
-                            if '/production/images/' in img_url:
-                                filename = img_url.split('/production/images/')[-1]
+                            if images_prefix_in_url in img_url:
+                                filename = img_url.split(images_prefix_in_url)[-1]
                             else:
                                 filename = img_url.split('/')[-1]
 
                             # Download from S3 to snapshot
                             bucket_name = current_app.config.get('S3_BUCKET')
-                            source_key = f'production/images/{filename}'
+                            source_key = f'{images_prefix}{filename}'
                             dest_path = images_dir / filename
 
                             s3_service.client().download_file(
@@ -243,14 +246,15 @@ class SnapshotService:
             # Copy images back to production if they exist in snapshot
             images_dir = snapshot_dir / 'images'
             if images_dir.exists():
-                from app.services.s3_service import s3_service
+                from app.services.s3_service import s3_service, _get_images_prefix
                 images_restored = 0
+                images_prefix = _get_images_prefix()
 
                 for image_file in images_dir.glob('*'):
                     if image_file.is_file():
                         try:
                             bucket_name = current_app.config.get('S3_BUCKET')
-                            s3_key = f'production/images/{image_file.name}'
+                            s3_key = f'{images_prefix}{image_file.name}'
 
                             s3_service.client().upload_file(
                                 str(image_file),

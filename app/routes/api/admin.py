@@ -146,7 +146,11 @@ def save_admin_defaults() -> Response:
         if current_app.config.get('S3_BUCKET') and current_app.config.get('S3_FOLDER'):
             try:
                 s3_key = f'{current_app.config["S3_FOLDER"]}/config/app_defaults.json'
-                s3_service.upload_file(str(defaults_file), s3_key, create_thumb=False)
+                s3_service.client().upload_file(
+                    str(defaults_file),
+                    current_app.config['S3_BUCKET'],
+                    s3_key
+                )
             except Exception as s3_err:
                 current_app.logger.warning(f"⚠️  Failed to backup app_defaults to S3: {s3_err}")
 

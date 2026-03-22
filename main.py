@@ -167,7 +167,7 @@ def upload_and_populate_images(row, images, comic_number):
         if i <= len(images):
             local_image_path = images[i - 1]
             filename = Path(local_image_path).name
-            # S3 key is auto-prefixed with 'images/' by upload_file()
+            # S3 key is auto-prefixed with '{s3_folder}/images/' by upload_file()
             s3_key = filename
 
             result = s3_service.upload_file(local_image_path, s3_key, create_thumb=True)

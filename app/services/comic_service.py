@@ -981,7 +981,9 @@ class ComicService:
                 return {'success': False, 'error': 'S3 bucket not configured'}
 
             paginator = s3_service.client().get_paginator('list_objects_v2')
-            pages = paginator.paginate(Bucket=bucket_name, Prefix='production/images/')
+            from app.services.s3_service import _get_images_prefix
+            images_prefix = _get_images_prefix()
+            pages = paginator.paginate(Bucket=bucket_name, Prefix=images_prefix)
 
             all_s3_keys = []
             for page in pages:
@@ -989,7 +991,7 @@ class ComicService:
                     for obj in page['Contents']:
                         key = obj['Key']
                         # Skip the folder itself
-                        if key != 'production/images/' and not key.endswith('/'):
+                        if key != images_prefix and not key.endswith('/'):
                             all_s3_keys.append(key)
 
             log_service_info(f"Found {len(all_s3_keys)} images in S3")
