@@ -32,7 +32,9 @@
 # ============================================================================
 
 {% set ssl_cert_path = '/etc/letsencrypt/live/' + server_name + '/fullchain.pem' %}
-{% set has_ssl = lookup('pipe', 'test -f ' + ssl_cert_path + ' && echo "true" || echo "false"') == 'true' %}
+{# has_ssl is passed in by the playbook via a remote stat check.
+   Ansible passes it as a string, so compare explicitly. #}
+{% set has_ssl = has_ssl | default(false) | bool %}
 
 # ============================================================================
 # RATE LIMITING ZONES

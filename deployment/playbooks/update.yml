@@ -178,6 +178,11 @@
         user: "{{ app_user }}"
         state: present
 
+    - name: Check if SSL certificate exists on server
+      stat:
+        path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+      register: ssl_cert_check
+
     - name: Update nginx configuration
       template:
         src: ../templates/nginx.conf.j2
@@ -185,6 +190,8 @@
         owner: root
         group: root
         mode: '0644'
+      vars:
+        has_ssl: "{{ ssl_cert_check.stat.exists }}"
 
     - name: Update supervisor configuration
       template:
@@ -194,10 +201,16 @@
         group: root
         mode: '0644'
 
+    - name: Test nginx configuration
+      command: nginx -t
+      register: nginx_test
+      changed_when: false
+
     - name: Restart nginx
       service:
         name: nginx
         state: restarted
+      when: nginx_test.rc == 0
 
     - name: Reload supervisor configuration
       command: supervisorctl reread

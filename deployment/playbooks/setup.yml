@@ -81,11 +81,18 @@
         mode: '0644'
       notify: restart supervisor
 
+    - name: Check if SSL certificate exists on server
+      stat:
+        path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+      register: ssl_cert_check
+
     - name: Create nginx site configuration
       template:
         src: ../templates/nginx.conf.j2
         dest: /etc/nginx/sites-available/{{ service_name }}
         mode: '0644'
+      vars:
+        has_ssl: "{{ ssl_cert_check.stat.exists }}"
       notify: restart nginx
 
     - name: Enable nginx site

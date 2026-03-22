@@ -47,6 +47,19 @@
         --redirect
       when: not cert_file.stat.exists
 
+    - name: Re-check SSL certificate after certbot
+      stat:
+        path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
+      register: ssl_cert_after
+
+    - name: Re-generate nginx config with SSL enabled
+      template:
+        src: ../templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/{{ service_name }}
+        mode: '0644'
+      vars:
+        has_ssl: "{{ ssl_cert_after.stat.exists }}"
+
     - name: Setup automatic renewal
       cron:
         name: "Renew Let's Encrypt certificates"
