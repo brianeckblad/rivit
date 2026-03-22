@@ -982,8 +982,8 @@ class ComicService:
                 return {'success': False, 'error': 'S3 bucket not configured'}
 
             paginator = s3_service.client().get_paginator('list_objects_v2')
-            from app.services.s3_service import _get_images_prefix
-            images_prefix = _get_images_prefix()
+            from app.utils.user_context import get_user_s3_images_prefix
+            images_prefix = get_user_s3_images_prefix()
             pages = paginator.paginate(Bucket=bucket_name, Prefix=images_prefix)
 
             all_s3_keys = []

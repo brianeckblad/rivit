@@ -199,9 +199,9 @@ class HealthCheckService:
         """
         s3_files = set()
         try:
-            # Get list of all files in S3 under the images folder
-            s3_folder = current_app.config.get('S3_FOLDER', 'production')
-            prefix = f'{s3_folder}/images/'
+            # Get list of all files in S3 under the user's images folder
+            from app.utils.user_context import get_user_s3_images_prefix
+            prefix = get_user_s3_images_prefix()
 
             # Use the s3_service to list objects with this prefix
             # This requires the service to have a method to list objects
@@ -261,9 +261,10 @@ class HealthCheckService:
                     else:
                         # It's just a filename, construct the proper HTTPS S3 URL
                         s3_bucket = current_app.config.get('S3_BUCKET')
-                        s3_folder = current_app.config.get('S3_FOLDER', 'production')
-                        # Construct HTTPS URL: https://bucket.s3.amazonaws.com/folder/images/filename
-                        constructed_url = f"https://{s3_bucket}.s3.amazonaws.com/{s3_folder}/images/{url}"
+                        from app.utils.user_context import get_user_s3_images_prefix
+                        user_images_prefix = get_user_s3_images_prefix()
+                        # Construct HTTPS URL: https://bucket.s3.amazonaws.com/users/{user}/images/filename
+                        constructed_url = f"https://{s3_bucket}.s3.amazonaws.com/{user_images_prefix}{url}"
                         s3_service.delete_file(constructed_url, delete_thumbnail=False)  # Don't auto-delete thumbnails
 
                     deleted_count += 1

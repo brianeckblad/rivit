@@ -174,18 +174,46 @@ def get_user_s3_images_prefix(username=None):
     return f"{base_prefix}images/"
 
 
-def get_user_s3_backups_prefix(username=None):
+def get_user_s3_csv_prefix(username=None):
     """
-    Get the S3 prefix for user's backups.
+    Get the S3 prefix for user's CSV files.
 
     Args:
         username (str, optional): Username. If None, uses current session user.
 
     Returns:
-        str: S3 backups prefix (e.g., 'users/brian/backups/')
+        str: S3 CSV prefix (e.g., 'users/brian/csv/')
     """
     base_prefix = get_user_s3_prefix(username)
-    return f"{base_prefix}backups/"
+    return f"{base_prefix}csv/"
+
+
+def get_user_s3_sku_prefix(username=None):
+    """
+    Get the S3 prefix for user's SKU file.
+
+    Args:
+        username (str, optional): Username. If None, uses current session user.
+
+    Returns:
+        str: S3 SKU prefix (e.g., 'users/brian/sku/')
+    """
+    base_prefix = get_user_s3_prefix(username)
+    return f"{base_prefix}sku/"
+
+
+def get_user_s3_config_prefix(username=None):
+    """
+    Get the S3 prefix for user's config files.
+
+    Args:
+        username (str, optional): Username. If None, uses current session user.
+
+    Returns:
+        str: S3 config prefix (e.g., 'users/brian/config/')
+    """
+    base_prefix = get_user_s3_prefix(username)
+    return f"{base_prefix}config/"
 
 
 def get_user_s3_exports_prefix(username=None):

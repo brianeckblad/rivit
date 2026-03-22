@@ -382,10 +382,11 @@ class S3Service:
                 _log_error("S3_BUCKET not configured")
                 return None
 
-            # Ensure image is in {s3_folder}/images/ folder unless the key
+            # Ensure image is in the user's images folder unless the key
             # is already fully qualified (starts with a known prefix).
+            from app.utils.user_context import get_user_s3_images_prefix
+            images_prefix = get_user_s3_images_prefix()
             s3_folder = _get_config('S3_FOLDER', 'production')
-            images_prefix = f'{s3_folder}/images/'
             known_prefixes = (f'{s3_folder}/', 'users/', 'exports/', 'deleted/')
             if not any(s3_key.startswith(p) for p in known_prefixes):
                 s3_key = f"{images_prefix}{s3_key}"
@@ -522,10 +523,12 @@ class S3Service:
                 _log_error(f"Could not parse S3 key from URL: {s3_url}")
                 return False
 
-            # Safety check: only delete files from the images folder
+            # Safety check: only delete files from an images folder
             images_prefix = _get_images_prefix()
-            if not s3_key.startswith(images_prefix):
-                _log_warning(f"Refusing to delete file outside {images_prefix} folder: {s3_key}")
+            from app.utils.user_context import get_user_s3_images_prefix
+            user_images_prefix = get_user_s3_images_prefix()
+            if not (s3_key.startswith(images_prefix) or s3_key.startswith(user_images_prefix)):
+                _log_warning(f"Refusing to delete file outside images folder: {s3_key}")
                 return False
 
             # Delete the main image
@@ -620,10 +623,10 @@ class S3Service:
                 _log_error("S3_BUCKET not configured - cannot backup SKU")
                 return False
 
-            # Get user-specific backup prefix
-            from app.utils.user_context import get_user_s3_backups_prefix
-            user_backup_prefix = get_user_s3_backups_prefix()
-            sku_key = f'{user_backup_prefix}sku.txt'
+            # Get user-specific SKU prefix
+            from app.utils.user_context import get_user_s3_sku_prefix
+            user_sku_prefix = get_user_s3_sku_prefix()
+            sku_key = f'{user_sku_prefix}sku.txt'
 
             # Determine content to upload
             content = None
@@ -700,10 +703,10 @@ class S3Service:
                 _log_error("S3_BUCKET not configured - cannot restore SKU")
                 return None
 
-            # Get user-specific backup prefix
-            from app.utils.user_context import get_user_s3_backups_prefix
-            user_backup_prefix = get_user_s3_backups_prefix()
-            sku_key = f'{user_backup_prefix}sku.txt'
+            # Get user-specific SKU prefix
+            from app.utils.user_context import get_user_s3_sku_prefix
+            user_sku_prefix = get_user_s3_sku_prefix()
+            sku_key = f'{user_sku_prefix}sku.txt'
 
             # Download SKU value from S3
             response = self.client().get_object(
@@ -760,10 +763,10 @@ class S3Service:
             with open(csv_file_path, 'rb') as f:
                 local_md5 = hashlib.md5(f.read()).hexdigest()
 
-            # Get user-specific backup prefix
-            from app.utils.user_context import get_user_s3_backups_prefix
-            user_backup_prefix = get_user_s3_backups_prefix()
-            csv_key = f'{user_backup_prefix}csv/items.csv'
+            # Get user-specific CSV prefix
+            from app.utils.user_context import get_user_s3_csv_prefix
+            user_csv_prefix = get_user_s3_csv_prefix()
+            csv_key = f'{user_csv_prefix}items.csv'
 
             # Get S3 file MD5 (ETag)
             s3_md5 = None
@@ -803,8 +806,21 @@ class S3Service:
                 return None
 
             s3_folder = _get_config('S3_FOLDER', 'production')
-            csv_key = f'{s3_folder}/csv/items.csv'
-            response = self.client().get_object(Bucket=bucket_name, Key=csv_key)
+
+            # Try user-specific CSV prefix first, fall back to legacy path
+            from app.utils.user_context import get_user_s3_csv_prefix
+            user_csv_prefix = get_user_s3_csv_prefix()
+            csv_key = f'{user_csv_prefix}items.csv'
+
+            try:
+                response = self.client().get_object(Bucket=bucket_name, Key=csv_key)
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'NoSuchKey':
+                    # Fall back to legacy path for backward compatibility
+                    legacy_key = f'{s3_folder}/csv/items.csv'
+                    response = self.client().get_object(Bucket=bucket_name, Key=legacy_key)
+                else:
+                    raise
             content = response['Body'].read()
             last_modified = response['LastModified']
 
@@ -947,7 +963,8 @@ class S3Service:
         if bucket_name:
             try:
                 paginator = self.client().get_paginator('list_objects_v2')
-                pages = paginator.paginate(Bucket=bucket_name, Prefix=_get_images_prefix())
+                from app.utils.user_context import get_user_s3_images_prefix
+                pages = paginator.paginate(Bucket=bucket_name, Prefix=get_user_s3_images_prefix())
 
                 for page in pages:
                     if 'Contents' in page:
@@ -977,16 +994,19 @@ class S3Service:
 
             images_prefix = _get_images_prefix()
 
-            # List all objects in the bucket
+            # Also include user-specific images prefix
+            from app.utils.user_context import get_user_s3_images_prefix
+            user_images_prefix = get_user_s3_images_prefix()
+
+            # List all objects under both prefixes
             paginator = self.client().get_paginator('list_objects_v2')
-            pages = paginator.paginate(Bucket=bucket_name, Prefix=images_prefix)
 
             objects_to_delete = []
-            for page in pages:
-                if 'Contents' in page:
-                    for obj in page['Contents']:
-                        # Only delete from images folder
-                        if obj['Key'].startswith(images_prefix):
+            for prefix in [images_prefix, user_images_prefix]:
+                pages = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
+                for page in pages:
+                    if 'Contents' in page:
+                        for obj in page['Contents']:
                             objects_to_delete.append({'Key': obj['Key']})
 
             if not objects_to_delete:
@@ -1187,7 +1207,8 @@ class S3Service:
         if not bucket_name:
             return []
 
-        images_prefix = _get_images_prefix()
+        from app.utils.user_context import get_user_s3_images_prefix
+        images_prefix = get_user_s3_images_prefix()
 
         for image_url in image_urls_to_copy:
             if not image_url or images_prefix not in image_url:
@@ -1306,7 +1327,8 @@ class S3Service:
             import json
             from pathlib import Path
             bucket_name = _get_config('S3_BUCKET')
-            s3_folder = _get_config('S3_FOLDER', 'production')
+            from app.utils.user_context import get_user_s3_config_prefix
+            config_prefix = get_user_s3_config_prefix()
             if not bucket_name:
                 return False
 
@@ -1321,7 +1343,7 @@ class S3Service:
 
             # Get S3 file MD5 (ETag)
             s3_md5 = None
-            prefs_key = f'{s3_folder}/config/user_preferences.json'
+            prefs_key = f'{config_prefix}user_preferences.json'
             try:
                 response = self.client().head_object(Bucket=bucket_name, Key=prefs_key)
                 s3_etag = response.get('ETag', '').strip('"')
@@ -1357,8 +1379,9 @@ class S3Service:
         try:
             import json
             bucket_name = _get_config('S3_BUCKET')
-            s3_folder = _get_config('S3_FOLDER', 'production')
-            prefs_key = f'{s3_folder}/config/user_preferences.json'
+            from app.utils.user_context import get_user_s3_config_prefix
+            config_prefix = get_user_s3_config_prefix()
+            prefs_key = f'{config_prefix}user_preferences.json'
 
             if not bucket_name:
                 _log_warning("S3_BUCKET not configured - cannot restore user preferences")

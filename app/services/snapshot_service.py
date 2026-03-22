@@ -88,8 +88,8 @@ class SnapshotService:
 
                 # Copy images from S3 to snapshot
                 images_copied = 0
-                from app.services.s3_service import _get_images_prefix
-                images_prefix = _get_images_prefix()
+                from app.utils.user_context import get_user_s3_images_prefix
+                images_prefix = get_user_s3_images_prefix()
                 images_prefix_in_url = f'/{images_prefix}'
                 for img_url in image_urls:
                     if img_url:
@@ -247,9 +247,10 @@ class SnapshotService:
             # Copy images back to production if they exist in snapshot
             images_dir = snapshot_dir / 'images'
             if images_dir.exists():
-                from app.services.s3_service import s3_service, _get_images_prefix
+                from app.services.s3_service import s3_service
+                from app.utils.user_context import get_user_s3_images_prefix
                 images_restored = 0
-                images_prefix = _get_images_prefix()
+                images_prefix = get_user_s3_images_prefix()
 
                 for image_file in images_dir.glob('*'):
                     if image_file.is_file():
