@@ -46,6 +46,7 @@ class ComicService:
             from app.services.csv_service import CSVService
             user_csv_file = get_user_csv_file(current_user)
             self.csv_service = CSVService(user_csv_file)
+            self.csv_service.initialize()
             self._current_user = current_user
             log_service_info(f"Initialized CSV service for user: {current_user} ({user_csv_file})")
 

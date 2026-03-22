@@ -222,6 +222,7 @@ class SnapshotService:
 
             # Get current CSV service
             current_csv_service = CSVService(str(self.csv_file))
+            current_csv_service.initialize()
 
             if mode == 'replace':
                 # Clear current inventory

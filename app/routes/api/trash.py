@@ -174,6 +174,7 @@ def restore_from_trash(sku: str) -> Response:
 
         comic = trash_item.to_comic()
         csv_service = CSVService(str(user_csv_file))
+        csv_service.initialize()
 
         # Check if SKU already exists in inventory
         existing = csv_service.find_by_sku(sku)
