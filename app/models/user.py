@@ -461,7 +461,7 @@ class UserManager:
         if password_hash:
             try:
                 is_default_password = check_password_hash(password_hash, 'admin123')
-            except:
+            except Exception:
                 is_default_password = False
 
         # All three must match for default admin

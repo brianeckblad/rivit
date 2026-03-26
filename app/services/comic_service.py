@@ -216,7 +216,6 @@ class ComicService:
         sku_file = self._get_sku_file()
 
         try:
-            import fcntl
             with open(sku_file, 'r+') as f:
                 # Lock file for writing
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
@@ -296,16 +295,18 @@ class ComicService:
         if listing_type:
             if listing_type == 'Giveaway':
                 # Filter for giveaway items (titles starting with G- or G - )
+                from app.utils.helpers import is_giveaway
                 filtered_comics = [
                     comic for comic in filtered_comics
-                    if (comic.title or '').startswith('G-') or (comic.title or '').startswith('G - ')
+                    if is_giveaway(comic.title)
                 ]
             elif listing_type == 'Not Listed':
                 # Filter for items NOT listed on platforms (excluding giveaways)
                 # First exclude giveaways
+                from app.utils.helpers import is_giveaway
                 non_giveaway_comics = [
                     comic for comic in filtered_comics
-                    if not ((comic.title or '').startswith('G-') or (comic.title or '').startswith('G - '))
+                    if not is_giveaway(comic.title)
                 ]
 
                 # Then apply sub-filter based on platform listings
@@ -337,9 +338,10 @@ class ComicService:
                     ]
             elif listing_type == 'For Sale eBay':
                 # Filter for items that have an eBay Item ID
+                from app.utils.helpers import is_giveaway
                 filtered_comics = [
                     comic for comic in filtered_comics
-                    if (comic.ebay_item_id or '').strip() and not ((comic.title or '').startswith('G-') or (comic.title or '').startswith('G - '))
+                    if (comic.ebay_item_id or '').strip() and not is_giveaway(comic.title)
                 ]
             elif listing_type == 'WhatNot':
                 # Filter for items that are listed on WhatNot
@@ -357,10 +359,9 @@ class ComicService:
         # 3. Calculate stats for the filtered set
         total_value = 0
         giveaway_count = 0
+        from app.utils.helpers import is_giveaway
         for comic in filtered_comics:
-            title = (comic.title or '').upper()
-            is_giveaway = title.startswith('G-') or title.startswith('G -')
-            if is_giveaway:
+            if is_giveaway(comic.title):
                 giveaway_count += 1
             else:
                 try:
@@ -626,8 +627,9 @@ class ComicService:
                 trash_service.delete(sku)
                 return False, f"Failed to delete comic from inventory"
 
-            # Backup CSV to S3 for state sync
-            s3_service.backup_main_csv_to_s3(current_app.config['CSV_FILE'])
+            # Backup CSV to S3 for state sync (use user-specific CSV)
+            from app.utils.user_context import get_user_csv_file
+            s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
 
             # Images stay in production folder (not deleted)
             log_service_info(f"Moved comic {sku} to trash (30-day retention)")
@@ -674,8 +676,9 @@ class ComicService:
             # Clear CSV after all items are in trash
             csv_service.clear_all()
 
-            # Backup empty CSV to S3 for state sync
-            s3_service.backup_main_csv_to_s3(current_app.config['CSV_FILE'])
+            # Backup empty CSV to S3 for state sync (use user-specific CSV)
+            from app.utils.user_context import get_user_csv_file
+            s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
 
             # Images stay in production folder
             log_service_info(f"Moved {comics_deleted} comics to trash (30-day retention)")
@@ -737,7 +740,8 @@ class ComicService:
 
             # Backup CSV to S3 for state sync if any were updated
             if updated_count > 0:
-                s3_service.backup_main_csv_to_s3(current_app.config['CSV_FILE'])
+                from app.utils.user_context import get_user_csv_file
+                s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
                 log_service_info(f"Bulk updated {updated_count} comics")
 
             return updated_count
@@ -782,7 +786,8 @@ class ComicService:
 
             # Backup CSV to S3 for state sync if any were deleted
             if deleted_count > 0:
-                s3_service.backup_main_csv_to_s3(current_app.config['CSV_FILE'])
+                from app.utils.user_context import get_user_csv_file
+                s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
                 log_service_info(f"Moved {deleted_count} comics to trash (30-day retention)")
 
             return deleted_count, f"Successfully moved {deleted_count} comics to trash"
@@ -808,12 +813,10 @@ class ComicService:
             
             total_value = 0
             giveaway_count = 0
+            from app.utils.helpers import is_giveaway
             
             for comic in all_comics:
-                title = (comic.title or '').upper()
-                is_giveaway = title.startswith('G-') or title.startswith('G -')
-
-                if is_giveaway:
+                if is_giveaway(comic.title):
                     giveaway_count += 1
                 else:
                     try:
@@ -935,7 +938,8 @@ class ComicService:
         csv_service = self._get_csv_service()
         if not csv_service.update(comic.sku, comic):
             raise RuntimeError(f"Failed to save comic {comic.sku}")
-        s3_service.backup_main_csv_to_s3(current_app.config['CSV_FILE'])
+        from app.utils.user_context import get_user_csv_file
+        s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
         return comic
 
     def cleanup_orphaned_images(self):

@@ -1146,7 +1146,7 @@ def build_trading_item(comic, overrides=None, mode='list', include_item_id=False
                 min_price = _coerce_price(min_offer, 0)
                 if float(min_price) > 0:
                     best_offer_details['MinimumBestOfferPrice'] = min_price
-            except:
+            except Exception:
                 pass
 
         # Add auto-accept price if specified
@@ -1156,7 +1156,7 @@ def build_trading_item(comic, overrides=None, mode='list', include_item_id=False
                 accept_price = _coerce_price(auto_accept, 0)
                 if float(accept_price) > 0:
                     best_offer_details['BestOfferAutoAcceptPrice'] = accept_price
-            except:
+            except Exception:
                 pass
 
         item['BestOfferDetails'] = best_offer_details

@@ -230,6 +230,36 @@ def get_user_s3_exports_prefix(username=None):
     return f"{base_prefix}exports/"
 
 
+def _get_user_subdir(dirname, username=None):
+    """
+    Get a user-specific subdirectory under the instance data path.
+
+    Handles the default-user fallback and ensures the directory exists.
+
+    Args:
+        dirname (str): Subdirectory name (e.g. 'snapshots', 'trash', 'exports')
+        username (str, optional): Username. If None, uses current session user.
+
+    Returns:
+        Path: Path to user's subdirectory
+    """
+    if username is None:
+        username = get_current_username()
+
+    csv_file = Path(current_app.config['CSV_FILE'])
+
+    # For backward compatibility, 'default' user uses root-level directories
+    if username == 'default':
+        result = csv_file.parent / dirname
+    else:
+        base_dir = csv_file.parent / 'data' / username
+        base_dir.mkdir(exist_ok=True, parents=True)
+        result = base_dir / dirname
+
+    result.mkdir(exist_ok=True, parents=True)
+    return result
+
+
 def get_user_snapshots_dir(username=None):
     """
     Get the local snapshots directory for a specific user.
@@ -240,22 +270,7 @@ def get_user_snapshots_dir(username=None):
     Returns:
         Path: Path to user's snapshots directory
     """
-    if username is None:
-        username = get_current_username()
-
-    # For backward compatibility, 'default' user uses root snapshots
-    if username == 'default':
-        csv_file = Path(current_app.config['CSV_FILE'])
-        return csv_file.parent / 'snapshots'
-
-    # Multi-user: instance/data/{username}/snapshots/
-    csv_file = Path(current_app.config['CSV_FILE'])
-    base_dir = csv_file.parent / 'data' / username
-    base_dir.mkdir(exist_ok=True, parents=True)
-
-    snapshots_dir = base_dir / 'snapshots'
-    snapshots_dir.mkdir(exist_ok=True, parents=True)
-    return snapshots_dir
+    return _get_user_subdir('snapshots', username)
 
 
 def get_user_trash_dir(username=None):
@@ -268,22 +283,7 @@ def get_user_trash_dir(username=None):
     Returns:
         Path: Path to user's trash directory
     """
-    if username is None:
-        username = get_current_username()
-
-    # For backward compatibility, 'default' user uses root trash
-    if username == 'default':
-        csv_file = Path(current_app.config['CSV_FILE'])
-        return csv_file.parent / 'trash'
-
-    # Multi-user: instance/data/{username}/trash/
-    csv_file = Path(current_app.config['CSV_FILE'])
-    base_dir = csv_file.parent / 'data' / username
-    base_dir.mkdir(exist_ok=True, parents=True)
-
-    trash_dir = base_dir / 'trash'
-    trash_dir.mkdir(exist_ok=True, parents=True)
-    return trash_dir
+    return _get_user_subdir('trash', username)
 
 
 def get_user_analytics_dir(username=None):
@@ -296,22 +296,7 @@ def get_user_analytics_dir(username=None):
     Returns:
         Path: Path to user's analytics directory
     """
-    if username is None:
-        username = get_current_username()
-
-    # For backward compatibility, 'default' user uses root analytics
-    if username == 'default':
-        csv_file = Path(current_app.config['CSV_FILE'])
-        return csv_file.parent / 'analytics'
-
-    # Multi-user: instance/data/{username}/analytics/
-    csv_file = Path(current_app.config['CSV_FILE'])
-    base_dir = csv_file.parent / 'data' / username
-    base_dir.mkdir(exist_ok=True, parents=True)
-
-    analytics_dir = base_dir / 'analytics'
-    analytics_dir.mkdir(exist_ok=True, parents=True)
-    return analytics_dir
+    return _get_user_subdir('analytics', username)
 
 
 def get_user_exports_dir(username=None):
@@ -324,22 +309,7 @@ def get_user_exports_dir(username=None):
     Returns:
         Path: Path to user's exports directory
     """
-    if username is None:
-        username = get_current_username()
-
-    # For backward compatibility, 'default' user uses root exports
-    if username == 'default':
-        csv_file = Path(current_app.config['CSV_FILE'])
-        return csv_file.parent / 'exports'
-
-    # Multi-user: instance/data/{username}/exports/
-    csv_file = Path(current_app.config['CSV_FILE'])
-    base_dir = csv_file.parent / 'data' / username
-    base_dir.mkdir(exist_ok=True, parents=True)
-
-    exports_dir = base_dir / 'exports'
-    exports_dir.mkdir(exist_ok=True, parents=True)
-    return exports_dir
+    return _get_user_subdir('exports', username)
 
 
 def get_user_uploads_dir(username=None):
@@ -352,22 +322,7 @@ def get_user_uploads_dir(username=None):
     Returns:
         Path: Path to user's uploads directory (temporary files)
     """
-    if username is None:
-        username = get_current_username()
-
-    # For backward compatibility, 'default' user uses root uploads
-    if username == 'default':
-        csv_file = Path(current_app.config['CSV_FILE'])
-        return csv_file.parent / 'uploads'
-
-    # Multi-user: instance/data/{username}/uploads/
-    csv_file = Path(current_app.config['CSV_FILE'])
-    base_dir = csv_file.parent / 'data' / username
-    base_dir.mkdir(exist_ok=True, parents=True)
-
-    uploads_dir = base_dir / 'uploads'
-    uploads_dir.mkdir(exist_ok=True, parents=True)
-    return uploads_dir
+    return _get_user_subdir('uploads', username)
 
 
 def get_user_images_dir(username=None):
@@ -380,22 +335,7 @@ def get_user_images_dir(username=None):
     Returns:
         Path: Path to user's local images directory
     """
-    if username is None:
-        username = get_current_username()
-
-    # For backward compatibility, 'default' user uses root images
-    if username == 'default':
-        csv_file = Path(current_app.config['CSV_FILE'])
-        return csv_file.parent / 'images'
-
-    # Multi-user: instance/data/{username}/images/
-    csv_file = Path(current_app.config['CSV_FILE'])
-    base_dir = csv_file.parent / 'data' / username
-    base_dir.mkdir(exist_ok=True, parents=True)
-
-    images_dir = base_dir / 'images'
-    images_dir.mkdir(exist_ok=True, parents=True)
-    return images_dir
+    return _get_user_subdir('images', username)
 
 
 def get_user_s3_snapshots_prefix(username=None):

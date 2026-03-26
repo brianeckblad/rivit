@@ -13,7 +13,6 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, List, Optional, Tuple
 from flask import request, jsonify, current_app, send_file, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required, sync_not_locked, disk_space_required
@@ -77,7 +76,6 @@ def get_comics() -> Response:
         - Maximum 100 items per page
         - Results sorted by SKU by default
     """
-    """Get all comics with optional pagination, search, listing type filter, and sorting."""
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', current_app.config.get('COMICS_PER_PAGE', 20), type=int)
@@ -204,9 +202,6 @@ def add_comic() -> Response:
         else:
             current_app.logger.debug(f"[add_comic] ebayListingMode NOT in form")
 
-        # Check if this is a duplication request (has source_sku and image URLs to copy)
-        source_sku = data.get('source_sku')
-        images_to_duplicate = request.form.getlist('duplicate_image_urls')
 
         # Check for duplicate SKU - prevent accidental duplicates
         if 'SKU' in data and data['SKU']:
@@ -232,7 +227,7 @@ def add_comic() -> Response:
                     return jsonify({
                         'success': False,
                         'message': f'Invalid file type: {file.filename}. Allowed: {", ".join(allowed_extensions)}'
-                    }, 400)
+                    }), 400
 
                 # Check file size
                 file.seek(0, os.SEEK_END)
@@ -461,10 +456,6 @@ def update_comic(sku: str) -> Response:
                          'ebayOfferMin', 'ebayOfferMax']  # These get converted to proper CSV names below
         cleaned_data = {k: v for k, v in data.items() if k not in non_csv_fields}
 
-        # Get existing comic first (needed for eBay validation)
-        existing_comic = comic_service.get_comic(sku)
-        if not existing_comic:
-            return jsonify({'success': False, 'message': f'Comic not found: {sku}'}), 404
 
         # Handle eBay listing settings (these GO TO CSV)
         # Convert camelCase to proper CSV column names
@@ -1073,10 +1064,10 @@ def get_comics_for_linking() -> Response:
 
             # Skip if is a Giveaway item (check both Listing Type field and title prefix for backward compatibility)
             listing_type = comic_dict.get('Listing Type', '').strip()
-            title_upper = (comic_dict.get('Title', '') or '').upper()
-            is_giveaway = (listing_type == 'Giveaway') or title_upper.startswith('G-') or title_upper.startswith('G ')
+            from app.utils.helpers import is_giveaway
+            is_giveaway_item = (listing_type == 'Giveaway') or is_giveaway(comic_dict.get('Title', ''))
 
-            if is_giveaway:
+            if is_giveaway_item:
                 continue
 
             # Return only essential data for linking

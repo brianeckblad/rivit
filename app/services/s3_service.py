@@ -5,6 +5,7 @@ from PIL import Image, ImageCms
 import io
 import os
 import hashlib
+from app.utils.logging_utils import log_service_info as _log_info, log_service_warning as _log_warning, log_service_error as _log_error
 
 
 def _get_config(key, default=None):
@@ -42,60 +43,6 @@ def _get_images_prefix():
     s3_folder = _get_config('S3_FOLDER', 'production')
     return f'{s3_folder}/images/'
 
-
-def _log_info(message):
-    """
-    Log an informational message through Flask service logger or standard print.
-
-    Args:
-        message (str): The message to log.
-    """
-    try:
-        from flask import current_app
-        # Use service logger if available, otherwise fall back to app logger
-        if hasattr(current_app, 'service_logger'):
-            current_app.service_logger.info(message)
-        else:
-            current_app.logger.info(message)
-    except RuntimeError:
-        # Not in Flask context, use print
-        print(message)
-
-
-def _log_warning(message):
-    """
-    Log a warning message through Flask service logger or standard print.
-
-    Args:
-        message (str): The warning message to log.
-    """
-    try:
-        from flask import current_app
-        # Use service logger if available, otherwise fall back to app logger
-        if hasattr(current_app, 'service_logger'):
-            current_app.service_logger.warning(message)
-        else:
-            current_app.logger.warning(message)
-    except RuntimeError:
-        print(f"Warning: {message}")
-
-
-def _log_error(message):
-    """
-    Log an error message through Flask service logger or standard print.
-
-    Args:
-        message (str): The error message to log.
-    """
-    try:
-        from flask import current_app
-        # Use service logger if available, otherwise fall back to app logger
-        if hasattr(current_app, 'service_logger'):
-            current_app.service_logger.error(message)
-        else:
-            current_app.logger.error(message)
-    except RuntimeError:
-        print(f"Error: {message}")
 
 
 class S3Service:
@@ -1246,7 +1193,7 @@ class S3Service:
                             Bucket=bucket_name,
                             Key=new_thumb_key
                         )
-                    except:
+                    except Exception:
                         pass # Thumbnail might not exist
 
                     # 4. Download locally for consistency
@@ -1265,7 +1212,7 @@ class S3Service:
                         local_thumb_path = local_images_dir / new_thumb_filename
                         try:
                             self.client().download_file(bucket_name, new_thumb_key, str(local_thumb_path))
-                        except:
+                        except Exception:
                             pass
                     except Exception as dl_err:
                         _log_warning(f"Failed to download duplicated image locally: {dl_err}")

@@ -6,37 +6,6 @@
             padding: 24px 24px 24px;
         }
 
-        .page-header {
-            background: rgba(42, 42, 42, 0.3);
-            border: 1px solid var(--color-elevated);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            text-align: center;
-        }
-
-        .page-header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--color-accent);
-            margin: 0 0 8px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-
-        .page-header h1 svg {
-            width: 28px;
-            height: 28px;
-            stroke: var(--color-accent);
-        }
-
-        .page-header p {
-            font-size: 14px;
-            color: var(--color-text-muted);
-            margin: 0;
-        }
 
         .summary-stats {
             display: grid;
@@ -419,11 +388,11 @@
                 padding: 16px 16px 16px;
             }
 
-            .page-header {
+            .page-header-card {
                 padding: 20px 16px;
             }
 
-            .page-header h1 {
+            .page-header-card h1 {
                 font-size: 22px;
             }
 
@@ -471,7 +440,7 @@
 {% block content %}
     <main id="main-content" class="main">
         <!-- Page Header -->
-        <div class="page-header">
+        <div class="page-header-card">
             <div style="position: relative;">
                 <h1>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -622,8 +591,8 @@
         document.addEventListener('DOMContentLoaded', async function() {
             // If in linking mode, show different UI
             if (isLinkingMode && linkingComicSKU) {
-                document.querySelector('.page-header h1').textContent = '🔗 Select eBay Listing to Link';
-                document.querySelector('.page-header p').textContent = `Linking to: ${linkingComicSKU}`;
+                document.querySelector('.page-header-card h1').textContent = '🔗 Select eBay Listing to Link';
+                document.querySelector('.page-header-card p').textContent = `Linking to: ${linkingComicSKU}`;
 
                 // Show close button
                 const closeBtn = document.getElementById('closePopupBtn');

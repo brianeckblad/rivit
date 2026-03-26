@@ -9,18 +9,17 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, Tuple
 from flask import jsonify, current_app, send_file, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 from app.services.comic_service import comic_service
 from app.services.s3_service import s3_service
 from app.services.csv_service import CSVService
-from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION
+from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, WHATNOT_FIELD_NAMES as WFN, METADATA_FIELD_NAMES as MFN
 from app.utils.ebay_helpers import get_ebay_validation_data
-from app.utils.helpers import get_directory_size
+from app.utils.helpers import get_directory_size, is_giveaway as _is_giveaway
 from pathlib import Path
-from io import BytesIO
+import io
 import shutil
 import time
 import platform
@@ -235,7 +234,7 @@ def system_stats() -> Response:
             if platform.system() != 'Windows':
                 with open('/proc/uptime', 'r') as f:
                     server_uptime_seconds = int(float(f.readline().split()[0]))
-        except:
+        except (OSError, ValueError):
             pass
 
         # Get eBay listings stats and calculate values from inventory by reading CSV
@@ -259,10 +258,8 @@ def system_stats() -> Response:
                     else:
                         comic_dict = comic.__dict__ if hasattr(comic, '__dict__') else {}
 
-                    from app.utils.whatnot_validators import WHATNOT_FIELD_NAMES as WFN, METADATA_FIELD_NAMES as MFN
-
                     title = (comic_dict.get(WFN['TITLE']) or comic_dict.get('title') or '').upper()
-                    is_giveaway = title.startswith('G-') or title.startswith('G -')
+                    is_giveaway = _is_giveaway(title)
 
                     price = float(comic_dict.get(WFN['PRICE']) or comic_dict.get('price') or 0)
                     quantity = int(comic_dict.get(WFN['QUANTITY']) or comic_dict.get('quantity') or 1)
@@ -371,7 +368,7 @@ def cleanup_orphaned_images() -> Response:
 @api_bp.route('/backup-download', methods=['POST'])
 @login_required
 @csrf_required
-def backup_download() -> Tuple[BytesIO, int, Dict[str, str]]:
+def backup_download() -> Response:
     """Create and download complete inventory backup as ZIP file.
 
     Generates a comprehensive backup containing the CSV inventory file,
@@ -379,37 +376,17 @@ def backup_download() -> Tuple[BytesIO, int, Dict[str, str]]:
     changes or for transferring to another system.
 
     Returns:
-        Tuple: (zip_file, status_code, headers)
-            - zip_file (BytesIO): ZIP archive in memory
-            - status_code (int): HTTP 200
-            - headers (dict): Content-Type and Content-Disposition
+        Response: ZIP archive file download
 
     Status Codes:
         200: Backup created successfully
+        404: CSV file not found
         500: Server error during backup creation
 
     ZIP Contents:
-        - items.csv (main inventory)
-        - sku.txt (SKU counter)
+        - comics_export.csv (main inventory)
         - images/ (all comic images from S3)
-
-    Example Request:
-        POST /backup-download
-
-    Response Headers:
-        Content-Type: application/zip
-        Content-Disposition: attachment; filename=backup_20260130_103045.zip
-
-    Note:
-        - Downloads from S3, not local storage
-        - Can be large (100MB+ for many images)
-        - Filename includes timestamp
-        - Takes time proportional to image count
-        - Consider using S3 backup instead for large inventories
     """
-@csrf_required
-def backup_download():
-    """Create a backup ZIP file with CSV and all images from S3, then download it."""
     try:
         from app.utils.user_context import get_user_csv_file, get_user_s3_images_prefix, get_current_username
 

@@ -8,13 +8,13 @@ This module handles:
 All functions include type hints and comprehensive docstrings for better IDE support
 and code maintainability.
 """
-from typing import Dict, Any, Tuple
 from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 from app.services.s3_service import s3_service
 from app.utils.defaults_helpers import get_app_defaults
 from pathlib import Path
+from datetime import datetime
 import json
 
 
@@ -195,7 +195,7 @@ def get_blocked_ips() -> Response:
                 {
                     'ip': ip,
                     'expires': exp.isoformat(),
-                    'expires_in_hours': (exp - current_app.extensions.get('now', __import__('datetime').datetime.now())).total_seconds() / 3600
+                    'expires_in_hours': round((exp - datetime.now()).total_seconds() / 3600, 1)
                 }
                 for ip, exp in blocked.items()
             ],
@@ -411,7 +411,7 @@ def update_sku() -> Response:
             try:
                 with open(sku_file, 'r') as f:
                     old_sku = int(f.read().strip())
-            except:
+            except (ValueError, IOError):
                 pass
 
         # Write new value

@@ -7,7 +7,6 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, List, Optional
 from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required
@@ -243,7 +242,7 @@ def get_ebay_listings() -> Response:
                                 total_pages = int(getattr(pagination, 'TotalNumberOfPages', 1) or 1)
                                 if page_counter >= total_pages:
                                     break
-                        except:
+                        except Exception:
                             pass
 
                         page_counter += 1

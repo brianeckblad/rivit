@@ -255,6 +255,10 @@ body {
   justify-content: center;
 }
 
+.modal.active {
+  display: flex;
+}
+
 .modal-content {
   background: var(--color-elevated);
   border: 1px solid var(--color-border);
@@ -412,6 +416,37 @@ body {
   font-size: 18px;
   color: var(--color-text-muted);
   font-weight: 300;
+}
+
+/* Card variant — used by account, ebay-listings, etc. */
+.page-header-card {
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.page-header-card h1 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-sm) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.page-header-card h1 svg {
+  width: 28px;
+  height: 28px;
+  stroke: var(--color-accent);
+}
+
+.page-header-card p {
+  font-size: var(--font-size-base);
+  margin: 0;
 }
 
 /* ── Action Section ────────────────────────────────────────────────────── */
@@ -659,6 +694,10 @@ body {
   display: none;
 }
 
+.message.show {
+  display: block;
+}
+
 .message.success {
   background: var(--color-success-subtle);
   border: 1px solid var(--color-success);
@@ -669,6 +708,12 @@ body {
   background: var(--color-danger-subtle);
   border: 1px solid var(--color-danger);
   color: var(--color-danger);
+}
+
+.message.info {
+  background: var(--color-info-subtle);
+  border: 1px solid var(--color-info);
+  color: var(--color-info);
 }
 
 /* ── Mobile Defaults ───────────────────────────────────────────────────── */

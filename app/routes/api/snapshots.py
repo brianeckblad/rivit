@@ -8,7 +8,6 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, List, Optional
 from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required

@@ -74,3 +74,21 @@ def generate_csrf_token():
         # Generate new secure token using secrets module
         session['_csrf_token'] = secrets.token_hex(32)
     return session['_csrf_token']
+
+
+def is_giveaway(title):
+    """
+    Check if a comic title indicates a giveaway item.
+
+    Giveaway items are identified by a title prefix: 'G-' or 'G - '.
+    The check is case-insensitive.
+
+    Args:
+        title (str): The comic title to check.
+
+    Returns:
+        bool: True if the title matches a giveaway prefix.
+    """
+    upper = (title or '').upper()
+    return upper.startswith('G-') or upper.startswith('G - ')
+

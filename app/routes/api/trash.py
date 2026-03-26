@@ -7,7 +7,6 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, List
 from flask import jsonify, current_app, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
@@ -244,19 +243,12 @@ def empty_trash() -> Response:
         if count == 0:
             return jsonify({'success': True, 'message': 'Trash is already empty', 'deleted_count': 0})
 
-        # Delete all trash items
+        # Delete all trash items (trash_service.delete() also handles S3 image cleanup)
         deleted_count = 0
         for item in items:
             if trash_service.delete(item.sku):
                 deleted_count += 1
 
-        # Also delete their images from S3
-        for item in items:
-            for image_url in item.image_urls:
-                try:
-                    s3_service.delete_file(image_url, delete_thumbnail=True)
-                except Exception as e:
-                    current_app.logger.warning(f"Failed to delete image {image_url}: {e}")
 
         current_app.logger.info(f"Emptied trash: {deleted_count} items permanently deleted")
         return jsonify({

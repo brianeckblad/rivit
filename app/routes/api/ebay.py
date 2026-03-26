@@ -14,13 +14,13 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, Optional
 from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 from app.services.comic_service import comic_service
 from app.services.ebay_service import ebay_service, EbayDuplicateListingError
 from app.utils.ebay_helpers import resolve_ebay_context, validate_ebay_item_id
+from datetime import datetime
 
 import time
 import os
@@ -437,8 +437,8 @@ def update_comic_ebay_item_id(sku: str) -> Response:
         # If item_id is empty, we're unlinking - allow it
         if item_id:
             # Prevent linking giveaway items to eBay
-            comic_title = (comic.title or '').upper()
-            if comic_title.startswith('G-') or comic_title.startswith('G '):
+            from app.utils.helpers import is_giveaway
+            if is_giveaway(comic.title):
                 return jsonify({'success': False, 'error': 'Cannot link giveaway items to eBay. Please remove the "G-" or "G " prefix from the title if this should be a for-sale item.'}), 400
 
             # Only validate if we're setting a value (not unlinking)
@@ -494,8 +494,8 @@ def update_comic_whatnot_status(sku: str) -> Response:
             return jsonify({'success': False, 'error': 'Comic not found'}), 404
 
         # Prevent listing giveaway items to WhatNot
-        comic_title = (comic.title or '').upper()
-        if is_listed and (comic_title.startswith('G-') or comic_title.startswith('G ')):
+        from app.utils.helpers import is_giveaway
+        if is_listed and is_giveaway(comic.title):
             return jsonify({'success': False, 'error': 'Cannot list giveaway items to WhatNot. Please remove the "G-" or "G " prefix from the title if this should be a for-sale item.'}), 400
 
         # Set to "TRUE" or "FALSE"
@@ -617,7 +617,6 @@ def ebay_token_info() -> Response:
         }
     """
     try:
-        from datetime import datetime
 
         # Check which credentials are available
         environment = ebay_service.environment

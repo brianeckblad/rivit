@@ -476,7 +476,7 @@ class EbayService:
                         }
 
                     return {'success': False, 'error': f'eBay API error {error_id}: {error_message}'}
-                except:
+                except Exception:
                     return {'success': False, 'error': f'eBay Finding API returned HTTP {response.status_code}'}
 
             data = response.json()
@@ -711,7 +711,7 @@ class EbayService:
                                 'error': 'Daily API limit reached for Finding API. Please try the image search instead or wait until tomorrow.',
                                 'rate_limit': True
                             }
-                except:
+                except Exception:
                     pass
 
                 return {'success': False, 'error': f'eBay API returned HTTP {response.status_code}'}

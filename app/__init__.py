@@ -72,110 +72,56 @@ class UserContextFilter(logging.Filter):
         return True
 
 
-def _setup_service_logger(app, config_name):
+def _setup_dedicated_logger(app, config_name, logger_name, log_filename, attr_name):
     """
-    Setup a dedicated logger for service operations (S3 sync, health checks, etc).
-
-    In production: Creates /var/log/<app_name>/service.log
-    In development: Creates instance/service.log
+    Setup a dedicated rotating-file logger and attach it to the app.
 
     Args:
         app: Flask application instance
-        config_name: Current configuration name
+        config_name: Current configuration name ('production' or 'development')
+        logger_name: Name for the Python logger (e.g. 'service', 'cleanup')
+        log_filename: Log file name (e.g. 'service.log', 'cleanup.log')
+        attr_name: Attribute name to set on app (e.g. 'service_logger')
     """
     try:
         # Determine log path based on environment
         if config_name == 'production':
-            # Get app name from environment (required in production)
             app_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'app'))
             log_dir = Path(f'/var/log/{app_name}')
         else:
             log_dir = Path(app.instance_path)
 
-        service_log_path = log_dir / 'service.log'
-        service_log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / log_filename
+        log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Create service logger
-        service_logger = logging.getLogger('service')
-        service_logger.setLevel(logging.DEBUG)
-        service_logger.propagate = False  # Prevent propagation to root logger
+        # Create logger
+        dedicated_logger = logging.getLogger(logger_name)
+        dedicated_logger.setLevel(logging.DEBUG)
+        dedicated_logger.propagate = False
 
         # Remove any existing handlers
-        service_logger.handlers = []
+        dedicated_logger.handlers = []
 
-        # Create rotating file handler for service.log
-        service_handler = RotatingFileHandler(
-            str(service_log_path),
+        # Create rotating file handler
+        handler = RotatingFileHandler(
+            str(log_path),
             maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=10
         )
-        service_handler.setLevel(logging.DEBUG)
-        service_handler.setFormatter(logging.Formatter(
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(logging.Formatter(
             '[%(asctime)s] %(levelname)s in %(name)s: %(message)s'
         ))
 
-        service_logger.addHandler(service_handler)
+        dedicated_logger.addHandler(handler)
 
         # Store reference on app for easy access
-        app.service_logger = service_logger
+        setattr(app, attr_name, dedicated_logger)
 
     except Exception as e:
-        app.logger.warning(f"Could not set up service logger: {e}")
-        # Fallback: use the main app logger so app.service_logger always exists
-        app.service_logger = app.logger
-
-
-def _setup_cleanup_logger(app, config_name):
-    """
-    Setup a dedicated logger for cleanup operations (health checks, trash cleanup, orphaned files).
-
-    In production: Creates /var/log/<app_name>/cleanup.log
-    In development: Creates instance/cleanup.log
-
-    Args:
-        app: Flask application instance
-        config_name: Current configuration name
-    """
-    try:
-        # Determine log path based on environment
-        if config_name == 'production':
-            # Get app name from environment (required in production)
-            app_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'app'))
-            log_dir = Path(f'/var/log/{app_name}')
-        else:
-            log_dir = Path(app.instance_path)
-
-        cleanup_log_path = log_dir / 'cleanup.log'
-        cleanup_log_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Create cleanup logger
-        cleanup_logger = logging.getLogger('cleanup')
-        cleanup_logger.setLevel(logging.DEBUG)
-        cleanup_logger.propagate = False  # Prevent propagation to root logger
-
-        # Remove any existing handlers
-        cleanup_logger.handlers = []
-
-        # Create rotating file handler for cleanup.log
-        cleanup_handler = RotatingFileHandler(
-            str(cleanup_log_path),
-            maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=10
-        )
-        cleanup_handler.setLevel(logging.DEBUG)
-        cleanup_handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] %(levelname)s in %(name)s: %(message)s'
-        ))
-
-        cleanup_logger.addHandler(cleanup_handler)
-
-        # Store reference on app for easy access
-        app.cleanup_logger = cleanup_logger
-
-    except Exception as e:
-        app.logger.warning(f"Could not set up cleanup logger: {e}")
-        # Fallback: use the main app logger so app.cleanup_logger always exists
-        app.cleanup_logger = app.logger
+        app.logger.warning(f"Could not set up {logger_name} logger: {e}")
+        # Fallback: use the main app logger so the attribute always exists
+        setattr(app, attr_name, app.logger)
 
 
 def create_app(config_name='development'):
@@ -259,9 +205,9 @@ def create_app(config_name='development'):
             print(f"Warning: Could not set up development file logging: {e}", flush=True)
 
     # Configure service logger (for S3 sync, health checks, etc.)
-    _setup_service_logger(app, config_name)
+    _setup_dedicated_logger(app, config_name, 'service', 'service.log', 'service_logger')
     # Configure cleanup logger (for health checks, trash cleanup, orphaned files)
-    _setup_cleanup_logger(app, config_name)
+    _setup_dedicated_logger(app, config_name, 'cleanup', 'cleanup.log', 'cleanup_logger')
 
     # Initialize security middleware (DDoS protection, attack detection, rate limiting)
     from app.security import init_security_middleware
@@ -584,40 +530,30 @@ def create_app(config_name='development'):
         Returns:
             dict: A dictionary containing version details used globally in templates.
         """
-        try:
+        def _version_dict(build):
             app_stage = 'Private'
+            return {
+                'app_version': f'vP.{build}',
+                'app_stage': app_stage,
+                'app_version_display': f'{app_stage} (Build {build})'
+            }
 
+        try:
             # 1) Check for an instance/app_version file written by the deployment script
             try:
                 version_path = Path(app.instance_path) / 'app_version'
             except Exception:
-                # If instance_path is not available for some reason, construct a fallback
                 version_path = Path(__file__).parent.parent / 'instance' / 'app_version'
 
             if version_path.exists():
                 try:
                     raw = version_path.read_text(encoding='utf-8').strip()
                     if raw:
-                        # If the file contains a simple number, use it as build count
-                        if raw.isdigit():
-                            commit_count = raw
-                            app_version = f'vP.{commit_count}'
-                            app_version_display = f'{app_stage} (Build {commit_count})'
-                        else:
-                            # Allow other strings (e.g. 'unknown') to be displayed safely
-                            commit_count = raw
-                            app_version = f'vP.{commit_count}'
-                            app_version_display = f'{app_stage} (Build {commit_count})'
-
-                        return {
-                            'app_version': app_version,
-                            'app_stage': app_stage,
-                            'app_version_display': app_version_display
-                        }
-                except Exception as e:
+                        return _version_dict(raw)
+                except Exception:
                     pass
 
-            # 2) Fallback: try to compute from git commit count (may not be available at runtime)
+            # 2) Fallback: try to compute from git commit count
             try:
                 import subprocess
                 commit_count = subprocess.check_output(
@@ -626,37 +562,18 @@ def create_app(config_name='development'):
                     stderr=subprocess.DEVNULL,
                     timeout=5
                 ).decode('utf-8').strip()
-
-                app_version = f'vP.{commit_count}'
-                app_version_display = f'{app_stage} (Build {commit_count})'
-
-                return {
-                    'app_version': app_version,
-                    'app_stage': app_stage,
-                    'app_version_display': app_version_display
-                }
-            except Exception as e:
+                return _version_dict(commit_count)
+            except Exception:
                 pass
 
             # 3) Give a safe 'unavailable' response
-            app_version = 'vP.unavailable'
-            app_version_display = f"{app_stage} (Build unavailable)"
-            return {
-                'app_version': app_version,
-                'app_stage': app_stage,
-                'app_version_display': app_version_display
-            }
+            return _version_dict('unavailable')
         except Exception as e:
-            # Very defensive: if something unexpected happens, don't break the app templates
             try:
                 app.logger.error(f"Unexpected error when injecting version: {e}")
             except Exception:
                 pass
-            return {
-                'app_version': 'vP.unavailable',
-                'app_stage': 'Private',
-                'app_version_display': 'Private (Build unavailable)'
-            }
+            return _version_dict('unavailable')
 
     # Startup Health Check: Validate CSV integrity
     # Note: Cannot use comic_service.get_all_comics() here because it

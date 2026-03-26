@@ -7,11 +7,9 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, List, Optional
 from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
 import json
-import os
 
 
 @api_bp.route('/analytics/track', methods=['POST'])
@@ -93,7 +91,7 @@ def track_analytics_event() -> Response:
             # Fallback: try to parse request.data as JSON
             try:
                 data = json.loads(request.data.decode('utf-8'))
-            except:
+            except Exception:
                 return jsonify({'success': False, 'error': 'No valid JSON data provided'}), 400
 
         # Support batch events
