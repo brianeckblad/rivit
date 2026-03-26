@@ -358,6 +358,171 @@ git commit -m "feat: implement 'validation' and 'testing'"
 
 ---
 
+## UI Design System - CRITICAL
+
+### Problem
+Every template (`base.html`, `landing.html`, `comics_list.html`, `account.html`, etc.)
+re-declares its own `.btn`, `.btn-primary`, `.modal`, `.modal-content`, `.action-section`,
+and color values — often with slight inconsistencies. This creates visual drift and makes
+palette changes require editing every file.
+
+### Rule: Use CSS Custom Properties from `app/static/css/tokens.css`
+
+All colors, spacing, radii, and shadows are defined once in `app/static/css/tokens.css`.
+Templates and inline styles must reference these variables — never hard-code hex values.
+
+```css
+/* app/static/css/tokens.css — single source of truth */
+:root {
+  /* Backgrounds */
+  --color-bg:             #111210;   /* body background (warm near-black) */
+  --color-surface:        #1B1B1B;   /* cards, header, footer */
+  --color-elevated:       #242422;   /* modals, dropdowns, popovers */
+  --color-inset:          #161615;   /* input fields, code blocks */
+
+  /* Borders */
+  --color-border:         #2E2E2A;
+  --color-border-hover:   #3A3A36;
+  --color-border-focus:   #595F39;   /* same as accent */
+
+  /* Text */
+  --color-text:           #E4E4DE;   /* Ethereal Ivory — primary */
+  --color-text-muted:     #C4C5BA;   /* Sophisticated Sage — secondary */
+  --color-text-dim:       #7A7B72;   /* placeholders, disabled, captions */
+
+  /* Accent */
+  --color-accent:         #595F39;   /* Muted Moss — buttons, active nav, links */
+  --color-accent-hover:   #6B7244;
+  --color-accent-subtle:  rgba(89, 95, 57, 0.12); /* accent tint for backgrounds */
+  --color-accent-text:    #E4E4DE;   /* text ON accent-colored backgrounds */
+
+  /* Semantic */
+  --color-danger:         #C45C5C;
+  --color-danger-subtle:  rgba(196, 92, 92, 0.12);
+  --color-success:        #5C8A5C;
+  --color-success-subtle: rgba(92, 138, 92, 0.12);
+  --color-info:           #5C9EB8;
+  --color-info-subtle:    rgba(92, 158, 184, 0.12);
+  --color-warning:        #B8A05C;
+  --color-warning-subtle: rgba(184, 160, 92, 0.12);
+
+  /* Typography */
+  --font-family:          'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs:         11px;
+  --font-size-sm:         13px;
+  --font-size-base:       14px;
+  --font-size-md:         16px;
+  --font-size-lg:         20px;
+  --font-size-xl:         28px;
+  --font-size-2xl:        48px;
+
+  /* Spacing */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  48px;
+
+  /* Radii */
+  --radius-sm:  6px;    /* buttons, inputs, tags */
+  --radius-md:  10px;   /* cards, small containers */
+  --radius-lg:  14px;   /* modals, sections, large containers */
+
+  /* Shadows (neutral — no colored glows) */
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.5);
+}
+```
+
+### Rule: Use Shared Component Classes from `app/static/css/components.css`
+
+Common UI components are defined once in `app/static/css/components.css`. Templates must
+use these classes — never re-declare `.btn`, `.btn-primary`, `.modal`, etc. in `<style>` blocks.
+
+**Shared components** (defined in `components.css`, used everywhere):
+
+| Component | Class(es) | Notes |
+|-----------|-----------|-------|
+| Buttons | `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-sm` | Consistent padding, radius, hover |
+| Modals | `.modal`, `.modal-content`, `.modal-header`, `.modal-body`, `.close-btn` | Escape-to-close in `base.html` JS |
+| Cards | `.card`, `.stat-card` | Surface background, border, radius |
+| Forms | `.form-group`, `.form-label`, `.form-input`, `.form-select` | Focus ring uses `--color-border-focus` |
+| Section labels | `.section-label` | Uppercase, letter-spaced, with optional icon |
+| Page header | `.page-header`, `.page-header h1`, `.page-header p` | Consistent across all pages |
+| Action section | `.action-section` | Grouped actions with border and hover |
+| Notifications | `.notification`, `.notification.success/error/info` | Positioned top-center |
+| Footer bar | `.footer-bar` | Fixed bottom bar with actions |
+
+**Page-specific styles** remain in each template's `{% block extra_css %}` block, but only
+for layout and features unique to that page (grid columns, table tweaks, page-specific modals).
+
+### Rule: Never Hard-Code Colors
+
+```css
+/* BAD — color will drift across templates */
+.my-element { color: #FFE500; background: #1A1A1A; }
+
+/* GOOD — uses design tokens */
+.my-element { color: var(--color-accent); background: var(--color-surface); }
+```
+
+### Rule: Never Use Inline Style for Hover/Focus Effects
+
+```html
+<!-- BAD — cannot be overridden, causes sticky hover on mobile -->
+<button onmouseover="this.style.background='#F5DB00'" onmouseout="this.style.background='#FFE500'">
+
+<!-- GOOD — use a CSS class -->
+<button class="btn btn-primary">
+```
+
+### Rule: No Colored Glow Shadows
+
+```css
+/* BAD — dated 2018 glow effect */
+box-shadow: 0 4px 16px rgba(255, 229, 0, 0.3);
+
+/* GOOD — neutral shadow */
+box-shadow: var(--shadow-md);
+```
+
+### Rule: Consistent Border Radius
+
+| Element | Radius |
+|---------|--------|
+| Buttons, inputs, tags | `var(--radius-sm)` (6px) |
+| Cards, comic cards, small containers | `var(--radius-md)` (10px) |
+| Modals, sections, large containers | `var(--radius-lg)` (14px) |
+
+### Color Palette Reference
+
+| Name | Hex | Role |
+|------|-----|------|
+| Ethereal Ivory | `#E4E4DE` | Primary text |
+| Sophisticated Sage | `#C4C5BA` | Secondary/muted text |
+| Eerie Black | `#1B1B1B` | Card/surface backgrounds |
+| Muted Moss | `#595F39` | Primary accent (buttons, active states, links) |
+| Background | `#111210` | Body background (warm near-black) |
+| Elevated | `#242422` | Modal/dropdown backgrounds |
+| Danger | `#C45C5C` | Destructive actions |
+| Info | `#5C9EB8` | Informational highlights |
+| Success | `#5C8A5C` | Positive confirmations |
+
+### Template Checklist
+
+Before editing any template:
+
+- [ ] `tokens.css` and `components.css` are linked in `base.html` `<head>`
+- [ ] No new `.btn` / `.btn-primary` / `.modal` declarations in `{% block extra_css %}`
+- [ ] All colors reference `var(--color-*)` tokens
+- [ ] No `onmouseover` / `onmouseout` inline event handlers for styling
+- [ ] No `rgba(255, 229, 0, ...)` colored glow shadows
+- [ ] Border-radius uses `var(--radius-sm/md/lg)`
+- [ ] Page-specific styles only contain layout unique to that page
+
+---
+
 ## Documentation Standards
 
 All documentation in `deployment/docs/` follows a consistent style modeled after
@@ -474,5 +639,5 @@ Before finalizing any documentation change:
 
 ---
 
-**Last Updated:** March 22, 2026
+**Last Updated:** March 24, 2026
 

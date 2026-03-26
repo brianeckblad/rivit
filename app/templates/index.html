@@ -6,16 +6,6 @@
         overflow-y: auto;
     }
 
-    .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        border: 0;
-    }
 
     /* Main Content - Scrollable */
         .main-content {
@@ -33,20 +23,20 @@
         .page-title {
             font-size: 28px;
             font-weight: 700;
-            color: #FFE500;
+            color: var(--color-accent);
             margin-bottom: 8px;
         }
 
         .page-subtitle {
             font-size: 16px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             margin-bottom: 32px;
         }
 
         .edit-mode-indicator {
-            background: #0A0A0A;
-            color: #FFE500;
-            border: 2px solid #FFE500;
+            background: var(--color-bg);
+            color: var(--color-accent);
+            border: 2px solid var(--color-accent);
             padding: 16px 24px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -55,7 +45,7 @@
             justify-content: space-between;
             font-size: 16px;
             font-weight: 600;
-            box-shadow: 0 2px 8px rgba(255, 229, 0, 0.3);
+            box-shadow: var(--shadow-sm);
         }
 
         .edit-mode-indicator.show {
@@ -63,9 +53,9 @@
         }
 
         .view-mode-indicator {
-            background: #0A1A2A;
-            color: #4AE5FF;
-            border: 2px solid #4AE5FF;
+            background: var(--color-info-subtle);
+            color: var(--color-info);
+            border: 2px solid var(--color-info);
             padding: 16px 24px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -74,7 +64,7 @@
             justify-content: space-between;
             font-size: 16px;
             font-weight: 600;
-            box-shadow: 0 2px 8px rgba(74, 229, 255, 0.3);
+            box-shadow: var(--shadow-sm);
         }
 
         .view-mode-indicator.show {
@@ -82,8 +72,8 @@
         }
 
         .view-mode-edit-btn {
-            background: #4AE5FF;
-            color: #0A0A0A;
+            background: var(--color-info);
+            color: var(--color-bg);
             border: none;
             padding: 8px 16px;
             border-radius: 6px;
@@ -98,7 +88,7 @@
         }
 
         .view-mode-edit-btn:hover {
-            background: #5AF5FF;
+            background: var(--color-info);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(74, 229, 255, 0.4);
         }
@@ -114,8 +104,8 @@
 
         .page-title-edit-btn {
             background: none;
-            border: 2px solid #4AE5FF;
-            color: #4AE5FF;
+            border: 2px solid var(--color-info);
+            color: var(--color-info);
             padding: 6px;
             border-radius: 6px;
             cursor: pointer;
@@ -128,8 +118,8 @@
         }
 
         .page-title-edit-btn:hover {
-            background: #4AE5FF;
-            color: #0A0A0A;
+            background: var(--color-info);
+            color: var(--color-bg);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(74, 229, 255, 0.4);
         }
@@ -144,18 +134,18 @@
         }
 
         body.edit-mode {
-            background: #1A1500;
+            background: var(--color-accent-subtle);
         }
 
         body.edit-mode .main-content {
-            background: #1A1500;
+            background: var(--color-accent-subtle);
         }
 
 
         .progress-container {
             display: none;
             background: white;
-            border: 1px solid #E5E5E5;
+            border: 1px solid var(--color-text);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
@@ -176,17 +166,17 @@
         .progress-title {
             font-size: 14px;
             font-weight: 600;
-            color: #1A1A1A;
+            color: var(--color-surface);
         }
 
         .progress-stats {
             font-size: 12px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
         }
 
         .progress-filename {
             font-size: 12px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             margin-bottom: 8px;
             white-space: nowrap;
             overflow: hidden;
@@ -204,7 +194,7 @@
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #FFE500 0%, #F5DB00 100%);
+            background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
             border-radius: 4px;
             transition: width 0.3s ease;
             width: 0;
@@ -219,7 +209,7 @@
         .progress-cancel-btn {
             background: transparent;
             border: 1px solid #D4D4D4;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             padding: 6px 16px;
             border-radius: 6px;
             font-size: 12px;
@@ -229,13 +219,13 @@
         }
 
         .progress-cancel-btn:hover {
-            border-color: #FF4757;
-            color: #FF4757;
+            border-color: var(--color-danger);
+            color: var(--color-danger);
         }
 
         .form-card {
-            background: #1A1A1A;
-            border: 1px solid #2A2A2A;
+            background: var(--color-surface);
+            border: 1px solid var(--color-elevated);
             border-radius: 12px;
             padding: 32px;
             margin-bottom: 24px;
@@ -248,7 +238,7 @@
         .section-title {
             font-size: 16px;
             font-weight: 600;
-            color: #FFFFFF;
+            color: var(--color-text);
             margin-bottom: 16px;
         }
 
@@ -257,10 +247,10 @@
             flex-wrap: wrap;
             gap: 12px;
             min-height: 200px;
-            border: 2px dashed #3A3A3A;
+            border: 2px dashed var(--color-border-hover);
             border-radius: 12px;
             padding: 24px;
-            background: #0A0A0A;
+            background: var(--color-bg);
             position: relative;
             transition: all 0.3s;
         }
@@ -268,12 +258,12 @@
         .image-grid.has-images {
             min-height: auto;
             border-style: solid;
-            border-color: #3A3A3A;
+            border-color: var(--color-border-hover);
         }
 
         .image-grid.drag-over {
-            background: #1A1500;
-            border-color: #FFE500;
+            background: var(--color-accent-subtle);
+            border-color: var(--color-accent);
             border-style: solid;
         }
 
@@ -294,9 +284,9 @@
             position: relative;
             width: 140px;
             height: 140px;
-            border: 2px dashed #3A3A3A;
+            border: 2px dashed var(--color-border-hover);
             border-radius: 8px;
-            background: #0A0A0A;
+            background: var(--color-bg);
             transform: none;
             top: auto;
             left: auto;
@@ -323,7 +313,7 @@
         .drop-zone-icon svg {
             width: 48px;
             height: 48px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
         }
 
         .image-grid.has-images .drop-zone-icon svg {
@@ -334,7 +324,7 @@
         .drop-zone-text {
             font-size: 16px;
             font-weight: 500;
-            color: #E5E5E5;
+            color: var(--color-text);
             margin-bottom: 4px;
         }
 
@@ -345,7 +335,7 @@
 
         .drop-zone-subtext {
             font-size: 14px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
         }
 
         .image-grid.has-images .drop-zone-subtext {
@@ -368,7 +358,7 @@
             justify-content: center;
             font-size: 12px;
             font-weight: 600;
-            color: #1A1A1A;
+            color: var(--color-surface);
         }
 
         .image-preview-item,
@@ -376,7 +366,7 @@
             position: relative;
             width: 140px;
             height: 140px;
-            border: 1px solid #E5E5E5;
+            border: 1px solid var(--color-text);
             border-radius: 8px;
             overflow: hidden;
             cursor: move;
@@ -386,7 +376,7 @@
         .image-preview-item:hover,
         .existing-image-item:hover {
             transform: scale(1.05);
-            border-color: #FFE500;
+            border-color: var(--color-accent);
             z-index: 10;
         }
 
@@ -430,8 +420,8 @@
         }
 
         .image-number.first {
-            background: #FFE500;
-            color: #1A1A1A;
+            background: var(--color-accent);
+            color: var(--color-surface);
         }
 
         .image-preview-item img,
@@ -491,12 +481,12 @@
         label {
             margin-bottom: 6px;
             font-weight: 500;
-            color: #9A9A9A;
+            color: var(--color-text-muted);
             font-size: 13px;
         }
 
         label .required {
-            color: #FF4757;
+            color: var(--color-danger);
         }
 
         input[type="text"],
@@ -504,11 +494,11 @@
         select,
         textarea {
             padding: 10px 12px;
-            border: 1px solid #3A3A3A;
+            border: 1px solid var(--color-border-hover);
             border-radius: 6px;
             font-size: 14px;
-            background: #0A0A0A;
-            color: #E5E5E5;
+            background: var(--color-bg);
+            color: var(--color-text);
             transition: border-color 0.2s, box-shadow 0.2s;
             font-family: inherit;
         }
@@ -518,14 +508,14 @@
         select:focus,
         textarea:focus {
             outline: none;
-            border-color: #FFE500;
-            box-shadow: 0 0 0 2px rgba(255, 229, 0, 0.1);
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 2px var(--color-accent-subtle);
         }
 
         input.error,
         select.error,
         textarea.error {
-            border-color: #FF4757;
+            border-color: var(--color-danger);
             box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.1);
         }
 
@@ -546,8 +536,8 @@
 
         .pricing-card,
         .settings-card {
-            background: #0A0A0A;
-            border: 1px solid #3A3A3A;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border-hover);
             border-radius: 8px;
             padding: 16px;
             position: relative;
@@ -559,7 +549,7 @@
             display: flex;
             gap: 4px;
             margin-bottom: 8px;
-            border-bottom: 1px solid #3A3A3A;
+            border-bottom: 1px solid var(--color-border-hover);
             padding-bottom: 0;
         }
 
@@ -568,7 +558,7 @@
             background: transparent;
             border: none;
             border-bottom: 2px solid transparent;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -576,12 +566,12 @@
         }
 
         .settings-tab:hover {
-            color: #FFE500;
+            color: var(--color-accent);
         }
 
         .settings-tab.active {
-            color: #FFE500;
-            border-bottom-color: #FFE500;
+            color: var(--color-accent);
+            border-bottom-color: var(--color-accent);
         }
 
         .settings-tab-content {
@@ -602,17 +592,17 @@
         }
 
         .settings-tab-content::-webkit-scrollbar-track {
-            background: #1A1A1A;
+            background: var(--color-surface);
             border-radius: 3px;
         }
 
         .settings-tab-content::-webkit-scrollbar-thumb {
-            background: #3A3A3A;
+            background: var(--color-border-hover);
             border-radius: 3px;
         }
 
         .settings-tab-content::-webkit-scrollbar-thumb:hover {
-            background: #FFE500;
+            background: var(--color-accent);
         }
 
         #price {
@@ -633,14 +623,14 @@
         .card-title {
             font-size: 16px;
             font-weight: 600;
-            color: #FFE500;
+            color: var(--color-accent);
             margin-bottom: 16px;
             display: flex;
             align-items: center;
         }
 
         .card-title #skuDisplay {
-            color: #FFE500;
+            color: var(--color-accent);
             font-weight: 600;
         }
 
@@ -653,8 +643,8 @@
         .type-btn {
             flex: 1;
             padding: 8px 16px;
-            border: 2px solid #3A3A3A;
-            background: #1A1A1A;
+            border: 2px solid var(--color-border-hover);
+            background: var(--color-surface);
             border-radius: 6px;
             font-size: 13px;
             font-weight: 600;
@@ -664,36 +654,36 @@
         }
 
         .type-btn.active {
-            background: #FFE500;
-            color: #1A1A1A;
-            border-color: #FFE500;
+            background: var(--color-accent);
+            color: var(--color-surface);
+            border-color: var(--color-accent);
         }
 
         .type-btn:hover {
-            border-color: #FFE500;
+            border-color: var(--color-accent);
             transform: translateY(-1px);
-            box-shadow: 0 3px 10px rgba(255, 229, 0, 0.2);
+            box-shadow: 0 3px 10px var(--color-accent-subtle);
         }
 
         /* Prevent duplicate button from showing active state on focus/click */
         #duplicateBtn:focus {
             outline: none;
-            border-color: #3A3A3A !important;
+            border-color: var(--color-border-hover) !important;
             transform: none !important;
             box-shadow: none !important;
         }
 
         #duplicateBtn.active,
         #duplicateBtn:active {
-            background: #1A1A1A !important;
+            background: var(--color-surface) !important;
             color: white !important;
-            border-color: #3A3A3A !important;
+            border-color: var(--color-border-hover) !important;
         }
 
         #duplicateBtn:focus:hover {
-            border-color: #FFE500 !important;
+            border-color: var(--color-accent) !important;
             transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px rgba(255, 229, 0, 0.2) !important;
+            box-shadow: 0 4px 12px var(--color-accent-subtle) !important;
         }
 
         .sticky-footer {
@@ -701,8 +691,8 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: #1A1A1A;
-            border-top: 1px solid #2A2A2A;
+            background: var(--color-surface);
+            border-top: 1px solid var(--color-elevated);
             padding: 14px 40px;
             z-index: 100;
         }
@@ -715,46 +705,24 @@
             gap: 12px;
         }
 
-        .btn {
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn:active {
-            transform: scale(0.95);
-            transition: all 0.05s ease-in;
-        }
 
         .btn-ebay {
-            background: #0A0A0A;
-            color: #FFE500;
-            border: 1px solid #FFE500;
+            background: var(--color-bg);
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
         }
 
         .btn-ebay:hover:not(:disabled) {
-            background: #1A1A1A;
-            border-color: #FFE500;
-            color: #FFE500;
-            box-shadow: 0 0 8px rgba(255, 229, 0, 0.3);
+            background: var(--color-surface);
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-ebay:disabled {
-            background: #1A1A1A;
-            color: #6B6B6B;
-            border-color: #2A2A2A;
+            background: var(--color-surface);
+            color: var(--color-text-dim);
+            border-color: var(--color-elevated);
             opacity: 0.5;
             cursor: not-allowed;
         }
@@ -769,8 +737,8 @@
             font-size: 13px;
             font-weight: 600;
             border: 2px solid;
-            background: #0A0A0A;
-            color: #FFE500;
+            background: var(--color-bg);
+            color: var(--color-accent);
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
@@ -778,7 +746,7 @@
         }
 
         .inline-action-btn:hover:not(:disabled) {
-            background: #1A1A1A;
+            background: var(--color-surface);
             transform: translateY(-1px);
         }
 
@@ -788,41 +756,41 @@
         }
 
         .inline-action-btn.secondary {
-            color: #FFE500;
-            border-color: #FFE500;
+            color: var(--color-accent);
+            border-color: var(--color-accent);
         }
 
         .inline-action-btn.secondary:hover:not(:disabled) {
-            border-color: #FFF066;
+            border-color: var(--color-accent);
         }
 
         .inline-action-btn.danger {
-            color: #ff6b6b;
-            border-color: #ef4444;
+            color: var(--color-danger);
+            border-color: var(--color-danger);
         }
 
         .inline-action-btn.danger:hover:not(:disabled) {
-            color: #ff8888;
-            border-color: #ff6b6b;
-            background: rgba(255, 107, 107, 0.1);
+            color: var(--color-danger);
+            border-color: var(--color-danger);
+            background: var(--color-danger-subtle);
         }
 
         .inline-action-btn.warning {
-            color: #FFE500;
-            border-color: #FFE500;
+            color: var(--color-accent);
+            border-color: var(--color-accent);
         }
 
         .inline-action-btn.warning:hover:not(:disabled) {
-            border-color: #FFF066;
+            border-color: var(--color-accent);
         }
 
         .inline-action-btn.ebay {
-            color: #FFE500;
-            border-color: #FFE500;
+            color: var(--color-accent);
+            border-color: var(--color-accent);
         }
 
         .inline-action-btn.ebay:hover:not(:disabled) {
-            border-color: #FFF066;
+            border-color: var(--color-accent);
         }
 
         .inline-action-set {
@@ -832,14 +800,14 @@
         }
 
         .btn-cancel {
-            background: #2A2A2A;
-            color: #E5E5E5;
-            border: 1px solid #3A3A3A;
+            background: var(--color-elevated);
+            color: var(--color-text);
+            border: 1px solid var(--color-border-hover);
         }
 
         .btn-cancel:hover:not(:disabled) {
-            background: #3A3A3A;
-            border-color: #FFE500;
+            background: var(--color-border-hover);
+            border-color: var(--color-accent);
         }
 
         .btn-cancel:disabled {
@@ -848,54 +816,54 @@
         }
 
         .btn-admin {
-            background: #2A2A2A;
-            color: #FFE500;
-            border: 1px solid #3A3A3A;
+            background: var(--color-elevated);
+            color: var(--color-accent);
+            border: 1px solid var(--color-border-hover);
         }
 
         .btn-admin:hover {
-            background: #3A3A3A;
-            border-color: #FFE500;
+            background: var(--color-border-hover);
+            border-color: var(--color-accent);
         }
 
         .btn-grading {
-            background: #2A2A2A;
-            color: #9A9A9A;
-            border: 1px solid #3A3A3A;
+            background: var(--color-elevated);
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border-hover);
             display: flex;
             align-items: center;
         }
 
         .btn-grading:hover {
-            background: #3A3A3A;
-            border-color: #FFE500;
-            color: #FFE500;
+            background: var(--color-border-hover);
+            border-color: var(--color-accent);
+            color: var(--color-accent);
         }
 
         .btn-publish {
-            background: #FFE500;
-            color: #1A1A1A;
-            box-shadow: 0 2px 8px rgba(255, 229, 0, 0.3);
+            background: var(--color-accent);
+            color: var(--color-surface);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-publish:hover {
-            background: #F5DB00;
+            background: var(--color-accent-hover);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 229, 0, 0.4);
+            box-shadow: var(--shadow-md);
         }
 
         .btn-add-new {
-            background: #1A1A1A;
-            color: #FFE500;
-            border: 2px solid #3A3A3A;
+            background: var(--color-surface);
+            color: var(--color-accent);
+            border: 2px solid var(--color-border-hover);
             box-shadow: 0 2px 8px rgba(26, 26, 26, 0.3);
         }
 
         .btn-add-new:hover {
-            background: #1A1A1A;
-            border-color: #FFE500;
+            background: var(--color-surface);
+            border-color: var(--color-accent);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 229, 0, 0.2);
+            box-shadow: 0 4px 12px var(--color-accent-subtle);
         }
 
         /* Button icons - hidden by default (desktop), shown on mobile */
@@ -908,8 +876,8 @@
         }
 
         .btn:disabled {
-            background: #E5E5E5;
-            color: #9A9A9A;
+            background: var(--color-text);
+            color: var(--color-text-muted);
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -931,7 +899,7 @@
             letter-spacing: 0.02em;
             text-transform: uppercase;
             background: rgba(107, 107, 107, 0.12);
-            color: #9A9A9A;
+            color: var(--color-text-muted);
             border: 1px solid rgba(107, 107, 107, 0.3);
             transition: all 0.2s;
         }
@@ -939,12 +907,12 @@
         .ebay-status-pill.neutral::before {
             content: '○';
             font-size: 14px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
         }
 
         .ebay-status-pill.listed {
             background: rgba(79, 243, 174, 0.12);
-            color: #4FF3AE;
+            color: var(--color-success);
             border-color: rgba(79, 243, 174, 0.4);
         }
 
@@ -955,9 +923,9 @@
         }
 
         .ebay-status-pill.updating {
-            background: rgba(255, 229, 0, 0.12);
-            color: #FFE500;
-            border-color: rgba(255, 229, 0, 0.4);
+            background: var(--color-accent-subtle);
+            color: var(--color-accent);
+            border-color: var(--color-accent);
         }
 
         .ebay-status-pill.updating::before {
@@ -967,7 +935,7 @@
 
         .ebay-status-pill.ended {
             background: rgba(239, 68, 68, 0.12);
-            color: #EF4444;
+            color: var(--color-danger);
             border-color: rgba(239, 68, 68, 0.4);
         }
 
@@ -988,7 +956,7 @@
             letter-spacing: 0.02em;
             text-transform: uppercase;
             background: rgba(107, 107, 107, 0.12);
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             border: 1px solid rgba(107, 107, 107, 0.3);
             transition: all 0.2s;
         }
@@ -1003,7 +971,7 @@
 
         .ebay-status-pill-simple.listed {
             background: rgba(79, 243, 174, 0.12);
-            color: #4FF3AE;
+            color: var(--color-success);
             border-color: rgba(79, 243, 174, 0.4);
         }
 
@@ -1017,16 +985,16 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            background: rgba(255, 229, 0, 0.08);
-            color: #FFE500;
-            border: 1px solid rgba(255, 229, 0, 0.3);
+            background: var(--color-accent-subtle);
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
             transition: all 0.2s;
             cursor: default;
         }
 
         .ebay-env-badge.sandbox {
             background: rgba(74, 229, 255, 0.08);
-            color: #4AE5FF;
+            color: var(--color-info);
             border-color: rgba(74, 229, 255, 0.3);
         }
 
@@ -1043,23 +1011,23 @@
 
         .ebay-action-status.loading {
             display: flex;
-            background: rgba(255, 229, 0, 0.08);
-            border: 1px solid rgba(255, 229, 0, 0.25);
-            color: #FFE500;
+            background: var(--color-accent-subtle);
+            border: 1px solid var(--color-accent);
+            color: var(--color-accent);
         }
 
         .ebay-action-status.success {
             display: flex;
             background: rgba(79, 243, 174, 0.08);
             border: 1px solid rgba(79, 243, 174, 0.25);
-            color: #4FF3AE;
+            color: var(--color-success);
         }
 
         .ebay-action-status.error {
             display: flex;
             background: rgba(239, 68, 68, 0.08);
             border: 1px solid rgba(239, 68, 68, 0.25);
-            color: #EF4444;
+            color: var(--color-danger);
         }
 
         .loading-spinner {
@@ -1067,12 +1035,6 @@
             height: 14px;
             border: 2px solid rgba(255, 255, 255, 0.2);
             border-top-color: currentColor;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
 
 
@@ -1140,8 +1102,8 @@
         }
 
         .admin-modal-content {
-            background: #1A1A1A;
-            border: 1px solid #3A3A3A;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-hover);
             border-radius: 12px;
             max-width: 600px;
             width: 90%;
@@ -1154,11 +1116,11 @@
             justify-content: space-between;
             align-items: center;
             padding: 24px;
-            border-bottom: 1px solid #2A2A2A;
+            border-bottom: 1px solid var(--color-elevated);
         }
 
         .admin-modal-header h2 {
-            color: #FFE500;
+            color: var(--color-accent);
             font-size: 20px;
             font-weight: 600;
             margin: 0;
@@ -1190,7 +1152,7 @@
 
         .admin-form-group label {
             display: block;
-            color: #E5E5E5;
+            color: var(--color-text);
             font-size: 13px;
             font-weight: 600;
             margin-bottom: 4px;
@@ -1199,17 +1161,17 @@
         .admin-input {
             width: 100%;
             padding: 8px 10px;
-            background: #0A0A0A;
-            border: 1px solid #2A2A2A;
+            background: var(--color-bg);
+            border: 1px solid var(--color-elevated);
             border-radius: 6px;
-            color: #E5E5E5;
+            color: var(--color-text);
             font-size: 13px;
             font-family: inherit;
         }
 
         .admin-input:focus {
             outline: none;
-            border-color: #FFE500;
+            border-color: var(--color-accent);
         }
 
         .admin-modal-footer {
@@ -1217,12 +1179,12 @@
             justify-content: flex-end;
             gap: 12px;
             padding: 20px 24px;
-            border-top: 1px solid #2A2A2A;
+            border-top: 1px solid var(--color-elevated);
         }
 
         .pricing-card {
             background: rgba(26, 26, 26, 0.5);
-            border: 1px solid #2A2A2A;
+            border: 1px solid var(--color-elevated);
             border-radius: 8px;
             padding: 16px;
         }
@@ -1230,7 +1192,7 @@
         .card-title {
             font-size: 15px;
             font-weight: 600;
-            color: #E5E5E5;
+            color: var(--color-text);
             margin-bottom: 12px;
         }
 
@@ -1253,8 +1215,8 @@
         }
 
         .grading-modal-content {
-            background: #1A1A1A;
-            border: 1px solid #3A3A3A;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-hover);
             border-radius: 12px;
             max-width: 900px;
             width: 90%;
@@ -1267,15 +1229,15 @@
             justify-content: space-between;
             align-items: center;
             padding: 24px;
-            border-bottom: 1px solid #2A2A2A;
+            border-bottom: 1px solid var(--color-elevated);
             position: sticky;
             top: 0;
-            background: #1A1A1A;
+            background: var(--color-surface);
             z-index: 1;
         }
 
         .grading-modal-header h2 {
-            color: #FFE500;
+            color: var(--color-accent);
             font-size: 24px;
             font-weight: 600;
             margin: 0;
@@ -1307,15 +1269,15 @@
             gap: 20px;
             padding: 16px;
             margin-bottom: 12px;
-            background: #0A0A0A;
-            border: 1px solid #2A2A2A;
+            background: var(--color-bg);
+            border: 1px solid var(--color-elevated);
             border-radius: 8px;
             transition: all 0.2s;
         }
 
         .grading-scale-item:hover {
-            border-color: #FFE500;
-            background: #1A1500;
+            border-color: var(--color-accent);
+            background: var(--color-accent-subtle);
         }
 
         .grading-grade {
@@ -1326,7 +1288,7 @@
         .grading-grade-value {
             font-size: 32px;
             font-weight: 700;
-            color: #FFE500;
+            color: var(--color-accent);
             line-height: 1;
             margin-bottom: 4px;
         }
@@ -1334,13 +1296,13 @@
         .grading-grade-name {
             font-size: 14px;
             font-weight: 600;
-            color: #E5E5E5;
+            color: var(--color-text);
             white-space: nowrap;
         }
 
         .grading-description {
             flex: 1;
-            color: #9A9A9A;
+            color: var(--color-text-muted);
             font-size: 14px;
             line-height: 1.6;
         }
@@ -1353,8 +1315,8 @@
 
         .menu-pill-btn {
             background: transparent;
-            border: 2px solid #3A3A3A;
-            color: #FFE500;
+            border: 2px solid var(--color-border-hover);
+            color: var(--color-accent);
             padding: 12px 24px;
             font-size: 15px;
             font-weight: 600;
@@ -1367,11 +1329,11 @@
         }
 
         .menu-pill-btn:hover {
-            border-color: #FFE500;
+            border-color: var(--color-accent);
         }
 
         .menu-pill-btn.active {
-            border-color: #3b82f6;
+            border-color: var(--color-info);
         }
 
         .menu-dropdown {
@@ -1379,8 +1341,8 @@
             bottom: 100%;
             left: 0;
             margin-bottom: 8px;
-            background: #1A1A1A;
-            border: 2px solid #3A3A3A;
+            background: var(--color-surface);
+            border: 2px solid var(--color-border-hover);
             border-radius: 8px;
             min-width: 200px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
@@ -1402,7 +1364,7 @@
             padding: 12px 16px;
             background: transparent;
             border: none;
-            color: #E5E5E5;
+            color: var(--color-text);
             font-size: 14px;
             font-weight: 500;
             text-align: left;
@@ -1422,18 +1384,18 @@
         }
 
         .menu-item:hover:not(.disabled) {
-            background: #2A2A2A;
-            color: #FFE500;
+            background: var(--color-elevated);
+            color: var(--color-accent);
         }
 
         .menu-item.disabled {
             opacity: 0.4;
             cursor: not-allowed;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
         }
 
         .menu-item.active {
-            color: #3b82f6;
+            color: var(--color-info);
             font-weight: 600;
         }
 
@@ -1684,7 +1646,7 @@
 
             /* Touch-friendly form elements */
             input, select, textarea, button {
-                -webkit-tap-highlight-color: rgba(255, 229, 0, 0.2);
+                -webkit-tap-highlight-color: var(--color-accent-subtle);
             }
 
             /* Prevent zoom on input focus */
@@ -1694,6 +1656,43 @@
             textarea {
                 font-size: 16px;
             }
+
+        /* Footer icon button hover */
+        .footer-icon-btn-idx {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            padding: 0;
+            cursor: pointer;
+            transition: color 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .footer-icon-btn-idx:hover {
+            color: var(--color-accent);
+        }
+
+        /* eBay linking dialog close button */
+        .close-dialog-btn {
+            background: var(--color-danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 24px;
+            cursor: pointer;
+            font-weight: bold;
+            line-height: 1;
+            transition: background 0.2s;
+        }
+
+        .close-dialog-btn:hover {
+            background: var(--color-danger-hover);
+        }
 {% endblock %}
 
 {% block content %}
@@ -1710,18 +1709,18 @@
                         </svg>
                     </button>
                 </div>
-                <div id="pageTitleMetadata" style="display: none; gap: 24px; font-size: 13px; color: #9A9A9A;">
+                <div id="pageTitleMetadata" style="display: none; gap: 24px; font-size: 13px; color: var(--color-text-muted);">
                     <div>
-                        <div style="color: #6B6B6B; font-size: 11px; margin-bottom: 4px;">ADDED BY</div>
-                        <div id="metaAddedByTitle" style="color: #E5E5E5;">-</div>
+                        <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">ADDED BY</div>
+                        <div id="metaAddedByTitle" style="color: var(--color-text);">-</div>
                     </div>
                     <div>
-                        <div style="color: #6B6B6B; font-size: 11px; margin-bottom: 4px;">DATE ADDED</div>
-                        <div id="metaDateAddedTitle" style="color: #E5E5E5;">-</div>
+                        <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">DATE ADDED</div>
+                        <div id="metaDateAddedTitle" style="color: var(--color-text);">-</div>
                     </div>
                     <div>
-                        <div style="color: #6B6B6B; font-size: 11px; margin-bottom: 4px;">LAST MODIFIED</div>
-                        <div id="metaLastModifiedTitle" style="color: #FFE500;">-</div>
+                        <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">LAST MODIFIED</div>
+                        <div id="metaLastModifiedTitle" style="color: var(--color-accent);">-</div>
                     </div>
                 </div>
             </div>
@@ -1770,7 +1769,7 @@
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
                 <div class="progress-footer">
-                    <div style="font-size: 12px; color: #6B6B6B;" id="progressDetail"></div>
+                    <div style="font-size: 12px; color: var(--color-text-dim);" id="progressDetail"></div>
                     <button class="progress-cancel-btn" id="progressCancelBtn" onclick="cancelUpload()">Cancel</button>
                 </div>
             </div>
@@ -1780,22 +1779,22 @@
             </div>
 
             <div class="view-mode-indicator" id="viewModeIndicator" style="display: none;">
-                <div style="display: flex; gap: 24px; font-size: 13px; color: #9A9A9A;">
+                <div style="display: flex; gap: 24px; font-size: 13px; color: var(--color-text-muted);">
                     <div>
-                        <div style="color: #6B6B6B; font-size: 11px; margin-bottom: 4px;">ADDED BY</div>
-                        <div id="metaAddedByView" style="color: #E5E5E5;">-</div>
+                        <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">ADDED BY</div>
+                        <div id="metaAddedByView" style="color: var(--color-text);">-</div>
                     </div>
                     <div>
-                        <div style="color: #6B6B6B; font-size: 11px; margin-bottom: 4px;">DATE ADDED</div>
-                        <div id="metaDateAddedView" style="color: #E5E5E5;">-</div>
+                        <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">DATE ADDED</div>
+                        <div id="metaDateAddedView" style="color: var(--color-text);">-</div>
                     </div>
                     <div>
-                        <div style="color: #6B6B6B; font-size: 11px; margin-bottom: 4px;">LAST MODIFIED</div>
-                        <div id="metaLastModifiedView" style="color: #FFE500;">-</div>
+                        <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">LAST MODIFIED</div>
+                        <div id="metaLastModifiedView" style="color: var(--color-accent);">-</div>
                     </div>
                     <div id="ebayItemIdDisplay" style="display: none;">
-                        <div style="color: #6B6B6B; font-size: 11px; margin-bottom: 4px;">EBAY ITEM ID</div>
-                        <div id="ebayItemIdValue" style="color: #FFE500; font-family: monospace;">-</div>
+                        <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">EBAY ITEM ID</div>
+                        <div id="ebayItemIdValue" style="color: var(--color-accent); font-family: monospace;">-</div>
                     </div>
                 </div>
                 <button type="button" class="view-mode-edit-btn" onclick="enableEditMode()" title="Enter edit mode">
@@ -1837,7 +1836,7 @@
                             <div class="form-group">
                                 <label for="title">Title <span class="required">*</span></label>
                                 <input type="text" id="title" name="Title" required maxlength="80">
-                                <div style="font-size: 12px; color: #6B6B6B; margin-top: 4px;">
+                                <div style="font-size: 12px; color: var(--color-text-dim); margin-top: 4px;">
                                     <span id="titleCounter">0/80</span> characters
                                 </div>
                             </div>
@@ -1850,7 +1849,7 @@
                             <div class="form-group">
                                 <label for="conditionDetails">Condition Details</label>
                                 <textarea id="conditionDetails" name="Condition Details"></textarea>
-                                <div style="font-size: 11px; color: #6B6B6B; margin-top: 4px;">
+                                <div style="font-size: 11px; color: var(--color-text-dim); margin-top: 4px;">
                                     Optional: Add specific condition details for buyers
                                 </div>
                             </div>
@@ -1858,7 +1857,7 @@
                             <div class="form-group">
                                 <label for="photosDetails">Photos Details</label>
                                 <textarea id="photosDetails" name="Photos Details"></textarea>
-                                <div style="font-size: 11px; color: #6B6B6B; margin-top: 4px;">
+                                <div style="font-size: 11px; color: var(--color-text-dim); margin-top: 4px;">
                                     Optional: Describe the photos (e.g., "Exact book is pictured")
                                 </div>
                             </div>
@@ -1866,7 +1865,7 @@
                             <div class="form-group">
                                 <label for="shippingDetails">Shipping Details</label>
                                 <textarea id="shippingDetails" name="Shipping Details"></textarea>
-                                <div style="font-size: 11px; color: #6B6B6B; margin-top: 4px;">
+                                <div style="font-size: 11px; color: var(--color-text-dim); margin-top: 4px;">
                                     Optional: Shipping information (e.g., "Ships in Gemini Mailer")
                                 </div>
                             </div>
@@ -1874,7 +1873,7 @@
                             <div class="form-group">
                                 <label for="signoff">Signoff</label>
                                 <input type="text" id="signoff" name="Signoff" />
-                                <div style="font-size: 11px; color: #6B6B6B; margin-top: 4px;">
+                                <div style="font-size: 11px; color: var(--color-text-dim); margin-top: 4px;">
                                     Optional: Closing message (e.g., "Thanks for looking, Message with any questions")
                                 </div>
                             </div>
@@ -1928,7 +1927,7 @@
                                 <div class="card-title" style="display: flex; align-items: center; justify-content: space-between;">
                                     <div style="display: flex; align-items: baseline;">
                                         <span>Settings: SKU #</span>
-                                        <span id="skuDisplay" style="color: #FFE500; margin-left: 8px; font-size: 16px; font-weight: 600;">—</span>
+                                        <span id="skuDisplay" style="color: var(--color-accent); margin-left: 8px; font-size: 16px; font-weight: 600;">—</span>
                                     </div>
                                 </div>
                                 <!-- Hidden SKU input field -->
@@ -1972,31 +1971,31 @@
                                 <div id="ebayAdminSettings" class="settings-tab-content">
 
                                     <!-- eBay Item ID Display (Read-only) -->
-                                    <div id="ebayItemIdSettingsDisplay" style="display:none;margin-bottom:16px;padding:12px;background:#1A1A1A;border-radius:6px;border:1px solid #3A3A3A;">
+                                    <div id="ebayItemIdSettingsDisplay" style="display:none;margin-bottom:16px;padding:12px;background:var(--color-surface);border-radius:6px;border:1px solid var(--color-border-hover);">
                                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                                            <label style="font-size:11px;color:#6B6B6B;text-transform:uppercase;letter-spacing:0.04em;">eBay Item ID</label>
-                                            <span id="ebayVerificationBadge" style="font-size:11px;padding:2px 8px;border-radius:4px;background:#2A2A2A;color:#9A9A9A;">Checking...</span>
+                                            <label style="font-size:11px;color:var(--color-text-dim);text-transform:uppercase;letter-spacing:0.04em;">eBay Item ID</label>
+                                            <span id="ebayVerificationBadge" style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--color-elevated);color:var(--color-text-muted);">Checking...</span>
                                         </div>
-                                        <div id="ebayItemIdSettingsValue" style="font-size:14px;color:#FFE500;font-family:monospace;font-weight:500;">-</div>
+                                        <div id="ebayItemIdSettingsValue" style="font-size:14px;color:var(--color-accent);font-family:monospace;font-weight:500;">-</div>
                                     </div>
 
                     <!-- Listing Mode Dropdown -->
                     <div id="ebayListingModeSection" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
-                        <label for="ebayActionMode" style="font-size:11px;color:#9A9A9A;">Listing Mode</label>
-                        <select id="ebayActionMode" style="width:100%;padding:8px;border-radius:6px;border:1px solid #3A3A3A;background:#0A0A0A;color:#E5E5E5;font-size:13px;" onchange="toggleScheduleDateTime()">
+                        <label for="ebayActionMode" style="font-size:11px;color:var(--color-text-muted);">Listing Mode</label>
+                        <select id="ebayActionMode" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-bg);color:var(--color-text);font-size:13px;" onchange="toggleScheduleDateTime()">
                             <option value="list">List Now</option>
                             <option value="future">List in 18 days</option>
                         </select>
 
                                         <!-- Locked indicator (shown when mode is locked) -->
-                                        <div id="ebayModeLockMessage" style="display:none;font-size:11px;color:#FFE500;padding:6px 8px;background:#2A2A2A;border-radius:4px;border-left:3px solid #FFE500;">
+                                        <div id="ebayModeLockMessage" style="display:none;font-size:11px;color:var(--color-accent);padding:6px 8px;background:var(--color-elevated);border-radius:4px;border-left:3px solid var(--color-accent);">
                                             🔒 Listing mode is locked while item is actively listed on eBay. You can still update other fields.
                                         </div>
 
                                         <!-- Future DateTime Display (18 days) -->
                                         <div id="futureDateTime" style="display:none;flex-direction:column;gap:6px;margin-top:4px;">
-                                            <label for="ebayFutureDate" style="font-size:11px;color:#9A9A9A;">Will Go Live On</label>
-                                            <input type="datetime-local" id="ebayScheduleDate" readonly style="padding:6px 8px;border-radius:6px;border:1px solid #3A3A3A;background:#1A1A1A;color:#FFE500;font-size:13px;cursor:not-allowed;">
+                                            <label for="ebayFutureDate" style="font-size:11px;color:var(--color-text-muted);">Will Go Live On</label>
+                                            <input type="datetime-local" id="ebayScheduleDate" readonly style="padding:6px 8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-surface);color:var(--color-accent);font-size:13px;cursor:not-allowed;">
                                         </div>
 
                                         <div id="manualEbayItemIdStatus" class="ebay-action-status" style="margin-top:4px;"></div>
@@ -2025,8 +2024,8 @@
                                     </div>
 
                                     <!-- Best Offer Settings (per-item customizable) -->
-                                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #3A3A3A;">
-                                        <div style="font-size: 12px; color: #6B6B6B; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Best Offer Settings</div>
+                                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border-hover);">
+                                        <div style="font-size: 12px; color: var(--color-text-dim); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Best Offer Settings</div>
 
                                         <div class="admin-form-group">
                                             <label for="ebayAllowOffers">Allow Offers</label>
@@ -2049,8 +2048,8 @@
                                     </div>
 
                                     <!-- Weight & Package Dimensions (per-item customizable) -->
-                                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #3A3A3A;">
-                                        <div style="font-size: 12px; color: #6B6B6B; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Weight & Dimensions</div>
+                                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border-hover);">
+                                        <div style="font-size: 12px; color: var(--color-text-dim); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Weight & Dimensions</div>
 
                                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                             <div class="admin-form-group">
@@ -2193,7 +2192,7 @@
     <div class="sticky-footer">
         <div class="footer-content">
             <div style="display: flex; gap: 16px; margin-right: auto; align-items: center;">
-                <button onclick="openGradingModal()" title="View CGC Grading Scale" style="background: none; border: none; color: #9A9A9A; padding: 0; cursor: pointer; transition: color 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px;" onmouseover="this.style.color='#FFE500'" onmouseout="this.style.color='#9A9A9A'">
+                <button onclick="openGradingModal()" title="View CGC Grading Scale" class="footer-icon-btn-idx">>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2L2 7l10 5 10-5-10-5z"/>
                         <path d="M2 17l10 5 10-5"/>
@@ -2612,11 +2611,11 @@
                 } else if (listingStatus === 'Scheduled') {
                     statusText = 'Future Listing';
                     badgeText = '📅 Scheduled';
-                    statusColor = '#00BFFF'; // Blue
+                    statusColor = 'var(--color-ebay)'; // Blue
                 } else if (listingStatus === 'Draft') {
                     statusText = 'Draft Listing';
                     badgeText = '📝 Draft';
-                    statusColor = '#FFE500'; // Yellow
+                    statusColor = 'var(--color-accent)'; // Yellow
                 }
 
                 // Update the new inline status indicator
@@ -2639,32 +2638,32 @@
                 }
                 if (settingsBadge) {
                     settingsBadge.textContent = badgeText;
-                    settingsBadge.style.background = '#1a4d1a';
+                    settingsBadge.style.background = 'var(--color-success-subtle)';
                     settingsBadge.style.color = statusColor;
                 }
             } else if (result.status === 'not_found') {
                 // Update the new inline status indicator
                 if (statusIndicator) {
                     statusIndicator.textContent = 'Error';
-                    statusIndicator.style.color = '#FF9500'; // Orange
+                    statusIndicator.style.color = 'var(--color-warning)'; // Orange
                 }
 
                 // Update view mode indicator (top of page)
                 if (statusEl) {
                     statusEl.textContent = currentComicEbayId + ' ⚠️';
-                    statusEl.style.color = '#FF9500'; // Orange
+                    statusEl.style.color = 'var(--color-warning)'; // Orange
                     statusEl.title = 'eBay Item ID exists but not found on eBay. Clearing ID...';
                 }
 
                 // Update eBay settings panel display
                 if (settingsDisplay) {
                     settingsDisplay.textContent = currentComicEbayId + ' (Deleting...)';
-                    settingsDisplay.style.color = '#FF9500';
+                    settingsDisplay.style.color = 'var(--color-warning)';
                 }
                 if (settingsBadge) {
                     settingsBadge.textContent = '⚠️ Not Found';
-                    settingsBadge.style.background = '#4d3300';
-                    settingsBadge.style.color = '#FF9500';
+                    settingsBadge.style.background = 'var(--color-warning-subtle)';
+                    settingsBadge.style.color = 'var(--color-warning)';
                 }
 
                 console.warn('[eBay Verify] Item not found on eBay:', currentComicEbayId);
@@ -2679,13 +2678,13 @@
                 // No eBay Item ID stored - show "Not Listed"
                 if (statusIndicator) {
                     statusIndicator.textContent = 'Not Listed';
-                    statusIndicator.style.color = '#9A9A9A';
+                    statusIndicator.style.color = 'var(--color-text-muted)';
                 }
             } else {
                 // Unknown status or error - show "Error"
                 if (statusIndicator) {
                     statusIndicator.textContent = 'Error';
-                    statusIndicator.style.color = '#FF6B6B'; // Red
+                    statusIndicator.style.color = 'var(--color-danger)'; // Red
                 }
 
 
@@ -2727,13 +2726,13 @@
                         const pill = document.getElementById('ebayStatusPill');
                         if (pill) {
                             pill.textContent = 'Not Listed';
-                            pill.style.color = '#9A9A9A';
+                            pill.style.color = 'var(--color-text-muted)';
                         }
 
                         const statusIndicator = document.getElementById('ebayStatusText');
                         if (statusIndicator) {
                             statusIndicator.textContent = 'Not Listed';
-                            statusIndicator.style.color = '#9A9A9A';
+                            statusIndicator.style.color = 'var(--color-text-muted)';
                         }
 
                         // Refresh controls
@@ -2765,7 +2764,7 @@
                     ebayItemIdDisplay.style.display = 'block';
                     // Show ID with "verifying..." indicator initially
                     ebayItemIdValue.textContent = currentComicEbayId + ' ⏳';
-                    ebayItemIdValue.style.color = '#FFE500';
+                    ebayItemIdValue.style.color = 'var(--color-accent)';
                     ebayItemIdValue.title = 'Verifying on eBay...';
 
                     // Auto-verify the listing status on eBay
@@ -2780,10 +2779,10 @@
                 if (currentComicEbayId) {
                     settingsDisplay.style.display = 'block';
                     settingsValue.textContent = currentComicEbayId;
-                    settingsValue.style.color = '#FFE500';
+                    settingsValue.style.color = 'var(--color-accent)';
                     settingsBadge.textContent = '⏳ Verifying...';
-                    settingsBadge.style.background = '#2A2A2A';
-                    settingsBadge.style.color = '#FFE500';
+                    settingsBadge.style.background = 'var(--color-elevated)';
+                    settingsBadge.style.color = 'var(--color-accent)';
 
                     // Auto-verify the listing status
                     verifyEbayListingStatus(editingSKU, currentComicEbayId).then(updateVerificationStatus);
@@ -3056,9 +3055,9 @@
                 inlineBtn.dataset.ebayAction = isListed ? 'update' : 'list';
 
                 // Add hover handlers - always yellow hover for List button
-                const defaultColor = '#3A3A3A';
+                const defaultColor = 'var(--color-border-hover)';
                 inlineBtn.dataset.statusColor = defaultColor;
-                inlineBtn.onmouseenter = function() { this.style.borderColor = '#FFE500'; };
+                inlineBtn.onmouseenter = function() { this.style.borderColor = 'var(--color-accent)'; };
                 inlineBtn.onmouseleave = function() { this.style.borderColor = this.dataset.statusColor || defaultColor; };
 
                 // Ensure button is enabled and clickable
@@ -3080,9 +3079,9 @@
                 if (isListed) {
                     // Comic has eBay Item ID - show "Unlink eBay" with blue border
                     if (linkBtnSpan) linkBtnSpan.textContent = 'Unlink eBay';
-                    const statusColor = '#3b82f6'; // Blue border for linked
+                    const statusColor = 'var(--color-info)'; // Blue border for linked
                     linkBtn.style.border = `2px solid ${statusColor}`;
-                    linkBtn.style.color = '#FFE500'; // Keep text yellow
+                    linkBtn.style.color = 'var(--color-accent)'; // Keep text yellow
                     linkBtn.onclick = () => unlinkFromEbay();
 
                     // Store status color and add hover handlers
@@ -3092,14 +3091,14 @@
                 } else {
                     // No eBay Item ID - show "Link to eBay" with default styling
                     if (linkBtnSpan) linkBtnSpan.textContent = 'Link to eBay';
-                    const defaultColor = '#3A3A3A';
+                    const defaultColor = 'var(--color-border-hover)';
                     linkBtn.style.border = `2px solid ${defaultColor}`;
-                    linkBtn.style.color = '#FFE500';
+                    linkBtn.style.color = 'var(--color-accent)';
                     linkBtn.onclick = () => openEbayListingsForLinking();
 
                     // Store default color and add hover handlers
                     linkBtn.dataset.statusColor = defaultColor;
-                    linkBtn.onmouseenter = function() { this.style.borderColor = '#FFE500'; };
+                    linkBtn.onmouseenter = function() { this.style.borderColor = 'var(--color-accent)'; };
                     linkBtn.onmouseleave = function() { this.style.borderColor = this.dataset.statusColor || defaultColor; };
                 }
 
@@ -3348,8 +3347,8 @@
             // Create dialog content
             const dialog = document.createElement('div');
             dialog.style.cssText = `
-                background: #1A1A1A;
-                border: 1px solid #2A2A2A;
+                background: var(--color-surface);
+                border: 1px solid var(--color-elevated);
                 border-radius: 12px;
                 width: 90%;
                 max-width: 1400px;
@@ -3363,17 +3362,17 @@
             const header = document.createElement('div');
             header.style.cssText = `
                 padding: 24px;
-                border-bottom: 1px solid #2A2A2A;
+                border-bottom: 1px solid var(--color-elevated);
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             `;
             header.innerHTML = `
                 <div>
-                    <h2 style="margin: 0; color: #FFE500; font-size: 24px; font-weight: 600;">🔗 Select eBay Listing to Link</h2>
-                    <p style="margin: 8px 0 0 0; color: #9A9A9A; font-size: 14px;">Linking to: ${sku}</p>
+                    <h2 style="margin: 0; color: var(--color-accent); font-size: 24px; font-weight: 600;">🔗 Select eBay Listing to Link</h2>
+                    <p style="margin: 8px 0 0 0; color: var(--color-text-muted); font-size: 14px;">Linking to: ${sku}</p>
                 </div>
-                <button onclick="closeEbayLinkingDialog()" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 24px; cursor: pointer; font-weight: bold; line-height: 1; transition: background 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'" title="Close (ESC)">
+                <button onclick="closeEbayLinkingDialog()" class="close-dialog-btn" title="Close (ESC)">>
                     ×
                 </button>
             `;
@@ -3387,7 +3386,7 @@
                 padding: 24px;
             `;
             content.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #9A9A9A;">
+                <div style="text-align: center; padding: 40px; color: var(--color-text-muted);">
                     <div style="font-size: 18px; margin-bottom: 16px;">Loading eBay listings...</div>
                     <div style="font-size: 14px;">Please wait while we fetch your active listings from eBay</div>
                 </div>
@@ -3516,10 +3515,10 @@
             } catch (error) {
                 console.error('Error loading eBay listings:', error);
                 content.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                    <div style="text-align: center; padding: 40px; color: var(--color-danger);">
                         <div style="font-size: 18px; margin-bottom: 16px;">⚠ Error Loading Listings</div>
-                        <div style="font-size: 14px; color: #9A9A9A;">${error.message}</div>
-                        <button onclick="loadEbayListingsIntoDialog()" style="margin-top: 24px; padding: 10px 24px; background: #FFE500; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        <div style="font-size: 14px; color: var(--color-text-muted);">${error.message}</div>
+                        <button onclick="loadEbayListingsIntoDialog()" style="margin-top: 24px; padding: 10px 24px; background: var(--color-accent); color: var(--color-accent-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
                             Retry
                         </button>
                     </div>
@@ -3534,7 +3533,7 @@
 
             if (!listings || listings.length === 0) {
                 content.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #9A9A9A;">
+                    <div style="text-align: center; padding: 40px; color: var(--color-text-muted);">
                         <div style="font-size: 18px; margin-bottom: 16px;">No Active Listings Found</div>
                         <div style="font-size: 14px;">You don't have any active eBay listings to link.</div>
                     </div>
@@ -3557,14 +3556,14 @@
                 const onclickAction = isAlreadyLinked ? '' : `onclick="linkComicToEbayListingFromDialog('${itemId}', '${title.replace(/'/g, "\\'")}')"`;
 
                 return `
-                    <div style="background: rgba(42, 42, 42, 0.3); border: 1px solid #2A2A2A; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-                        <div style="width: 100%; aspect-ratio: 1; background: #0A0A0A; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                            ${imageUrl ? `<img src="${imageUrl}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain;">` : '<div style="color: #6B6B6B; font-size: 32px;">🖼️</div>'}
+                    <div style="background: rgba(42, 42, 42, 0.3); border: 1px solid var(--color-elevated); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                        <div style="width: 100%; aspect-ratio: 1; background: var(--color-bg); border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            ${imageUrl ? `<img src="${imageUrl}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain;">` : '<div style="color: var(--color-text-dim); font-size: 32px;">🖼️</div>'}
                         </div>
                         <div style="flex: 1;">
-                            <div style="color: #E5E5E5; font-size: 14px; font-weight: 600; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${title}</div>
-                            <div style="color: #FFE500; font-size: 18px; font-weight: 600; margin-bottom: 8px;">$${price.toFixed(2)}</div>
-                            <div style="color: #9A9A9A; font-size: 12px; margin-bottom: 12px;">ID: ${itemId}</div>
+                            <div style="color: var(--color-text); font-size: 14px; font-weight: 600; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${title}</div>
+                            <div style="color: var(--color-accent); font-size: 18px; font-weight: 600; margin-bottom: 8px;">$${price.toFixed(2)}</div>
+                            <div style="color: var(--color-text-muted); font-size: 12px; margin-bottom: 12px;">ID: ${itemId}</div>
                         </div>
                         <button class="ebay-link-btn ${buttonClass}" ${buttonDisabled} ${onclickAction} style="width: 100%; padding: 10px; border-radius: 6px; font-size: 14px; font-weight: 600; border: none; cursor: ${isAlreadyLinked ? 'not-allowed' : 'pointer'}; transition: all 0.2s;">
                             ${buttonText}
@@ -3576,15 +3575,15 @@
             content.innerHTML = `
                 <style>
                     .ebay-link-btn.active-link {
-                        background: #FFE500;
-                        color: #1A1A1A;
+                        background: var(--color-accent);
+                        color: var(--color-surface);
                     }
                     .ebay-link-btn.active-link:hover {
-                        background: #F5DB00;
+                        background: var(--color-accent-hover);
                     }
                     .ebay-link-btn.disabled-link {
-                        background: #4A4A4A;
-                        color: #9A9A9A;
+                        background: var(--color-text-dim);
+                        color: var(--color-text-muted);
                         opacity: 0.6;
                         pointer-events: none;
                     }
@@ -3621,17 +3620,17 @@
             `;
 
             confirmModal.innerHTML = `
-                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 500px; padding: 24px; color: #E5E5E5;">
-                    <h2 style="margin: 0 0 16px 0; color: #FFE500;">Link to eBay</h2>
-                    <p style="color: #E5E5E5; margin-bottom: 24px; line-height: 1.6;">
+                <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 500px; padding: 24px; color: var(--color-text);">
+                    <h2 style="margin: 0 0 16px 0; color: var(--color-accent);">Link to eBay</h2>
+                    <p style="color: var(--color-text); margin-bottom: 24px; line-height: 1.6;">
                         This will link this comic to an existing eBay listing.<br><br>
                         <strong>SKU:</strong> ${comicSKU}<br>
                         <strong>Listing:</strong> ${ebayTitle}<br><br>
                         Continue?
                     </p>
                     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="cancelEbayLinkConfirm()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="confirmEbayLinkFromDialog('${comicSKU}', '${ebayItemId}')" style="padding: 10px 24px; background: #FFE500; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Link to eBay</button>
+                        <button onclick="cancelEbayLinkConfirm()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="confirmEbayLinkFromDialog('${comicSKU}', '${ebayItemId}')" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-accent-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Link to eBay</button>
                     </div>
                 </div>
             `;
@@ -3748,12 +3747,12 @@
             `;
 
             modal.innerHTML = `
-                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 500px; padding: 24px; color: #E5E5E5;">
-                    <h2 style="margin: 0 0 16px 0; color: #FFE500;">Unlink from eBay</h2>
-                    <p style="color: #E5E5E5; margin-bottom: 24px; line-height: 1.6;">This will remove the eBay Item ID from this comic.<br><br><strong>Note:</strong> This will NOT delist the item from eBay.<br><br>SKU: ${sku}<br><br>Continue?</p>
+                <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 500px; padding: 24px; color: var(--color-text);">
+                    <h2 style="margin: 0 0 16px 0; color: var(--color-accent);">Unlink from eBay</h2>
+                    <p style="color: var(--color-text); margin-bottom: 24px; line-height: 1.6;">This will remove the eBay Item ID from this comic.<br><br><strong>Note:</strong> This will NOT delist the item from eBay.<br><br>SKU: ${sku}<br><br>Continue?</p>
                     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="cancelEbayUnlinkConfirm()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="executeEbayUnlink('${sku}')" style="padding: 10px 24px; background: #FFE500; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Unlink from eBay</button>
+                        <button onclick="cancelEbayUnlinkConfirm()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="executeEbayUnlink('${sku}')" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-accent-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Unlink from eBay</button>
                     </div>
                 </div>
             `;
@@ -3888,12 +3887,12 @@
             `;
 
             modal.innerHTML = `
-                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 500px; padding: 24px; color: #E5E5E5;">
-                    <h2 style="margin: 0 0 16px 0; color: #FFE500;">${actionText}</h2>
-                    <p style="color: #E5E5E5; margin-bottom: 24px; line-height: 1.6;">${description}<br><br>SKU: ${sku}<br><br>Continue?</p>
+                <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 500px; padding: 24px; color: var(--color-text);">
+                    <h2 style="margin: 0 0 16px 0; color: var(--color-accent);">${actionText}</h2>
+                    <p style="color: var(--color-text); margin-bottom: 24px; line-height: 1.6;">${description}<br><br>SKU: ${sku}<br><br>Continue?</p>
                     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="cancelWhatNotConfirm()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="executeWhatNotToggle(${shouldList}, '${sku}')" style="padding: 10px 24px; background: #FFE500; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">${actionText}</button>
+                        <button onclick="cancelWhatNotConfirm()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="executeWhatNotToggle(${shouldList}, '${sku}')" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-accent-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">${actionText}</button>
                     </div>
                 </div>
             `;
@@ -5135,11 +5134,11 @@
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: #4F46E5;
+                background: var(--color-info);
                 color: white;
                 padding: 16px 24px;
                 border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                box-shadow: var(--shadow-md);
                 z-index: 1000;
                 font-weight: 600;
                 animation: slideIn 0.3s ease-out;
@@ -6084,12 +6083,12 @@
             `;
 
             modal.innerHTML = `
-                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 500px; padding: 24px; color: #E5E5E5;">
-                    <h2 style="margin: 0 0 16px 0; color: #FFE500;">Confirm Action</h2>
-                    <p style="color: #E5E5E5; margin-bottom: 24px; line-height: 1.6;">${message}</p>
+                <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 500px; padding: 24px; color: var(--color-text);">
+                    <h2 style="margin: 0 0 16px 0; color: var(--color-accent);">Confirm Action</h2>
+                    <p style="color: var(--color-text); margin-bottom: 24px; line-height: 1.6;">${message}</p>
                     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="cancelComicAction()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="confirmComicAction()" style="padding: 10px 24px; background: #FFE500; color: #0A0A0A; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Confirm</button>
+                        <button onclick="cancelComicAction()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="confirmComicAction()" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Confirm</button>
                     </div>
                 </div>
             `;
@@ -6971,8 +6970,8 @@ requirements.txt            } else if (pendingComicAction.type === 'ebay-list') 
                     input.readOnly = readonly;
                     if (readonly) {
                         input.style.cursor = 'pointer';
-                        input.style.backgroundColor = '#1A1A1A';
-                        input.style.color = '#9A9A9A';
+                        input.style.backgroundColor = 'var(--color-surface)';
+                        input.style.color = 'var(--color-text-muted)';
                         input.ondblclick = enableEditMode;
                         input.title = 'Double-click to edit';
                     } else {
@@ -7008,8 +7007,8 @@ requirements.txt            } else if (pendingComicAction.type === 'ebay-list') 
                     input.readOnly = readonly;
                     if (readonly) {
                         input.style.cursor = 'pointer';
-                        input.style.backgroundColor = '#1A1A1A';
-                        input.style.color = '#9A9A9A';
+                        input.style.backgroundColor = 'var(--color-surface)';
+                        input.style.color = 'var(--color-text-muted)';
                         input.ondblclick = enableEditMode;
                         input.onclick = enableEditMode; // Also enable on single click for easier access
                         input.title = 'Click to edit';
@@ -7190,7 +7189,7 @@ requirements.txt            } else if (pendingComicAction.type === 'ebay-list') 
             // Update price label based on type
             if (priceLabel) {
                 if (typeValue === 'Giveaway') {
-                    priceLabel.innerHTML = 'Price $(USD) <span class="required">*</span> <span style="color: #FFE500;">(Set to $1 for giveaways)</span>';
+                    priceLabel.innerHTML = 'Price $(USD) <span class="required">*</span> <span style="color: var(--color-accent);">(Set to $1 for giveaways)</span>';
                 } else if (typeValue === 'Auction') {
                     priceLabel.innerHTML = 'Starting Price $(USD) <span class="required">*</span>';
                 } else {
@@ -7243,7 +7242,7 @@ requirements.txt            } else if (pendingComicAction.type === 'ebay-list') 
                 if (!giveawayNotice) {
                     giveawayNotice = document.createElement('div');
                     giveawayNotice.id = 'ebayGiveawayNotice';
-                    giveawayNotice.style.cssText = 'background: #2A2A2A; border: 1px solid #FFE500; border-radius: 6px; padding: 12px; margin-bottom: 16px; color: #FFE500; font-size: 13px; display: flex; align-items: center; gap: 8px;';
+                    giveawayNotice.style.cssText = 'background: var(--color-elevated); border: 1px solid var(--color-accent); border-radius: 6px; padding: 12px; margin-bottom: 16px; color: var(--color-accent); font-size: 13px; display: flex; align-items: center; gap: 8px;';
                     giveawayNotice.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><span>eBay settings disabled for Giveaway items. Giveaways can only be exported to WhatNot.</span>';
                     ebaySettingsContent.insertBefore(giveawayNotice, ebaySettingsContent.firstChild);
                 }

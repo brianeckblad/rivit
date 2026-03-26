@@ -3,16 +3,12 @@
 {% block extra_css %}
     <style>
         .main {
-            flex: 1;
-            max-width: 1400px;
-            width: 100%;
-            margin: 0 auto;
             padding: 24px 24px 24px;
         }
 
         .page-header {
             background: rgba(42, 42, 42, 0.3);
-            border: 1px solid #2A2A2A;
+            border: 1px solid var(--color-elevated);
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 24px;
@@ -22,7 +18,7 @@
         .page-header h1 {
             font-size: 28px;
             font-weight: 600;
-            color: #FFE500;
+            color: var(--color-accent);
             margin: 0 0 8px 0;
             display: flex;
             align-items: center;
@@ -33,12 +29,12 @@
         .page-header h1 svg {
             width: 28px;
             height: 28px;
-            stroke: #FFE500;
+            stroke: var(--color-accent);
         }
 
         .page-header p {
             font-size: 14px;
-            color: #9A9A9A;
+            color: var(--color-text-muted);
             margin: 0;
         }
 
@@ -51,22 +47,11 @@
 
         .stat-card {
             background: rgba(42, 42, 42, 0.3);
-            border: 1px solid #2A2A2A;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 13px;
-            color: #9A9A9A;
-            margin-bottom: 8px;
+            border: 1px solid var(--color-elevated);
         }
 
         .stat-value {
-            font-size: 24px;
-            font-weight: 600;
-            color: #FFE500;
+            color: var(--color-accent);
         }
 
         .listings-container {
@@ -78,7 +63,7 @@
 
         .listing-card {
             background: rgba(42, 42, 42, 0.3);
-            border: 1px solid #2A2A2A;
+            border: 1px solid var(--color-elevated);
             border-radius: 12px;
             overflow: hidden;
             transition: all 0.3s ease;
@@ -88,15 +73,15 @@
         }
 
         .listing-card:hover {
-            border-color: #3A3A3A;
+            border-color: var(--color-border-hover);
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(255, 229, 0, 0.1);
+            box-shadow: 0 8px 24px var(--color-accent-subtle);
         }
 
         .listing-image {
             width: 100%;
             height: 180px;
-            background: #1A1A1A;
+            background: var(--color-surface);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -112,7 +97,7 @@
 
         .listing-image-placeholder {
             font-size: 40px;
-            color: #2A2A2A;
+            color: var(--color-elevated);
         }
 
         .listing-details {
@@ -131,7 +116,7 @@
         .listing-title {
             font-size: 14px;
             font-weight: 600;
-            color: #E5E5E5;
+            color: var(--color-text);
             margin-bottom: 8px;
             line-height: 1.4;
             flex: 1;
@@ -139,18 +124,18 @@
 
         .listing-info {
             font-size: 12px;
-            color: #9A9A9A;
+            color: var(--color-text-muted);
             margin-bottom: 4px;
         }
 
         .listing-category {
             font-size: 11px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             margin-bottom: 6px;
             padding: 4px 6px;
             background: rgba(42, 42, 42, 0.5);
             border-radius: 4px;
-            border: 1px solid #2A2A2A;
+            border: 1px solid var(--color-elevated);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -168,8 +153,8 @@
             padding: 3px 6px;
             border-radius: 4px;
             background: rgba(26, 26, 26, 0.6);
-            border: 1px solid #2A2A2A;
-            color: #9A9A9A;
+            border: 1px solid var(--color-elevated);
+            color: var(--color-text-muted);
             display: inline-flex;
             align-items: center;
             gap: 3px;
@@ -177,23 +162,23 @@
 
         .listing-stat-badge.views {
             border-color: rgba(74, 229, 255, 0.3);
-            color: #4AE5FF;
+            color: var(--color-info);
         }
 
         .listing-stat-badge.watchers {
-            border-color: rgba(255, 229, 0, 0.3);
-            color: #FFE500;
+            border-color: var(--color-accent);
+            color: var(--color-accent);
         }
 
         .listing-stat-badge.sold {
             border-color: rgba(52, 211, 153, 0.3);
-            color: #34d399;
+            color: var(--color-success);
         }
 
         .listing-price {
             font-size: 16px;
             font-weight: 600;
-            color: #FFE500;
+            color: var(--color-accent);
             margin-bottom: 8px;
         }
 
@@ -209,13 +194,13 @@
 
         .status-active {
             background: rgba(52, 211, 153, 0.1);
-            color: #34d399;
+            color: var(--color-success);
             border: 1px solid rgba(52, 211, 153, 0.3);
         }
 
         .status-inactive {
             background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            color: var(--color-danger);
             border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
@@ -235,22 +220,22 @@
 
         .listing-category {
             font-size: 11px;
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             margin-bottom: 6px;
             padding: 4px 8px;
             background: rgba(26, 26, 26, 0.6);
             border-radius: 4px;
-            border: 1px solid #2A2A2A;
+            border: 1px solid var(--color-elevated);
         }
 
 
         .listing-category-name {
-            color: #9A9A9A;
+            color: var(--color-text-muted);
             font-weight: 500;
         }
 
         .listing-category-id {
-            color: #6B6B6B;
+            color: var(--color-text-dim);
             font-size: 10px;
             margin-left: 4px;
         }
@@ -259,7 +244,7 @@
             display: flex;
             gap: 12px;
             font-size: 11px;
-            color: #9A9A9A;
+            color: var(--color-text-muted);
             margin-top: 6px;
             flex-wrap: wrap;
         }
@@ -273,20 +258,20 @@
         .listing-stat svg {
             width: 14px;
             height: 14px;
-            stroke: #6B6B6B;
+            stroke: var(--color-text-dim);
         }
 
         .listing-stat-value {
-            color: #E5E5E5;
+            color: var(--color-text);
             font-weight: 500;
         }
 
         .listing-stat-icon-eye {
-            color: #4AE5FF;
+            color: var(--color-info);
         }
 
         .listing-stat-icon-heart {
-            color: #FF4A6E;
+            color: var(--color-danger);
         }
 
 
@@ -316,36 +301,36 @@
         }
 
         .listing-btn-view {
-            background: #FFE500;
-            color: #1A1A1A;
+            background: var(--color-accent);
+            color: var(--color-surface);
         }
 
         .listing-btn-view:hover {
-            background: #F5DB00;
+            background: var(--color-accent-hover);
         }
 
         .listing-btn-link {
-            background: #FFE500;
-            color: #1A1A1A;
+            background: var(--color-accent);
+            color: var(--color-surface);
             border: none;
         }
 
         .listing-btn-link:hover {
-            background: #F5DB00;
+            background: var(--color-accent-hover);
         }
 
         .listing-btn-link.unlink {
-            background: #ef4444;
-            color: #ffffff;
+            background: var(--color-danger);
+            color: var(--color-text);
         }
 
         .listing-btn-link.unlink:hover {
-            background: #dc2626;
+            background: var(--color-danger-hover);
         }
 
         .listing-btn-link.disabled-link {
-            background: #4A4A4A;
-            color: #9A9A9A;
+            background: var(--color-text-dim);
+            color: var(--color-text-muted);
             cursor: not-allowed;
             opacity: 0.6;
             pointer-events: none;
@@ -361,53 +346,7 @@
         }
 
         .load-more-btn {
-            display: block;
-            width: 100%;
-            max-width: 400px;
             margin: 32px auto;
-            padding: 16px 32px;
-            background: #FFE500;
-            color: #1A1A1A;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(255, 229, 0, 0.3);
-        }
-
-        .load-more-btn:hover {
-            background: #F5DB00;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 229, 0, 0.4);
-        }
-
-        .load-more-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #9A9A9A;
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 3px solid #2A2A2A;
-            border-top-color: #FFE500;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 16px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
 
         @keyframes slideIn {
@@ -432,38 +371,23 @@
             }
         }
 
-        .error-message {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ef4444;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            text-align: center;
-        }
 
         .empty-state {
-            text-align: center;
             padding: 40px;
-            color: #9A9A9A;
         }
 
         .empty-state a {
-            color: #4facfe;
-            text-decoration: none;
+            display: inline;
+            padding: 0;
+            background: none;
+            color: var(--color-info);
             font-weight: 500;
-            transition: color 0.2s;
         }
 
         .empty-state a:hover {
-            color: #FFE500;
+            color: var(--color-accent);
             text-decoration: underline;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
+            transform: none;
         }
 
         .footer {
@@ -471,9 +395,9 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(180deg, rgba(26, 26, 26, 0.95) 0%, #1A1A1A 100%);
+            background: linear-gradient(180deg, rgba(26, 26, 26, 0.95) 0%, var(--color-surface) 100%);
             backdrop-filter: blur(10px);
-            border-top: 1px solid #2A2A2A;
+            border-top: 1px solid var(--color-elevated);
             padding: 16px 24px;
             z-index: 100;
             display: flex;
@@ -483,31 +407,12 @@
 
         .btn {
             padding: 10px 32px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-family: 'Outfit', sans-serif;
         }
 
         .btn-secondary {
-            background: transparent;
-            color: #FFE500;
-            border: 2px solid #3A3A3A;
             min-width: 180px;
         }
 
-        .btn-secondary:hover {
-            border-color: #FFE500;
-            transform: translateY(-2px);
-        }
 
         @media (max-width: 768px) {
             .main {
@@ -545,6 +450,21 @@
                 width: 100%;
             }
         }
+
+        /* JS-generated inventory item hover */
+        .inventory-item-row {
+            padding: 12px;
+            border-bottom: 1px solid var(--color-elevated);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .inventory-item-row:hover {
+            background: var(--color-accent-subtle);
+        }
     </style>
 {% endblock %}
 
@@ -562,15 +482,15 @@
                     eBay Listings Summary
                 </h1>
                 <!-- Close button for linking mode (will be shown via JS) -->
-                <button id="closePopupBtn" onclick="closeEbayLinkingPopup()" style="display: none; position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 20px; cursor: pointer; font-weight: bold; line-height: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" title="Close (ESC)">
+                <button id="closePopupBtn" onclick="closeEbayLinkingPopup()" style="display: none; position: absolute; top: -8px; right: -8px; background: var(--color-danger); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 20px; cursor: pointer; font-weight: bold; line-height: 1; box-shadow: var(--shadow-sm);" title="Close (ESC)">
                     ×
                 </button>
             </div>
             <p>View all your active eBay listings</p>
-            <button onclick="refreshFromEbay(event)" style="padding: 8px 16px; background: #4F46E5; color: #FFFFFF; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 12px;">
+            <button onclick="refreshFromEbay(event)" style="padding: 8px 16px; background: var(--color-info); color: var(--color-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 12px;">
                 🔄 Refresh from eBay
             </button>
-            <p style="font-size: 11px; color: #6B6B6B; margin-top: 8px;">
+            <p style="font-size: 11px; color: var(--color-text-dim); margin-top: 8px;">
                 💡 Listings are cached for 1 hour. Click refresh to fetch latest data from eBay API.
             </p>
         </div>
@@ -604,17 +524,17 @@
             <button id="loadMoreBtn" type="button" class="load-more-btn" onclick="loadNextPage()">
                 Load Next <span id="pageSize">24</span> Listings
             </button>
-            <p id="paginationInfo" style="color: #9A9A9A; font-size: 12px; margin-top: 12px;"></p>
+            <p id="paginationInfo" style="color: var(--color-text-muted); font-size: 12px; margin-top: 12px;"></p>
         </div>
 
         <!-- Empty State -->
         <div id="emptyState" class="empty-state" style="display: none;">
             <div class="empty-state-icon">📦</div>
             <p><strong>No Active Listings Found</strong></p>
-            <p style="font-size: 13px; margin-top: 16px; color: #E5E5E5;">
+            <p style="font-size: 13px; margin-top: 16px; color: var(--color-text);">
                 Your eBay account doesn't have any active listings at this time.
             </p>
-            <p style="font-size: 11px; color: #6B6B6B; margin-top: 16px;">
+            <p style="font-size: 11px; color: var(--color-text-dim); margin-top: 16px;">
                 💡 This is a debug view that pulls all active listings directly from your eBay account.
             </p>
         </div>
@@ -639,42 +559,42 @@
 
     <!-- Confirmation Modal -->
     <div id="confirmationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 300; overflow-y: auto;">
-        <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 700px; margin: 40px auto; padding: 32px; color: #E5E5E5;">
-            <h2 style="margin: 0 0 28px 0; color: #FFE500;">Confirm Link</h2>
-            <div id="confirmationMessage" style="color: #E5E5E5; margin-bottom: 32px; line-height: 1.8;"></div>
+        <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 700px; margin: 40px auto; padding: 32px; color: var(--color-text);">
+            <h2 style="margin: 0 0 28px 0; color: var(--color-accent);">Confirm Link</h2>
+            <div id="confirmationMessage" style="color: var(--color-text); margin-bottom: 32px; line-height: 1.8;"></div>
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button onclick="cancelLinkConfirmation()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                <button onclick="confirmLink()" style="padding: 10px 24px; background: #FFE500; color: #0A0A0A; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Link Items</button>
+                <button onclick="cancelLinkConfirmation()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                <button onclick="confirmLink()" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Link Items</button>
             </div>
         </div>
     </div>
 
     <!-- Link Modal -->
     <div id="linkModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 200; overflow-y: auto;">
-        <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 900px; margin: 40px auto; padding: 24px; color: #E5E5E5;">
+        <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 900px; margin: 40px auto; padding: 24px; color: var(--color-text);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="margin: 0; color: #FFE500;">Link eBay Item to Inventory</h2>
-                <button onclick="closeLinkModal()" style="background: none; border: none; color: #9A9A9A; font-size: 24px; cursor: pointer;">&times;</button>
+                <h2 style="margin: 0; color: var(--color-accent);">Link eBay Item to Inventory</h2>
+                <button onclick="closeLinkModal()" style="background: none; border: none; color: var(--color-text-muted); font-size: 24px; cursor: pointer;">&times;</button>
             </div>
 
-            <p style="color: #9A9A9A; margin-bottom: 16px;">
-                eBay Item: <strong id="linkModalEbayTitle" style="color: #FFE500;"></strong>
+            <p style="color: var(--color-text-muted); margin-bottom: 16px;">
+                eBay Item: <strong id="linkModalEbayTitle" style="color: var(--color-accent);"></strong>
             </p>
 
             <div style="margin-bottom: 24px;">
-                <input type="text" id="linkSearchInput" placeholder="Search your inventory..." style="width: 100%; padding: 12px; background: #2A2A2A; border: 1px solid #3A3A3A; border-radius: 8px; color: #E5E5E5; font-size: 14px;">
+                <input type="text" id="linkSearchInput" placeholder="Search your inventory..." style="width: 100%; padding: 12px; background: var(--color-elevated); border: 1px solid var(--color-border-hover); border-radius: 8px; color: var(--color-text); font-size: 14px;">
             </div>
 
-            <div id="linkComicsList" style="max-height: 400px; overflow-y: auto; border: 1px solid #2A2A2A; border-radius: 8px; margin-bottom: 24px;">
-                <p style="padding: 16px; color: #9A9A9A; text-align: center;">Loading your inventory...</p>
+            <div id="linkComicsList" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--color-elevated); border-radius: 8px; margin-bottom: 24px;">
+                <p style="padding: 16px; color: var(--color-text-muted); text-align: center;">Loading your inventory...</p>
             </div>
 
             <div style="display: flex; gap: 12px; justify-content: flex-start; align-items: center;">
-                <button id="linkModalLoadPrevBtn" onclick="loadLinkModalPrevPage()" style="padding: 10px 24px; background: transparent; border: 1px solid #FFE500; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">← Previous Items</button>
-                <button id="linkModalLoadMoreBtn" onclick="loadLinkModalNextPage()" style="padding: 10px 24px; background: #FFE500; color: #0A0A0A; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Load Next Items</button>
+                <button id="linkModalLoadPrevBtn" onclick="loadLinkModalPrevPage()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-accent); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">← Previous Items</button>
+                <button id="linkModalLoadMoreBtn" onclick="loadLinkModalNextPage()" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Load Next Items</button>
                 <div style="flex: 1;"></div>
-                <button onclick="createNewItemFromEbay(event)" style="padding: 10px 24px; background: #4F46E5; color: #FFFFFF; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">+ Create New Item</button>
-                <button onclick="closeLinkModal()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                <button onclick="createNewItemFromEbay(event)" style="padding: 10px 24px; background: var(--color-info); color: var(--color-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">+ Create New Item</button>
+                <button onclick="closeLinkModal()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
             </div>
         </div>
     </div>
@@ -1087,7 +1007,7 @@
             // Show loading indicator immediately
             const listEl = document.getElementById('linkComicsList');
             if (listEl) {
-                listEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; padding: 40px; color: #9A9A9A;"><div style="display: flex; flex-direction: column; align-items: center; gap: 12px;"><div style="width: 24px; height: 24px; border: 2px solid #3A3A3A; border-top: 2px solid #FFE500; border-radius: 50%; animation: spin 1s linear infinite;"></div><div>Loading inventory...</div></div></div>';
+                listEl.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--color-text-muted);"><div style="display: flex; flex-direction: column; align-items: center; gap: 12px;"><div style="width: 24px; height: 24px; border: 2px solid var(--color-border-hover); border-top: 2px solid var(--color-accent); border-radius: 50%; animation: spin 1s linear infinite;"></div><div>Loading inventory...</div></div></div>';
             }
 
             // Reset link modal state
@@ -1163,18 +1083,18 @@
             `;
 
             modal.innerHTML = `
-                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 700px; margin: 40px auto; padding: 32px; color: #E5E5E5;">
-                    <h2 style="margin: 0 0 28px 0; color: #FFE500;">Confirm Unlink</h2>
-                    <div style="color: #E5E5E5; margin-bottom: 32px; line-height: 1.8;">
+                <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 700px; margin: 40px auto; padding: 32px; color: var(--color-text);">
+                    <h2 style="margin: 0 0 28px 0; color: var(--color-accent);">Confirm Unlink</h2>
+                    <div style="color: var(--color-text); margin-bottom: 32px; line-height: 1.8;">
                         <div style="margin-bottom: 20px;">
-                            <div style="color: #9A9A9A; font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Inventory Item</div>
-                            <div style="color: #E5E5E5; word-wrap: break-word;"><strong>${sku}</strong></div>
+                            <div style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Inventory Item</div>
+                            <div style="color: var(--color-text); word-wrap: break-word;"><strong>${sku}</strong></div>
                         </div>
-                        <p style="margin: 0; color: #E5E5E5;">This will remove the eBay link from this inventory item.</p>
+                        <p style="margin: 0; color: var(--color-text);">This will remove the eBay link from this inventory item.</p>
                     </div>
                     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="cancelUnlinkConfirmation()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="confirmUnlink()" style="padding: 10px 24px; background: #ef4444; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Remove Link</button>
+                        <button onclick="cancelUnlinkConfirmation()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="confirmUnlink()" style="padding: 10px 24px; background: var(--color-danger); color: var(--color-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Remove Link</button>
                     </div>
                 </div>
             `;
@@ -1262,7 +1182,7 @@
                 console.error('Error loading inventory:', error);
                 const listEl = document.getElementById('linkComicsList');
                 if (listEl) {
-                    listEl.innerHTML = '<p style="padding: 16px; color: #ef4444; text-align: center;">Error loading inventory</p>';
+                    listEl.innerHTML = '<p style="padding: 16px; color: var(--color-danger); text-align: center;">Error loading inventory</p>';
                 }
             }
         }
@@ -1300,7 +1220,7 @@
                 } else {
                     const listEl = document.getElementById('linkComicsList');
                     if (listEl) {
-                        listEl.innerHTML = '<p style="padding: 16px; color: #ef4444; text-align: center;">Failed to load inventory</p>';
+                        listEl.innerHTML = '<p style="padding: 16px; color: var(--color-danger); text-align: center;">Failed to load inventory</p>';
                     }
                 }
             } catch (error) {
@@ -1432,7 +1352,7 @@
             if (!listEl) return;
 
             if (comics.length === 0) {
-                listEl.innerHTML = '<p style="padding: 16px; color: #9A9A9A; text-align: center;">No items to display</p>';
+                listEl.innerHTML = '<p style="padding: 16px; color: var(--color-text-muted); text-align: center;">No items to display</p>';
                 return;
             }
 
@@ -1468,13 +1388,13 @@
                 }
 
                 html += `
-                    <div class="inventory-item" style="padding: 12px; border-bottom: 1px solid #2A2A2A; cursor: pointer; transition: background 0.2s; display: flex; gap: 12px; align-items: center;" onmouseover="this.style.background='rgba(255, 229, 0, 0.05)'" onmouseout="this.style.background='transparent'" onclick="linkEbayToInventory('${sku}')">
-                        <div style="width: 60px; height: 60px; background: #2A2A2A; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <div class="inventory-item-row" onclick="linkEbayToInventory('${sku}')">
+                        <div style="width: 60px; height: 60px; background: var(--color-elevated); border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                             ${imageHtml}
                         </div>
                         <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; color: #FFE500; word-break: break-word;">${sku}</div>
-                            <div style="font-size: 13px; color: #9A9A9A; margin-top: 4px; white-space: normal; word-break: break-word;">${title}</div>
+                            <div style="font-weight: 600; color: var(--color-accent); word-break: break-word;">${sku}</div>
+                            <div style="font-size: 13px; color: var(--color-text-muted); margin-top: 4px; white-space: normal; word-break: break-word;">${title}</div>
                         </div>
                     </div>
                 `;
@@ -1511,12 +1431,12 @@
 
                 confirmMessage.innerHTML = `
                     <div style="margin-bottom: 20px;">
-                        <div style="color: #9A9A9A; font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">eBay Item</div>
-                        <div style="color: #FFE500; font-weight: 600; word-wrap: break-word;">${currentLinkingEbayTitle}</div>
+                        <div style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">eBay Item</div>
+                        <div style="color: var(--color-accent); font-weight: 600; word-wrap: break-word;">${currentLinkingEbayTitle}</div>
                     </div>
                     <div>
-                        <div style="color: #9A9A9A; font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Inventory Item</div>
-                        <div style="color: #E5E5E5; word-wrap: break-word;"><strong>${sku}</strong> - ${title}</div>
+                        <div style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Inventory Item</div>
+                        <div style="color: var(--color-text); word-wrap: break-word;"><strong>${sku}</strong> - ${title}</div>
                     </div>
                 `;
 
@@ -1552,12 +1472,12 @@
             `;
 
             modal.innerHTML = `
-                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 500px; padding: 24px; color: #E5E5E5;">
-                    <h2 style="margin: 0 0 16px 0; color: #FFE500;">Link to eBay</h2>
-                    <p style="color: #E5E5E5; margin-bottom: 24px; line-height: 1.6;">This will link this comic to an existing eBay listing.<br><br>SKU: ${comicSKU}<br>Listing: ${ebayTitle}<br><br>Continue?</p>
+                <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 500px; padding: 24px; color: var(--color-text);">
+                    <h2 style="margin: 0 0 16px 0; color: var(--color-accent);">Link to eBay</h2>
+                    <p style="color: var(--color-text); margin-bottom: 24px; line-height: 1.6;">This will link this comic to an existing eBay listing.<br><br>SKU: ${comicSKU}<br>Listing: ${ebayTitle}<br><br>Continue?</p>
                     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="cancelLinkComic()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="confirmLinkComicToEbay('${comicSKU}', '${ebayItemId}')" style="padding: 10px 24px; background: #FFE500; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Link to eBay</button>
+                        <button onclick="cancelLinkComic()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="confirmLinkComicToEbay('${comicSKU}', '${ebayItemId}')" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-accent-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Link to eBay</button>
                     </div>
                 </div>
             `;
@@ -1730,7 +1650,7 @@
         function showNotification(message, type) {
             // Use standard app notification system
             const notification = document.createElement('div');
-            const bgColor = type === 'success' ? '#34d399' : type === 'error' ? '#ef4444' : '#3b82f6';
+            const bgColor = type === 'success' ? 'var(--color-success)' : type === 'error' ? 'var(--color-danger)' : 'var(--color-info)';
             const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
 
             notification.style.cssText = `
@@ -1777,13 +1697,13 @@
             const icon = type === 'success' ? '✓' : '⚠';
             const bgColor = type === 'success' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)';
             const borderColor = type === 'success' ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)';
-            const iconColor = type === 'success' ? '#34d399' : '#ef4444';
+            const iconColor = type === 'success' ? 'var(--color-success)' : 'var(--color-danger)';
 
             modal.innerHTML = `
-                <div style="background: #1A1A1A; border: ${borderColor}; border-radius: 12px; max-width: 500px; padding: 32px; text-align: center; color: #E5E5E5;">
+                <div style="background: var(--color-surface); border: ${borderColor}; border-radius: 12px; max-width: 500px; padding: 32px; text-align: center; color: var(--color-text);">
                     <div style="font-size: 48px; color: ${iconColor}; margin-bottom: 16px;">${icon}</div>
                     <p style="margin: 0; font-size: 16px; line-height: 1.6;">${message}</p>
-                    <button onclick="this.closest('[style*=position]').remove()" style="padding: 10px 32px; background: #FFE500; color: #0A0A0A; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 24px;">OK</button>
+                    <button onclick="this.closest('[style*=position]').remove()" style="padding: 10px 32px; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 24px;">OK</button>
                 </div>
             `;
 

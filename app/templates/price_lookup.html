@@ -1,17 +1,16 @@
 {% extends "base.html" %}
 
+{% block body_class %}price-lookup-page{% endblock %}
+
 {% block extra_css %}
         /* Show toggle labels outside buttons on mobile */
         @media (max-width: 768px) {
-            .nav-label {
-                display: none;
-            }
 
             .toggle-label-left,
             .toggle-label-right {
                 display: block !important;
                 padding: 0 8px;
-                color: #E5E5E5 !important;
+                color: var(--color-text) !important;
                 font-size: 13px !important;
             }
 
@@ -108,7 +107,7 @@
                 left: 0;
                 right: 0;
                 height: 2px;
-                background: #3A3A3A;
+                background: var(--color-border-hover);
                 pointer-events: none;
             }
 
@@ -145,7 +144,7 @@
             .comics-table tr.expanded .title-text {
                 white-space: normal;
                 word-wrap: break-word;
-                color: #FFE500 !important;
+                color: var(--color-accent) !important;
             }
 
             /* Always show mobile action buttons */
@@ -176,7 +175,7 @@
             margin-bottom: 32px;
             font-size: 32px;
             font-weight: 700;
-            color: #FFE500;
+            color: var(--color-accent);
         }
 
         .section-header {
@@ -192,20 +191,10 @@
             font-weight: 600;
         }
 
+        /* Page-specific width override for form-input */
         .search-box {
             width: 300px;
-            padding: 10px 14px;
-            border: 1px solid #3A3A3A;
-            border-radius: 8px;
-            font-size: 14px;
-            background: #0A0A0A;
-            color: #E5E5E5;
-            transition: border-color 0.2s;
-        }
-
-        .search-box:focus {
-            border-color: #FFE500;
-            outline: none;
+            background: var(--color-bg);
         }
 
         .inventory-summary {
@@ -215,9 +204,9 @@
         }
 
         .summary-stat {
-            background: #1A1A1A;
-            border: 1px solid #3A3A3A;
-            border-radius: 8px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-hover);
+            border-radius: var(--radius-md);
             padding: 16px;
             flex: 1;
         }
@@ -227,22 +216,22 @@
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 20px;
-            background: #1A1A1A;
-            border: 1px solid #2A2A2A;
-            border-radius: 12px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-elevated);
+            border-radius: var(--radius-lg);
             overflow: hidden;
         }
 
         .comics-table th {
-            background: #1A1A1A;
-            color: #9A9A9A;
+            background: var(--color-surface);
+            color: var(--color-text-muted);
             padding: 10px 12px;
             text-align: left;
             font-weight: 600;
             font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 2px solid #3A3A3A;
+            border-bottom: 2px solid var(--color-border-hover);
         }
 
         .comics-table .actions-header {
@@ -263,9 +252,9 @@
 
         .comics-table td {
             padding: 10px 12px;
-            border-bottom: 1px solid #2A2A2A;
+            border-bottom: 1px solid var(--color-elevated);
             font-size: 14px;
-            color: #E5E5E5;
+            color: var(--color-text);
         }
 
         .comics-table tbody tr {
@@ -273,56 +262,39 @@
         }
 
         .comics-table tbody tr:hover .title-cell .title-text {
-            color: #FFE500 !important;
+            color: var(--color-accent) !important;
             transition: color 0.3s ease;
         }
 
         .no-comics {
             text-align: center;
             padding: 48px;
-            color: #9A9A9A;
+            color: var(--color-text-muted);
         }
 
+        /* Compact action button — extends shared .btn sizing with page-specific density */
         .lookup-btn {
-            background: #FFE500;
-            color: #1A1A1A;
-            border: none;
             padding: 6px 16px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+            font-size: var(--font-size-sm);
         }
 
         .lookup-btn:hover {
-            background: #F5DB00;
+            background: var(--color-accent-hover);
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            animation: fadeIn 0.2s;
-        }
-
+        /* Price lookup modal overrides — animation + wider flex column layout */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
 
-        .modal-content {
-            background: #1A1A1A;
-            border: 1px solid #3A3A3A;
-            border-radius: 16px;
+        .price-lookup-page .modal {
+            animation: fadeIn 0.2s;
+        }
+
+        .price-lookup-page .modal-content {
             margin: 5% auto;
             padding: 0;
-            width: 90%;
             max-width: 1200px;
             max-height: 80vh;
             overflow: hidden;
@@ -330,305 +302,146 @@
             flex-direction: column;
         }
 
-        .modal-header {
+        .price-lookup-page .modal-header {
             padding: 24px 32px;
-            border-bottom: 1px solid #3A3A3A;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
-        .modal-header h2 {
-            margin: 0;
+        .price-lookup-page .modal-header h2 {
             font-size: 24px;
-            font-weight: 600;
         }
 
-        .close-btn {
-            background: transparent;
+        .price-lookup-page .modal-body {
+            padding: 32px;
+            flex: 1;
+        }
+
+        /* Footer button hover */
+        .footer-icon-btn {
+            background: none;
             border: none;
-            color: #9A9A9A;
-            font-size: 32px;
-            font-weight: 300;
+            color: var(--color-text-muted);
+            padding: 0;
+            font-size: 12px;
+            font-weight: 400;
             cursor: pointer;
             transition: color 0.2s;
-            line-height: 1;
-            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .footer-icon-btn:hover {
+            color: var(--color-accent);
+        }
+
+        /* Edit icon hover */
+        .edit-icon-hover {
+            color: var(--color-accent);
+            transition: transform 0.2s;
+        }
+
+        .edit-icon-hover:hover {
+            transform: scale(1.1);
+        }
+
+        /* Grid view edit button */
+        .grid-edit-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: var(--color-accent);
+            text-decoration: none;
             width: 32px;
             height: 32px;
-        }
-
-        .close-btn:hover {
-            color: #FFE500;
-        }
-
-        .modal-body {
-            padding: 32px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .ebay-results {
-            display: grid;
-            gap: 16px;
-        }
-
-        /* Card Layout Styles */
-        .comics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 24px;
-            margin-top: 20px;
-        }
-
-        .comic-card {
-            background: #1A1A1A;
-            border: 1px solid #2A2A2A;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.2s, border-color 0.2s;
+            border-radius: 50%;
             display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .comic-card:hover {
-            transform: translateY(-4px);
-            border-color: #FFE500;
-        }
-
-        .comic-card-image {
-            width: 100%;
-            height: 280px;
-            object-fit: contain;
-            background: #0A0A0A;
-            border-bottom: 1px solid #2A2A2A;
-        }
-
-        .comic-card-content {
-            padding: 16px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .comic-card-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin-bottom: 8px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            height: 40px;
-        }
-
-        .comic-card-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 16px;
-            font-size: 13px;
-        }
-
-        .comic-card-label {
-            color: #9A9A9A;
-        }
-
-        .comic-card-value {
-            color: #E5E5E5;
-            text-align: right;
-            font-weight: 500;
-        }
-
-        .comic-card-price {
-            color: #FFE500;
-            font-size: 20px;
-            font-weight: 700;
-            margin-top: auto;
-            padding-top: 12px;
-            border-top: 1px solid #2A2A2A;
-            display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            border: 1px solid var(--color-accent-subtle);
         }
 
-        .comic-card-actions {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.02);
+        .grid-edit-btn:hover {
+            background: var(--color-accent);
+            color: var(--color-surface);
         }
 
-        .view-toggle {
-            display: flex;
-            background: #1A1A1A;
-            border: 1px solid #3A3A3A;
-            border-radius: 8px;
-            padding: 4px;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .toggle-label-left,
-        .toggle-label-right {
-            display: none;
-            color: #9A9A9A;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .view-btn {
-            background: transparent;
-            border: none;
-            color: #9A9A9A;
-            padding: 6px 12px;
-            border-radius: 6px;
+        /* Clickable stat cards (MIN/MAX in price stats) */
+        .stat-clickable {
+            background: var(--color-bg);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            text-align: center;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s;
+            transition: background 0.2s;
         }
 
-        .view-btn.active {
-            background: #3A3A3A;
-            color: #FFE500;
+        .stat-clickable:hover {
+            background: var(--color-surface);
         }
 
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
+        /* Table row edit icon */
+        .table-edit-icon {
+            opacity: 0.7;
+            transition: opacity 0.2s;
         }
 
-        .badge-type { background: #2A2A2A; color: #E5E5E5; }
-        .badge-condition { background: #3A3A1A; color: #E5E5E5; white-space: nowrap; }
+        .edit-icon-link:hover .table-edit-icon {
+            opacity: 1;
+        }
 
-        .search-container {
+        .edit-icon-link:hover {
+            color: var(--color-accent);
+        }
+
+        /* Image selector item hover */
+        .image-selector-item {
+            border: 2px solid var(--color-border-hover);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .image-selector-item:hover {
+            border-color: var(--color-accent);
+        }
+
+        /* Grading scale item hover */
+        .grading-item {
             display: flex;
-            gap: 16px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .ebay-item-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: inline-block;
-        }
-
-        .ebay-item-badge-sold { background: #1A2A1A; color: #4CAF50; border: 1px solid #2A3A2A; }
-        .ebay-item-badge-active { background: #1A1A2A; color: #4AE5FF; border: 1px solid #2A2A3A; }
-
-        .ebay-item:hover .ebay-item-title { color: #FFE500; }
-
-        .ebay-item {
-            background: #0A0A0A;
-            border: 1px solid #3A3A3A;
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
+            align-items: flex-start;
             gap: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--color-bg);
+            border: 1px solid var(--color-elevated);
+            border-radius: var(--radius-md);
             transition: all 0.2s;
         }
 
-        .ebay-item:hover {
-            border-color: #FFE500;
-            background: #1A1A1A;
+        .grading-item:hover {
+            border-color: var(--color-accent);
+            background: var(--color-surface);
         }
 
-        .ebay-item-image {
-            width: 120px;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-            background: #2A2A2A;
-        }
-
-        .ebay-item-details {
-            flex: 1;
-        }
-
-        .ebay-item-title {
-            font-size: 16px;
+        /* Status badge (used in modal headers) */
+        .status-badge {
+            background: var(--color-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            padding: 4px 10px;
+            font-size: var(--font-size-xs);
             font-weight: 600;
-            margin-bottom: 8px;
-            color: #E5E5E5;
         }
 
-        .ebay-item-info {
-            display: flex;
-            gap: 24px;
-            margin-top: 8px;
-            font-size: 14px;
-        }
 
-        .ebay-item-price {
-            color: #FFE500;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 48px;
-            color: #9A9A9A;
-        }
-
-        .error-message {
-            background: #2A1A1A;
-            border: 1px solid #6A3A3A;
-            border-radius: 8px;
-            padding: 20px;
-            color: #FFA5A5;
-            text-align: center;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 48px;
-            color: #9A9A9A;
-        }
-
-        .stats-summary {
-            background: #0A0A0A;
-            border: 1px solid #3A3A3A;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-            display: flex;
-            gap: 32px;
-        }
-
-        .stat-item {
-            flex: 1;
-        }
-
-        .stat-label {
-            color: #9A9A9A;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            color: #FFE500;
-            font-size: 24px;
-            font-weight: 700;
-        }
 {% endblock %}
 
 {% block content %}
     <main id="main-content" class="container">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-            <a id="mainEditIcon" href="#" style="display: none; color: #FFE500; transition: transform 0.2s;" title="Edit current comic" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+            <a id="mainEditIcon" href="#" class="edit-icon-hover" style="display: none;" title="Edit current comic">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -638,22 +451,22 @@
         </div>
 
         <!-- Image Search Section -->
-        <div style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 600; color: #3A3A3A; text-align: center;">eBay Image Search</h2>
+        <div style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 32px;">
+            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 600; color: var(--color-border-hover); text-align: center;">eBay Image Search</h2>
 
             <div id="imagePreview" style="display: none;">
                 <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px;">
-                    <button id="chooseImageBtn" onclick="showCurrentComicImageSelector()" style="display: none; background: #FFE500; color: #1A1A1A; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    <button id="chooseImageBtn" class="btn btn-primary" onclick="showCurrentComicImageSelector()" style="display: none; padding: 12px 24px;">
                         Choose Image
                     </button>
-                    <button id="searchImageBtn" onclick="searchByImage()" disabled style="background: #3A3A3A; color: #9A9A9A; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: not-allowed; transition: all 0.2s;">
+                    <button id="searchImageBtn" class="btn btn-secondary" onclick="searchByImage()" disabled style="cursor: not-allowed; padding: 12px 24px;">
                         Search eBay
                     </button>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <span id="imageFileName" style="color: #9A9A9A; font-size: 14px;"></span>
+                    <span id="imageFileName" style="color: var(--color-text-muted); font-size: 14px;"></span>
                 </div>
-                <img id="previewImg" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid #3A3A3A;">
+                <img id="previewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--radius-md); border: 1px solid var(--color-border-hover);">
             </div>
         </div>
 
@@ -671,7 +484,7 @@
                     <span class="toggle-label-right">Grid</span>
                 </div>
                 <label for="searchBox" class="sr-only">Search comics</label>
-                <input type="text" id="searchBox" class="search-box" placeholder="🔍 Search comics...">
+                <input type="text" id="searchBox" class="form-input search-box" placeholder="🔍 Search comics...">
             </div>
         </div>
 
@@ -700,16 +513,16 @@
         </div>
 
         <!-- Admin Footer -->
-        <div style="position: fixed; bottom: 0; left: 0; right: 0; background: #1A1A1A; border-top: 1px solid #3A3A3A; padding: 16px 40px; display: flex; justify-content: space-between; z-index: 100;">
+        <div style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-surface); border-top: 1px solid var(--color-border-hover); padding: 16px 40px; display: flex; justify-content: space-between; z-index: 100;">
             <div style="display: flex; gap: 16px;">
-                <button onclick="openPricingAdminModal()" title="Pricing Admin Settings" class="pricing-admin-btn" style="background: none; border: none; color: #9A9A9A; padding: 0; font-size: 12px; font-weight: 400; cursor: pointer; transition: color 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px;" onmouseover="this.style.color='#FFE500'" onmouseout="this.style.color='#9A9A9A'">
+                <button onclick="openPricingAdminModal()" title="Pricing Admin Settings" class="pricing-admin-btn footer-icon-btn">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
                     </svg>
                     <span>Admin</span>
                 </button>
-                <button onclick="openGradingModal()" title="View CGC Grading Scale" class="grading-btn" style="background: none; border: none; color: #9A9A9A; padding: 0; font-size: 12px; font-weight: 400; cursor: pointer; transition: color 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px;" onmouseover="this.style.color='#FFE500'" onmouseout="this.style.color='#9A9A9A'">
+                <button onclick="openGradingModal()" title="View CGC Grading Scale" class="grading-btn footer-icon-btn">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2L2 7l10 5 10-5-10-5z"/>
                         <path d="M2 17l10 5 10-5"/>
@@ -723,23 +536,23 @@
 
     <!-- Pricing Admin Modal -->
     <div class="pricing-admin-modal" id="pricingAdminModal" onclick="closePricingAdminModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div class="pricing-admin-modal-content" onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
-                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">Pricing Page Settings</h2>
+        <div class="pricing-admin-modal-content" onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: var(--radius-lg); max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
+                <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Pricing Page Settings</h2>
                 <button onclick="closePricingAdminModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
-                <p style="color: #9A9A9A; margin-bottom: 24px;">Configure default behavior for the pricing page search functions.</p>
+                <p style="color: var(--color-text-muted); margin-bottom: 24px;">Configure default behavior for the pricing page search functions.</p>
 
                 <div style="margin-bottom: 24px;">
-                    <label for="imageSearchLimit" style="display: block; color: #E5E5E5; font-weight: 600; margin-bottom: 8px;">Image Search Results Limit</label>
-                    <input type="number" id="imageSearchLimit" min="5" max="100" value="20" style="width: 100%; background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 6px; padding: 12px; color: #E5E5E5; font-size: 14px;">
-                    <p style="color: #9A9A9A; font-size: 12px; margin-top: 4px;">Number of results to request when searching eBay by image (5-100)</p>
+                    <label for="imageSearchLimit" style="display: block; color: var(--color-text); font-weight: 600; margin-bottom: 8px;">Image Search Results Limit</label>
+                    <input type="number" id="imageSearchLimit" min="5" max="100" value="20" class="form-input" style="width: 100%; background: var(--color-bg);">
+                    <p style="color: var(--color-text-muted); font-size: 12px; margin-top: 4px;">Number of results to request when searching eBay by image (5-100)</p>
                 </div>
 
                 <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 32px;">
-                    <button onclick="closePricingAdminModal()" style="background: #3A3A3A; color: #E5E5E5; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#4A4A4A'" onmouseout="this.style.background='#3A3A3A'">Cancel</button>
-                    <button onclick="savePricingAdminSettings()" style="background: #FFE500; color: #1A1A1A; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#FFD700'" onmouseout="this.style.background='#FFE500'">Save Settings</button>
+                    <button onclick="closePricingAdminModal()" class="btn btn-secondary" style="padding: 12px 24px;">Cancel</button>
+                    <button onclick="savePricingAdminSettings()" class="btn btn-primary" style="padding: 12px 24px;">Save Settings</button>
                 </div>
             </div>
         </div>
@@ -747,9 +560,9 @@
 
     <!-- Grading Scale Modal -->
     <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div class="grading-modal-content" onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
-                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">CGC Standard Grading Scale</h2>
+        <div class="grading-modal-content" onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: var(--radius-lg); max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
+                <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">CGC Standard Grading Scale</h2>
                 <button onclick="closeGradingModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
@@ -824,7 +637,7 @@
                 card.setAttribute('data-sku', comic.SKU);
                 card.innerHTML = `
                     <div style="position: absolute; top: 10px; right: 10px; z-index: 10;">
-                        <a href="/add?sku=${comic.SKU}" style="background: rgba(0,0,0,0.6); color: #FFE500; text-decoration: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; border: 1px solid rgba(255,229,0,0.3);" title="Edit comic" onmouseover="this.style.background='#FFE500'; this.style.color='#1A1A1A'" onmouseout="this.style.background='rgba(0,0,0,0.6)'; this.style.color='#FFE500'">
+                        <a href="/add?sku=${comic.SKU}" class="grid-edit-btn" title="Edit comic">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -850,9 +663,9 @@
                         </div>
                     </div>
                     <div class="comic-card-actions">
-                        <button class="lookup-btn" onclick="lookupPrice('${comic.SKU}', event)" style="padding: 10px; font-size: 14px;">Load Image</button>
-                        <button class="lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)" style="background: #FFE500; color: #1A1A1A; padding: 10px; font-size: 14px;">Search eBay</button>
-                        <button class="lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="background: #4AE5FF; padding: 10px; font-size: 14px;">Search Sold</button>
+                        <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)" style="padding: 10px; font-size: 14px;">Load Image</button>
+                        <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Search eBay</button>
+                        <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Search Sold</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -905,8 +718,8 @@
                 // Enable search button
                 const searchBtn = document.getElementById('searchImageBtn');
                 searchBtn.disabled = false;
-                searchBtn.style.background = '#FFE500';
-                searchBtn.style.color = '#1A1A1A';
+                searchBtn.style.background = 'var(--color-accent)';
+                searchBtn.style.color = 'var(--color-surface)';
                 searchBtn.style.cursor = 'pointer';
             };
             reader.readAsDataURL(file);
@@ -987,11 +800,11 @@
             html += `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div>
-                        <h3 style="margin: 0; color: #FFFFFF;">Showing ${result.count} Matching Listings</h3>
-                        <p style="margin: 4px 0 0; font-size: 13px; color: #FFE500;">Note: If eBay matches are unsuccessful, try adding additional relevant images.</p>
+                        <h3 style="margin: 0; color: var(--color-text);">Showing ${result.count} Matching Listings</h3>
+                        <p style="margin: 4px 0 0; font-size: 13px; color: var(--color-accent);">Note: If eBay matches are unsuccessful, try adding additional relevant images.</p>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <span class="badge" style="background: #1A1A2A; color: #4AE5FF; border: 1px solid #2A2A3A;">ACTIVE MARKET</span>
+                        <span class="status-badge" style="color: var(--color-info);">ACTIVE MARKET</span>
                     </div>
                 </div>
             `;
@@ -1025,30 +838,30 @@
             // Display stats
             if (stats) {
                 html += `
-                    <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border: 2px solid #FFE500; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                        <div style="color: #FFE500; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <div style="background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%); border: 2px solid var(--color-accent); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
+                        <div style="color: var(--color-accent); font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                             <span>📊</span>
                             <span>Current Listing Price Statistics (${stats.total_items} items)</span>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px;">
-                            <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">AVERAGE</div>
-                                <div style="color: #FFE500; font-size: 20px; font-weight: 700;">$${stats.average.toFixed(2)}</div>
+                            <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">AVERAGE</div>
+                                <div style="color: var(--color-accent); font-size: 20px; font-weight: 700;">$${stats.average.toFixed(2)}</div>
                             </div>
-                            <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MEDIAN</div>
-                                <div style="color: #4AE5FF; font-size: 20px; font-weight: 700;">$${stats.median.toFixed(2)}</div>
+                            <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MEDIAN</div>
+                                <div style="color: var(--color-info); font-size: 20px; font-weight: 700;">$${stats.median.toFixed(2)}</div>
                             </div>
-                            <div onclick="window.open('${stats.minUrl}', '_blank')" style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1A1A1A'" onmouseout="this.style.background='#0A0A0A'">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MIN</div>
-                                <div style="color: #4CAF50; font-size: 18px; font-weight: 600;">$${stats.min.toFixed(2)}</div>
+                            <div class="stat-clickable" onclick="window.open('${stats.minUrl}', '_blank')">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MIN</div>
+                                <div style="color: var(--color-success); font-size: 18px; font-weight: 600;">$${stats.min.toFixed(2)}</div>
                             </div>
-                            <div onclick="window.open('${stats.maxUrl}', '_blank')" style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#1A1A1A'" onmouseout="this.style.background='#0A0A0A'">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MAX</div>
-                                <div style="color: #ff6b6b; font-size: 18px; font-weight: 600;">$${stats.max.toFixed(2)}</div>
+                            <div class="stat-clickable" onclick="window.open('${stats.maxUrl}', '_blank')">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MAX</div>
+                                <div style="color: var(--color-danger); font-size: 18px; font-weight: 600;">$${stats.max.toFixed(2)}</div>
                             </div>
                         </div>
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #3A3A3A; color: #9A9A9A; font-size: 11px; text-align: center;">
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border-hover); color: var(--color-text-muted); font-size: 11px; text-align: center;">
                             💡 Click MIN or MAX to view those listings on eBay
                         </div>
                     </div>
@@ -1066,9 +879,9 @@
                     <div class="stat-label">Showing ${startIndex + 1}-${Math.min(endIndex, result.items.length)} of ${result.items.length} items</div>
                     ${totalPages > 1 ? `
                         <div style="display: flex; gap: 8px;">
-                            ${page > 1 ? `<button onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1})" style="background: #3A3A3A; color: #FFE500; border: 1px solid #4A4A4A; padding: 8px 16px; border-radius: 6px; cursor: pointer;">← Previous</button>` : ''}
-                            <span style="color: #9A9A9A; padding: 8px 16px;">Page ${page} of ${totalPages}</span>
-                            ${page < totalPages ? `<button onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1})" style="background: #3A3A3A; color: #FFE500; border: 1px solid #4A4A4A; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Next →</button>` : ''}
+                            ${page > 1 ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1})">← Previous</button>` : ''}
+                            <span style="color: var(--color-text-muted); padding: 8px 16px;">Page ${page} of ${totalPages}</span>
+                            ${page < totalPages ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1})">Next →</button>` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -1079,23 +892,23 @@
                 const searchUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(item.title)}&LH_Sold=1`;
                 html += `
                     <div class="ebay-item">
-                        <img src="${item.image_url || ''}" alt="${item.title}" class="ebay-item-image" style="${!item.image_url ? 'background: #2A2A2A;' : ''}" onerror="this.style.background='#2A2A2A'">
+                        <img src="${item.image_url || ''}" alt="${item.title}" class="ebay-item-image" style="${!item.image_url ? 'background: var(--color-elevated);' : ''}" onerror="this.style.background='var(--color-elevated)'">
                         <div class="ebay-item-details">
                             <span class="ebay-item-badge ebay-item-badge-active">ACTIVE</span>
                             <div class="ebay-item-title">${item.title}</div>
                             <div class="ebay-item-info">
                                 <div>
-                                    <div style="color: #9A9A9A; font-size: 12px;">Current Price</div>
+                                    <div style="color: var(--color-text-muted); font-size: 12px;">Current Price</div>
                                     <div class="ebay-item-price">$${item.price.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                    <div style="color: #9A9A9A; font-size: 12px;">Condition</div>
-                                    <div style="color: #E5E5E5;">${item.condition}</div>
+                                    <div style="color: var(--color-text-muted); font-size: 12px;">Condition</div>
+                                    <div style="color: var(--color-text);">${item.condition}</div>
                                 </div>
                             </div>
                             <div style="margin-top: 12px; display: flex; gap: 12px; flex-wrap: wrap;">
-                                <a href="${item.listing_url}" target="_blank" onclick="event.stopPropagation()" style="background: #FFE500; color: #1A1A1A; text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: background 0.2s;">View Listing on eBay →</a>
-                                <a href="${searchUrl}" target="_blank" onclick="event.stopPropagation()" style="background: #3A3A3A; color: #4AE5FF; text-decoration: none; border: 1px solid #4A4A4A; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: all 0.2s;">Browse Sold Listings →</a>
+                                <a href="${item.listing_url}" target="_blank" onclick="event.stopPropagation()" class="btn btn-sm btn-primary" style="text-decoration: none; padding: 6px 12px;">View Listing on eBay →</a>
+                                <a href="${searchUrl}" target="_blank" onclick="event.stopPropagation()" class="btn btn-sm btn-secondary" style="text-decoration: none; color: var(--color-info); padding: 6px 12px;">Browse Sold Listings →</a>
                             </div>
                         </div>
                     </div>
@@ -1110,9 +923,9 @@
                     <div class="stat-label">Showing ${startIndex + 1}-${Math.min(endIndex, result.items.length)} of ${result.items.length} items</div>
                     ${totalPages > 1 ? `
                         <div style="display: flex; gap: 8px;">
-                            ${page > 1 ? `<button onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1})" style="background: #3A3A3A; color: #FFE500; border: 1px solid #4A4A4A; padding: 8px 16px; border-radius: 6px; cursor: pointer;">← Previous</button>` : ''}
-                            <span style="color: #9A9A9A; padding: 8px 16px;">Page ${page} of ${totalPages}</span>
-                            ${page < totalPages ? `<button onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1})" style="background: #3A3A3A; color: #FFE500; border: 1px solid #4A4A4A; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Next →</button>` : ''}
+                            ${page > 1 ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1})">← Previous</button>` : ''}
+                            <span style="color: var(--color-text-muted); padding: 8px 16px;">Page ${page} of ${totalPages}</span>
+                            ${page < totalPages ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1})">Next →</button>` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -1150,9 +963,9 @@
                     
                     if (result.rate_limit || result.api_type === 'FindingAPI') {
                         errorMessage = `
-                            <div style="color: #ff6b6b; font-weight: 600; margin-bottom: 8px;">eBay Service Limit Reached</div>
+                            <div style="color: var(--color-danger); font-weight: 600; margin-bottom: 8px;">eBay Service Limit Reached</div>
                             <div style="font-size: 0.95em; line-height: 1.4;">${result.error}</div>
-                            <div style="margin-top: 16px; padding: 12px; background: #2A2A2A; border-radius: 8px; font-size: 0.9em; color: #FFE500;">
+                            <div style="margin-top: 16px; padding: 12px; background: var(--color-elevated); border-radius: var(--radius-md); font-size: 0.9em; color: var(--color-accent);">
                                 💡 <strong>Pro Tip:</strong> Use the prices shown in the Image Search results as your guide. They reflect the current active market value, which is usually very close to recent sold prices.
                             </div>
                         `;
@@ -1162,7 +975,7 @@
                     if (lastImageSearchResults) {
                         errorHtml += `
                             <div style="margin-top: 20px; text-align: center;">
-                                <button onclick="renderImageSearchResults(lastImageSearchResults)" style="background: #3A3A3A; color: white; border: 1px solid #4A4A4A; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                                <button class="btn btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults)">
                                     ← Back to Image Results
                                 </button>
                             </div>
@@ -1177,7 +990,7 @@
                     if (lastImageSearchResults) {
                         noResultsHtml += `
                             <div style="margin-top: 20px; text-align: center;">
-                                <button onclick="renderImageSearchResults(lastImageSearchResults)" style="background: #3A3A3A; color: white; border: 1px solid #4A4A4A; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                                <button class="btn btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults)">
                                     ← Back to Image Results
                                 </button>
                             </div>
@@ -1197,7 +1010,7 @@
                 if (lastImageSearchResults) {
                     html += `
                         <div style="margin-bottom: 20px;">
-                            <button onclick="renderImageSearchResults(lastImageSearchResults)" style="background: #3A3A3A; color: white; border: 1px solid #4A4A4A; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                            <button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults)">
                                 ← Back to Image Results
                             </button>
                         </div>
@@ -1206,30 +1019,30 @@
 
                 if (hasStats) {
                     html += `
-                        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border: 2px solid #FFE500; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                            <div style="color: #FFE500; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <div style="background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%); border: 2px solid var(--color-accent); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
+                            <div style="color: var(--color-accent); font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                                 <span>📊</span>
                                 <span>Price Statistics (${stats.total_items} items)</span>
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px;">
-                                <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">AVERAGE</div>
-                                    <div style="color: #FFE500; font-size: 20px; font-weight: 700;">$${stats.average.toFixed(2)}</div>
+                                <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                    <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">AVERAGE</div>
+                                    <div style="color: var(--color-accent); font-size: 20px; font-weight: 700;">$${stats.average.toFixed(2)}</div>
                                 </div>
-                                <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MEDIAN</div>
-                                    <div style="color: #4AE5FF; font-size: 20px; font-weight: 700;">$${stats.median.toFixed(2)}</div>
+                                <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                    <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MEDIAN</div>
+                                    <div style="color: var(--color-info); font-size: 20px; font-weight: 700;">$${stats.median.toFixed(2)}</div>
                                 </div>
-                                <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MIN</div>
-                                    <div style="color: #4CAF50; font-size: 18px; font-weight: 600;">$${stats.min.toFixed(2)}</div>
+                                <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                    <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MIN</div>
+                                    <div style="color: var(--color-success); font-size: 18px; font-weight: 600;">$${stats.min.toFixed(2)}</div>
                                 </div>
-                                <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MAX</div>
-                                    <div style="color: #ff6b6b; font-size: 18px; font-weight: 600;">$${stats.max.toFixed(2)}</div>
+                                <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                    <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MAX</div>
+                                    <div style="color: var(--color-danger); font-size: 18px; font-weight: 600;">$${stats.max.toFixed(2)}</div>
                                 </div>
                             </div>
-                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #3A3A3A; color: #9A9A9A; font-size: 11px; text-align: center;">
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border-hover); color: var(--color-text-muted); font-size: 11px; text-align: center;">
                                 💡 Average and Median prices are most reliable for pricing your items
                             </div>
                         </div>
@@ -1256,9 +1069,9 @@
                 // Add explanation if showing split view
                 if (showingSplit) {
                     html += `
-                        <div style="background: #2A2A2A; border-left: 3px solid #FFE500; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px;">
-                            <div style="color: #FFE500; font-weight: 600; margin-bottom: 4px;">📌 Showing Top 10 & Bottom 10 Prices</div>
-                            <div style="color: #9A9A9A; font-size: 12px;">
+                        <div style="background: var(--color-elevated); border-left: 3px solid var(--color-accent); padding: 12px 16px; margin-bottom: 20px; border-radius: var(--radius-sm);">
+                            <div style="color: var(--color-accent); font-weight: 600; margin-bottom: 4px;">📌 Showing Top 10 & Bottom 10 Prices</div>
+                            <div style="color: var(--color-text-muted); font-size: 12px; line-height: 1.4;">
                                 Displaying the 10 highest and 10 lowest priced items (${sortedItems.length} total found).
                                 This helps you see what factors affect pricing at both ends of the range.
                             </div>
@@ -1272,8 +1085,8 @@
                     // Add separator between top 10 and bottom 10
                     if (showingSplit && index === 10) {
                         html += `
-                            <div style="grid-column: 1 / -1; padding: 16px 0; margin: 8px 0; border-top: 2px dashed #3A3A3A; border-bottom: 2px dashed #3A3A3A; text-align: center;">
-                                <div style="color: #9A9A9A; font-size: 13px; font-weight: 600;">
+                            <div style="grid-column: 1 / -1; padding: 16px 0; margin: 8px 0; border-top: 2px dashed var(--color-border-hover); border-bottom: 2px dashed var(--color-border-hover); text-align: center;">
+                                <div style="color: var(--color-text-muted); font-size: 13px; font-weight: 600;">
                                     ⬇️ LOWEST PRICED ITEMS ⬇️
                                 </div>
                             </div>
@@ -1283,32 +1096,32 @@
                     // Add badge for top priced items
                     const isTopPriced = showingSplit ? (index < 10) : (index === 0 && sortedItems.length > 1);
                     const badge = isTopPriced ?
-                        `<div style="position: absolute; top: 8px; right: 8px; background: linear-gradient(135deg, #FFE500 0%, #FFD700 100%); color: #1A1A1A; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.1);">🏆 TOP PRICED</div>` : '';
+                        `<div style="position: absolute; top: 8px; right: 8px; background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-warning) 100%); color: var(--color-surface); padding: 4px 8px; border-radius: var(--radius-sm); font-size: 10px; font-weight: 700; box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,0.1);">🏆 TOP PRICED</div>` : '';
 
                     html += `
-                        <div class="ebay-item" style="position: relative; ${isTopPriced ? 'border-color: #FFE500; background: rgba(255, 229, 0, 0.05);' : ''}">
+                        <div class="ebay-item" style="position: relative; ${isTopPriced ? 'border-color: var(--color-accent); background: var(--color-accent-subtle);' : ''}">
                             ${badge}
-                            <img src="${item.image_url || ''}" alt="${item.title}" class="ebay-item-image" style="${!item.image_url ? 'background: #2A2A2A;' : ''}" onerror="this.style.background='#2A2A2A'">
+                            <img src="${item.image_url || ''}" alt="${item.title}" class="ebay-item-image" style="${!item.image_url ? 'background: var(--color-elevated);' : ''}" onerror="this.style.background='var(--color-elevated)'">
                             <div class="ebay-item-details">
                                 <span class="ebay-item-badge ebay-item-badge-sold">SOLD</span>
                                 <div class="ebay-item-title">${item.title}</div>
                                 <div class="ebay-item-info">
                                     <div>
-                                        <div style="color: #9A9A9A; font-size: 12px;">Sold Price</div>
+                                        <div style="color: var(--color-text-muted); font-size: 12px;">Sold Price</div>
                                         <div class="ebay-item-price">$${item.sold_price.toFixed(2)}</div>
                                     </div>
                                     <div>
-                                        <div style="color: #9A9A9A; font-size: 12px;">Condition</div>
-                                        <div style="color: #E5E5E5;">${item.condition}</div>
+                                        <div style="color: var(--color-text-muted); font-size: 12px;">Condition</div>
+                                        <div style="color: var(--color-text);">${item.condition}</div>
                                     </div>
                                     <div>
-                                        <div style="color: #9A9A9A; font-size: 12px;">Sold Date</div>
-                                        <div style="color: #E5E5E5;">${date}</div>
+                                        <div style="color: var(--color-text-muted); font-size: 12px;">Sold Date</div>
+                                        <div style="color: var(--color-text);">${date}</div>
                                     </div>
                                 </div>
                                 <div style="margin-top: 12px; display: flex; gap: 12px; align-items: center;">
-                                    <a href="${item.listing_url}" target="_blank" style="background: #FFE500; color: #1A1A1A; text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: background 0.2s;">View Listing →</a>
-                                    <a href="https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(item.title)}" target="_blank" style="background: #3A3A3A; color: #4AE5FF; text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: 1px solid #4A4A4A; transition: all 0.2s;">More Like This →</a>
+                                    <a href="${item.listing_url}" target="_blank" class="btn btn-sm btn-primary" style="text-decoration: none; padding: 6px 12px;">View Listing →</a>
+                                    <a href="https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(item.title)}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none; color: var(--color-info); padding: 6px 12px;">More Like This →</a>
                                 </div>
                             </div>
                         </div>
@@ -1418,7 +1231,7 @@
                 tableRow.className = 'load-more-row';
                 tableRow.innerHTML = `
                     <td colspan="4" style="text-align: center; padding: 20px;">
-                        <button onclick="loadComics(${currentPage + 1}, true)" style="background: #FFE500; color: #1A1A1A; border: none; padding: 12px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#F5DB00'" onmouseout="this.style.background='#FFE500'">
+                        <button class="btn btn-primary" onclick="loadComics(${currentPage + 1}, true)" style="padding: 12px 32px;">
                             ${buttonText}
                         </button>
                     </td>
@@ -1427,12 +1240,10 @@
 
                 // Add to grid view
                 const gridBtn = document.createElement('button');
-                gridBtn.className = 'load-more-btn';
+                gridBtn.className = 'btn btn-primary load-more-btn';
                 gridBtn.textContent = buttonText;
                 gridBtn.onclick = () => loadComics(currentPage + 1, true);
-                gridBtn.style.cssText = 'display: block; width: 100%; max-width: 400px; margin: 32px auto; padding: 16px 32px; background: #FFE500; color: #1A1A1A; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s;';
-                gridBtn.onmouseover = function() { this.style.background = '#F5DB00'; };
-                gridBtn.onmouseout = function() { this.style.background = '#FFE500'; };
+                gridBtn.style.cssText = 'display: block; width: 100%; max-width: 400px; margin: 32px auto; padding: 16px 32px;';
                 gridBody.appendChild(gridBtn);
             }
         }
@@ -1487,13 +1298,13 @@
                 const row = document.createElement('tr');
                 row.setAttribute('data-sku', comic.SKU);
                 row.className = 'pricing-table-row';
-                row.style.background = index % 2 === 0 ? '#0A0A0A' : '#1A1A1A';
-                row.dataset.defaultBg = index % 2 === 0 ? '#0A0A0A' : '#1A1A1A';
+                row.style.background = index % 2 === 0 ? 'var(--color-bg)' : 'var(--color-surface)';
+                row.dataset.defaultBg = index % 2 === 0 ? 'var(--color-bg)' : 'var(--color-surface)';
                 row.innerHTML = `
                     <td class="title-cell">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <a href="/add?sku=${comic.SKU}" class="edit-icon-link" style="color: #9A9A9A; text-decoration: none; display: flex; align-items: center; transition: color 0.2s;" title="Edit comic" onclick="event.stopPropagation();">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'; this.parentElement.style.color='#FFE500'" onmouseout="this.style.opacity='0.7'; this.parentElement.style.color='#9A9A9A'">
+                            <a href="/add?sku=${comic.SKU}" class="edit-icon-link" style="color: var(--color-text-muted); text-decoration: none; display: flex; align-items: center; transition: color 0.2s;" title="Edit comic" onclick="event.stopPropagation();">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="table-edit-icon">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
@@ -1505,9 +1316,9 @@
                     <td><span class="badge badge-condition">${conditionAcronym}</span></td>
                     <td class="desktop-actions">
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                            <button class="lookup-btn" onclick="lookupPrice('${comic.SKU}', event)" style="font-size: 13px;">Load Image</button>
-                            <button class="lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)" style="background: #FFE500; color: #1A1A1A; font-size: 13px;">Search eBay</button>
-                            <button class="lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="background: #4AE5FF; font-size: 13px;">Search Sold</button>
+                            <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
+                            <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Search Sold</button>
                         </div>
                     </td>
                 `;
@@ -1551,7 +1362,7 @@
                         this.classList.add('expanded');
                         const fullTitle = titleCell.dataset.fullTitle;
                         titleCell.textContent = fullTitle;
-                        titleCell.style.color = '#FFE500';
+                        titleCell.style.color = 'var(--color-accent)';
                     }
                 });
 
@@ -1560,13 +1371,13 @@
                 // Always add action buttons row on mobile
                 const actionsRow = document.createElement('tr');
                 actionsRow.className = 'mobile-actions';
-                const actionsBg = index % 2 === 0 ? '#0A0A0A' : '#1A1A1A';
+                const actionsBg = index % 2 === 0 ? 'var(--color-bg)' : 'var(--color-surface)';
                 actionsRow.innerHTML = `
-                    <td colspan="3" style="padding: 8px 16px; background: ${actionsBg}; border-bottom: 2px solid #2A2A2A;">
+                    <td colspan="3" style="padding: 8px 16px; background: ${actionsBg}; border-bottom: 2px solid var(--color-elevated);">
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-                            <button class="lookup-btn" onclick="lookupPrice('${comic.SKU}', event)" style="font-size: 11px;">Load Image</button>
-                            <button class="lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)" style="background: #FFE500; color: #1A1A1A; font-size: 11px;">Search eBay</button>
-                            <button class="lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="background: #4AE5FF; font-size: 11px;">Search Sold</button>
+                            <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
+                            <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Search Sold</button>
                         </div>
                     </td>
                 `;
@@ -1622,11 +1433,11 @@
             modalTitle.textContent = titleText;
             modalBody.innerHTML = `
                 <div style="padding: 20px; text-align: center;">
-                    <div style="color: #9A9A9A; margin-bottom: 20px;">
+                    <div style="color: var(--color-text-muted); margin-bottom: 20px;">
                         <p style="font-size: 16px; margin-bottom: 12px;">⚠️ eBay blocks in-app viewing for security reasons</p>
                         <p style="font-size: 14px;">Click the button below to open in a new browser tab:</p>
                     </div>
-                    <button onclick="window.open('${url}', '_blank'); closeModal();" style="background: #FFE500; color: #1A1A1A; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    <button class="btn btn-primary" onclick="window.open('${url}', '_blank'); closeModal();" style="padding: 12px 24px;">
                         Open in Browser
                     </button>
                 </div>
@@ -1666,18 +1477,18 @@
                         modalBody.innerHTML = `
                             <div style="padding: 40px; text-align: center;">
                                 <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
-                                <h3 style="color: #FFE500; margin-bottom: 16px;">Daily API Limit Reached</h3>
-                                <p style="color: #9A9A9A; margin-bottom: 24px; line-height: 1.6;">
+                                <h3 style="color: var(--color-accent); margin-bottom: 16px;">Daily API Limit Reached</h3>
+                                <p style="color: var(--color-text-muted); margin-bottom: 24px; line-height: 1.6;">
                                     eBay's Finding API has reached its daily limit of 5,000 calls.<br>
                                     The limit resets at midnight PST.<br><br>
                                     You can still search directly on eBay.com:
                                 </p>
-                                <button onclick="window.open('${searchUrl}', '_blank'); closeModal();" style="background: #FFE500; color: #1A1A1A; border: none; padding: 14px 28px; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#FFD700'" onmouseout="this.style.background='#FFE500'">
+                                <button class="btn btn-primary" onclick="window.open('${searchUrl}', '_blank'); closeModal();" style="padding: 14px 28px; font-size: 16px;">
                                     Open Search on eBay.com
                                 </button>
-                                <div style="margin-top: 24px; padding: 16px; background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 8px; text-align: left;">
-                                    <div style="color: #4AE5FF; font-weight: 600; margin-bottom: 8px;">💡 Alternative: Use Image Search</div>
-                                    <div style="color: #9A9A9A; font-size: 14px; line-height: 1.6;">
+                                <div style="margin-top: 24px; padding: 16px; background: var(--color-bg); border: 1px solid var(--color-border-hover); border-radius: var(--radius-md); text-align: left;">
+                                    <div style="color: var(--color-info); font-weight: 600; margin-bottom: 8px;">💡 Alternative: Use Image Search</div>
+                                    <div style="color: var(--color-text-muted); font-size: 14px; line-height: 1.6;">
                                         The "Search eBay by Image" feature uses a different API with separate limits and still works!<br>
                                         Click "Load Image" on any comic to try it.
                                     </div>
@@ -1695,7 +1506,7 @@
                     modalBody.innerHTML = `
                         <div class="no-results">No ${typeLabel.toLowerCase()} items found on eBay.</div>
                         <div style="text-align: center; margin-top: 20px;">
-                            <button onclick="window.open('${searchUrl}', '_blank'); closeModal();" style="background: #FFE500; color: #1A1A1A; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                            <button class="btn btn-primary" onclick="window.open('${searchUrl}', '_blank'); closeModal();" style="padding: 12px 24px;">
                                 Open Full Search in Browser
                             </button>
                         </div>
@@ -1721,10 +1532,10 @@
             html += `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div>
-                        <h3 style="margin: 0; color: #FFFFFF;">Found ${result.count} ${typeLabel} Listings</h3>
+                        <h3 style="margin: 0; color: var(--color-text);">Found ${result.count} ${typeLabel} Listings</h3>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <span class="badge" style="background: ${typeLabel === 'Sold' ? '#1A2A1A' : '#1A1A2A'}; color: ${typeLabel === 'Sold' ? '#4CAF50' : '#4AE5FF'}; border: 1px solid #2A2A3A;">${typeLabel.toUpperCase()}</span>
+                        <span class="status-badge" style="color: ${typeLabel === 'Sold' ? 'var(--color-success)' : 'var(--color-info)'};">${typeLabel.toUpperCase()}</span>
                     </div>
                 </div>
             `;
@@ -1741,30 +1552,30 @@
                 const maxItem = result.items.find(item => item.price === maxPrice);
 
                 html += `
-                    <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border: 2px solid #FFE500; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                        <div style="color: #FFE500; font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <div style="background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%); border: 2px solid var(--color-accent); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
+                        <div style="color: var(--color-accent); font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                             <span>📊</span>
                             <span>${typeLabel} Price Statistics (${prices.length} items)</span>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px;">
-                            <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">AVERAGE</div>
-                                <div style="color: #FFE500; font-size: 20px; font-weight: 700;">$${avgPrice.toFixed(2)}</div>
+                            <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">AVERAGE</div>
+                                <div style="color: var(--color-accent); font-size: 20px; font-weight: 700;">$${avgPrice.toFixed(2)}</div>
                             </div>
-                            <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MEDIAN</div>
-                                <div style="color: #4AE5FF; font-size: 20px, font-weight: 700;">$${medianPrice.toFixed(2)}</div>
+                            <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MEDIAN</div>
+                                <div style="color: var(--color-info); font-size: 20px; font-weight: 700;">$${medianPrice.toFixed(2)}</div>
                             </div>
-                            <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MIN</div>
-                                <div style="color: #4CAF50; font-size: 18px; font-weight: 600;">$${minPrice.toFixed(2)}</div>
+                            <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MIN</div>
+                                <div style="color: var(--color-success); font-size: 18px; font-weight: 600;">$${minPrice.toFixed(2)}</div>
                             </div>
-                            <div style="background: #0A0A0A; padding: 12px; border-radius: 8px; text-align: center;">
-                                <div style="color: #9A9A9A; font-size: 11px; margin-bottom: 4px;">MAX</div>
-                                <div style="color: #ff6b6b; font-size: 18px; font-weight: 600;">$${maxPrice.toFixed(2)}</div>
+                            <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
+                                <div style="color: var(--color-text-muted); font-size: 11px; margin-bottom: 4px;">MAX</div>
+                                <div style="color: var(--color-danger); font-size: 18px; font-weight: 600;">$${maxPrice.toFixed(2)}</div>
                             </div>
                         </div>
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #3A3A3A; color: #9A9A9A; font-size: 11px; text-align: center;">
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border-hover); color: var(--color-text-muted); font-size: 11px; text-align: center;">
                             💡 Click MIN or MAX to view those listings on eBay
                         </div>
                     </div>
@@ -1773,9 +1584,9 @@
 
             // "Open Full Search in Browser" button
             html += `
-                <div style="margin-bottom: 24px; text-align: center; padding: 16px; background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 8px;">
-                    <p style="color: #9A9A9A; margin-bottom: 12px;">View all results with filters on eBay.com</p>
-                    <button onclick="window.open('${searchUrl}', '_blank');" style="background: #FFE500; color: #1A1A1A; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#FFD700'" onmouseout="this.style.background='#FFE500'">
+                <div style="margin-bottom: 24px; text-align: center; padding: 16px; background: var(--color-bg); border: 1px solid var(--color-border-hover); border-radius: var(--radius-md);">
+                    <p style="color: var(--color-text-muted); margin-bottom: 12px;">View all results with filters on eBay.com</p>
+                    <button class="btn btn-primary" onclick="window.open('${searchUrl}', '_blank');" style="padding: 12px 24px;">
                         🔗 Open Full Search in Browser
                     </button>
                 </div>
@@ -1795,23 +1606,23 @@
 
                 html += `
                     <div class="ebay-item">
-                        <img src="${item.image_url || ''}" alt="${item.title}" class="ebay-item-image" style="${!item.image_url ? 'background: #2A2A2A;' : ''}" onerror="this.style.background='#2A2A2A'">
+                        <img src="${item.image_url || ''}" alt="${item.title}" class="ebay-item-image" style="${!item.image_url ? 'background: var(--color-elevated);' : ''}" onerror="this.style.background='var(--color-elevated)'">
                         <div class="ebay-item-details">
                             ${badge}
                             <div class="ebay-item-title">${item.title}</div>
                             <div class="ebay-item-info">
                                 <div>
-                                    <div style="color: #9A9A9A; font-size: 12px;">${typeLabel} Price</div>
+                                    <div style="color: var(--color-text-muted); font-size: 12px;">${typeLabel} Price</div>
                                     <div class="ebay-item-price">$${item.price.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                    <div style="color: #9A9A9A; font-size: 12px;">Condition</div>
-                                    <div style="color: #E5E5E5;">${item.condition}</div>
+                                    <div style="color: var(--color-text-muted); font-size: 12px;">Condition</div>
+                                    <div style="color: var(--color-text);">${item.condition}</div>
                                 </div>
                             </div>
                             <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-                                <a href="${item.listing_url}" target="_blank" onclick="event.stopPropagation()" style="background: #FFE500; color: #1A1A1A; text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; display: inline-block;">View on eBay →</a>
-                                <button onclick="useThisListing('${escapedTitle}', ${escapedPrice}); event.stopPropagation();" style="background: #4AE5FF; color: #1A1A1A; border: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#5AF5FF'" onmouseout="this.style.background='#4AE5FF'">📋 Use This</button>
+                                <a href="${item.listing_url}" target="_blank" onclick="event.stopPropagation()" class="btn btn-sm btn-primary" style="text-decoration: none; padding: 6px 12px;">View on eBay →</a>
+                                <button class="btn btn-sm btn-info" onclick="useThisListing('${escapedTitle}', ${escapedPrice}); event.stopPropagation();">📋 Use This</button>
                             </div>
                         </div>
                     </div>
@@ -1914,12 +1725,12 @@
                 const cards = document.querySelectorAll('.comic-card');
                 cards.forEach(card => {
                     if (card.getAttribute('data-sku') === sku) {
-                        card.style.borderColor = '#FFE500';
-                        card.style.background = '#2A2A2A';
-                        card.style.boxShadow = '0 0 15px rgba(255, 229, 0, 0.3)';
+                        card.style.borderColor = 'var(--color-accent)';
+                        card.style.background = 'var(--color-elevated)';
+                        card.style.boxShadow = 'var(--shadow-md)';
                     } else {
-                        card.style.borderColor = '#2A2A2A';
-                        card.style.background = '#1A1A1A';
+                        card.style.borderColor = 'var(--color-elevated)';
+                        card.style.background = 'var(--color-surface)';
                         card.style.boxShadow = 'none';
                     }
                 });
@@ -1927,8 +1738,8 @@
                 const rows = document.querySelectorAll('#comicsTableBody tr');
                 rows.forEach(row => {
                     if (row.getAttribute('data-sku') === sku) {
-                        row.style.background = '#2A2A2A';
-                        row.style.outline = '2px solid #FFE500';
+                        row.style.background = 'var(--color-elevated)';
+                        row.style.outline = '2px solid var(--color-accent)';
                         row.style.outlineOffset = '-2px';
                     } else {
                         row.style.background = 'transparent';
@@ -1988,30 +1799,28 @@
             overlay.id = 'image-selector-' + Date.now();
 
             const popup = document.createElement('div');
-            popup.style.cssText = 'background: #1a1a1a; border: 2px solid #FFE500; border-radius: 12px; padding: 24px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;';
+            popup.style.cssText = 'background: var(--color-surface); border: 2px solid var(--color-accent); border-radius: var(--radius-lg); padding: 24px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;';
 
             let imagesHtml = '';
             imageUrls.forEach((url, index) => {
                 imagesHtml += `
-                    <div style="border: 2px solid #3A3A3A; border-radius: 8px; padding: 12px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.2s;"
-                         onmouseover="this.style.borderColor='#FFE500'"
-                         onmouseout="this.style.borderColor='#3A3A3A'"
+                    <div class="image-selector-item"
                          onclick="loadComicImageAndClose('${comic.SKU}', '${url.replace(/'/g, "\\'")}', ${index}, '${overlay.id}')">
                         <div style="display: flex; align-items: center; gap: 16px;">
-                            <img src="${url}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; background: #2A2A2A;" onerror="this.style.background='#2A2A2A'; this.style.border='1px solid #3A3A3A'">
+                            <img src="${url}" style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-sm); background: var(--color-elevated);" onerror="this.style.background='var(--color-elevated)'; this.style.border='1px solid var(--color-border-hover)'">
                             <div>
-                                <div style="color: #FFE500; font-weight: 600; margin-bottom: 4px;">Image ${index + 1}</div>
-                                <div style="color: #9A9A9A; font-size: 12px;">Click to use this image</div>
+                                <div style="color: var(--color-accent); font-weight: 600; margin-bottom: 4px;">Image ${index + 1}</div>
+                                <div style="color: var(--color-text-muted); font-size: 12px;">Click to use this image</div>
                             </div>
                         </div>
                     </div>
                 `;
             });
             popup.innerHTML = `
-                <div style="color: #FFE500; font-size: 18px; font-weight: 700; margin-bottom: 16px;">Select Image for ${comic.Title}</div>
-                <div style="color: #9A9A9A; font-size: 14px; margin-bottom: 20px;">Choose which image to use for eBay search (${imageUrls.length} images available)</div>
+                <div style="color: var(--color-accent); font-size: 18px; font-weight: 700; margin-bottom: 16px;">Select Image for ${comic.Title}</div>
+                <div style="color: var(--color-text-muted); font-size: 14px; margin-bottom: 20px;">Choose which image to use for eBay search (${imageUrls.length} images available)</div>
                 ${imagesHtml}
-                <button onclick="document.getElementById('${overlay.id}').remove()" style="background: #3A3A3A; color: white; border: 1px solid #4A4A4A; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 12px;">Cancel</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('${overlay.id}').remove()" style="width: 100%; margin-top: 12px;">Cancel</button>
             `;
 
             overlay.appendChild(popup);
@@ -2076,16 +1885,16 @@
                 // Enable search button
                 const searchBtn = document.getElementById('searchImageBtn');
                 searchBtn.disabled = false;
-                searchBtn.style.background = '#FFE500';
-                searchBtn.style.color = '#1A1A1A';
+                searchBtn.style.background = 'var(--color-accent)';
+                searchBtn.style.color = 'var(--color-surface)';
                 searchBtn.style.cursor = 'pointer';
 
                 // Highlight the search section briefly
-                const searchSection = document.querySelector('[style*="background: #1A1A1A"]');
+                const searchSection = document.querySelector('[style*="background: var(--color-surface)"]');
                 if (searchSection) {
-                    searchSection.style.border = '2px solid #FFE500';
+                    searchSection.style.border = '2px solid var(--color-accent)';
                     setTimeout(() => {
-                        searchSection.style.border = '1px solid #3A3A3A';
+                        searchSection.style.border = '1px solid var(--color-border-hover)';
                     }, 2000);
                 }
 
@@ -2171,7 +1980,7 @@
             {grade: "3.5", name: "Very Good-", desc: "Fits the criteria for Very Good but with an additional defect or small accumulation of defects that detracts from the book's appearance by a perceptible amount."},
             {grade: "3.0", name: "Good/Very Good", desc: "A comic showing significant wear. Cover shows significant wear and may be loose but not completely detached. Cover reflectivity is very low. Can have a book-length crease and/or dimples. Store stamps, name stamps, arrival dates, etc. can be present. Can have up to a 2\" spine split. Corners may be blunted or abraded. Soiling and staining is generally present. Staples may be rusted, replaced, or moved. Moderate staple tears and stress lines may be present, as well as rust migration. Paper is brown but not brittle. Centerfold may be loose or detached. Moderate to major interior tears may be present."},
             {grade: "2.5", name: "Good+", desc: "Fits the criteria for Good but with an additional virtue or small accumulation of virtues that improves the book's appearance by a perceptible amount."},
-            {grade: "2.0", name: "Good", desc: "A comic showing substantial wear. A copy in this grade has all pages and covers, although there may be small pieces missing inside; books in this grade are commonly creased, scuffed, abraded, soiled, and unattractive. Some collectors consider this the lowest collectible grade because comic books in lesser condition are usually incomplete and/or brittle. Cover shows considerable wear and may be detached. Cover reflectivity is low and in some cases completely absent. Store stamps, name stamps, arrival dates, etc. can be present. Can have a spine split of anywhere from 1/3 to 2/3 the length of the book. Corners may be blunted or abraded. Soiling and staining is generally present. Staples may be rusted, replaced, or moved. Staple tears and stress lines are very common, as is rust migration. Paper is brown and may show brittleness around the edges. Centerfold may be loose or detached. Major interior tears may be present."},
+            {grade: "2.0", name: "Good", desc: "A comic showing substantial wear. A copy in this grade has all pages and covers, although there may be small pieces missing. Books in this grade are commonly creased, scuffed, abraded, soiled, and unattractive. Some collectors consider this the lowest collectible grade because comic books in lesser condition are usually incomplete and/or brittle. Cover shows considerable wear and may be detached. Cover reflectivity is absent. Store stamps, name stamps, arrival dates, etc. can be present. Can have a spine split of anywhere from 1/3 to 2/3 the length of the book. Corners may be blunted or abraded. Soiling and staining is generally present. Staples may be rusted, replaced, or moved. Major staple tears and stress lines are very common, as is rust migration. Paper is brown and may show brittleness around the edges. Centerfold may be loose or detached. Major interior tears may be present."},
             {grade: "1.8", name: "Good-", desc: "Fits the criteria for Good but with an additional defect or small accumulation of defects that detracts from the book's appearance by a perceptible amount."},
             {grade: "1.5", name: "Fair/Good", desc: "A comic showing heavy wear. A copy in this grade has all pages and covers, although there may be small pieces missing. Books in this grade are commonly creased, scuffed, abraded, soiled, and unattractive. Some collectors consider this the lowest collectible grade, while others do collect lower-graded comics. Comic books in less than Poor condition are always incomplete and/or brittle."},
             {grade: "1.0", name: "Fair", desc: "A copy in this grade shows heavy wear. Some collectors consider this the lowest collectible grade because comic books in lesser condition are usually incomplete and/or brittle. Comics in this grade are commonly creased, scuffed, abraded, soiled, and possibly unattractive. This is the last grade in which a comic remains generally readable. Cover may be detached, and inks have lost all reflectivity. Accumulation of defects is generally more severe than in a GD comic. Cover shows considerable wear and may be detached. Cover reflectivity is absent. Store stamps, name stamps, arrival dates, etc. can be present. Can have a spine split the entire length of the book. Corners may be blunted or abraded. Soiling and staining is generally present. Staples may be rusted, replaced, or moved. Major staple tears and stress lines are very common, as is rust migration. Paper is brown and may show brittleness around the edges but not in the central portion of the pages. Centerfold may be loose or detached. Major interior tears may be present. Multiple pages, but not the centerfold, may be missing that, if present, would affect the story."},
@@ -2185,12 +1994,12 @@
             // Lazy load content - only populate once
             if (!content.innerHTML) {
                 content.innerHTML = gradingScaleData.map(item => `
-                    <div style="display: flex; align-items: flex-start; gap: 20px; padding: 16px; margin-bottom: 12px; background: #0A0A0A; border: 1px solid #2A2A2A; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.borderColor='#FFE500'; this.style.background='#1A1A1A'" onmouseout="this.style.borderColor='#2A2A2A'; this.style.background='#0A0A0A'">
+                    <div class="grading-item">
                         <div style="min-width: 80px; text-align: center;">
-                            <div style="font-size: 32px; font-weight: 700; color: #FFE500; line-height: 1; margin-bottom: 4px;">${item.grade}</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #E5E5E5; white-space: nowrap;">${item.name}</div>
+                            <div style="font-size: 32px; font-weight: 700; color: var(--color-accent); line-height: 1; margin-bottom: 4px;">${item.grade}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: var(--color-text); white-space: nowrap;">${item.name}</div>
                         </div>
-                        <div style="flex: 1; color: #9A9A9A; font-size: 14px; line-height: 1.6;">${item.desc}</div>
+                        <div style="flex: 1; color: var(--color-text-muted); font-size: 14px; line-height: 1.6;">${item.desc}</div>
                     </div>
                 `).join('');
             }
@@ -2287,8 +2096,8 @@
 
             // Disable search button
             searchBtn.disabled = true;
-            searchBtn.style.background = '#3A3A3A';
-            searchBtn.style.color = '#9A9A9A';
+            searchBtn.style.background = 'var(--color-border-hover)';
+            searchBtn.style.color = 'var(--color-text-muted)';
             searchBtn.style.cursor = 'not-allowed';
 
             // Reset file input

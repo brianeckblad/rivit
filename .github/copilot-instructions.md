@@ -99,6 +99,33 @@ All docs in `deployment/docs/` follow a consistent vendor-guide style. See [AGEN
 
 ---
 
+## UI Design System - CRITICAL
+
+All colors, spacing, and component classes live in two shared CSS files. See [AGENTS.md](../AGENTS.md) for full details.
+
+**Key rules:**
+
+- All colors use `var(--color-*)` tokens from `app/static/css/tokens.css` — never hard-code hex
+- Shared components (`.btn`, `.btn-primary`, `.modal`, `.modal-content`, `.form-input`, etc.) come from `app/static/css/components.css` — never re-declare in template `<style>` blocks
+- No `onmouseover` / `onmouseout` inline handlers for hover effects — use CSS classes
+- No colored glow shadows (`rgba(255, 229, 0, ...)`) — use `var(--shadow-sm/md/lg)`
+- Border-radius: `var(--radius-sm)` 6px buttons/inputs, `var(--radius-md)` 10px cards, `var(--radius-lg)` 14px modals
+- Page-specific styles in `{% block extra_css %}` only for layout unique to that page
+
+**Color palette:**
+
+| Token | Hex | Role |
+|-------|-----|------|
+| `--color-bg` | `#111210` | Body background |
+| `--color-surface` | `#1B1B1B` | Cards, header, footer |
+| `--color-elevated` | `#242422` | Modals, dropdowns |
+| `--color-text` | `#E4E4DE` | Primary text (Ethereal Ivory) |
+| `--color-text-muted` | `#C4C5BA` | Secondary text (Sophisticated Sage) |
+| `--color-accent` | `#595F39` | Buttons, active states (Muted Moss) |
+| `--color-danger` | `#C45C5C` | Destructive actions |
+
+---
+
 ## Project Context
 
 - **Stack:** Python / Flask application with Ansible deployment to AWS EC2

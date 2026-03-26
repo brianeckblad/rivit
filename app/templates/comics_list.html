@@ -2,13 +2,8 @@
 
 {% block extra_css %}
 
-        /* Hide labels on mobile */
+        /* Optimize working inventory table for mobile */
         @media (max-width: 768px) {
-            .nav-label {
-                display: none;
-            }
-
-            /* Optimize working inventory table for mobile */
             #workingInventoryTable th,
             #workingInventoryTable td {
                 padding: 10px 8px !important;
@@ -53,7 +48,7 @@
             #workingInventoryTable tr.expanded td:nth-child(2) {
                 white-space: normal;
                 word-wrap: break-word;
-                color: #FFE500 !important;
+                color: var(--color-accent) !important;
             }
         }
 
@@ -82,38 +77,14 @@
             white-space: nowrap;
         }
 
-        .page-header h1 {
-            font-size: 48px;
-            font-weight: 300;
-            color: #FFFFFF;
-            letter-spacing: -1px;
-            margin-bottom: 12px;
-        }
-
-        .page-header p {
-            font-size: 18px;
-            color: #9A9A9A;
-            font-weight: 300;
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            border: 0;
-        }
 
         .comics-count {
-            color: #FFE500;
+            color: var(--color-accent);
             font-weight: 600;
         }
 
         .comics-value {
-            color: #FFE500;
+            color: var(--color-accent);
             font-weight: 600;
         }
 
@@ -124,7 +95,7 @@
         }
 
         .comic-card {
-            background: #1A1A1A;
+            background: var(--color-surface);
             border-radius: 0px;
             overflow: hidden;
             transition: all 0.3s;
@@ -145,7 +116,7 @@
             width: 100%;
             height: 280px;
             object-fit: cover;
-            background: #2A2A2A;
+            background: var(--color-elevated);
             flex-shrink: 0;
         }
 
@@ -165,7 +136,7 @@
         .comic-title {
             font-size: 18px;
             font-weight: 600;
-            color: #FFFFFF;
+            color: var(--color-text);
             margin-bottom: 4px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -180,7 +151,7 @@
             flex-direction: column;
             gap: 2px;
             font-size: 14px;
-            color: #9A9A9A;
+            color: var(--color-text-muted);
         }
 
         .comic-meta-item {
@@ -215,15 +186,15 @@
         }
 
         .status-light.ebay {
-            color: #00BFFF; /* Blue for eBay */
+            color: var(--color-ebay);
         }
 
         .status-light.whatnot {
-            color: #FF00FF; /* Magenta for WhatNot */
+            color: var(--color-whatnot);
         }
 
         .status-light.inactive {
-            color: #3A3A3A; /* Greyed out */
+            color: var(--color-border-hover); /* Greyed out */
             box-shadow: none;
             opacity: 0.5;
         }
@@ -236,24 +207,18 @@
         }
 
         .status-label.ebay {
-            color: #00BFFF;
+            color: var(--color-ebay);
         }
 
         .status-label.whatnot {
-            color: #FF00FF;
+            color: var(--color-whatnot);
         }
 
         .status-label.inactive {
-            color: #4A4A4A; /* Greyed out text */
+            color: var(--color-text-dim); /* Greyed out text */
             opacity: 0.5;
         }
 
-        .loading {
-            text-align: center;
-            padding: 80px 20px;
-            color: #6B6B6B;
-            font-size: 18px;
-        }
 
         /* Skeleton loading styles */
         .skeleton-grid {
@@ -263,7 +228,7 @@
         }
 
         .skeleton-card {
-            background: #1A1A1A;
+            background: var(--color-surface);
             border-radius: 0px;
             overflow: hidden;
             border: none;
@@ -274,7 +239,7 @@
         .skeleton-image {
             width: 100%;
             height: 280px;
-            background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%);
+            background: linear-gradient(90deg, var(--color-elevated) 25%, var(--color-border-hover) 50%, var(--color-elevated) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
             flex-shrink: 0;
@@ -286,7 +251,7 @@
 
         .skeleton-title {
             height: 24px;
-            background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%);
+            background: linear-gradient(90deg, var(--color-elevated) 25%, var(--color-border-hover) 50%, var(--color-elevated) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
             border-radius: 4px;
@@ -301,7 +266,7 @@
 
         .skeleton-meta-item {
             height: 16px;
-            background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%);
+            background: linear-gradient(90deg, var(--color-elevated) 25%, var(--color-border-hover) 50%, var(--color-elevated) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
             border-radius: 4px;
@@ -313,73 +278,13 @@
             100% { background-position: 200% 0; }
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-        }
-
         .empty-state-icon {
             width: 120px;
             height: 120px;
-            margin: 0 auto 24px;
-            opacity: 0.6;
-        }
-
-        .empty-state-icon svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        .empty-state h2 {
-            font-size: 32px;
-            font-weight: 300;
-            color: #6B6B6B;
-            margin-bottom: 16px;
-        }
-
-        .empty-state p {
-            font-size: 18px;
-            color: #6B6B6B;
-            margin-bottom: 32px;
-        }
-
-        .empty-state a {
-            display: inline-block;
-            padding: 14px 32px;
-            background: #FFE500;
-            color: #1A1A1A;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .empty-state a:hover {
-            background: #F5DB00;
-            transform: translateY(-2px);
         }
 
         .load-more-btn {
-            display: block;
-            width: 100%;
-            max-width: 400px;
             margin: 32px auto;
-            padding: 16px 32px;
-            background: #FFE500;
-            color: #1A1A1A;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(255, 229, 0, 0.3);
-        }
-
-        .load-more-btn:hover {
-            background: #F5DB00;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 229, 0, 0.4);
         }
 
         .load-more-btn:disabled {
@@ -552,23 +457,123 @@
 
         .bulk-ebay-status.loading {
             display: block;
-            background: rgba(255, 229, 0, 0.1);
-            border: 1px solid rgba(255, 229, 0, 0.3);
-            color: #FFE500;
+            background: var(--color-accent-subtle);
+            border: 1px solid var(--color-accent);
+            color: var(--color-accent);
         }
 
         .bulk-ebay-status.success {
             display: block;
-            background: rgba(79, 243, 174, 0.08);
-            border: 1px solid rgba(79, 243, 174, 0.25);
-            color: #4FF3AE;
+            background: var(--color-success-subtle);
+            border: 1px solid var(--color-success);
+            color: var(--color-success);
         }
 
         .bulk-ebay-status.error {
             display: block;
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            color: #EF4444;
+            background: var(--color-danger-subtle);
+            border: 1px solid var(--color-danger);
+            color: var(--color-danger);
+        }
+
+        /* Footer toolbar button sizing */
+        .cl-footer .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        /* Modal action card buttons — wider cards with descriptions */
+        .cl-action-card {
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 2px solid;
+        }
+
+        .cl-action-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .cl-action-card.accent {
+            background: var(--color-accent-subtle);
+            color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .cl-action-card.info {
+            background: var(--color-info-subtle);
+            color: var(--color-info);
+            border-color: var(--color-info);
+        }
+
+        .cl-action-card.danger {
+            background: var(--color-danger-subtle);
+            color: var(--color-danger);
+            border-color: var(--color-danger-subtle);
+        }
+
+        .cl-action-card.danger:hover {
+            border-color: var(--color-danger);
+        }
+
+        .cl-action-card.warning {
+            background: var(--color-warning-subtle);
+            color: var(--color-warning);
+            border-color: var(--color-warning-subtle);
+        }
+
+        .cl-action-card.warning:hover {
+            border-color: var(--color-warning);
+        }
+
+        /* WhatNot/eBay selection option buttons */
+        .cl-option-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid;
+        }
+
+        .cl-option-btn.accent {
+            background: var(--color-accent-subtle);
+            color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .cl-option-btn.info {
+            background: var(--color-info-subtle);
+            color: var(--color-info);
+            border-color: var(--color-info);
+        }
+
+        /* Grading scale item hover in modal */
+        .grading-scale-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--color-bg);
+            border: 1px solid var(--color-elevated);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .grading-scale-item:hover {
+            border-color: var(--color-accent);
+            background: var(--color-surface);
         }
 
 {% endblock %}
@@ -578,73 +583,73 @@
         <div class="page-header">
             <!-- Stats Boxes -->
             <div style="display: flex; gap: 24px; margin-bottom: 32px;">
-                <div style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; padding: 16px; flex: 1;">
-                    <div style="color: #9A9A9A; font-size: 13px; margin-bottom: 4px;">Total Comics</div>
+                <div style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 8px; padding: 16px; flex: 1;">
+                    <div style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 4px;">Total Comics</div>
                     <div style="display: flex; align-items: baseline; gap: 12px;">
-                        <div id="comicsCount" style="color: #FFE500; font-size: 24px; font-weight: 600;">0</div>
-                        <div id="giveawayCount" style="color: #9A9A9A; font-size: 14px; font-weight: 400;">(0 Giveaways)</div>
+                        <div id="comicsCount" style="color: var(--color-accent); font-size: 24px; font-weight: 600;">0</div>
+                        <div id="giveawayCount" style="color: var(--color-text-muted); font-size: 14px; font-weight: 400;">(0 Giveaways)</div>
                     </div>
                 </div>
-                <div style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; padding: 16px; flex: 1;">
-                    <div style="color: #9A9A9A; font-size: 13px; margin-bottom: 4px;">Total Value</div>
-                    <div id="comicsValue" style="color: #FFE500; font-size: 24px; font-weight: 600;">$0.00</div>
+                <div style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 8px; padding: 16px; flex: 1;">
+                    <div style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 4px;">Total Value</div>
+                    <div id="comicsValue" style="color: var(--color-accent); font-size: 24px; font-weight: 600;">$0.00</div>
                 </div>
             </div>
 
             <!-- Listing Type Filter Tabs with Search on the right -->
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #2A2A2A;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid var(--color-elevated);">
                 <div style="display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex: 1;">
-                    <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid #FFE500; color: #FFE500; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                    <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid var(--color-accent); color: var(--color-accent); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
                         All Comics
                     </button>
-                    <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                    <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
                         Not Listed
                     </button>
-                    <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                    <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
                         eBay
                     </button>
-                    <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                    <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
                         WhatNot
                     </button>
-                    <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: #9A9A9A; font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+                    <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
                         WN Givys
                     </button>
                 </div>
                 <!-- Search box on the right -->
                 <div style="display: flex; align-items: center; flex-shrink: 0; padding-bottom: 8px;">
                     <label for="searchBox" class="sr-only">Search comics</label>
-                    <input type="text" id="searchBox" placeholder="🔍 Search..." style="width: 220px; padding: 10px 14px; border: 1px solid #3A3A3A; border-radius: 8px; font-size: 14px; background: #0A0A0A; color: #E5E5E5; transition: border-color 0.2s;" onfocus="this.style.borderColor='#FFE500'" onblur="this.style.borderColor='#3A3A3A'">
+                    <input type="text" id="searchBox" placeholder="🔍 Search..." style="width: 220px; padding: 10px 14px; border: 1px solid var(--color-border-hover); border-radius: 8px; font-size: 14px; background: var(--color-bg); color: var(--color-text); transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--color-accent)'" onblur="this.style.borderColor='var(--color-border-hover)'">
                 </div>
             </div>
 
             <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
-            <div id="notListedSubFilters" style="display: none; margin-bottom: 24px; padding: 12px; background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 8px;">
+            <div id="notListedSubFilters" style="display: none; margin-bottom: 24px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border-hover); border-radius: 8px;">
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <span style="color: #9A9A9A; font-size: 13px; font-weight: 600; margin-right: 8px;">SHOW:</span>
-                    <button id="subfilterBoth" class="subfilter-btn active" onclick="setNotListedSubFilter('both')" style="padding: 8px 16px; background: #FFE500; color: #1A1A1A; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    <span style="color: var(--color-text-muted); font-size: 13px; font-weight: 600; margin-right: 8px;">SHOW:</span>
+                    <button id="subfilterBoth" class="subfilter-btn active" onclick="setNotListedSubFilter('both')" style="padding: 8px 16px; background: var(--color-accent); color: var(--color-surface); border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         Missing from Both Platforms
                     </button>
-                    <button id="subfilterEbayOnly" class="subfilter-btn" onclick="setNotListedSubFilter('ebay')" style="padding: 8px 16px; background: transparent; color: #FFE500; border: 2px solid #FFE500; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    <button id="subfilterEbayOnly" class="subfilter-btn" onclick="setNotListedSubFilter('ebay')" style="padding: 8px 16px; background: transparent; color: var(--color-accent); border: 2px solid var(--color-accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         Missing eBay Only
                     </button>
-                    <button id="subfilterWhatnotOnly" class="subfilter-btn" onclick="setNotListedSubFilter('whatnot')" style="padding: 8px 16px; background: transparent; color: #FFE500; border: 2px solid #FFE500; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    <button id="subfilterWhatnotOnly" class="subfilter-btn" onclick="setNotListedSubFilter('whatnot')" style="padding: 8px 16px; background: transparent; color: var(--color-accent); border: 2px solid var(--color-accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         Missing WhatNot Only
                     </button>
                 </div>
             </div>
 
             <!-- Bulk Management Buttons (shown for WhatNot and eBay tabs) -->
-            <div id="bulkManagementButtons" style="display: none; margin-bottom: 24px; padding: 12px; background: #0A0A0A; border: 1px solid #3A3A3A; border-radius: 8px;">
+            <div id="bulkManagementButtons" style="display: none; margin-bottom: 24px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border-hover); border-radius: 8px;">
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                    <span style="color: #9A9A9A; font-size: 13px; font-weight: 600; margin-right: 8px;">BULK ACTIONS:</span>
-                    <button id="bulkWhatNotBtn" onclick="openBulkWhatNotModal()" style="display: none; padding: 8px 16px; background: #FFE500; color: #1A1A1A; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    <span style="color: var(--color-text-muted); font-size: 13px; font-weight: 600; margin-right: 8px;">BULK ACTIONS:</span>
+                    <button id="bulkWhatNotBtn" onclick="openBulkWhatNotModal()" style="display: none; padding: 8px 16px; background: var(--color-accent); color: var(--color-surface); border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
                         </svg>
                         WhatNot Management
                     </button>
-                    <button id="bulkEbayManagementBtn" onclick="openBulkEbayModal()" style="display: none; padding: 8px 16px; background: #FFE500; color: #1A1A1A; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    <button id="bulkEbayManagementBtn" onclick="openBulkEbayModal()" style="display: none; padding: 8px 16px; background: var(--color-accent); color: var(--color-surface); border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
                             <circle cx="9" cy="21" r="1"/>
                             <circle cx="20" cy="21" r="1"/>
@@ -671,12 +676,12 @@
         <div id="loadMoreContainer" style="margin-top: 32px; margin-bottom: 120px;"></div>
     </main>
 
-    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: #1A1A1A; border-top: 1px solid #2A2A2A; padding: 16px 40px; z-index: 100;">
+    <div class="cl-footer" style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-surface); border-top: 1px solid var(--color-elevated); padding: 16px 40px; z-index: 100;">
         <div style="max-width: 1600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
             <!-- Normal buttons (shown when no items selected) -->
             <div id="normalButtons" style="display: flex; gap: 12px; width: 100%; justify-content: space-between; align-items: center;">
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <button type="button" onclick="window.location.href='/ebay-listings'" style="background: transparent; border: 2px solid #3A3A3A; color: #FFE500; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px;" onmouseover="this.style.borderColor='#FFE500'" onmouseout="this.style.borderColor='#3A3A3A'" title="View eBay listings">
+                    <button type="button" onclick="window.location.href='/ebay-listings'" class="btn btn-secondary" title="View eBay listings">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
                             <path d="m21 21-4.35-4.35"></path>
@@ -684,7 +689,7 @@
                         <span>eBay Listings</span>
                     </button>
                 </div>
-                <a href="/add?jump=bottom" class="add-new-btn" style="background: #FFE500; color: #1A1A1A; border: none; box-shadow: 0 4px 16px rgba(255, 229, 0, 0.3); padding: 12px 40px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 10px;" onmouseover="this.style.background='#F5DB00'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(255, 229, 0, 0.4)'" onmouseout="this.style.background='#FFE500'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(255, 229, 0, 0.3)'">
+                <a href="/add?jump=bottom" class="btn btn-primary add-new-btn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -696,16 +701,16 @@
             <!-- Delete mode buttons (shown when items are selected) -->
             <div id="deleteButtons" style="display: none; gap: 16px; width: 100%; flex-direction: row; align-items: center; justify-content: space-between;">
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                    <span id="selectedCount" style="color: #FFE500; font-weight: 600; font-size: 15px;">0 selected</span>
-                    <button id="bulkEditBtn" onclick="bulkEditSelected()" style="background: transparent; color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" onmouseover="this.style.background='rgba(74, 229, 255, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='transparent'; this.style.transform='translateY(0)'">Bulk Edit</button>
-                    <button id="bulkEbayListBtn" onclick="handleBulkEbayAction('list')" style="display: none; background: transparent; color: #FFE500; border: 2px solid #FFE500; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 229, 0, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='transparent'; this.style.transform='translateY(0)'">List on eBay</button>
-                    <button id="bulkEbayUpdateBtn" onclick="handleBulkEbayAction('update')" style="display: none; background: transparent; color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(74, 229, 255, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='transparent'; this.style.transform='translateY(0)'">Update eBay</button>
-                    <button id="bulkEbayEndBtn" onclick="handleBulkEbayAction('end')" style="display: none; background: transparent; color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='transparent'; this.style.transform='translateY(0)'">End eBay</button>
-                    <button id="bulkEbayUnlinkBtn" onclick="handleBulkEbayAction('unlink')" style="display: none; background: transparent; color: #FFA500; border: 2px solid rgba(255, 165, 0, 0.3); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#FFA500'; this.style.background='rgba(255, 165, 0, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 165, 0, 0.3)'; this.style.background='transparent'; this.style.transform='translateY(0)'">Unlink eBay</button>
-                    <button id="exportSelectedBtn" onclick="exportSelected()" style="background: transparent; color: #FFE500; border: 2px solid #3A3A3A; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" onmouseover="this.style.borderColor='#FFE500'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#3A3A3A'; this.style.transform='translateY(0)'">Export</button>
-                    <button id="deleteSelectedBtn" onclick="deleteSelected()" style="background: transparent; color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='transparent'; this.style.transform='translateY(0)'">Delete</button>
+                    <span id="selectedCount" style="color: var(--color-accent); font-weight: 600; font-size: 15px;">0 selected</span>
+                    <button id="bulkEditBtn" onclick="bulkEditSelected()" class="btn btn-info" style="display: none;">Bulk Edit</button>
+                    <button id="bulkEbayListBtn" onclick="handleBulkEbayAction('list')" class="btn btn-secondary" style="display: none;">List on eBay</button>
+                    <button id="bulkEbayUpdateBtn" onclick="handleBulkEbayAction('update')" class="btn btn-info" style="display: none;">Update eBay</button>
+                    <button id="bulkEbayEndBtn" onclick="handleBulkEbayAction('end')" class="btn btn-danger" style="display: none;">End eBay</button>
+                    <button id="bulkEbayUnlinkBtn" onclick="handleBulkEbayAction('unlink')" class="btn btn-warning" style="display: none;">Unlink eBay</button>
+                    <button id="exportSelectedBtn" onclick="exportSelected()" class="btn btn-secondary" style="display: none;">Export</button>
+                    <button id="deleteSelectedBtn" onclick="deleteSelected()" class="btn btn-danger" style="display: none;">Delete</button>
                 </div>
-                <button id="cancelSelectionBtn" onclick="cancelSelection()" style="background: transparent; color: #9A9A9A; border: 2px solid #3A3A3A; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#9A9A9A'; this.style.color='#E5E5E5'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#3A3A3A'; this.style.color='#9A9A9A'; this.style.transform='translateY(0)'">Exit</button>
+                <button id="cancelSelectionBtn" onclick="cancelSelection()" class="btn btn-secondary">Exit</button>
             </div>
             <div id="bulkEbayStatus" class="bulk-ebay-status" style="display: none;"></div>
         </div>
@@ -713,9 +718,9 @@
 
     <!-- Grading Scale Modal -->
     <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div class="grading-modal-content" onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
-                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">CGC Standard Grading Scale</h2>
+        <div class="grading-modal-content" onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
+                <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">CGC Standard Grading Scale</h2>
                 <button onclick="closeGradingModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
@@ -727,59 +732,59 @@
 
     <!-- Keyboard Shortcuts Help Modal -->
     <div id="keyboardShortcutsModal" onclick="closeShortcutsModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 700px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
-                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">⌨️ Keyboard Shortcuts</h2>
+        <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 12px; max-width: 700px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
+                <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">⌨️ Keyboard Shortcuts</h2>
                 <button onclick="closeShortcutsModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: grid; gap: 16px;">
-                    <div style="border-bottom: 1px solid #2A2A2A; padding-bottom: 12px;">
-                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">General</h3>
+                    <div style="border-bottom: 1px solid var(--color-elevated); padding-bottom: 12px;">
+                        <h3 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0;">General</h3>
                         <div style="display: grid; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #E5E5E5;">Show this help</span>
-                                <kbd style="background: #2A2A2A; color: #FFE500; padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid #3A3A3A;">?</kbd>
+                                <span style="color: var(--color-text);">Show this help</span>
+                                <kbd style="background: var(--color-elevated); color: var(--color-accent); padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid var(--color-border-hover);">?</kbd>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #E5E5E5;">Close modal/popup</span>
-                                <kbd style="background: #2A2A2A; color: #FFE500; padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid #3A3A3A;">ESC</kbd>
+                                <span style="color: var(--color-text);">Close modal/popup</span>
+                                <kbd style="background: var(--color-elevated); color: var(--color-accent); padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid var(--color-border-hover);">ESC</kbd>
                             </div>
                         </div>
                     </div>
-                    <div style="border-bottom: 1px solid #2A2A2A; padding-bottom: 12px;">
-                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">Edit Mode</h3>
+                    <div style="border-bottom: 1px solid var(--color-elevated); padding-bottom: 12px;">
+                        <h3 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0;">Edit Mode</h3>
                         <div style="display: grid; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #E5E5E5;">Exit edit mode</span>
-                                <kbd style="background: #2A2A2A; color: #FFE500; padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid #3A3A3A;">ESC</kbd>
+                                <span style="color: var(--color-text);">Exit edit mode</span>
+                                <kbd style="background: var(--color-elevated); color: var(--color-accent); padding: 4px 12px; border-radius: 4px; font-family: monospace; border: 1px solid var(--color-border-hover);">ESC</kbd>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #9A9A9A; font-size: 13px; font-style: italic;">Warns if you have unsaved changes</span>
+                                <span style="color: var(--color-text-muted); font-size: 13px; font-style: italic;">Warns if you have unsaved changes</span>
                                 <span></span>
                             </div>
                         </div>
                     </div>
-                    <div style="border-bottom: 1px solid #2A2A2A; padding-bottom: 12px;">
-                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">List View</h3>
+                    <div style="border-bottom: 1px solid var(--color-elevated); padding-bottom: 12px;">
+                        <h3 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0;">List View</h3>
                         <div style="display: grid; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #E5E5E5;">Single tap card</span>
-                                <span style="color: #9A9A9A;">View item</span>
+                                <span style="color: var(--color-text);">Single tap card</span>
+                                <span style="color: var(--color-text-muted);">View item</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #E5E5E5;">Double tap card</span>
-                                <span style="color: #9A9A9A;">Edit item</span>
+                                <span style="color: var(--color-text);">Double tap card</span>
+                                <span style="color: var(--color-text-muted);">Edit item</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #E5E5E5;">Click SKU</span>
-                                <span style="color: #9A9A9A;">Jump to edit</span>
+                                <span style="color: var(--color-text);">Click SKU</span>
+                                <span style="color: var(--color-text-muted);">Jump to edit</span>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <h3 style="color: #FFE500; font-size: 16px; margin: 0 0 12px 0;">Tips</h3>
-                        <ul style="color: #9A9A9A; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+                        <h3 style="color: var(--color-accent); font-size: 16px; margin: 0 0 12px 0;">Tips</h3>
+                        <ul style="color: var(--color-text-muted); font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
                             <li>Hover over condition acronyms to see full name</li>
                             <li>Deleted items can be restored from Trash</li>
                             <li>Export returns you to the list view</li>
@@ -793,16 +798,16 @@
 
     <!-- Bulk Edit Modal -->
     <div id="bulkEditModal" onclick="closeBulkEditModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A;">
-                <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">Bulk Edit <span id="bulkEditCount" style="color: #9A9A9A; font-size: 18px;"></span></h2>
+        <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated);">
+                <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Bulk Edit <span id="bulkEditCount" style="color: var(--color-text-muted); font-size: 18px;"></span></h2>
                 <button onclick="closeBulkEditModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <form id="bulkEditForm" style="display: grid; gap: 20px;">
                     <div>
-                        <label for="bulkCondition" style="display: block; color: #E5E5E5; font-weight: 600; margin-bottom: 8px;">Condition</label>
-                        <select id="bulkCondition" style="width: 100%; padding: 10px; background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; border-radius: 6px;">
+                        <label for="bulkCondition" style="display: block; color: var(--color-text); font-weight: 600; margin-bottom: 8px;">Condition</label>
+                        <select id="bulkCondition" style="width: 100%; padding: 10px; background: var(--color-elevated); color: var(--color-text); border: 1px solid var(--color-border-hover); border-radius: 6px;">
                             <option value="">-- No Change --</option>
                             <option value="Gem Mint">Gem Mint (10.0)</option>
                             <option value="Mint">Mint (9.9)</option>
@@ -832,20 +837,20 @@
                         </select>
                     </div>
                     <div>
-                        <label for="bulkType" style="display: block; color: #E5E5E5; font-weight: 600; margin-bottom: 8px;">Type</label>
-                        <select id="bulkType" style="width: 100%; padding: 10px; background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; border-radius: 6px;">
+                        <label for="bulkType" style="display: block; color: var(--color-text); font-weight: 600; margin-bottom: 8px;">Type</label>
+                        <select id="bulkType" style="width: 100%; padding: 10px; background: var(--color-elevated); color: var(--color-text); border: 1px solid var(--color-border-hover); border-radius: 6px;">
                             <option value="">-- No Change --</option>
                             <option value="For Sale">For Sale</option>
                             <option value="Giveaway">Giveaway</option>
                         </select>
                     </div>
                     <div>
-                        <label for="bulkPrice" style="display: block; color: #E5E5E5; font-weight: 600; margin-bottom: 8px;">Price (leave empty for no change)</label>
-                        <input type="number" id="bulkPrice" step="0.01" min="0" placeholder="e.g., 19.99" style="width: 100%; padding: 10px; background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; border-radius: 6px;">
+                        <label for="bulkPrice" style="display: block; color: var(--color-text); font-weight: 600; margin-bottom: 8px;">Price (leave empty for no change)</label>
+                        <input type="number" id="bulkPrice" step="0.01" min="0" placeholder="e.g., 19.99" style="width: 100%; padding: 10px; background: var(--color-elevated); color: var(--color-text); border: 1px solid var(--color-border-hover); border-radius: 6px;">
                     </div>
                     <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 12px;">
-                        <button type="button" onclick="closeBulkEditModal()" style="background: #2A2A2A; color: #9A9A9A; border: 1px solid #3A3A3A; padding: 10px 28px; border-radius: 20px; font-size: 15px; font-weight: 600; cursor: pointer;">Cancel</button>
-                        <button type="submit" style="background: #4AE5FF; color: #0A0A0A; border: none; padding: 10px 28px; border-radius: 20px; font-size: 15px; font-weight: 600; cursor: pointer;">Apply Changes</button>
+                        <button type="button" onclick="closeBulkEditModal()" style="background: var(--color-elevated); color: var(--color-text-muted); border: 1px solid var(--color-border-hover); padding: 10px 28px; border-radius: 20px; font-size: 15px; font-weight: 600; cursor: pointer;">Cancel</button>
+                        <button type="submit" style="background: var(--color-info); color: var(--color-bg); border: none; padding: 10px 28px; border-radius: 20px; font-size: 15px; font-weight: 600; cursor: pointer;">Apply Changes</button>
                     </div>
                 </form>
             </div>
@@ -854,36 +859,36 @@
 
     <!-- Bulk WhatNot Management Modal -->
     <div id="bulkWhatNotModal" onclick="closeBulkWhatNotModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+        <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFE500" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                         <circle cx="12" cy="7" r="4"/>
                     </svg>
-                    <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">WhatNot Bulk Actions</h2>
+                    <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">WhatNot Bulk Actions</h2>
                 </div>
                 <button onclick="closeBulkWhatNotModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: grid; gap: 16px;">
-                    <button onclick="showBulkWhatNotAction('add')" style="background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'; this.style.transform='translateY(0)'">
+                    <button onclick="showBulkWhatNotAction('add')" class="cl-action-card accent">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                         <div>
                             <div>Bulk Add to WhatNot</div>
-                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">List multiple items on WhatNot</div>
+                            <div style="font-size: 13px; color: var(--color-text-muted); font-weight: 400; margin-top: 4px;">List multiple items on WhatNot</div>
                         </div>
                     </button>
-                    <button onclick="showBulkWhatNotAction('remove')" style="background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(0)'">
+                    <button onclick="showBulkWhatNotAction('remove')" class="cl-action-card danger">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                         <div>
                             <div>Bulk Remove from WhatNot</div>
-                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">Unlist multiple items from WhatNot</div>
+                            <div style="font-size: 13px; color: var(--color-text-muted); font-weight: 400; margin-top: 4px;">Unlist multiple items from WhatNot</div>
                         </div>
                     </button>
                 </div>
@@ -893,42 +898,42 @@
 
     <!-- Bulk WhatNot Selection Modal -->
     <div id="bulkWhatNotSelectionModal" onclick="closeBulkWhatNotSelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+        <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button onclick="closeBulkWhatNotSelectionModal(); openBulkWhatNotModal();" style="background: none; border: none; color: #9A9A9A; cursor: pointer; padding: 4px;" title="Go back">
+                    <button onclick="closeBulkWhatNotSelectionModal(); openBulkWhatNotModal();" style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px;" title="Go back">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="19" y1="12" x2="5" y2="12"></line>
                             <polyline points="12 19 5 12 12 5"></polyline>
                         </svg>
                     </button>
-                    <h2 id="bulkWhatNotSelectionTitle" style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
+                    <h2 id="bulkWhatNotSelectionTitle" style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
                 </div>
                 <button onclick="closeBulkWhatNotSelectionModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                    <button onclick="selectWhatNotOption('all')" style="flex: 1; background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'">
+                    <button onclick="selectWhatNotOption('all')" class="cl-option-btn accent">
                         <div id="whatnotAllLabel">All Unlisted Items</div>
-                        <div id="whatnotAllCount" style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">0 items</div>
+                        <div id="whatnotAllCount" style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">0 items</div>
                     </button>
-                    <button onclick="selectWhatNotOption('selection')" style="flex: 1; background: rgba(74, 229, 255, 0.1); color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(74, 229, 255, 0.2)'" onmouseout="this.style.background='rgba(74, 229, 255, 0.1)'">
+                    <button onclick="selectWhatNotOption('selection')" class="cl-option-btn info">
                         <div>Select Specific Items</div>
-                        <div style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">Choose manually</div>
+                        <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Choose manually</div>
                     </button>
                 </div>
                 <!-- Controls Bar - Sticky at top of scrollable area -->
-                <div id="bulkWhatNotControlsBar" style="display: none; margin-bottom: 16px; padding: 12px; background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; position: sticky; top: 0; z-index: 2;">
+                <div id="bulkWhatNotControlsBar" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 8px; position: sticky; top: 0; z-index: 2;">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <input type="text" id="whatnotItemSearch" placeholder="Search items..." style="flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid #3A3A3A; border-radius: 6px; background: #0A0A0A; color: #E5E5E5; font-size: 13px;" oninput="filterWhatNotItems(this.value)">
+                        <input type="text" id="whatnotItemSearch" placeholder="Search items..." style="flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid var(--color-border-hover); border-radius: 6px; background: var(--color-bg); color: var(--color-text); font-size: 13px;" oninput="filterWhatNotItems(this.value)">
                         <div style="display: flex; gap: 8px; flex-shrink: 0;">
-                            <button onclick="toggleAllWhatNotItems()" style="background: transparent; color: #4AE5FF; border: 1px solid #4AE5FF; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Select All</button>
-                            <button onclick="proceedWithWhatNotSelection()" style="background: #FFE500; color: #1A1A1A; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Proceed (<span id="whatnotSelectedCount">0</span>)</button>
+                            <button onclick="toggleAllWhatNotItems()" style="background: transparent; color: var(--color-info); border: 1px solid var(--color-info); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Select All</button>
+                            <button onclick="proceedWithWhatNotSelection()" style="background: var(--color-accent); color: var(--color-surface); border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Proceed (<span id="whatnotSelectedCount">0</span>)</button>
                         </div>
                     </div>
                 </div>
                 <!-- Scrollable Items Container -->
-                <div id="bulkWhatNotItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid #3A3A3A; border-radius: 8px; padding: 12px;">
+                <div id="bulkWhatNotItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid var(--color-border-hover); border-radius: 8px; padding: 12px;">
                     <div id="whatnotItemsContainer" style="display: grid; gap: 6px; justify-items: center;">
                         <!-- Items will be populated here as micro cards - size based on user preferences -->
                     </div>
@@ -939,50 +944,50 @@
 
     <!-- Bulk eBay Management Modal -->
     <div id="bulkEbayModal" onclick="closeBulkEbayModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+        <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFE500" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2">
                         <circle cx="9" cy="21" r="1"/>
                         <circle cx="20" cy="21" r="1"/>
                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                     </svg>
-                    <h2 style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">eBay Bulk Actions</h2>
+                    <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">eBay Bulk Actions</h2>
                 </div>
                 <button onclick="closeBulkEbayModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: grid; gap: 16px;">
-                    <button onclick="showBulkEbayAction('add')" style="background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'; this.style.transform='translateY(0)'">
+                    <button onclick="showBulkEbayAction('add')" class="cl-action-card accent">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                         <div>
                             <div>Bulk List on eBay</div>
-                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">List multiple items on eBay</div>
+                            <div style="font-size: 13px; color: var(--color-text-muted); font-weight: 400; margin-top: 4px;">List multiple items on eBay</div>
                         </div>
                     </button>
-                    <button onclick="showBulkEbayAction('update')" style="background: rgba(74, 229, 255, 0.1); color: #4AE5FF; border: 2px solid #4AE5FF; padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.background='rgba(74, 229, 255, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(74, 229, 255, 0.1)'; this.style.transform='translateY(0)'">
+                    <button onclick="showBulkEbayAction('update')" class="cl-action-card info">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="23 4 23 10 17 10"></polyline>
                             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                         </svg>
                         <div>
                             <div>Bulk Update eBay Listings</div>
-                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">Update prices, descriptions, or other details</div>
+                            <div style="font-size: 13px; color: var(--color-text-muted); font-weight: 400; margin-top: 4px;">Update prices, descriptions, or other details</div>
                         </div>
                     </button>
-                    <button onclick="showBulkEbayAction('remove')" style="background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 2px solid rgba(255, 107, 107, 0.3); padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='rgba(255, 107, 107, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 107, 107, 0.3)'; this.style.background='rgba(255, 107, 107, 0.1)'; this.style.transform='translateY(0)'">
+                    <button onclick="showBulkEbayAction('remove')" class="cl-action-card danger">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                         <div>
                             <div>Bulk End eBay Listings</div>
-                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">End multiple eBay listings</div>
+                            <div style="font-size: 13px; color: var(--color-text-muted); font-weight: 400; margin-top: 4px;">End multiple eBay listings</div>
                         </div>
                     </button>
-                    <button onclick="showBulkEbayAction('unlink')" style="background: rgba(255, 165, 0, 0.1); color: #FFA500; border: 2px solid rgba(255, 165, 0, 0.3); padding: 16px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 12px;" onmouseover="this.style.borderColor='#FFA500'; this.style.background='rgba(255, 165, 0, 0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(255, 165, 0, 0.3)'; this.style.background='rgba(255, 165, 0, 0.1)'; this.style.transform='translateY(0)'">
+                    <button onclick="showBulkEbayAction('unlink')" class="cl-action-card warning">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
@@ -990,7 +995,7 @@
                         </svg>
                         <div>
                             <div>Bulk Unlink eBay IDs</div>
-                            <div style="font-size: 13px; color: #9A9A9A; font-weight: 400; margin-top: 4px;">Remove eBay item IDs from database (doesn't end listings)</div>
+                            <div style="font-size: 13px; color: var(--color-text-muted); font-weight: 400; margin-top: 4px;">Remove eBay item IDs from database (doesn't end listings)</div>
                         </div>
                     </button>
                 </div>
@@ -1000,42 +1005,42 @@
 
     <!-- Bulk eBay Selection Modal -->
     <div id="bulkEbaySelectionModal" onclick="closeBulkEbaySelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
-        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid #2A2A2A; position: sticky; top: 0; background: #1A1A1A; z-index: 1;">
+        <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button onclick="closeBulkEbaySelectionModal(); openBulkEbayModal();" style="background: none; border: none; color: #9A9A9A; cursor: pointer; padding: 4px;" title="Go back">
+                    <button onclick="closeBulkEbaySelectionModal(); openBulkEbayModal();" style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px;" title="Go back">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="19" y1="12" x2="5" y2="12"></line>
                             <polyline points="12 19 5 12 12 5"></polyline>
                         </svg>
                     </button>
-                    <h2 id="bulkEbaySelectionTitle" style="color: #FFE500; font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
+                    <h2 id="bulkEbaySelectionTitle" style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
                 </div>
                 <button onclick="closeBulkEbaySelectionModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                    <button onclick="selectEbayOption('all')" style="flex: 1; background: rgba(255, 229, 0, 0.1); color: #FFE500; border: 2px solid #FFE500; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 229, 0, 0.2)'" onmouseout="this.style.background='rgba(255, 229, 0, 0.1)'">
+                    <button onclick="selectEbayOption('all')" class="cl-option-btn accent">
                         <div id="ebayAllLabel">All Unlisted Items</div>
-                        <div id="ebayAllCount" style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">0 items</div>
+                        <div id="ebayAllCount" style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">0 items</div>
                     </button>
-                    <button onclick="selectEbayOption('selection')" style="flex: 1; background: rgba(74, 229, 255, 0.1); color: #4AE5FF; border: 2px solid #4AE5FF; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(74, 229, 255, 0.2)'" onmouseout="this.style.background='rgba(74, 229, 255, 0.1)'">
+                    <button onclick="selectEbayOption('selection')" class="cl-option-btn info">
                         <div>Select Specific Items</div>
-                        <div style="font-size: 12px; color: #9A9A9A; margin-top: 4px;">Choose manually</div>
+                        <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Choose manually</div>
                     </button>
                 </div>
                 <!-- Controls Bar - Sticky at top of scrollable area -->
-                <div id="bulkEbayControlsBar" style="display: none; margin-bottom: 16px; padding: 12px; background: #1A1A1A; border: 1px solid #3A3A3A; border-radius: 8px; position: sticky; top: 0; z-index: 2;">
+                <div id="bulkEbayControlsBar" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 8px; position: sticky; top: 0; z-index: 2;">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <input type="text" id="ebayItemSearch" placeholder="Search items..." style="flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid #3A3A3A; border-radius: 6px; background: #0A0A0A; color: #E5E5E5; font-size: 13px;" oninput="filterEbayItems(this.value)">
+                        <input type="text" id="ebayItemSearch" placeholder="Search items..." style="flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid var(--color-border-hover); border-radius: 6px; background: var(--color-bg); color: var(--color-text); font-size: 13px;" oninput="filterEbayItems(this.value)">
                         <div style="display: flex; gap: 8px; flex-shrink: 0;">
-                            <button onclick="toggleAllEbayItems()" style="background: transparent; color: #4AE5FF; border: 1px solid #4AE5FF; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Select All</button>
-                            <button onclick="proceedWithEbaySelection()" style="background: #FFE500; color: #1A1A1A; border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Proceed (<span id="ebaySelectedCount">0</span>)</button>
+                            <button onclick="toggleAllEbayItems()" style="background: transparent; color: var(--color-info); border: 1px solid var(--color-info); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Select All</button>
+                            <button onclick="proceedWithEbaySelection()" style="background: var(--color-accent); color: var(--color-surface); border: none; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Proceed (<span id="ebaySelectedCount">0</span>)</button>
                         </div>
                     </div>
                 </div>
                 <!-- Scrollable Items Container -->
-                <div id="bulkEbayItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid #3A3A3A; border-radius: 8px; padding: 12px;">
+                <div id="bulkEbayItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid var(--color-border-hover); border-radius: 8px; padding: 12px;">
                     <div id="ebayItemsContainer" style="display: grid; gap: 6px; justify-items: center;">
                         <!-- Items will be populated here as micro cards - size based on user preferences -->
                     </div>
@@ -1046,14 +1051,14 @@
 
     <!-- Confirmation Modal for Bulk Actions -->
     <div id="bulkConfirmModal" onclick="closeBulkConfirmModalOnOutside(event)" style="display: none; position: fixed; z-index: 1006; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); align-items: center; justify-content: center;">
-        <div onclick="event.stopPropagation()" style="background: #1A1A1A; border: 1px solid #FFE500; border-radius: 12px; max-width: 500px; width: 90%; padding: 0;">
-            <div style="padding: 24px; border-bottom: 1px solid #2A2A2A;">
-                <h3 id="bulkConfirmTitle" style="color: #FFE500; font-size: 20px; font-weight: 600; margin: 0 0 12px 0;">Confirm Action</h3>
-                <p id="bulkConfirmMessage" style="color: #E5E5E5; margin: 0; line-height: 1.6;"></p>
+        <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 500px; width: 90%; padding: 0;">
+            <div style="padding: 24px; border-bottom: 1px solid var(--color-elevated);">
+                <h3 id="bulkConfirmTitle" style="color: var(--color-accent); font-size: 20px; font-weight: 600; margin: 0 0 12px 0;">Confirm Action</h3>
+                <p id="bulkConfirmMessage" style="color: var(--color-text); margin: 0; line-height: 1.6;"></p>
             </div>
             <div style="padding: 20px 24px; display: flex; gap: 12px; justify-content: flex-end;">
-                <button onclick="closeBulkConfirmModal()" style="background: #2A2A2A; color: #E5E5E5; border: 1px solid #3A3A3A; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3A3A3A'" onmouseout="this.style.background='#2A2A2A'">Cancel</button>
-                <button id="bulkConfirmButton" onclick="executeBulkAction()" style="background: #FFE500; color: #1A1A1A; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#F5DB00'" onmouseout="this.style.background='#FFE500'">Confirm</button>
+                <button onclick="closeBulkConfirmModal()" class="btn btn-secondary" style="padding: 10px 24px;">Cancel</button>
+                <button id="bulkConfirmButton" onclick="executeBulkAction()" class="btn btn-primary" style="padding: 10px 24px;">Confirm</button>
             </div>
         </div>
     </div>
@@ -1304,12 +1309,12 @@
                         const firstImage = comic['Image URL 1'] || '';
                         const thumbnailUrl = getThumbnailUrl(firstImage);
                         const imageHtml = firstImage
-                            ? `<img data-src="${thumbnailUrl}" alt="${comic.Title || 'Comic'}" class="comic-image lazy-image" style="background: #2A2A2A;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22280%22 height=%22280%22><rect width=%22280%22 height=%22280%22 fill=%22%232A2A2A%22/><text x=%2250%%22 y=%2250%%22 font-size=%2216%22 fill=%22%236B6B6B%22 text-anchor=%22middle%22 dy=%22.3em%22>No Image</text></svg>'">`
-                            : `<div class="comic-image" style="display: flex; align-items: center; justify-content: center; color: #6B6B6B;">No Image</div>`;
+                            ? `<img data-src="${thumbnailUrl}" alt="${comic.Title || 'Comic'}" class="comic-image lazy-image" style="background: var(--color-elevated);" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22280%22 height=%22280%22><rect width=%22280%22 height=%22280%22 fill=%22%232A2A2A%22/><text x=%2250%%22 y=%2250%%22 font-size=%2216%22 fill=%22%236B6B6B%22 text-anchor=%22middle%22 dy=%22.3em%22>No Image</text></svg>'">`
+                            : `<div class="comic-image" style="display: flex; align-items: center; justify-content: center; color: var(--color-text-dim);">No Image</div>`;
 
                         const conditionAcronym = getConditionAcronym(comic.Condition);
                         const typeAbbreviation = getTypeAbbreviation(comic.Type || 'Auction', comic.Title);
-                        const priceDisplay = comic.Price ? `<span style="color: #FFE500;">$${comic.Price}</span>` : '';
+                        const priceDisplay = comic.Price ? `<span style="color: var(--color-accent);">$${comic.Price}</span>` : '';
 
                         let typeDisplay = [];
                         if (priceDisplay) typeDisplay.push(priceDisplay);
@@ -1351,7 +1356,7 @@
                                     <div class="comic-meta-item" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 8px;">
                                         <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;">
                                             <span style="flex-shrink: 0;">SKU: ${comic.SKU || 'N/A'}</span>
-                                            <span style="color: #FFE500; font-size: 11px;">${window.formatDate(comic.last_modified) || ''}</span>
+                                            <span style="color: var(--color-accent); font-size: 11px;">${window.formatDate(comic.last_modified) || ''}</span>
                                         </div>
                                         ${statusIndicatorsHtml}
                                     </div>
@@ -1382,14 +1387,14 @@
                                     // because CSS has 'border: none' which overrides borderColor
                                     if (checkbox.checked) {
                                         if (mode === 'delete') {
-                                            card.style.border = '2px solid #ff4444';
+                                            card.style.border = '2px solid var(--color-danger)';
                                             card.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
                                             card.style.boxShadow = '0 0 12px rgba(255, 68, 68, 0.3)';
                                         } else {
                                             // Yellow for export and eBay modes
-                                            card.style.border = '2px solid #FFE500';
-                                            card.style.backgroundColor = 'rgba(255, 229, 0, 0.05)';
-                                            card.style.boxShadow = '0 0 12px rgba(255, 229, 0, 0.2)';
+                                            card.style.border = '2px solid var(--color-accent)';
+                                            card.style.backgroundColor = 'var(--color-accent-subtle)';
+                                            card.style.boxShadow = '0 0 12px var(--color-accent-subtle)';
                                         }
                                     } else {
                                         // Reset to default
@@ -1415,8 +1420,8 @@
                                 e.stopPropagation();
                                 // Only highlight if dragging files
                                 if (e.dataTransfer.types.includes('Files')) {
-                                    card.style.backgroundColor = 'rgba(255, 229, 0, 0.1)';
-                                    card.style.border = '2px solid #FFE500';
+                                    card.style.backgroundColor = 'var(--color-accent-subtle)';
+                                    card.style.border = '2px solid var(--color-accent)';
                                 }
                             }, false);
                         });
@@ -1512,7 +1517,7 @@
                     container.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-state-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FFE500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="2" y="3" width="20" height="18" rx="2"/>
                                     <path d="M8 3v18"/>
                                     <path d="M16 3v18"/>
@@ -1611,7 +1616,7 @@
                         if (row) {
                             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             // Briefly highlight the row
-                            row.style.backgroundColor = '#FFE50033';
+                            row.style.backgroundColor = 'var(--color-accent)33';
                             setTimeout(() => {
                                 row.style.backgroundColor = '';
                             }, 2000);
@@ -1703,12 +1708,12 @@
             // Populate content if empty
             if (!content.innerHTML) {
                 content.innerHTML = gradingScaleData.map(item => `
-                    <div style="display: flex; align-items: flex-start; gap: 20px; padding: 16px; margin-bottom: 12px; background: #0A0A0A; border: 1px solid #2A2A2A; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.borderColor='#FFE500'; this.style.background='#1A1A1A'" onmouseout="this.style.borderColor='#2A2A2A'; this.style.background='#0A0A0A'">
+                    <div class="grading-scale-item">>
                         <div style="min-width: 80px; text-align: center;">
-                            <div style="font-size: 32px; font-weight: 700; color: #FFE500; line-height: 1; margin-bottom: 4px;">${item.grade}</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #E5E5E5; white-space: nowrap;">${item.name}</div>
+                            <div style="font-size: 32px; font-weight: 700; color: var(--color-accent); line-height: 1; margin-bottom: 4px;">${item.grade}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: var(--color-text); white-space: nowrap;">${item.name}</div>
                         </div>
-                        <div style="flex: 1; color: #9A9A9A; font-size: 14px; line-height: 1.6;">${item.desc}</div>
+                        <div style="flex: 1; color: var(--color-text-muted); font-size: 14px; line-height: 1.6;">${item.desc}</div>
                     </div>
                 `).join('');
             }
@@ -2067,8 +2072,8 @@
             }
 
             cardEl.style.cssText = `
-                background: #1A1A1A;
-                border: 1px solid #3A3A3A;
+                background: var(--color-surface);
+                border: 1px solid var(--color-border-hover);
                 border-radius: ${borderRadius}px;
                 overflow: hidden;
                 cursor: pointer;
@@ -2096,7 +2101,7 @@
                          onerror="this.onerror=null; this.src='${imgFallback}';"
                          alt="${(comic.Title || 'Comic').replace(/"/g, '&quot;')}"
                          loading="lazy"
-                         style="width: 100%; height: ${imgHeight}px; object-fit: cover; background: #2A2A2A; display: block;">
+                         style="width: 100%; height: ${imgHeight}px; object-fit: cover; background: var(--color-elevated); display: block;">
                     <div class="selection-overlay" style="
                         position: absolute;
                         top: 0;
@@ -2113,19 +2118,19 @@
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </div>
-                    <div style="position: absolute; top: ${badgeTop}px; right: ${badgeRight}px; background: rgba(0, 0, 0, 0.85); color: #FFE500; padding: ${badgePadding}px; border-radius: ${borderRadius * 0.5}px; font-size: ${badgeFontSize}px; font-weight: 700; letter-spacing: 0.1px; text-transform: uppercase;">
+                    <div style="position: absolute; top: ${badgeTop}px; right: ${badgeRight}px; background: rgba(0, 0, 0, 0.85); color: var(--color-accent); padding: ${badgePadding}px; border-radius: ${borderRadius * 0.5}px; font-size: ${badgeFontSize}px; font-weight: 700; letter-spacing: 0.1px; text-transform: uppercase;">
                         ${type}
                     </div>
                 </div>
                 <div style="padding: ${padding}px;">
-                    <div style="color: #FFFFFF; font-size: ${titleFontSize}px; font-weight: 600; margin-bottom: ${marginBottom}px; line-height: 1.1; height: ${titleHeight}px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(comic.Title || 'Untitled').replace(/"/g, '&quot;')}">
+                    <div style="color: var(--color-text); font-size: ${titleFontSize}px; font-weight: 600; margin-bottom: ${marginBottom}px; line-height: 1.1; height: ${titleHeight}px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(comic.Title || 'Untitled').replace(/"/g, '&quot;')}">
                         ${displayTitle}
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${marginBottom}px;">
-                        <span style="color: #9A9A9A; font-size: ${conditionFontSize}px; font-weight: 500;">${condition}</span>
-                        <span style="color: #FFE500; font-weight: 700; font-size: ${priceFontSize}px;">$${price}</span>
+                        <span style="color: var(--color-text-muted); font-size: ${conditionFontSize}px; font-weight: 500;">${condition}</span>
+                        <span style="color: var(--color-accent); font-weight: 700; font-size: ${priceFontSize}px;">$${price}</span>
                     </div>
-                    <div style="font-size: ${skuFontSize}px; color: #6A6A6A; font-weight: 500; margin-top: ${marginBottom}px;">SKU: ${comic.SKU}</div>
+                    <div style="font-size: ${skuFontSize}px; color: var(--color-text-dim); font-weight: 500; margin-top: ${marginBottom}px;">SKU: ${comic.SKU}</div>
                 </div>
             `;
 
@@ -2195,7 +2200,7 @@
                             bulkSelectedItems.push(comic.SKU);
                         }
                     } else {
-                        cardEl.style.borderColor = '#3A3A3A';
+                        cardEl.style.borderColor = 'var(--color-border-hover)';
                         overlay.style.display = 'none';
                         bulkSelectedItems = bulkSelectedItems.filter(sku => sku !== comic.SKU);
                     }
@@ -2208,14 +2213,14 @@
                 // Hover effects
                 cardEl.addEventListener('mouseenter', () => {
                     if (cardEl.dataset.selected !== 'true') {
-                        cardEl.style.borderColor = '#5A5A5A';
+                        cardEl.style.borderColor = 'var(--color-text-dim)';
                         cardEl.style.transform = 'translateY(-2px)';
                     }
                 });
 
                 cardEl.addEventListener('mouseleave', () => {
                     if (cardEl.dataset.selected !== 'true') {
-                        cardEl.style.borderColor = '#3A3A3A';
+                        cardEl.style.borderColor = 'var(--color-border-hover)';
                         cardEl.style.transform = 'translateY(0)';
                     }
                 });
@@ -2299,8 +2304,8 @@
 
                     return listedOnly ? isListed : !isListed;
                 },
-                borderColor: '#FF00FF',
-                overlayColor: 'rgba(255, 0, 255, 0.3)',
+                borderColor: 'var(--color-whatnot)',
+                overlayColor: 'var(--color-whatnot-subtle)',
                 cssClass: 'whatnot-bulk-item'
             });
         }
@@ -2358,13 +2363,13 @@
                     if (allSelected) {
                         // Deselect all
                         item.dataset.selected = 'false';
-                        item.style.borderColor = '#3A3A3A';
+                        item.style.borderColor = 'var(--color-border-hover)';
                         overlay.style.display = 'none';
                         bulkSelectedItems = bulkSelectedItems.filter(s => s !== sku);
                     } else {
                         // Select all
                         item.dataset.selected = 'true';
-                        item.style.borderColor = '#FF00FF';
+                        item.style.borderColor = 'var(--color-whatnot)';
                         overlay.style.display = 'flex';
                         if (!bulkSelectedItems.includes(sku)) {
                             bulkSelectedItems.push(sku);
@@ -2520,8 +2525,8 @@
                     }
                     return false;
                 },
-                borderColor: '#FFE500',
-                overlayColor: 'rgba(255, 229, 0, 0.3)',
+                borderColor: 'var(--color-accent)',
+                overlayColor: 'var(--color-accent-subtle)',
                 cssClass: 'ebay-bulk-item'
             });
         }
@@ -2592,13 +2597,13 @@
                     if (allSelected) {
                         // Deselect all
                         item.dataset.selected = 'false';
-                        item.style.borderColor = '#3A3A3A';
+                        item.style.borderColor = 'var(--color-border-hover)';
                         overlay.style.display = 'none';
                         bulkSelectedItems = bulkSelectedItems.filter(s => s !== sku);
                     } else {
                         // Select all
                         item.dataset.selected = 'true';
-                        item.style.borderColor = '#FFE500';
+                        item.style.borderColor = 'var(--color-accent)';
                         overlay.style.display = 'flex';
                         if (!bulkSelectedItems.includes(sku)) {
                             bulkSelectedItems.push(sku);
@@ -2669,40 +2674,40 @@
                 if (bulkCurrentAction === 'add') {
                     actionText = `List ${bulkSelectedItems.length} item(s) on WhatNot`;
                     confirmBtn.textContent = 'List Items';
-                    confirmBtn.style.background = '#FF00FF';
-                    confirmBtn.style.color = '#FFF';
+                    confirmBtn.style.background = 'var(--color-whatnot)';
+                    confirmBtn.style.color = 'var(--color-text)';
                 } else {
                     actionText = `Remove ${bulkSelectedItems.length} item(s) from WhatNot`;
                     warningText = 'This will mark these items as unlisted.';
                     confirmBtn.textContent = 'Remove Items';
-                    confirmBtn.style.background = '#ff6b6b';
-                    confirmBtn.style.color = '#FFF';
+                    confirmBtn.style.background = 'var(--color-danger)';
+                    confirmBtn.style.color = 'var(--color-text)';
                 }
             } else if (bulkCurrentPlatform === 'ebay') {
                 if (bulkCurrentAction === 'add') {
                     actionText = `List ${bulkSelectedItems.length} item(s) on eBay`;
                     warningText = 'This will create new eBay listings with your default settings.';
                     confirmBtn.textContent = 'List on eBay';
-                    confirmBtn.style.background = '#FFE500';
-                    confirmBtn.style.color = '#1A1A1A';
+                    confirmBtn.style.background = 'var(--color-accent)';
+                    confirmBtn.style.color = 'var(--color-surface)';
                 } else if (bulkCurrentAction === 'update') {
                     actionText = `Update ${bulkSelectedItems.length} eBay listing(s)`;
                     warningText = 'This will push current price and description changes to eBay.';
                     confirmBtn.textContent = 'Update Listings';
-                    confirmBtn.style.background = '#4AE5FF';
-                    confirmBtn.style.color = '#0A0A0A';
+                    confirmBtn.style.background = 'var(--color-info)';
+                    confirmBtn.style.color = 'var(--color-bg)';
                 } else if (bulkCurrentAction === 'unlink') {
                     actionText = `Unlink ${bulkSelectedItems.length} eBay item ID(s)`;
                     warningText = 'This will remove eBay item IDs from your database. The listings will remain active on eBay.';
                     confirmBtn.textContent = 'Unlink IDs';
-                    confirmBtn.style.background = '#FFA500';
-                    confirmBtn.style.color = '#1A1A1A';
+                    confirmBtn.style.background = 'var(--color-warning)';
+                    confirmBtn.style.color = 'var(--color-surface)';
                 } else {
                     actionText = `End ${bulkSelectedItems.length} eBay listing(s)`;
                     warningText = 'This will terminate these listings on eBay.';
                     confirmBtn.textContent = 'End Listings';
-                    confirmBtn.style.background = '#ff6b6b';
-                    confirmBtn.style.color = '#FFF';
+                    confirmBtn.style.background = 'var(--color-danger)';
+                    confirmBtn.style.color = 'var(--color-text)';
                 }
             }
 
@@ -2710,7 +2715,7 @@
             messageEl.innerHTML = `
                 <strong>${actionText}</strong><br><br>
                 ${warningText}<br><br>
-                <span style="color: #9A9A9A; font-size: 13px;">This action cannot be undone. Are you sure you want to proceed?</span>
+                <span style="color: var(--color-text-muted); font-size: 13px;">This action cannot be undone. Are you sure you want to proceed?</span>
             `;
 
             document.getElementById('bulkConfirmModal').style.display = 'flex';
@@ -2742,13 +2747,13 @@
             // Show progress notification
             const progressNotification = document.createElement('div');
             progressNotification.id = 'bulkProgressNotification';
-            progressNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #1A1A1A; border: 2px solid #FFE500; border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);';
+            progressNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--color-surface); border: 2px solid var(--color-accent); border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);';
             progressNotification.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="spinner" style="width: 20px; height: 20px; border: 2px solid #3A3A3A; border-top-color: #FFE500; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                    <div class="spinner" style="width: 20px; height: 20px; border: 2px solid var(--color-border-hover); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
                     <div>
-                        <div style="color: #FFE500; font-weight: 600; margin-bottom: 4px;">Processing...</div>
-                        <div id="bulkProgressText" style="color: #9A9A9A; font-size: 13px;">0 of ${bulkSelectedItems.length} items</div>
+                        <div style="color: var(--color-accent); font-weight: 600; margin-bottom: 4px;">Processing...</div>
+                        <div id="bulkProgressText" style="color: var(--color-text-muted); font-size: 13px;">0 of ${bulkSelectedItems.length} items</div>
                     </div>
                 </div>
             `;
@@ -2825,17 +2830,17 @@
             }
 
             // Show result
-            const resultColor = errorCount === 0 ? '#4FF3AE' : (successCount > 0 ? '#FFE500' : '#ff6b6b');
+            const resultColor = errorCount === 0 ? 'var(--color-success)' : (successCount > 0 ? 'var(--color-accent)' : 'var(--color-danger)');
             const resultNotification = document.createElement('div');
-            resultNotification.style.cssText = `position: fixed; top: 20px; right: 20px; background: #1A1A1A; border: 2px solid ${resultColor}; border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);`;
+            resultNotification.style.cssText = `position: fixed; top: 20px; right: 20px; background: var(--color-surface); border: 2px solid ${resultColor}; border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);`;
             resultNotification.innerHTML = `
                 <div style="color: ${resultColor}; font-weight: 600; margin-bottom: 8px;">
                     ${errorCount === 0 ? '✓ Success!' : (successCount > 0 ? '⚠ Partially Complete' : '✗ Failed')}
                 </div>
-                <div style="color: #E5E5E5; font-size: 14px;">
+                <div style="color: var(--color-text); font-size: 14px;">
                     ${successCount} succeeded, ${errorCount} failed
                 </div>
-                ${errors.length > 0 && errors.length <= 5 ? `<div style="color: #9A9A9A; font-size: 12px; margin-top: 8px;">Failed: ${errors.map(e => e.sku).join(', ')}</div>` : ''}
+                ${errors.length > 0 && errors.length <= 5 ? `<div style="color: var(--color-text-muted); font-size: 12px; margin-top: 8px;">Failed: ${errors.map(e => e.sku).join(', ')}</div>` : ''}
             `;
             document.body.appendChild(resultNotification);
 
@@ -2864,7 +2869,7 @@
             // Update active tab
             document.querySelectorAll('.filter-tab').forEach(tab => {
                 tab.style.borderBottomColor = 'transparent';
-                tab.style.color = '#9A9A9A';
+                tab.style.color = 'var(--color-text-muted)';
                 tab.classList.remove('active');
             });
 
@@ -2875,8 +2880,8 @@
                              document.getElementById('filterGiveaway');
 
             if (activeTab) {
-                activeTab.style.borderBottomColor = '#FFE500';
-                activeTab.style.color = '#FFE500';
+                activeTab.style.borderBottomColor = 'var(--color-accent)';
+                activeTab.style.color = 'var(--color-accent)';
                 activeTab.classList.add('active');
             }
 
@@ -2935,8 +2940,8 @@
             Object.values(buttons).forEach(btn => {
                 btn.classList.remove('active');
                 btn.style.background = 'transparent';
-                btn.style.color = '#FFE500';
-                btn.style.border = '2px solid #FFE500';
+                btn.style.color = 'var(--color-accent)';
+                btn.style.border = '2px solid var(--color-accent)';
             });
 
             // Set active button
@@ -2944,16 +2949,16 @@
             if (activeBtn) {
                 activeBtn.classList.add('active');
                 if (notListedSubFilter === 'both') {
-                    activeBtn.style.background = '#FFE500';
-                    activeBtn.style.color = '#1A1A1A';
+                    activeBtn.style.background = 'var(--color-accent)';
+                    activeBtn.style.color = 'var(--color-surface)';
                     activeBtn.style.border = 'none';
                 } else if (notListedSubFilter === 'ebay') {
-                    activeBtn.style.background = '#FFE500';
-                    activeBtn.style.color = '#1A1A1A';
+                    activeBtn.style.background = 'var(--color-accent)';
+                    activeBtn.style.color = 'var(--color-surface)';
                     activeBtn.style.border = 'none';
                 } else if (notListedSubFilter === 'whatnot') {
-                    activeBtn.style.background = '#FFE500';
-                    activeBtn.style.color = '#1A1A1A';
+                    activeBtn.style.background = 'var(--color-accent)';
+                    activeBtn.style.color = 'var(--color-surface)';
                     activeBtn.style.border = 'none';
                 }
             }
@@ -3054,14 +3059,14 @@
                     if (cb.checked) {
                         // In delete mode, use red highlighting
                         if (isDeleteMode) {
-                            card.style.border = '2px solid #ff4444';
+                            card.style.border = '2px solid var(--color-danger)';
                             card.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
                             card.style.boxShadow = '0 0 12px rgba(255, 68, 68, 0.3)';
                         } else {
                             // Export and eBay modes: yellow highlighting
-                            card.style.border = '2px solid #FFE500';
-                            card.style.backgroundColor = 'rgba(255, 229, 0, 0.05)';
-                            card.style.boxShadow = '0 0 12px rgba(255, 229, 0, 0.2)';
+                            card.style.border = '2px solid var(--color-accent)';
+                            card.style.backgroundColor = 'var(--color-accent-subtle)';
+                            card.style.boxShadow = '0 0 12px var(--color-accent-subtle)';
                         }
                     } else {
                         card.style.border = 'none';
@@ -3350,12 +3355,12 @@
             `;
 
             modal.innerHTML = `
-                <div style="background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 12px; max-width: 500px; padding: 24px; color: #E5E5E5;">
-                    <h2 style="margin: 0 0 16px 0; color: #FFE500;">Confirm Action</h2>
-                    <p style="color: #E5E5E5; margin-bottom: 24px; line-height: 1.6;">${message}</p>
+                <div style="background: var(--color-surface); border: 1px solid var(--color-elevated); border-radius: 12px; max-width: 500px; padding: 24px; color: var(--color-text);">
+                    <h2 style="margin: 0 0 16px 0; color: var(--color-accent);">Confirm Action</h2>
+                    <p style="color: var(--color-text); margin-bottom: 24px; line-height: 1.6;">${message}</p>
                     <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="cancelBulkDelete()" style="padding: 10px 24px; background: transparent; border: 1px solid #3A3A3A; color: #FFE500; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-                        <button onclick="confirmBulkDelete()" style="padding: 10px 24px; background: #FFE500; color: #0A0A0A; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Delete</button>
+                        <button onclick="cancelBulkDelete()" style="padding: 10px 24px; background: transparent; border: 1px solid var(--color-border-hover); color: var(--color-accent); border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                        <button onclick="confirmBulkDelete()" style="padding: 10px 24px; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Delete</button>
                     </div>
                 </div>
             `;
