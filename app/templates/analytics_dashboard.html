@@ -577,7 +577,7 @@ function renderHeatmap(clicks) {
 
     const pageName = pageMap[selectedPage] || 'home';
     const pageImg = new Image();
-    pageImg.src = `/static/analytics/${pageName}.png`;
+    pageImg.src = `/static/analytics/${pageName}.png?v={{ app_version }}`;
 
     pageImg.onload = function() {
         ctx.drawImage(pageImg, 0, 0, canvas.width, canvas.height);
