@@ -28,17 +28,21 @@ print()
 WIDTH = 1200
 HEIGHT = 800
 
-# Colors (exactly matching app theme)
-BG_DARK = '#0A0A0A'         # Main background
-BG_MEDIUM = '#1A1A1A'       # Card/panel background
-BG_LIGHT = '#2A2A2A'        # Elevated elements
-BORDER = '#3A3A3A'          # Border color
-ACCENT = '#FFE500'          # Yellow accent
-TEXT_LIGHT = '#AAAAAA'      # Secondary text
-EBAY_BLUE = '#007AFF'       # eBay indicator
-WHATNOT_MAGENTA = '#FF00FF' # WhatNot indicator
-GREEN = '#4CAF50'           # Success/save
-RED = '#FF4444'             # Danger/delete
+# Colors (matching design system tokens in tokens.css)
+BG_DARK = '#111210'         # --color-bg
+BG_MEDIUM = '#1B1B1B'       # --color-surface
+BG_LIGHT = '#242422'        # --color-elevated
+BORDER = '#2E2E2A'          # --color-border
+BORDER_HOVER = '#3A3A36'    # --color-border-hover
+ACCENT = '#595F39'          # --color-accent (Muted Moss)
+ACCENT_HOVER = '#6B7244'    # --color-accent-hover
+TEXT = '#E4E4DE'             # --color-text
+TEXT_MUTED = '#C4C5BA'       # --color-text-muted
+TEXT_DIM = '#7A7B72'         # --color-text-dim
+EBAY_BLUE = '#00BFFF'       # --color-ebay
+WHATNOT_MAGENTA = '#FF00FF'  # --color-whatnot
+GREEN = '#5C8A5C'           # --color-success
+RED = '#C45C5C'             # --color-danger
 
 
 def hex_to_rgb(hex_color):
