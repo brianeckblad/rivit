@@ -2,8 +2,7 @@
 
 {% block title %}Analytics Dashboard{% endblock %}
 
-{% block content %}
-<style>
+{% block extra_css %}
     .analytics-container {
         max-width: 1400px;
         margin: 0 auto;
@@ -20,7 +19,7 @@
     }
 
     .analytics-header h1 {
-        font-size: 28px;
+        font-size: var(--font-size-xl);
         font-weight: 600;
         color: var(--color-accent);
     }
@@ -35,7 +34,7 @@
         padding: 10px 20px;
         background: var(--color-elevated);
         border: 1px solid var(--color-border-hover);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         color: var(--color-text);
         cursor: pointer;
         transition: all 0.2s;
@@ -57,13 +56,8 @@
         margin-bottom: 30px;
     }
 
-    .stat-card {
-        background: var(--color-elevated);
-        border-color: var(--color-border-hover);
-    }
-
     .stat-card h3 {
-        font-size: 14px;
+        font-size: var(--font-size-base);
         color: var(--color-text-muted);
         margin-bottom: 10px;
         text-transform: uppercase;
@@ -89,7 +83,7 @@
         border: none;
         color: var(--color-text-muted);
         cursor: pointer;
-        font-size: 16px;
+        font-size: var(--font-size-md);
         border-bottom: 2px solid transparent;
         transition: all 0.2s;
     }
@@ -119,7 +113,7 @@
         margin: 0 auto;
         background: var(--color-surface);
         border: 1px solid var(--color-border-hover);
-        border-radius: 12px;
+        border-radius: var(--radius-lg);
         overflow: hidden;
     }
 
@@ -151,7 +145,7 @@
     .flow-diagram {
         background: var(--color-elevated);
         border: 1px solid var(--color-border-hover);
-        border-radius: 12px;
+        border-radius: var(--radius-lg);
         padding: 20px;
         margin-bottom: 20px;
     }
@@ -162,20 +156,20 @@
         margin: 10px 0;
         padding: 15px;
         background: var(--color-surface);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
     }
 
     .flow-arrow {
         margin: 0 15px;
         color: var(--color-accent);
-        font-size: 20px;
+        font-size: var(--font-size-lg);
     }
 
     .flow-step-count {
         margin-left: auto;
         padding: 5px 15px;
         background: var(--color-accent-subtle);
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         color: var(--color-accent);
         font-weight: 600;
     }
@@ -190,16 +184,16 @@
         display: flex;
         align-items: center;
         padding: 12px;
-        margin-bottom: 8px;
+        margin-bottom: var(--space-sm);
         background: var(--color-elevated);
         border: 1px solid var(--color-border-hover);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
     }
 
     .element-item .bar {
         height: 8px;
         background: linear-gradient(90deg, var(--color-accent), var(--color-warning));
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         margin-right: 15px;
         transition: width 0.3s;
     }
@@ -220,7 +214,7 @@
         background: var(--color-elevated);
         border: 1px solid var(--color-border-hover);
         border-left: 4px solid var(--color-accent);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         padding: 20px;
         margin-bottom: 15px;
     }
@@ -238,7 +232,7 @@
     }
 
     .recommendation-card h3 {
-        font-size: 18px;
+        font-size: var(--font-size-md);
         margin-bottom: 10px;
         color: var(--color-accent);
     }
@@ -246,15 +240,15 @@
     .recommendation-card .priority-badge {
         display: inline-block;
         padding: 4px 12px;
-        border-radius: 4px;
-        font-size: 12px;
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-xs);
         font-weight: 600;
         text-transform: uppercase;
         margin-right: 10px;
     }
 
     .recommendation-card .priority-badge.high {
-        background: rgba(255, 68, 68, 0.2);
+        background: var(--color-danger-subtle);
         color: var(--color-danger);
     }
 
@@ -276,10 +270,9 @@
 
     .recommendation-card .elements {
         color: var(--color-text-muted);
-        font-size: 14px;
+        font-size: var(--font-size-base);
         font-style: italic;
     }
-
 
     .page-selector {
         display: flex;
@@ -292,7 +285,7 @@
         padding: 8px 16px;
         background: var(--color-elevated);
         border: 1px solid var(--color-border-hover);
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         color: var(--color-text);
         cursor: pointer;
         transition: all 0.2s;
@@ -305,18 +298,29 @@
 
     .page-btn.active {
         background: var(--color-accent);
-        color: var(--color-surface);
+        color: var(--color-accent-text);
         border-color: var(--color-accent);
     }
-</style>
 
+    .analytics-controls .btn-clear {
+        background: var(--color-danger-subtle);
+        border-color: var(--color-danger);
+    }
+
+    .analytics-controls .btn-clear:hover {
+        background: var(--color-danger);
+        color: var(--color-accent-text);
+    }
+{% endblock %}
+
+{% block content %}
 <div class="analytics-container">
     <div class="analytics-header">
-        <h1>📊 UX Analytics Dashboard</h1>
+        <h1>Analytics Dashboard</h1>
         <div class="analytics-controls">
-            <button onclick="exportAnalytics()">📥 Export CSV</button>
-            <button onclick="refreshData()">🔄 Refresh</button>
-            <button onclick="clearData()" style="background: rgba(255,68,68,0.2); border-color: var(--color-danger);">🗑️ Clear Data</button>
+            <button onclick="exportAnalytics()">Export CSV</button>
+            <button onclick="refreshData()">Refresh</button>
+            <button class="btn-clear" onclick="clearData()">Clear Data</button>
         </div>
     </div>
 
@@ -336,17 +340,17 @@
         </div>
         <div class="stat-card">
             <h3>Most Visited Page</h3>
-            <div class="value" style="font-size: 18px;">—</div>
+            <div class="value" style="font-size: var(--font-size-md);">—</div>
         </div>
     </div>
 
     <!-- Tabs -->
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('heatmap')">🔥 Click Heatmap</button>
-        <button class="tab" onclick="switchTab('flows')">🔀 User Flows</button>
-        <button class="tab" onclick="switchTab('engagement')">⚡ Element Engagement</button>
-        <button class="tab" onclick="switchTab('pages')">📄 Page Performance</button>
-        <button class="tab" onclick="switchTab('recommendations')">💡 Recommendations</button>
+        <button class="tab active" onclick="switchTab('heatmap')">Click Heatmap</button>
+        <button class="tab" onclick="switchTab('flows')">User Flows</button>
+        <button class="tab" onclick="switchTab('engagement')">Element Engagement</button>
+        <button class="tab" onclick="switchTab('pages')">Page Performance</button>
+        <button class="tab" onclick="switchTab('recommendations')">Recommendations</button>
     </div>
 
     <!-- Heatmap Tab -->
@@ -389,7 +393,7 @@
 
     <!-- Recommendations Tab -->
     <div id="tab-recommendations" class="tab-content">
-        <h2 style="color: var(--color-accent); margin-bottom: 20px;">AI-Generated UX Recommendations</h2>
+        <h2 style="color: var(--color-accent); margin-bottom: 20px;">UX Recommendations</h2>
         <div id="recommendations-list"></div>
     </div>
 </div>
@@ -398,6 +402,11 @@
 let currentTab = 'heatmap';
 let selectedPage = null;
 let analyticsData = {};
+
+/* Resolve CSS custom properties to hex for Canvas API (which doesn't support var()) */
+function getCSSColor(varName) {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
 
 function switchTab(tabName) {
     // Update tab buttons
@@ -501,11 +510,11 @@ function showTabError(tabName, message) {
                 <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
                 <h3 style="color: var(--color-danger); margin-bottom: 10px;">Error Loading Data</h3>
                 <p style="margin-bottom: 20px;">${message}</p>
-                <p style="font-size: 14px; color: var(--color-text-dim);">
+                <p style="font-size: var(--font-size-base); color: var(--color-text-dim);">
                     Check the server logs for more details or try refreshing the page.
                 </p>
-                <button onclick="refreshData()" style="margin-top: 20px; padding: 10px 20px; background: var(--color-accent); color: var(--color-accent-text); border: none; border-radius: 4px; cursor: pointer;">
-                    🔄 Try Again
+                <button class="btn btn-primary" onclick="refreshData()" style="margin-top: 20px;">
+                    Try Again
                 </button>
             </div>
         `;
@@ -545,6 +554,17 @@ function renderHeatmap(clicks) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     overlay.innerHTML = '';
 
+    // Resolve CSS tokens to actual colors for Canvas API
+    const colorSurface = getCSSColor('--color-surface');
+    const colorElevated = getCSSColor('--color-elevated');
+    const colorBorderHover = getCSSColor('--color-border-hover');
+    const colorAccent = getCSSColor('--color-accent');
+    const colorBg = getCSSColor('--color-bg');
+    const colorTextDim = getCSSColor('--color-text-dim');
+    const colorTextMuted = getCSSColor('--color-text-muted');
+    const colorDanger = getCSSColor('--color-danger');
+    const colorWarning = getCSSColor('--color-warning');
+
     // Try to load actual page screenshot if available
     const pageMap = {
         '/': 'home',
@@ -560,67 +580,64 @@ function renderHeatmap(clicks) {
     pageImg.src = `/static/analytics/${pageName}.png`;
 
     pageImg.onload = function() {
-        // Draw the actual page screenshot
         ctx.drawImage(pageImg, 0, 0, canvas.width, canvas.height);
         drawHeatmapOverlay();
     };
 
     pageImg.onerror = function() {
-        // Fallback: draw wireframe mockup
         drawWireframeMockup();
         drawHeatmapOverlay();
     };
 
     function drawWireframeMockup() {
-        // Draw page mockup background
-        ctx.fillStyle = 'var(--color-surface)';
+        // Page background
+        ctx.fillStyle = colorSurface;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw page structure mockup
         // Header bar
-        ctx.fillStyle = 'var(--color-elevated)';
+        ctx.fillStyle = colorElevated;
         ctx.fillRect(0, 0, canvas.width, 80);
-        ctx.strokeStyle = 'var(--color-border-hover)';
+        ctx.strokeStyle = colorBorderHover;
         ctx.strokeRect(0, 0, canvas.width, 80);
 
         // Logo area
-        ctx.fillStyle = 'var(--color-accent)';
+        ctx.fillStyle = colorAccent;
         ctx.fillRect(20, 20, 40, 40);
 
         // Nav buttons in header
         for (let i = 0; i < 7; i++) {
-            ctx.fillStyle = 'var(--color-border-hover)';
+            ctx.fillStyle = colorBorderHover;
             ctx.fillRect(100 + (i * 140), 25, 120, 30);
         }
 
         // Main content area
-        ctx.fillStyle = 'var(--color-bg)';
+        ctx.fillStyle = colorBg;
         ctx.fillRect(0, 80, canvas.width, canvas.height - 160);
 
         // Content cards/grid
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < 3; col++) {
-                ctx.fillStyle = 'var(--color-elevated)';
+                ctx.fillStyle = colorElevated;
                 ctx.fillRect(40 + (col * 380), 120 + (row * 200), 360, 180);
-                ctx.strokeStyle = 'var(--color-border-hover)';
+                ctx.strokeStyle = colorBorderHover;
                 ctx.strokeRect(40 + (col * 380), 120 + (row * 200), 360, 180);
             }
         }
 
         // Bottom navigation bar
-        ctx.fillStyle = 'var(--color-surface)';
+        ctx.fillStyle = colorSurface;
         ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
-        ctx.strokeStyle = 'var(--color-border-hover)';
+        ctx.strokeStyle = colorBorderHover;
         ctx.strokeRect(0, canvas.height - 80, canvas.width, 80);
 
         // Bottom nav buttons
         for (let i = 0; i < 8; i++) {
-            ctx.fillStyle = 'var(--color-border-hover)';
+            ctx.fillStyle = colorBorderHover;
             ctx.fillRect(50 + (i * 140), canvas.height - 60, 50, 40);
         }
 
-        // Add text label
-        ctx.fillStyle = 'var(--color-text-dim)';
+        // Label
+        ctx.fillStyle = colorTextDim;
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('Page Layout Preview - Click heatmap overlay shows actual user clicks', canvas.width / 2, 100);
@@ -628,7 +645,7 @@ function renderHeatmap(clicks) {
 
     function drawHeatmapOverlay() {
         if (!clicks || clicks.length === 0) {
-            ctx.fillStyle = 'var(--color-text-muted)';
+            ctx.fillStyle = colorTextMuted;
             ctx.font = '18px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('No click data yet - use the app to generate heatmap', canvas.width / 2, canvas.height / 2);
@@ -637,15 +654,13 @@ function renderHeatmap(clicks) {
 
         // Draw click heatmap overlay
         clicks.forEach(click => {
-            // Normalize coordinates
             const x = (click.x / 1920) * canvas.width;
             const y = (click.y / 1080) * canvas.height;
 
-            // Create gradient (heat) — Canvas API doesn't support CSS vars
             const gradient = ctx.createRadialGradient(x, y, 0, x, y, 30);
-            gradient.addColorStop(0, 'rgba(255, 0, 0, 0.5)');
-            gradient.addColorStop(0.5, 'rgba(184, 160, 92, 0.3)');  /* --color-warning */
-            gradient.addColorStop(1, 'var(--color-accent-subtle)');
+            gradient.addColorStop(0, colorDanger);
+            gradient.addColorStop(0.5, colorWarning + '4D');  /* ~30% opacity */
+            gradient.addColorStop(1, 'transparent');
 
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -657,7 +672,7 @@ function renderHeatmap(clicks) {
             dot.className = 'click-dot';
             dot.style.left = `${(x / canvas.width) * 100}%`;
             dot.style.top = `${(y / canvas.height) * 100}%`;
-            dot.style.background = 'rgba(255, 0, 0, 0.8)';
+            dot.style.background = colorDanger;
             dot.title = click.element || 'Click';
             overlay.appendChild(dot);
         });
