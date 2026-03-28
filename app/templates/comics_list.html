@@ -108,7 +108,7 @@
 
         .comic-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            box-shadow: var(--shadow-lg);
             border: none;
         }
 
@@ -717,11 +717,11 @@
     </div>
 
     <!-- Grading Scale Modal -->
-    <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div class="grading-modal-content" onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">CGC Standard Grading Scale</h2>
-                <button onclick="closeGradingModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeGradingModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <!-- Grading items will be added via JavaScript to keep file size smaller -->
@@ -731,11 +731,11 @@
     </div>
 
     <!-- Keyboard Shortcuts Help Modal -->
-    <div id="keyboardShortcutsModal" onclick="closeShortcutsModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div id="keyboardShortcutsModal" onclick="closeShortcutsModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 12px; max-width: 700px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">⌨️ Keyboard Shortcuts</h2>
-                <button onclick="closeShortcutsModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeShortcutsModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: grid; gap: 16px;">
@@ -797,11 +797,11 @@
     </div>
 
     <!-- Bulk Edit Modal -->
-    <div id="bulkEditModal" onclick="closeBulkEditModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div id="bulkEditModal" onclick="closeBulkEditModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1003; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated);">
                 <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Bulk Edit <span id="bulkEditCount" style="color: var(--color-text-muted); font-size: 18px;"></span></h2>
-                <button onclick="closeBulkEditModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeBulkEditModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <form id="bulkEditForm" style="display: grid; gap: 20px;">
@@ -858,7 +858,7 @@
     </div>
 
     <!-- Bulk WhatNot Management Modal -->
-    <div id="bulkWhatNotModal" onclick="closeBulkWhatNotModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div id="bulkWhatNotModal" onclick="closeBulkWhatNotModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -868,7 +868,7 @@
                     </svg>
                     <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">WhatNot Bulk Actions</h2>
                 </div>
-                <button onclick="closeBulkWhatNotModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeBulkWhatNotModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: grid; gap: 16px;">
@@ -897,7 +897,7 @@
     </div>
 
     <!-- Bulk WhatNot Selection Modal -->
-    <div id="bulkWhatNotSelectionModal" onclick="closeBulkWhatNotSelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div id="bulkWhatNotSelectionModal" onclick="closeBulkWhatNotSelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -909,7 +909,7 @@
                     </button>
                     <h2 id="bulkWhatNotSelectionTitle" style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
                 </div>
-                <button onclick="closeBulkWhatNotSelectionModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeBulkWhatNotSelectionModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: flex; gap: 12px; margin-bottom: 20px;">
@@ -943,7 +943,7 @@
     </div>
 
     <!-- Bulk eBay Management Modal -->
-    <div id="bulkEbayModal" onclick="closeBulkEbayModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div id="bulkEbayModal" onclick="closeBulkEbayModalOnOutside(event)" style="display: none; position: fixed; z-index: 1004; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -954,7 +954,7 @@
                     </svg>
                     <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">eBay Bulk Actions</h2>
                 </div>
-                <button onclick="closeBulkEbayModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeBulkEbayModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: grid; gap: 16px;">
@@ -1004,7 +1004,7 @@
     </div>
 
     <!-- Bulk eBay Selection Modal -->
-    <div id="bulkEbaySelectionModal" onclick="closeBulkEbaySelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div id="bulkEbaySelectionModal" onclick="closeBulkEbaySelectionModalOnOutside(event)" style="display: none; position: fixed; z-index: 1005; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -1016,7 +1016,7 @@
                     </button>
                     <h2 id="bulkEbaySelectionTitle" style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Select Items</h2>
                 </div>
-                <button onclick="closeBulkEbaySelectionModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeBulkEbaySelectionModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div style="display: flex; gap: 12px; margin-bottom: 20px;">
@@ -1050,7 +1050,7 @@
     </div>
 
     <!-- Confirmation Modal for Bulk Actions -->
-    <div id="bulkConfirmModal" onclick="closeBulkConfirmModalOnOutside(event)" style="display: none; position: fixed; z-index: 1006; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); align-items: center; justify-content: center;">
+    <div id="bulkConfirmModal" onclick="closeBulkConfirmModalOnOutside(event)" style="display: none; position: fixed; z-index: 1006; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-accent); border-radius: 12px; max-width: 500px; width: 90%; padding: 0;">
             <div style="padding: 24px; border-bottom: 1px solid var(--color-elevated);">
                 <h3 id="bulkConfirmTitle" style="color: var(--color-accent); font-size: 20px; font-weight: 600; margin: 0 0 12px 0;">Confirm Action</h3>
@@ -1388,8 +1388,8 @@
                                     if (checkbox.checked) {
                                         if (mode === 'delete') {
                                             card.style.border = '2px solid var(--color-danger)';
-                                            card.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
-                                            card.style.boxShadow = '0 0 12px rgba(255, 68, 68, 0.3)';
+                                            card.style.backgroundColor = 'var(--color-danger-subtle)';
+                                            card.style.boxShadow = '0 0 12px var(--color-danger-subtle)';
                                         } else {
                                             // Yellow for export and eBay modes
                                             card.style.border = '2px solid var(--color-accent)';
@@ -1860,9 +1860,9 @@
                             const isWhatNot = card.classList.contains('whatnot-card');
                             const isEbay = card.classList.contains('ebay-card');
                             if (isWhatNot) {
-                                card.style.borderColor = '#FF1493';
+                                card.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-whatnot').trim();
                             } else if (isEbay) {
-                                card.style.borderColor = '#0064D2';
+                                card.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--color-ebay').trim();
                             }
                         }
                         restoredCount++;
@@ -2081,7 +2081,7 @@
                 position: relative;
                 width: 100%;
                 max-width: ${cardWidth}px;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+                box-shadow: var(--shadow-sm);
             `;
 
             // Determine the best image URL to use
@@ -2118,7 +2118,7 @@
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </div>
-                    <div style="position: absolute; top: ${badgeTop}px; right: ${badgeRight}px; background: rgba(0, 0, 0, 0.85); color: var(--color-accent); padding: ${badgePadding}px; border-radius: ${borderRadius * 0.5}px; font-size: ${badgeFontSize}px; font-weight: 700; letter-spacing: 0.1px; text-transform: uppercase;">
+                    <div style="position: absolute; top: ${badgeTop}px; right: ${badgeRight}px; background: var(--overlay-heavy); color: var(--color-accent); padding: ${badgePadding}px; border-radius: ${borderRadius * 0.5}px; font-size: ${badgeFontSize}px; font-weight: 700; letter-spacing: 0.1px; text-transform: uppercase;">
                         ${type}
                     </div>
                 </div>
@@ -2747,7 +2747,7 @@
             // Show progress notification
             const progressNotification = document.createElement('div');
             progressNotification.id = 'bulkProgressNotification';
-            progressNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--color-surface); border: 2px solid var(--color-accent); border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);';
+            progressNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--color-surface); border: 2px solid var(--color-accent); border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: var(--shadow-lg);';
             progressNotification.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div class="spinner" style="width: 20px; height: 20px; border: 2px solid var(--color-border-hover); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
@@ -2832,7 +2832,7 @@
             // Show result
             const resultColor = errorCount === 0 ? 'var(--color-success)' : (successCount > 0 ? 'var(--color-accent)' : 'var(--color-danger)');
             const resultNotification = document.createElement('div');
-            resultNotification.style.cssText = `position: fixed; top: 20px; right: 20px; background: var(--color-surface); border: 2px solid ${resultColor}; border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: 0 4px 16px rgba(0,0,0,0.5);`;
+            resultNotification.style.cssText = `position: fixed; top: 20px; right: 20px; background: var(--color-surface); border: 2px solid ${resultColor}; border-radius: 8px; padding: 16px 24px; z-index: 2000; box-shadow: var(--shadow-lg);`;
             resultNotification.innerHTML = `
                 <div style="color: ${resultColor}; font-weight: 600; margin-bottom: 8px;">
                     ${errorCount === 0 ? '✓ Success!' : (successCount > 0 ? '⚠ Partially Complete' : '✗ Failed')}
@@ -3060,8 +3060,8 @@
                         // In delete mode, use red highlighting
                         if (isDeleteMode) {
                             card.style.border = '2px solid var(--color-danger)';
-                            card.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
-                            card.style.boxShadow = '0 0 12px rgba(255, 68, 68, 0.3)';
+                            card.style.backgroundColor = 'var(--color-danger-subtle)';
+                            card.style.boxShadow = '0 0 12px var(--color-danger-subtle)';
                         } else {
                             // Export and eBay modes: yellow highlighting
                             card.style.border = '2px solid var(--color-accent)';
@@ -3347,7 +3347,7 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
+                background: var(--overlay-medium);
                 z-index: 1000;
                 display: flex;
                 align-items: center;

@@ -72,6 +72,25 @@
   --radius-md:  10px;   /* cards, small containers                         */
   --radius-lg:  14px;   /* modals, sections, large containers              */
 
+  /* ── Overlays ───────────────────────────────────────────────────────────── */
+  --overlay-heavy:    rgba(0, 0, 0, 0.8);   /* modal backdrops              */
+  --overlay-medium:   rgba(0, 0, 0, 0.7);   /* image overlays               */
+  --overlay-light:    rgba(0, 0, 0, 0.5);   /* dimmed backgrounds           */
+  --overlay-surface:  rgba(27, 27, 27, 0.8); /* surface-tinted overlay      */
+  --overlay-text:     rgba(228, 228, 222, 0.9); /* text-tinted overlay      */
+  --overlay-text-dim: rgba(228, 228, 222, 0.2); /* spinner borders etc.     */
+
+  /* ── Elevated surfaces (transparent, for layering) ────────────────────── */
+  --color-surface-subtle:  rgba(42, 42, 42, 0.3);  /* action section bg     */
+  --color-surface-hover:   rgba(42, 42, 42, 0.5);  /* action section hover  */
+
+  /* ── Semantic border variants ─────────────────────────────────────────── */
+  --color-danger-border:   rgba(196, 92, 92, 0.4);
+  --color-success-border:  rgba(92, 138, 92, 0.4);
+  --color-info-border:     rgba(92, 158, 184, 0.3);
+  --color-neutral-bg:      rgba(107, 107, 107, 0.12);
+  --color-neutral-border:  rgba(107, 107, 107, 0.3);
+
   /* ── Shadows (neutral — no colored glows) ─────────────────────────────── */
   --shadow-sm:  0 1px 2px   rgba(0, 0, 0, 0.3);
   --shadow-md:  0 4px 12px  rgba(0, 0, 0, 0.4);

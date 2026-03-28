@@ -90,7 +90,7 @@
         .view-mode-edit-btn:hover {
             background: var(--color-info);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(74, 229, 255, 0.4);
+            box-shadow: var(--shadow-md);
         }
 
         .view-mode-edit-btn:active {
@@ -121,7 +121,7 @@
             background: var(--color-info);
             color: var(--color-bg);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(74, 229, 255, 0.4);
+            box-shadow: var(--shadow-md);
         }
 
         .page-title-edit-btn:active {
@@ -144,12 +144,12 @@
 
         .progress-container {
             display: none;
-            background: white;
-            border: 1px solid var(--color-text);
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: var(--shadow-sm);
         }
 
         .progress-container.show {
@@ -186,7 +186,7 @@
         .progress-bar-container {
             width: 100%;
             height: 8px;
-            background: #F5F5F5;
+            background: var(--color-elevated);
             border-radius: 4px;
             overflow: hidden;
             margin-bottom: 12px;
@@ -208,7 +208,7 @@
 
         .progress-cancel-btn {
             background: transparent;
-            border: 1px solid #D4D4D4;
+            border: 1px solid var(--color-border);
             color: var(--color-text-dim);
             padding: 6px 16px;
             border-radius: 6px;
@@ -352,7 +352,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--overlay-surface);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -405,8 +405,8 @@
             position: absolute;
             top: 8px;
             left: 8px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
+            background: var(--overlay-heavy);
+            color: var(--color-text);
             width: 28px;
             height: 28px;
             border-radius: 50%;
@@ -436,8 +436,8 @@
             position: absolute;
             top: 8px;
             right: 8px;
-            background: rgba(26, 26, 26, 0.8);
-            color: white;
+            background: var(--overlay-surface);
+            color: var(--color-text);
             border: none;
             border-radius: 50%;
             width: 28px;
@@ -453,7 +453,7 @@
 
         .image-preview-item .remove-btn:hover,
         .existing-image-item .remove-btn:hover {
-            background: rgba(255, 71, 87, 0.9);
+            background: var(--color-danger);
         }
 
         #fileInput {
@@ -516,7 +516,7 @@
         select.error,
         textarea.error {
             border-color: var(--color-danger);
-            box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.1);
+            box-shadow: 0 0 0 2px var(--color-danger-subtle);
         }
 
         textarea {
@@ -650,12 +650,12 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            color: white;
+            color: var(--color-text);
         }
 
         .type-btn.active {
             background: var(--color-accent);
-            color: var(--color-surface);
+            color: var(--color-accent-text);
             border-color: var(--color-accent);
         }
 
@@ -676,7 +676,7 @@
         #duplicateBtn.active,
         #duplicateBtn:active {
             background: var(--color-surface) !important;
-            color: white !important;
+            color: var(--color-text) !important;
             border-color: var(--color-border-hover) !important;
         }
 
@@ -856,7 +856,7 @@
             background: var(--color-surface);
             color: var(--color-accent);
             border: 2px solid var(--color-border-hover);
-            box-shadow: 0 2px 8px rgba(26, 26, 26, 0.3);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-add-new:hover {
@@ -898,9 +898,9 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             text-transform: uppercase;
-            background: rgba(107, 107, 107, 0.12);
+            background: var(--color-neutral-bg);
             color: var(--color-text-muted);
-            border: 1px solid rgba(107, 107, 107, 0.3);
+            border: 1px solid var(--color-neutral-border);
             transition: all 0.2s;
         }
 
@@ -911,9 +911,9 @@
         }
 
         .ebay-status-pill.listed {
-            background: rgba(79, 243, 174, 0.12);
+            background: var(--color-success-subtle);
             color: var(--color-success);
-            border-color: rgba(79, 243, 174, 0.4);
+            border-color: var(--color-success-border);
         }
 
         .ebay-status-pill.listed::before {
@@ -934,9 +934,9 @@
         }
 
         .ebay-status-pill.ended {
-            background: rgba(239, 68, 68, 0.12);
+            background: var(--color-danger-subtle);
             color: var(--color-danger);
-            border-color: rgba(239, 68, 68, 0.4);
+            border-color: var(--color-danger-border);
         }
 
         .ebay-status-pill.ended::before {
@@ -955,9 +955,9 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             text-transform: uppercase;
-            background: rgba(107, 107, 107, 0.12);
+            background: var(--color-neutral-bg);
             color: var(--color-text-dim);
-            border: 1px solid rgba(107, 107, 107, 0.3);
+            border: 1px solid var(--color-neutral-border);
             transition: all 0.2s;
         }
 
@@ -970,9 +970,9 @@
         }
 
         .ebay-status-pill-simple.listed {
-            background: rgba(79, 243, 174, 0.12);
+            background: var(--color-success-subtle);
             color: var(--color-success);
-            border-color: rgba(79, 243, 174, 0.4);
+            border-color: var(--color-success-border);
         }
 
         .ebay-env-badge {
@@ -993,9 +993,9 @@
         }
 
         .ebay-env-badge.sandbox {
-            background: rgba(74, 229, 255, 0.08);
+            background: var(--color-info-subtle);
             color: var(--color-info);
-            border-color: rgba(74, 229, 255, 0.3);
+            border-color: var(--color-info-border);
         }
 
         .ebay-action-status {
@@ -1018,22 +1018,22 @@
 
         .ebay-action-status.success {
             display: flex;
-            background: rgba(79, 243, 174, 0.08);
-            border: 1px solid rgba(79, 243, 174, 0.25);
+            background: var(--color-success-subtle);
+            border: 1px solid var(--color-success-border);
             color: var(--color-success);
         }
 
         .ebay-action-status.error {
             display: flex;
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.25);
+            background: var(--color-danger-subtle);
+            border: 1px solid var(--color-danger-border);
             color: var(--color-danger);
         }
 
         .loading-spinner {
             width: 14px;
             height: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid var(--overlay-text-dim);
             border-top-color: currentColor;
         }
 
@@ -1047,7 +1047,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: var(--overlay-heavy);
             align-items: center;
             justify-content: center;
         }
@@ -1066,7 +1066,7 @@
             position: absolute;
             top: 20px;
             right: 40px;
-            color: white;
+            color: var(--color-text);
             font-size: 40px;
             font-weight: bold;
             cursor: pointer;
@@ -1092,7 +1092,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--overlay-heavy);
             align-items: center;
             justify-content: center;
         }
@@ -1129,7 +1129,7 @@
         .admin-modal-close {
             background: none;
             border: none;
-            color: white;
+            color: var(--color-text);
             font-size: 32px;
             cursor: pointer;
             line-height: 1;
@@ -1183,7 +1183,7 @@
         }
 
         .pricing-card {
-            background: rgba(26, 26, 26, 0.5);
+            background: var(--color-inset);
             border: 1px solid var(--color-elevated);
             border-radius: 8px;
             padding: 16px;
@@ -1205,7 +1205,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: var(--overlay-heavy);
             align-items: center;
             justify-content: center;
         }
@@ -1246,7 +1246,7 @@
         .grading-modal-close {
             background: none;
             border: none;
-            color: white;
+            color: var(--color-text);
             font-size: 32px;
             cursor: pointer;
             line-height: 1;
@@ -1345,7 +1345,7 @@
             border: 2px solid var(--color-border-hover);
             border-radius: 8px;
             min-width: 200px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            box-shadow: var(--shadow-lg);
             opacity: 0;
             visibility: hidden;
             transform: translateY(10px);
@@ -1678,7 +1678,7 @@
         /* eBay linking dialog close button */
         .close-dialog-btn {
             background: var(--color-danger);
-            color: white;
+            color: var(--color-text);
             border: none;
             border-radius: 50%;
             width: 36px;
@@ -2602,7 +2602,7 @@
                 const listingStatus = result.listing_status || 'Active';
                 let statusText = 'Active Listing';
                 let badgeText = '✓ Listed';
-                let statusColor = '#00FF00'; // Green
+                let statusColor = getComputedStyle(document.documentElement).getPropertyValue('--color-success').trim();
 
                 // Determine actual listing state
                 if (listingStatus === 'Active') {
@@ -3336,7 +3336,7 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.8);
+                background: var(--overlay-heavy);
                 z-index: 10000;
                 display: flex;
                 align-items: center;
@@ -3355,7 +3355,7 @@
                 height: 85vh;
                 display: flex;
                 flex-direction: column;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                box-shadow: var(--shadow-lg);
             `;
 
             // Header
@@ -3556,7 +3556,7 @@
                 const onclickAction = isAlreadyLinked ? '' : `onclick="linkComicToEbayListingFromDialog('${itemId}', '${title.replace(/'/g, "\\'")}')"`;
 
                 return `
-                    <div style="background: rgba(42, 42, 42, 0.3); border: 1px solid var(--color-elevated); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="background: var(--color-surface-subtle); border: 1px solid var(--color-elevated); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
                         <div style="width: 100%; aspect-ratio: 1; background: var(--color-bg); border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                             ${imageUrl ? `<img src="${imageUrl}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain;">` : '<div style="color: var(--color-text-dim); font-size: 32px;">🖼️</div>'}
                         </div>
@@ -3612,7 +3612,7 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
+                background: var(--overlay-medium);
                 z-index: 10001;
                 display: flex;
                 align-items: center;
@@ -3739,7 +3739,7 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
+                background: var(--overlay-medium);
                 z-index: 1000;
                 display: flex;
                 align-items: center;
@@ -3879,7 +3879,7 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
+                background: var(--overlay-medium);
                 z-index: 1000;
                 display: flex;
                 align-items: center;
@@ -5135,7 +5135,7 @@
                 top: 20px;
                 right: 20px;
                 background: var(--color-info);
-                color: white;
+                color: var(--color-text);
                 padding: 16px 24px;
                 border-radius: 8px;
                 box-shadow: var(--shadow-md);
@@ -5147,7 +5147,7 @@
             notification.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <span>✓ Form pre-filled from eBay listing</span>
-                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0; margin-left: 8px;">×</button>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: var(--color-text); font-size: 20px; cursor: pointer; padding: 0; margin-left: 8px;">×</button>
                 </div>
             `;
             document.body.appendChild(notification);
@@ -6075,7 +6075,7 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.7);
+                background: var(--overlay-medium);
                 z-index: 1000;
                 display: flex;
                 align-items: center;

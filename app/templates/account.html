@@ -110,7 +110,7 @@
 
         .env-option:has(input:checked) {
             border-color: currentColor !important;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--color-accent-subtle);
         }
 
         .env-option[data-env="sandbox"]:has(input:checked) {
@@ -180,7 +180,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: var(--overlay-heavy);
             backdrop-filter: blur(4px);
             align-items: center;
             justify-content: center;
@@ -231,7 +231,7 @@
         }
 
         .close-settings-modal {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--overlay-text-dim);
             border: none;
             color: var(--color-text-muted);
             font-size: var(--font-size-lg);
@@ -972,7 +972,7 @@
                 <div id="categoryTreeContainer" style="
                     border: 1px solid var(--color-elevated);
                     border-radius: 6px;
-                    background: rgba(26, 26, 26, 0.5);
+                    background: var(--color-inset);
                     padding: 12px;
                     max-height: 400px;
                     overflow-y: auto;
@@ -983,7 +983,7 @@
                 </div>
             </div>
 
-            <div id="selectedCategoryDetails" style="background: rgba(42, 42, 42, 0.5); border: 1px solid var(--color-elevated); border-radius: 8px; padding: 16px; margin-top: 16px; display: none;">
+            <div id="selectedCategoryDetails" style="background: var(--color-surface-hover); border: 1px solid var(--color-elevated); border-radius: 8px; padding: 16px; margin-top: 16px; display: none;">
                 <h3 style="font-size: 14px; font-weight: 600; color: var(--color-accent); margin: 0 0 12px 0;">Selected Category</h3>
                 <div id="categoryDetailsContent" style="font-size: 12px; color: var(--color-text); font-family: monospace; line-height: 1.6;"></div>
             </div>

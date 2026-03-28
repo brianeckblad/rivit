@@ -347,7 +347,7 @@
 
         /* Grid view edit button */
         .grid-edit-btn {
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--overlay-light);
             color: var(--color-accent);
             text-decoration: none;
             width: 32px;
@@ -452,7 +452,7 @@
 
         <!-- Image Search Section -->
         <div style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 32px;">
-            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 600; color: var(--color-border-hover); text-align: center;">eBay Image Search</h2>
+            <h2 style="margin-bottom: 16px; font-size: 20px; font-weight: 600; color: var(--color-text-muted); text-align: center;">eBay Image Search</h2>
 
             <div id="imagePreview" style="display: none;">
                 <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px;">
@@ -535,11 +535,11 @@
     </main>
 
     <!-- Pricing Admin Modal -->
-    <div class="pricing-admin-modal" id="pricingAdminModal" onclick="closePricingAdminModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div class="pricing-admin-modal" id="pricingAdminModal" onclick="closePricingAdminModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div class="pricing-admin-modal-content" onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: var(--radius-lg); max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">Pricing Page Settings</h2>
-                <button onclick="closePricingAdminModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closePricingAdminModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <p style="color: var(--color-text-muted); margin-bottom: 24px;">Configure default behavior for the pricing page search functions.</p>
@@ -559,11 +559,11 @@
     </div>
 
     <!-- Grading Scale Modal -->
-    <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center;">
+    <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)" style="display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: var(--overlay-heavy); align-items: center; justify-content: center;">
         <div class="grading-modal-content" onclick="event.stopPropagation()" style="background: var(--color-surface); border: 1px solid var(--color-border-hover); border-radius: var(--radius-lg); max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--color-elevated); position: sticky; top: 0; background: var(--color-surface); z-index: 1;">
                 <h2 style="color: var(--color-accent); font-size: 24px; font-weight: 600; margin: 0;">CGC Standard Grading Scale</h2>
-                <button onclick="closeGradingModal()" style="background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                <button onclick="closeGradingModal()" style="background: none; border: none; color: var(--color-text); font-size: 32px; cursor: pointer; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
             </div>
             <div style="padding: 24px;">
                 <div id="gradingScaleContent"></div>
@@ -1096,7 +1096,7 @@
                     // Add badge for top priced items
                     const isTopPriced = showingSplit ? (index < 10) : (index === 0 && sortedItems.length > 1);
                     const badge = isTopPriced ?
-                        `<div style="position: absolute; top: 8px; right: 8px; background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-warning) 100%); color: var(--color-surface); padding: 4px 8px; border-radius: var(--radius-sm); font-size: 10px; font-weight: 700; box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,0.1);">🏆 TOP PRICED</div>` : '';
+                        `<div style="position: absolute; top: 8px; right: 8px; background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-warning) 100%); color: var(--color-surface); padding: 4px 8px; border-radius: var(--radius-sm); font-size: 10px; font-weight: 700; box-shadow: var(--shadow-sm); border: 1px solid var(--color-border);">🏆 TOP PRICED</div>` : '';
 
                     html += `
                         <div class="ebay-item" style="position: relative; ${isTopPriced ? 'border-color: var(--color-accent); background: var(--color-accent-subtle);' : ''}">
@@ -1638,7 +1638,7 @@
             let selectedSKU = null;
 
             if (currentView === 'grid') {
-                const selectedCard = document.querySelector('.comic-card[style*="border-color: rgb(255, 229, 0)"]');
+                const selectedCard = document.querySelector('.comic-card.selected');
                 if (selectedCard) {
                     selectedSKU = selectedCard.getAttribute('data-sku');
                 }
@@ -1725,10 +1725,12 @@
                 const cards = document.querySelectorAll('.comic-card');
                 cards.forEach(card => {
                     if (card.getAttribute('data-sku') === sku) {
+                        card.classList.add('selected');
                         card.style.borderColor = 'var(--color-accent)';
                         card.style.background = 'var(--color-elevated)';
                         card.style.boxShadow = 'var(--shadow-md)';
                     } else {
+                        card.classList.remove('selected');
                         card.style.borderColor = 'var(--color-elevated)';
                         card.style.background = 'var(--color-surface)';
                         card.style.boxShadow = 'none';
@@ -1795,7 +1797,7 @@
 
         function showImageSelector(comic, imageUrls) {
             const overlay = document.createElement('div');
-            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; overflow-y: auto;';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--overlay-heavy); z-index: 10000; display: flex; align-items: center; justify-content: center; overflow-y: auto;';
             overlay.id = 'image-selector-' + Date.now();
 
             const popup = document.createElement('div');

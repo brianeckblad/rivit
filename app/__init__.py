@@ -562,7 +562,8 @@ def create_app(config_name='development'):
                     stderr=subprocess.DEVNULL,
                     timeout=5
                 ).decode('utf-8').strip()
-                return _version_dict(commit_count)
+                build_number = int(commit_count) + 850
+                return _version_dict(str(build_number))
             except Exception:
                 pass
 
