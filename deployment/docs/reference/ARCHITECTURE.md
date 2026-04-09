@@ -194,7 +194,7 @@ App User ({app_name})
 ```
 /opt/{app_name}/                   # Mount point (ubuntu:{app_name}, setgid 2775)
 /opt/{app_name}/.venv/             # Virtual env (ubuntu:{app_name})
-/opt/{app_name}/logs/              # Logs ({app_name}:{app_name}, setgid 2775)
+/var/log/{app_name}/              # Logs ({app_name}:{app_name}, setgid 2775)
 /opt/{app_name}/instance/          # Data ({app_name}:{app_name}, setgid 2775)
 ```
 

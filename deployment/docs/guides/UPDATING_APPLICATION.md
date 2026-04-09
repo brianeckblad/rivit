@@ -134,7 +134,7 @@ sudo supervisorctl restart {app_name}
 sudo supervisorctl status {app_name}
 
 # View recent logs
-sudo tail -20 /opt/{app_name}/logs/app.log
+sudo tail -20 /var/log/{app_name}/app.log
 
 # Exit server
 exit
@@ -166,13 +166,13 @@ curl http://YOUR_SERVER_IP/health
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # View recent application logs
-sudo tail -50 /opt/{app_name}/logs/app.log
+sudo tail -50 /var/log/{app_name}/app.log
 
 # Follow logs in real-time (useful while testing)
-sudo tail -f /opt/{app_name}/logs/app.log
+sudo tail -f /var/log/{app_name}/app.log
 
 # Check for errors
-sudo grep ERROR /opt/{app_name}/logs/app.log
+sudo grep ERROR /var/log/{app_name}/app.log
 
 # Exit
 exit
@@ -209,10 +209,10 @@ exit
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Check the error
-sudo tail -100 /opt/{app_name}/logs/app.log
+sudo tail -100 /var/log/{app_name}/app.log
 
 # Check error log
-sudo tail -50 /opt/{app_name}/logs/error.log
+sudo tail -50 /var/log/{app_name}/error.log
 
 # Check if dependencies installed
 source ~/.venv/bin/activate
@@ -254,7 +254,7 @@ python -m alembic downgrade -1
 python manage.py migrate app_name 0001_previous
 
 # Check logs for detailed error
-less /opt/{app_name}/logs/error.log
+less /var/log/{app_name}/error.log
 
 exit
 ```
@@ -276,7 +276,7 @@ exit
 2. **Check error logs:**
    ```bash
    ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
-   sudo grep ERROR /opt/{app_name}/logs/app.log | tail -20
+   sudo grep ERROR /var/log/{app_name}/app.log | tail -20
    exit
    ```
 

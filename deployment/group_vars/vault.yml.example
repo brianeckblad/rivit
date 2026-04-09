@@ -103,7 +103,7 @@ app_dir: "/opt/{{ app_name }}"
 app_storage_mount_path: "{{ app_dir }}"
 ebs_volume_mount_path: "{{ app_dir }}"
 venv_dir: "{{ app_dir }}/.venv"
-log_dir: "{{ app_dir }}/logs"
+log_dir: "/var/log/{{ app_name }}"
 instance_dir: "{{ app_dir }}/instance"
 
 ebs_volume_size: 100                             # EBS volume size in GB

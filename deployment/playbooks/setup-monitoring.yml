@@ -10,7 +10,7 @@
 # 2. --ask-vault-pass flag (will prompt for password)
 
 - name: Setup Application Monitoring
-  hosts: production
+  hosts: all
   become: yes
   vars_files:
     - ../group_vars/all.yml

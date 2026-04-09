@@ -53,7 +53,7 @@ systemd-analyze security {app_name}
 # Should show: MEDIUM or better
 
 # Check logs
-sudo tail -50 /opt/{app_name}/logs/app.log
+sudo tail -50 /var/log/{app_name}/app.log
 ```
 
 ### Security Score
@@ -107,7 +107,7 @@ This deployment uses a **dedicated, non-privileged application user** with no SS
 │     └── Permissions:                                    │
 │          ├── READ:  /opt/{app_name}/* (code, via group) │
 │          ├── READ:  /opt/{app_name}/.venv/* (deps)      │
-│          ├── WRITE: /opt/{app_name}/logs/* (logs)       │
+│          ├── WRITE: /var/log/{app_name}/* (logs)       │
 │          └── WRITE: /opt/{app_name}/instance/* (data)   │
 │                                                          │
 └─────────────────────────────────────────────────────────┘
@@ -163,7 +163,7 @@ ProtectSystem=strict
 ProtectHome=true
 
 # Only these directories are writable
-ReadWritePaths=/opt/{app_name}/logs
+ReadWritePaths=/var/log/{app_name}
 ReadWritePaths=/opt/{app_name}/instance
 
 # Protect kernel
@@ -232,7 +232,7 @@ admin_user: ubuntu                # Standard EC2 user
 # Paths
 app_dir: /opt/{app_name}           # Mount point, group {app_name}
 venv_dir: /opt/{app_name}/.venv    # Python venv, group {app_name}
-log_dir: /opt/{app_name}/logs      # Logs, owner app_user, group {app_name}
+log_dir: /var/log/{app_name}      # Logs, owner app_user, group {app_name}
 ```
 
 ### How It Works
@@ -262,14 +262,14 @@ log_dir: /opt/{app_name}/logs      # Logs, owner app_user, group {app_name}
    
    # Can only:
    # - Read code files (via group membership)
-   # - Write to /opt/{app_name}/logs/
+   # - Write to /var/log/{app_name}/
    # - Write to /opt/{app_name}/instance/
    ```
 
 3. **Operations (as `ubuntu`):**
    ```bash
    # ubuntu can do everything without su:
-   tail -f /opt/{app_name}/logs/app.log    # View logs
+   tail -f /var/log/{app_name}/app.log    # View logs
    sudo systemctl restart {app_name}       # Restart service
    cat /opt/{app_name}/instance/items.csv  # Check data
    ```
@@ -315,7 +315,7 @@ sudo -u {app_name} touch /opt/{app_name}/test.txt
 # Should fail: Permission denied
 
 # App user SHOULD be able to write logs
-sudo -u {app_name} touch /opt/{app_name}/logs/test.log
+sudo -u {app_name} touch /var/log/{app_name}/test.log
 # Should succeed
 
 # App user SHOULD be able to write instance data
@@ -438,7 +438,7 @@ If you're already running with `app_user: ubuntu`, you can migrate to the secure
    sudo find /opt/{app_name} -type d -exec chmod 2775 {} +
    
    # App user owns logs and instance data
-   sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
+   sudo chown -R {app_name}:{app_name} /var/log/{app_name}
    sudo chown -R {app_name}:{app_name} /opt/{app_name}/instance
    ```
 
@@ -489,8 +489,8 @@ sudo chmod 2775 /opt/{app_name}
 
 # Problem: App cannot write logs
 # Solution: Ensure app_user owns log directory with shared group
-sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
-sudo chmod 2775 /opt/{app_name}/logs
+sudo chown -R {app_name}:{app_name} /var/log/{app_name}
+sudo chmod 2775 /var/log/{app_name}
 
 # Problem: App cannot write instance data
 # Solution: Ensure app_user owns instance directory with shared group
@@ -514,10 +514,10 @@ getent passwd {app_name}
 
 # Check permissions
 namei -l /opt/{app_name}
-namei -l /opt/{app_name}/logs
+namei -l /var/log/{app_name}
 
 # View detailed logs
-sudo tail -50 /opt/{app_name}/logs/app.log
+sudo tail -50 /var/log/{app_name}/app.log
 ```
 
 ### Systemd Security Warnings

@@ -371,15 +371,22 @@ def add_security_headers(response):
     # Referrer policy
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
 
-    # Content Security Policy (adjust as needed)
-    response.headers['Content-Security-Policy'] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https:; "
-        "font-src 'self' data:; "
-        "connect-src 'self';"
-    )
+    # Content Security Policy
+    # NOTE: CSP is set by Nginx (deployment/templates/nginx.conf.j2) which is
+    # the single source of truth. Setting it here too creates a double-header
+    # problem — the browser enforces BOTH, so the most restrictive one wins.
+    # Only set CSP in Flask for local development (no Nginx).
+    if current_app.debug:
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data: https://fonts.gstatic.com; "
+            "connect-src 'self' https://*.amazonaws.com https://*.ebayimg.com; "
+            "manifest-src 'self';"
+        )
 
     # HTTPS-only (in production)
     if current_app.config.get('SESSION_COOKIE_SECURE'):

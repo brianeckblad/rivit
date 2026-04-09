@@ -85,7 +85,7 @@ Configuration Variable: app_storage_mount_path
     Used in:
     - app_dir: /opt/{app_name}
     - venv_dir: /opt/{app_name}/.venv
-    - log_dir: /opt/{app_name}/logs
+    - log_dir: /var/log/{app_name}
     - instance_dir: /opt/{app_name}/instance
 ```
 
@@ -177,7 +177,7 @@ After deployment, all application files are at:
 |---------|----------|--------|-------|
 | Application code | `/opt/{app_name}` | EBS | ubuntu |
 | Python venv | `/opt/{app_name}/.venv` | EBS | ubuntu |
-| App logs | `/opt/{app_name}/logs` | EBS | {app_name} |
+| App logs | `/var/log/{app_name}` | EBS | {app_name} |
 | Runtime data | `/opt/{app_name}/instance` | EBS | {app_name} |
 | SSH keys | `/home/ubuntu/.ssh` | Root | ubuntu |
 | OS files | `/` | Root | root |
@@ -421,9 +421,9 @@ sudo nano /etc/fstab
 **Solution**:
 ```bash
 # Fix permissions with shared group and setgid
-sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
+sudo chown -R {app_name}:{app_name} /var/log/{app_name}
 sudo chown -R {app_name}:{app_name} /opt/{app_name}/instance
-sudo chmod 2775 /opt/{app_name}/logs
+sudo chmod 2775 /var/log/{app_name}
 sudo chmod 2775 /opt/{app_name}/instance
 ```
 

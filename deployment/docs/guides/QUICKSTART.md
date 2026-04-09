@@ -136,7 +136,7 @@ sudo supervisorctl status {app_name}
 
 ```bash
 # From your EC2 instance
-sudo tail -f /opt/{app_name}/logs/app.log      # Application logs
+sudo tail -f /var/log/{app_name}/app.log          # Application logs
 sudo tail -f /var/log/nginx/access.log          # Nginx access logs
 ```
 
@@ -213,7 +213,7 @@ If a playbook fails partway through:
    ```bash
    ssh -i ~/.ssh/{app_name}-key.pem ubuntu@<IP>
    sudo supervisorctl status {app_name}
-   sudo tail -50 /opt/{app_name}/logs/app.log
+    sudo tail -50 /var/log/{app_name}/app.log
    ```
 
 3. **Check web server:**

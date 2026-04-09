@@ -337,12 +337,12 @@ If you had a different user model before, to migrate:
 **Solution:**
 ```bash
 # Check ownership
-ls -ld /opt/{app_name}/logs
+ls -ld /var/log/{app_name}
 
 # Should be owned by {app_name}:{app_name} with setgid (drwxrwsr-x)
 # Fix with:
-sudo chown -R {app_name}:{app_name} /opt/{app_name}/logs
-sudo chmod 2775 /opt/{app_name}/logs
+sudo chown -R {app_name}:{app_name} /var/log/{app_name}
+sudo chmod 2775 /var/log/{app_name}
 ```
 
 ### App runs but logs not showing

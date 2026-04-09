@@ -509,7 +509,7 @@ ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
 - ✅ Detects the NVMe device (`/dev/nvme1n1`)
 - ✅ Formats the EBS volume as XFS (first run only)
 - ✅ Mounts EBS at `/opt/{app_name}` with fstab entry
-- ✅ Creates `/opt/{app_name}`, `/opt/{app_name}/instance`, `/opt/{app_name}/logs`
+- ✅ Creates `/opt/{app_name}`, `/opt/{app_name}/instance`, `/var/log/{app_name}`
 - ✅ Applies security hardening (SSH lockdown, fail2ban, auto-updates, sysctl)
 - ✅ `/home` is untouched — SSH keys survive reboots
 
@@ -747,7 +747,7 @@ sudo supervisorctl status ${APP_NAME}
 sudo systemctl status nginx
 
 # Check logs
-sudo tail -20 /opt/${APP_NAME}/logs/app.log
+sudo tail -20 /var/log/${APP_NAME}/app.log
 ```
 
 ### 9. Exit Server
@@ -920,7 +920,7 @@ ssh -i ~/.ssh/${app_name}-key.pem ubuntu@$SERVER_IP
 sudo supervisorctl status ${app_name}
 
 # View error logs
-sudo tail -50 /opt/${app_name}/logs/app.log
+sudo tail -50 /var/log/${app_name}/app.log
 
 # Check if port 8000 is listening
 sudo netstat -tulpn | grep 8000

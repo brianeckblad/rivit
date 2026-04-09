@@ -283,16 +283,16 @@ Alerts if disk space is running out (logs filling up, S3 sync issue, etc.).
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Check recent errors
-sudo grep ERROR /opt/{app_name}/logs/app.log | tail -100
+sudo grep ERROR /var/log/{app_name}/app.log | tail -100
 
 # Check error log
-sudo tail -100 /opt/{app_name}/logs/error.log
+sudo tail -100 /var/log/{app_name}/error.log
 
 # Restart app if needed
 sudo supervisorctl restart {app_name}
 
 # Monitor in real-time
-sudo tail -f /opt/{app_name}/logs/app.log
+sudo tail -f /var/log/{app_name}/app.log
 ```
 
 ### High CPU
@@ -321,11 +321,11 @@ df -h
 du -sh /*
 
 # Check old logs
-ls -lh /opt/{app_name}/logs/
+ls -lh /var/log/{app_name}/
 
 # Clean old logs
 sudo journalctl --vacuum=30d
-sudo find /opt/{app_name}/logs/ -mtime +30 -delete
+sudo find /var/log/{app_name}/ -mtime +30 -delete
 ```
 
 ### Multiple Failed Logins (Attack)

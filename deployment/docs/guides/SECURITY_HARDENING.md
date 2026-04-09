@@ -81,7 +81,7 @@ These services are stopped and disabled if present: `apache2`, `avahi-daemon`, `
 |------|-------|-------|------|---------|
 | `/opt/{app_name}/` | `{app_user}` | `{app_name}` | `2775` (setgid) | App directory |
 | `/opt/{app_name}/instance/` | `{app_user}` | `{app_name}` | `2775` (setgid) | Data directory |
-| `/opt/{app_name}/logs/` | `{app_user}` | `{app_name}` | `2775` (setgid) | Log directory |
+| `/var/log/{app_name}/` | `{app_user}` | `{app_name}` | `2775` (setgid) | Log directory |
 | `instance/user_preferences.json` | `{app_user}` | `{app_name}` | `0640` | User credentials |
 | `instance/*.csv`, `instance/sku.txt` | `{app_user}` | `{app_name}` | `0664` | Data files |
 | `app/static/` | `{app_user}` | `{app_name}` | `2775` (recurse) | Static assets |
@@ -231,7 +231,7 @@ ls -la /opt/{app_name}/ | head -5
 # The 's' in group-execute confirms setgid is set.
 
 # Check log directory
-ls -la /opt/{app_name}/logs/
+ls -la /var/log/{app_name}/
 # Expected: drwxrwsr-x  owner:group = {app_user}:{app_name}
 
 # Verify both users are in the shared group
