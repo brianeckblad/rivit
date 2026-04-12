@@ -134,11 +134,11 @@
         }
 
         body.edit-mode {
-            background: var(--color-accent-subtle);
+            background: #151613;  /* opaque blend of accent-subtle over color-bg */
         }
 
         body.edit-mode .main-content {
-            background: var(--color-accent-subtle);
+            background: #151613;
         }
 
 
@@ -6661,6 +6661,9 @@ requirements.txt            } else if (pendingComicAction.type === 'ebay-list') 
             loadComicForEdit(comic, true);
             viewMode = true;
             editMode = false;
+
+            // Remove edit-mode class that loadComicForEdit adds (prevents light background)
+            document.body.classList.remove('edit-mode');
 
             // Update page title
             const pageTitle = document.getElementById('pageTitle');
