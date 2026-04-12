@@ -55,31 +55,32 @@ def extract_ebay_condition_section(full_description):
     return ''
 
 
-def resolve_ebay_context(comic_data):
+def resolve_ebay_context(payload):
     """
-    Determine the eBay listing context from comic data.
+    Extract eBay listing parameters from an API request payload.
 
-    Returns one of:
-    - 'new_listing': Comic has never been listed on eBay
-    - 'listed': Comic is currently listed on eBay
-    - 'ended': Comic was listed but listing has ended
+    Parses environment, listing mode, field overrides, and schedule time
+    from the JSON body sent by the frontend.
 
     Args:
-        comic_data (dict): Comic data dictionary
+        payload (dict): JSON body from the API request. Expected keys:
+            - environment (str): 'production' or 'sandbox' (default: 'production')
+            - mode (str): Listing mode — 'list', 'update', 'schedule', etc. (default: 'list')
+            - overrides (dict): Optional field overrides for the Trading API item
+            - schedule_time (str): Optional ISO-8601 datetime for scheduled listings
 
     Returns:
-        str: Context identifier
+        tuple: (environment, listing_mode, overrides, schedule_time)
     """
-    ebay_item_id = comic_data.get('eBay Item ID', '')
-    listing_type = comic_data.get('Listing Type', '')
+    if not payload:
+        payload = {}
 
-    if not ebay_item_id:
-        return 'new_listing'
+    environment = payload.get('environment', 'production')
+    listing_mode = payload.get('mode', 'list')
+    overrides = payload.get('overrides') or {}
+    schedule_time = payload.get('schedule_time') or None
 
-    if listing_type == 'For Sale eBay':
-        return 'listed'
-
-    return 'ended'
+    return environment, listing_mode, overrides, schedule_time
 
 
 def validate_ebay_item_id(item_id):
