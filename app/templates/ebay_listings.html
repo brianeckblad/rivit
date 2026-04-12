@@ -179,6 +179,35 @@
             border: 1px solid var(--color-warning-border);
         }
 
+        .status-unsold {
+            background: var(--color-neutral-bg);
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-neutral-border);
+        }
+
+        .drafts-banner {
+            background: var(--color-inset);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+
+        .drafts-banner a {
+            color: var(--color-info);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .drafts-banner a:hover {
+            text-decoration: underline;
+        }
+
         .filter-tabs {
             display: flex;
             gap: 8px;
@@ -512,12 +541,12 @@
                     ×
                 </button>
             </div>
-            <p>View your active and pending eBay listings</p>
+            <p>View your active, scheduled, and ended eBay listings</p>
             <button onclick="refreshFromEbay(event)" style="padding: 8px 16px; background: var(--color-info); color: var(--color-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 12px;">
                 🔄 Refresh from eBay
             </button>
             <p style="font-size: 11px; color: var(--color-text-dim); margin-top: 8px;">
-                💡 Listings are cached for 1 hour. Click refresh to fetch latest data from eBay API.
+                💡 Listings are cached for 1 hour. Click refresh to fetch latest data. Drafts are only in <a href="https://www.ebay.com/sh/lst/drafts" target="_blank" rel="noopener" style="color: var(--color-info);">eBay Seller Hub</a>.
             </p>
         </div>
 
@@ -531,17 +560,26 @@
                 <div class="stat-value" id="activeListings">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Pending Listings</div>
+                <div class="stat-label">Scheduled</div>
                 <div class="stat-value" id="pendingListings">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Total Listings</div>
-                <div class="stat-value" id="totalListings">0</div>
+                <div class="stat-label">Unsold / Ended</div>
+                <div class="stat-value" id="unsoldListings">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Total Inventory Value</div>
                 <div class="stat-value" id="totalValue">$0.00</div>
             </div>
+        </div>
+
+        <!-- Drafts Banner -->
+        <div id="draftsBanner" class="drafts-banner" style="display: none;">
+            <span>📝</span>
+            <span>
+                <strong id="draftsCountLabel">Drafts</strong> are only available in eBay Seller Hub —
+                <a href="https://www.ebay.com/sh/lst/drafts" target="_blank" rel="noopener">View your drafts on eBay ↗</a>
+            </span>
         </div>
 
         <!-- Filter Tabs -->
@@ -553,7 +591,10 @@
                 Active <span class="tab-count" id="tabCountActive">0</span>
             </button>
             <button class="filter-tab" data-filter="pending" onclick="filterListings('pending')">
-                Pending <span class="tab-count" id="tabCountPending">0</span>
+                Scheduled <span class="tab-count" id="tabCountPending">0</span>
+            </button>
+            <button class="filter-tab" data-filter="unsold" onclick="filterListings('unsold')">
+                Unsold <span class="tab-count" id="tabCountUnsold">0</span>
             </button>
         </div>
 
@@ -577,12 +618,17 @@
         <!-- Empty State -->
         <div id="emptyState" class="empty-state" style="display: none;">
             <div class="empty-state-icon">📦</div>
-            <p><strong>No Listings Found</strong></p>
-            <p style="font-size: 13px; margin-top: 16px; color: var(--color-text);">
-                Your eBay account doesn't have any active or pending listings at this time.
+            <p><strong>No Published Listings Found</strong></p>
+            <p style="font-size: 13px; margin-top: 16px; color: var(--color-text); line-height: 1.6;">
+                Your eBay account doesn't have any active, scheduled, or ended listings.
+            </p>
+            <p style="font-size: 13px; margin-top: 12px; color: var(--color-text); line-height: 1.6;">
+                <strong>Looking for drafts?</strong> eBay drafts are only accessible through Seller Hub.<br>
+                <a href="https://www.ebay.com/sh/lst/drafts" target="_blank" rel="noopener" style="color: var(--color-info); font-weight: 500;">View your drafts on eBay ↗</a>
             </p>
             <p style="font-size: 11px; color: var(--color-text-dim); margin-top: 16px;">
-                💡 This view pulls active and scheduled listings directly from your eBay account.
+                This page shows active, scheduled, and recently ended listings from your eBay account via the API.
+                Drafts are stored only in eBay Seller Hub and cannot be retrieved programmatically.
             </p>
         </div>
     </main>
@@ -654,7 +700,8 @@
         let totalListingsCount = 0;  // Total count from API
         let activeListingsCount = 0;
         let pendingListingsCount = 0;
-        let currentFilter = 'all';  // 'all', 'active', or 'pending'
+        let unsoldListingsCount = 0;
+        let currentFilter = 'all';  // 'all', 'active', 'pending', or 'unsold'
         let currentPageStartIndex = 0;
         let currentPageEndIndex = 0;
 
@@ -752,6 +799,7 @@
                 totalListingsCount = data.total_count || 0;
                 activeListingsCount = data.active_count || 0;
                 pendingListingsCount = data.pending_count || 0;
+                unsoldListingsCount = data.unsold_count || 0;
 
                 // Start collecting all listings
                 allFetchedListings = data.listings || [];
@@ -841,6 +889,7 @@
             if (currentFilter === 'all') return allFetchedListings;
             if (currentFilter === 'active') return allFetchedListings.filter(l => l.ListingStatus === 'Active');
             if (currentFilter === 'pending') return allFetchedListings.filter(l => l.ListingStatus === 'Pending');
+            if (currentFilter === 'unsold') return allFetchedListings.filter(l => l.ListingStatus === 'Unsold');
             return allFetchedListings;
         }
 
@@ -885,13 +934,13 @@
             // Update stats
             const activeListingsEl = document.getElementById('activeListings');
             const pendingListingsEl = document.getElementById('pendingListings');
-            const totalListingsEl = document.getElementById('totalListings');
+            const unsoldListingsEl = document.getElementById('unsoldListings');
             const totalValueEl = document.getElementById('totalValue');
             const summaryStatsEl = document.getElementById('summaryStats');
 
             if (activeListingsEl) activeListingsEl.textContent = activeListingsCount;
             if (pendingListingsEl) pendingListingsEl.textContent = pendingListingsCount;
-            if (totalListingsEl) totalListingsEl.textContent = totalListingsCount;
+            if (unsoldListingsEl) unsoldListingsEl.textContent = unsoldListingsCount;
             if (totalValueEl) totalValueEl.textContent = '$' + totalValue.toFixed(2);
             if (summaryStatsEl) summaryStatsEl.style.display = 'grid';
 
@@ -899,14 +948,23 @@
             const tabCountAll = document.getElementById('tabCountAll');
             const tabCountActive = document.getElementById('tabCountActive');
             const tabCountPending = document.getElementById('tabCountPending');
+            const tabCountUnsold = document.getElementById('tabCountUnsold');
             if (tabCountAll) tabCountAll.textContent = totalListingsCount;
             if (tabCountActive) tabCountActive.textContent = activeListingsCount;
             if (tabCountPending) tabCountPending.textContent = pendingListingsCount;
+            if (tabCountUnsold) tabCountUnsold.textContent = unsoldListingsCount;
 
-            // Show filter tabs (only if there are pending listings)
+            // Show filter tabs when there's more than one type
+            const hasMultipleTypes = (pendingListingsCount > 0 || unsoldListingsCount > 0);
             const filterTabsEl = document.getElementById('filterTabs');
             if (filterTabsEl) {
-                filterTabsEl.style.display = (pendingListingsCount > 0) ? 'flex' : 'none';
+                filterTabsEl.style.display = hasMultipleTypes ? 'flex' : 'none';
+            }
+
+            // Show drafts banner always (to help users find their drafts)
+            const draftsBanner = document.getElementById('draftsBanner');
+            if (draftsBanner) {
+                draftsBanner.style.display = 'flex';
             }
 
             // Render current page listings (append to existing items, not replace)
@@ -1029,7 +1087,10 @@
 
             if (status === 'Pending') {
                 statusClass = 'status-pending';
-                statusText = '⏳ Pending';
+                statusText = '⏳ Scheduled';
+            } else if (status === 'Unsold') {
+                statusClass = 'status-unsold';
+                statusText = '○ Ended';
             } else if (status === 'Not Found' || status === 'Error') {
                 statusClass = 'status-inactive';
                 statusText = '✗ ' + status;
