@@ -970,8 +970,17 @@ class EbayService:
             warnings=True
         )
 
-    def _execute_trading_call(self, call_name, payload, environment=None, mode='list'):
-        """Execute an eBay Trading API call with error handling."""
+    def _execute_trading_call(self, call_name, payload, environment=None, mode='list', files=None):
+        """Execute an eBay Trading API call with error handling.
+
+        Args:
+            call_name (str): Trading API verb (e.g. 'AddFixedPriceItem').
+            payload (dict): Request body as a dict.
+            environment (str): 'production' or 'sandbox'.
+            mode (str): 'list', 'upload', etc. (for logging).
+            files (dict, optional): Multipart file data for binary uploads,
+                e.g. ``{'file': ('name.jpg', bytes_data, 'image/jpeg')}``.
+        """
         env = (environment or self.environment or 'production').lower()
         current_app.logger.debug(
             "eBay Trading call=%s env=%s mode=%s payload_keys=%s",
@@ -983,7 +992,7 @@ class EbayService:
 
         conn = self._get_trading_connection(env)
         try:
-            response = conn.execute(call_name, payload)
+            response = conn.execute(call_name, payload, files=files)
         except TradingError as exc:
             # Log the XML request and response on error
             xml_request = None
@@ -1127,8 +1136,10 @@ class EbayService:
     def upload_picture(self, image_url, environment=None):
         """Upload a single image to eBay via UploadSiteHostedPictures.
 
-        Generates a presigned S3 URL so eBay can fetch the private image,
-        then calls the Trading API to host it on eBay's servers.
+        Downloads the image from S3 using boto3 and uploads the raw bytes
+        directly to eBay as a multipart binary upload.  This avoids all
+        URL-related issues (presigned URL length, XML escaping of ``&``,
+        private bucket access).
 
         Args:
             image_url (str): S3 URL of the image to upload.
@@ -1138,35 +1149,49 @@ class EbayService:
             str: eBay-hosted image URL, or None on failure.
         """
         from app.services.s3_service import s3_service
-        from xml.sax.saxutils import escape as xml_escape
+        import urllib.parse
 
         try:
-            # Generate a short-lived presigned URL for eBay to fetch the image
-            presigned_url = s3_service.generate_presigned_url(image_url, expires_in=600)
-            if not presigned_url:
-                current_app.logger.error(f"[upload_picture] Failed to generate presigned URL for {image_url}")
+            # ── 1. Download image bytes from S3 ────────────────────────
+            parsed = urllib.parse.urlparse(image_url)
+            s3_key = urllib.parse.unquote(parsed.path.lstrip('/'))
+            bucket = s3_service.bucket_name
+
+            if not bucket:
+                current_app.logger.error("[upload_picture] S3 bucket not configured")
                 return None
 
-            # XML-escape the URL because presigned S3 URLs contain bare '&'
-            # characters (e.g. &X-Amz-Credential=) that break ebaysdk's XML
-            # serialiser (dict2xml with escape_xml=False by default).
-            escaped_url = xml_escape(presigned_url)
+            current_app.logger.debug(f"[upload_picture] Downloading s3://{bucket}/{s3_key}")
+            s3_obj = s3_service.client().get_object(Bucket=bucket, Key=s3_key)
+            image_bytes = s3_obj['Body'].read()
+            content_type = s3_obj.get('ContentType', 'image/jpeg')
 
+            if not image_bytes:
+                current_app.logger.error(f"[upload_picture] Empty image data for {image_url}")
+                return None
+
+            # ── 2. Determine filename from the S3 key ──────────────────
+            filename = s3_key.rsplit('/', 1)[-1] if '/' in s3_key else s3_key
+
+            # ── 3. Upload binary to eBay ───────────────────────────────
             payload = {
-                'ExternalPictureURL': escaped_url,
-                'PictureName': image_url.split('/')[-1].split('?')[0],
+                'PictureName': filename,
+            }
+            files = {
+                'file': (filename, image_bytes, content_type),
             }
 
             response = self._execute_trading_call(
                 'UploadSiteHostedPictures', payload,
-                environment=environment, mode='upload'
+                environment=environment, mode='upload',
+                files=files,
             )
 
             site_hosted = getattr(response.reply, 'SiteHostedPictureDetails', None)
             if site_hosted:
                 full_url = getattr(site_hosted, 'FullURL', None)
                 if full_url:
-                    current_app.logger.debug(f"[upload_picture] Uploaded: {full_url}")
+                    current_app.logger.info(f"[upload_picture] Uploaded {filename} → {full_url}")
                     return str(full_url)
 
             current_app.logger.error(f"[upload_picture] No FullURL in response for {image_url}")
