@@ -1037,25 +1037,19 @@ def build_trading_item(comic, overrides=None, mode='list', include_item_id=False
     current_app.logger.debug(f"[build_trading_item] SKU {comic.sku}: comic.image_urls = {getattr(comic, 'image_urls', [])}")
     current_app.logger.debug(f"[build_trading_item] SKU {comic.sku}: Filtered pictures list = {pictures}")
 
-    # Convert private S3 URLs to presigned URLs so eBay can fetch them.
-    # The S3 bucket blocks all public access, so raw S3 URLs are not
-    # accessible to external services like eBay.
-    if pictures:
-        try:
-            from app.services.s3_service import s3_service
-            pictures = s3_service.get_presigned_urls(pictures, expires_in=3600)
-            current_app.logger.debug(f"[build_trading_item] SKU {comic.sku}: Generated {len(pictures)} presigned URLs for eBay")
-        except Exception as e:
-            current_app.logger.error(f"[build_trading_item] SKU {comic.sku}: Failed to generate presigned URLs: {e}")
-
-    # XML-escape presigned URLs: the ebaysdk library does not escape &
-    # by default (escape_xml=False in dict2xml), so bare & in query
-    # strings like &X-Amz-Credential=... breaks eBay's XML parser.
-    if pictures:
-        from xml.sax.saxutils import escape as xml_escape
-        pictures = [xml_escape(url) for url in pictures]
+    # NOTE: Images are uploaded to eBay via UploadSiteHostedPictures in
+    # ebay_service.list_comic / update_listing BEFORE this function is called.
+    # The caller passes eBay-hosted URLs through the overrides dict under
+    # the key '_ebay_picture_urls'.  If present, those short eBay-hosted URLs
+    # replace the raw S3 URLs.
 
     if overrides:
+        # Extract eBay-hosted picture URLs before general override processing
+        ebay_picture_urls = overrides.pop('_ebay_picture_urls', None)
+        if ebay_picture_urls:
+            pictures = ebay_picture_urls
+            current_app.logger.debug(f"[build_trading_item] SKU {comic.sku}: Using {len(pictures)} eBay-hosted picture URLs")
+
         for key, value in overrides.items():
             if value not in (None, '', []):
                 ebay_fields[key] = value

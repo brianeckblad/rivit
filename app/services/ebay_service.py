@@ -1073,8 +1073,16 @@ class EbayService:
             raise ValueError('Cannot list item on eBay without at least 1 photo. Please add an image first.')
 
         current_app.logger.debug(f"[list_comic] SKU {comic.sku}: Found {len(valid_images)} valid images")
-        for idx, url in enumerate(valid_images, 1):
-            current_app.logger.debug(f"[list_comic] SKU {comic.sku}: Image {idx}: {url}")
+
+        # Upload images to eBay's servers first, getting back short hosted URLs
+        ebay_picture_urls = self.upload_pictures(valid_images, environment=environment)
+        if not ebay_picture_urls:
+            raise RuntimeError('Failed to upload any images to eBay. Cannot create listing without pictures.')
+        current_app.logger.info(f"[list_comic] SKU {comic.sku}: Uploaded {len(ebay_picture_urls)} images to eBay")
+
+        # Pass eBay-hosted URLs into overrides so build_trading_item uses them
+        overrides = overrides or {}
+        overrides['_ebay_picture_urls'] = ebay_picture_urls
 
         payload = {'Item': build_trading_item(comic, overrides=overrides, mode=mode, schedule_time=schedule_time)}
 
@@ -1092,10 +1100,17 @@ class EbayService:
         if not comic.ebay_item_id:
             raise ValueError('Cannot update listing without ebay_item_id')
 
-        # Log image URLs
+        # Upload images to eBay's servers
         image_urls = getattr(comic, 'image_urls', [])
         valid_images = [url for url in image_urls if url and url.strip()]
         current_app.logger.debug(f"[update_listing] SKU {comic.sku}: Found {len(valid_images)} valid images")
+
+        if valid_images:
+            ebay_picture_urls = self.upload_pictures(valid_images, environment=environment)
+            if ebay_picture_urls:
+                overrides = overrides or {}
+                overrides['_ebay_picture_urls'] = ebay_picture_urls
+                current_app.logger.info(f"[update_listing] SKU {comic.sku}: Uploaded {len(ebay_picture_urls)} images to eBay")
 
         payload = {'Item': build_trading_item(comic, overrides=overrides, mode=mode, include_item_id=True, schedule_time=schedule_time)}
 
@@ -1108,6 +1123,69 @@ class EbayService:
 
         response = self._execute_trading_call('ReviseFixedPriceItem', payload, environment=environment, mode=mode)
         return getattr(response.reply, 'ItemID', comic.ebay_item_id)
+
+    def upload_picture(self, image_url, environment=None):
+        """Upload a single image to eBay via UploadSiteHostedPictures.
+
+        Generates a presigned S3 URL so eBay can fetch the private image,
+        then calls the Trading API to host it on eBay's servers.
+
+        Args:
+            image_url (str): S3 URL of the image to upload.
+            environment (str, optional): 'production' or 'sandbox'.
+
+        Returns:
+            str: eBay-hosted image URL, or None on failure.
+        """
+        from app.services.s3_service import s3_service
+
+        try:
+            # Generate a short-lived presigned URL for eBay to fetch the image
+            presigned_url = s3_service.generate_presigned_url(image_url, expires_in=600)
+            if not presigned_url:
+                current_app.logger.error(f"[upload_picture] Failed to generate presigned URL for {image_url}")
+                return None
+
+            payload = {
+                'ExternalPictureURL': presigned_url,
+                'PictureName': image_url.split('/')[-1].split('?')[0],
+            }
+
+            response = self._execute_trading_call(
+                'UploadSiteHostedPictures', payload,
+                environment=environment, mode='upload'
+            )
+
+            site_hosted = getattr(response.reply, 'SiteHostedPictureDetails', None)
+            if site_hosted:
+                full_url = getattr(site_hosted, 'FullURL', None)
+                if full_url:
+                    current_app.logger.debug(f"[upload_picture] Uploaded: {full_url}")
+                    return str(full_url)
+
+            current_app.logger.error(f"[upload_picture] No FullURL in response for {image_url}")
+            return None
+
+        except Exception as e:
+            current_app.logger.error(f"[upload_picture] Failed to upload {image_url}: {e}")
+            return None
+
+    def upload_pictures(self, image_urls, environment=None):
+        """Upload multiple images to eBay, returning eBay-hosted URLs.
+
+        Args:
+            image_urls (list): List of S3 image URLs.
+            environment (str, optional): 'production' or 'sandbox'.
+
+        Returns:
+            list: eBay-hosted URLs (only successful uploads). Max 12 per eBay limits.
+        """
+        ebay_urls = []
+        for url in image_urls[:12]:  # eBay max 12 pictures
+            hosted_url = self.upload_picture(url, environment=environment)
+            if hosted_url:
+                ebay_urls.append(hosted_url)
+        return ebay_urls
 
     def get_item(self, item_id, environment=None):
         """
