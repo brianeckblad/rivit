@@ -1138,6 +1138,7 @@ class EbayService:
             str: eBay-hosted image URL, or None on failure.
         """
         from app.services.s3_service import s3_service
+        from xml.sax.saxutils import escape as xml_escape
 
         try:
             # Generate a short-lived presigned URL for eBay to fetch the image
@@ -1146,8 +1147,13 @@ class EbayService:
                 current_app.logger.error(f"[upload_picture] Failed to generate presigned URL for {image_url}")
                 return None
 
+            # XML-escape the URL because presigned S3 URLs contain bare '&'
+            # characters (e.g. &X-Amz-Credential=) that break ebaysdk's XML
+            # serialiser (dict2xml with escape_xml=False by default).
+            escaped_url = xml_escape(presigned_url)
+
             payload = {
-                'ExternalPictureURL': presigned_url,
+                'ExternalPictureURL': escaped_url,
                 'PictureName': image_url.split('/')[-1].split('?')[0],
             }
 
