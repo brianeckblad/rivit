@@ -1048,6 +1048,13 @@ def build_trading_item(comic, overrides=None, mode='list', include_item_id=False
         except Exception as e:
             current_app.logger.error(f"[build_trading_item] SKU {comic.sku}: Failed to generate presigned URLs: {e}")
 
+    # XML-escape presigned URLs: the ebaysdk library does not escape &
+    # by default (escape_xml=False in dict2xml), so bare & in query
+    # strings like &X-Amz-Credential=... breaks eBay's XML parser.
+    if pictures:
+        from xml.sax.saxutils import escape as xml_escape
+        pictures = [xml_escape(url) for url in pictures]
+
     if overrides:
         for key, value in overrides.items():
             if value not in (None, '', []):
