@@ -380,6 +380,21 @@ body {
   color: var(--color-text-dim);
 }
 
+/* Override browser default disabled/readonly styling (prevents white/grey on dark theme) */
+.form-input:disabled,
+.form-select:disabled,
+.form-input[readonly],
+input:disabled,
+select:disabled,
+textarea:disabled,
+input[readonly],
+textarea[readonly] {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  opacity: 1;
+  -webkit-text-fill-color: var(--color-text-muted);
+}
+
 /* ── Section Labels ────────────────────────────────────────────────────── */
 .section-label {
   font-size: var(--font-size-xs);
