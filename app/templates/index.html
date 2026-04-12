@@ -2265,17 +2265,22 @@
                         </svg>
                     </button>
                     <div class="menu-dropdown" id="ebayMenuDropdown">
-                        <button type="button" class="menu-item" id="ebayLinkMenuBtn" onclick="if (!this.classList.contains('disabled')) { openEbayListingsForLinking(); document.getElementById('ebayMenuDropdown').classList.remove('show'); }">
-                            <span>Link to eBay</span>
-                        </button>
-                        <button type="button" class="menu-item" id="ebayUnlinkMenuBtn" onclick="if (!this.classList.contains('disabled')) { unlinkFromEbay(); document.getElementById('ebayMenuDropdown').classList.remove('show'); }">
-                            <span>Unlink from eBay</span>
-                        </button>
-                        <button type="button" class="menu-item" id="ebayListMenuBtn" onclick="if (!this.classList.contains('disabled')) { confirmEbayListAction(); document.getElementById('ebayMenuDropdown').classList.remove('show'); }">
+                        <!-- Shown when NOT linked to eBay -->
+                        <button type="button" class="menu-item" id="ebayListMenuBtn" onclick="confirmEbayListAction(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
                             <span id="ebayListMenuText">List on eBay</span>
                         </button>
-                        <button type="button" class="menu-item" id="ebayDelistMenuBtn" onclick="if (!this.classList.contains('disabled')) { confirmEbayDelistAction(editingSKU); document.getElementById('ebayMenuDropdown').classList.remove('show'); }">
+                        <button type="button" class="menu-item" id="ebayLinkMenuBtn" onclick="openEbayListingsForLinking(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
+                            <span>Link to eBay Listing</span>
+                        </button>
+                        <!-- Shown when linked to eBay -->
+                        <button type="button" class="menu-item" id="ebayUpdateMenuBtn" onclick="confirmEbayUpdateAction(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
+                            <span>Update on eBay</span>
+                        </button>
+                        <button type="button" class="menu-item" id="ebayDelistMenuBtn" onclick="confirmEbayDelistAction(editingSKU); document.getElementById('ebayMenuDropdown').classList.remove('show');">
                             <span>Delist from eBay</span>
+                        </button>
+                        <button type="button" class="menu-item" id="ebayUnlinkMenuBtn" style="color: var(--color-text-dim);" onclick="unlinkFromEbay(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
+                            <span>Unlink from eBay</span>
                         </button>
                     </div>
                 </div>
@@ -2932,211 +2937,55 @@
         function updateEbayMenuState() {
             const ebayPill = document.getElementById('ebayMenuPill');
             const listBtn = document.getElementById('ebayListMenuBtn');
-            const delistBtn = document.getElementById('ebayDelistMenuBtn');
             const linkBtn = document.getElementById('ebayLinkMenuBtn');
+            const updateBtn = document.getElementById('ebayUpdateMenuBtn');
+            const delistBtn = document.getElementById('ebayDelistMenuBtn');
             const unlinkBtn = document.getElementById('ebayUnlinkMenuBtn');
-            const listBtnText = document.getElementById('ebayListMenuText');
             const menuBtn = document.getElementById('ebayMenuBtn');
 
             if (!ebayPill) return;
 
-            if (editingSKU) {
-                ebayPill.style.display = 'inline-block';
-
-                // Check if current item is a Giveaway
-                const typeInput = document.getElementById('type');
-                const isGiveaway = typeInput && typeInput.value === 'Giveaway';
-
-                // If it's a giveaway, disable all eBay buttons
-                if (isGiveaway) {
-                    if (listBtn) {
-                        listBtn.classList.add('disabled');
-                        listBtn.style.opacity = '0.4';
-                        listBtn.style.cursor = 'not-allowed';
-                    }
-                    if (delistBtn) {
-                        delistBtn.classList.add('disabled');
-                        delistBtn.style.opacity = '0.4';
-                        delistBtn.style.cursor = 'not-allowed';
-                    }
-                    if (linkBtn) {
-                        linkBtn.classList.add('disabled');
-                        linkBtn.style.opacity = '0.4';
-                        linkBtn.style.cursor = 'not-allowed';
-                    }
-                    if (unlinkBtn) {
-                        unlinkBtn.classList.add('disabled');
-                        unlinkBtn.style.opacity = '0.4';
-                        unlinkBtn.style.cursor = 'not-allowed';
-                    }
-                    if (menuBtn) menuBtn.classList.remove('active');
-                    return; // Exit early if giveaway
-                }
-
-                const isListed = Boolean(currentComicEbayId);
-
-                // Update button states based on listing status
-                if (isListed) {
-                    // Listed on eBay
-                    if (listBtn) {
-                        listBtn.classList.remove('disabled');
-                        listBtn.style.opacity = '1';
-                        listBtn.style.cursor = 'pointer';
-                        listBtn.dataset.ebayAction = 'update'; // Set action to 'update' for listed items
-                    }
-                    if (listBtnText) listBtnText.textContent = 'Update on eBay';
-
-                    if (delistBtn) {
-                        delistBtn.classList.remove('disabled');
-                        delistBtn.style.opacity = '1';
-                        delistBtn.style.cursor = 'pointer';
-                    }
-
-                    if (linkBtn) {
-                        linkBtn.classList.add('disabled');
-                        linkBtn.style.opacity = '0.4';
-                        linkBtn.style.cursor = 'not-allowed';
-                    }
-
-                    if (unlinkBtn) {
-                        unlinkBtn.classList.remove('disabled');
-                        unlinkBtn.style.opacity = '1';
-                        unlinkBtn.style.cursor = 'pointer';
-                    }
-
-                    if (menuBtn) menuBtn.classList.add('active');
-                } else {
-                    // Not listed on eBay
-                    if (listBtn) {
-                        listBtn.classList.remove('disabled');
-                        listBtn.style.opacity = '1';
-                        listBtn.style.cursor = 'pointer';
-                        listBtn.dataset.ebayAction = 'list'; // Set action to 'list' for new items
-                    }
-                    if (listBtnText) listBtnText.textContent = 'List on eBay';
-
-                    if (delistBtn) {
-                        delistBtn.classList.add('disabled');
-                        delistBtn.style.opacity = '0.4';
-                        delistBtn.style.cursor = 'not-allowed';
-                    }
-
-                    if (linkBtn) {
-                        linkBtn.classList.remove('disabled');
-                        linkBtn.style.opacity = '1';
-                        linkBtn.style.cursor = 'pointer';
-                    }
-
-                    if (unlinkBtn) {
-                        unlinkBtn.classList.add('disabled');
-                        unlinkBtn.style.opacity = '0.4';
-                        unlinkBtn.style.cursor = 'not-allowed';
-                    }
-
-                    if (menuBtn) menuBtn.classList.remove('active');
-                }
-            } else {
-                ebayPill.style.display = 'none';
-            }
-        }
-
-        function updateInlineEbayControls() {
-            const inlineBtn = document.getElementById('ebayListBtn');
-            const inlineBtnText = document.getElementById('ebayListBtnText');
-            const linkBtn = document.getElementById('ebayLinkBtn');
-
-            // Update the new menu state
-            updateEbayMenuState();
-
             if (!editingSKU) {
-                if (inlineBtn) inlineBtn.style.display = 'none';
-                if (linkBtn) linkBtn.style.display = 'none';
+                ebayPill.style.display = 'none';
                 return;
             }
+
+            ebayPill.style.display = 'inline-block';
 
             // Check if current item is a Giveaway
             const typeInput = document.getElementById('type');
             const isGiveaway = typeInput && typeInput.value === 'Giveaway';
 
-            // If it's a giveaway, hide all eBay buttons
             if (isGiveaway) {
-                if (inlineBtn) inlineBtn.style.display = 'none';
-                if (linkBtn) linkBtn.style.display = 'none';
+                ebayPill.style.display = 'none';
                 return;
             }
 
             const isListed = Boolean(currentComicEbayId);
 
-
-            // Update inline List button - show when viewing/editing a comic
-            if (inlineBtn && inlineBtnText) {
-                // Show button when we have a SKU loaded (both view and edit mode)
-                inlineBtn.style.display = editingSKU ? 'inline-flex' : 'none';
-
-                // Update button text based on listing status
-                if (isListed) {
-                    inlineBtnText.textContent = 'Update on eBay';
-                } else {
-                    inlineBtnText.textContent = 'List on eBay';
-                }
-
-                inlineBtn.dataset.ebayAction = isListed ? 'update' : 'list';
-
-                // Add hover handlers - always yellow hover for List button
-                const defaultColor = 'var(--color-border-hover)';
-                inlineBtn.dataset.statusColor = defaultColor;
-                inlineBtn.onmouseenter = function() { this.style.borderColor = 'var(--color-accent)'; };
-                inlineBtn.onmouseleave = function() { this.style.borderColor = this.dataset.statusColor || defaultColor; };
-
-                // Ensure button is enabled and clickable
-                if (editingSKU) {
-                    inlineBtn.disabled = false;
-                    inlineBtn.style.opacity = '1';
-                    inlineBtn.style.pointerEvents = 'auto';
-                }
+            if (isListed) {
+                // Linked to eBay — show Update, Delist, Unlink; hide List, Link
+                if (listBtn) listBtn.style.display = 'none';
+                if (linkBtn) linkBtn.style.display = 'none';
+                if (updateBtn) updateBtn.style.display = 'flex';
+                if (delistBtn) delistBtn.style.display = 'flex';
+                if (unlinkBtn) unlinkBtn.style.display = 'flex';
+                if (menuBtn) menuBtn.classList.add('active');
+            } else {
+                // Not linked — show List, Link; hide Update, Delist, Unlink
+                if (listBtn) listBtn.style.display = 'flex';
+                if (linkBtn) linkBtn.style.display = 'flex';
+                if (updateBtn) updateBtn.style.display = 'none';
+                if (delistBtn) delistBtn.style.display = 'none';
+                if (unlinkBtn) unlinkBtn.style.display = 'none';
+                if (menuBtn) menuBtn.classList.remove('active');
             }
+        }
 
-            // Update inline Link button - show when viewing/editing a comic
-            if (linkBtn) {
-                // Show link button when we have a SKU loaded (both view and edit mode)
-                linkBtn.style.display = editingSKU ? 'inline-flex' : 'none';
-
-                // Update button text and styling based on whether comic is linked to eBay
-                const linkBtnSpan = linkBtn.querySelector('span');
-
-                if (isListed) {
-                    // Comic has eBay Item ID - show "Unlink eBay" with blue border
-                    if (linkBtnSpan) linkBtnSpan.textContent = 'Unlink eBay';
-                    const statusColor = 'var(--color-info)'; // Blue border for linked
-                    linkBtn.style.border = `2px solid ${statusColor}`;
-                    linkBtn.style.color = 'var(--color-accent)'; // Keep text yellow
-                    linkBtn.onclick = () => unlinkFromEbay();
-
-                    // Store status color and add hover handlers
-                    linkBtn.dataset.statusColor = statusColor;
-                    linkBtn.onmouseenter = function() { this.style.borderColor = statusColor; };
-                    linkBtn.onmouseleave = function() { this.style.borderColor = this.dataset.statusColor || statusColor; };
-                } else {
-                    // No eBay Item ID - show "Link to eBay" with default styling
-                    if (linkBtnSpan) linkBtnSpan.textContent = 'Link to eBay';
-                    const defaultColor = 'var(--color-border-hover)';
-                    linkBtn.style.border = `2px solid ${defaultColor}`;
-                    linkBtn.style.color = 'var(--color-accent)';
-                    linkBtn.onclick = () => openEbayListingsForLinking();
-
-                    // Store default color and add hover handlers
-                    linkBtn.dataset.statusColor = defaultColor;
-                    linkBtn.onmouseenter = function() { this.style.borderColor = 'var(--color-accent)'; };
-                    linkBtn.onmouseleave = function() { this.style.borderColor = this.dataset.statusColor || defaultColor; };
-                }
-
-                // Ensure button is enabled and clickable
-                if (editingSKU) {
-                    linkBtn.disabled = false;
-                    linkBtn.style.opacity = '1';
-                    linkBtn.style.pointerEvents = 'auto';
-                }
-            }
+        function updateInlineEbayControls() {
+            // All eBay controls are now in the menu pill dropdown
+            // This function just ensures the menu state is up to date
+            updateEbayMenuState();
         }
 
         function updateWhatNotControls() {
@@ -6086,16 +5935,14 @@
         async function confirmEbayListAction() {
             pendingComicAction.type = 'ebay-list';
             pendingComicAction.sku = editingSKU;
+            showComicConfirmModal('Are you sure you want to list this item on eBay? This will create a new listing.');
+        }
 
-            // Determine if this is a list or update action
-            const inlineBtn = document.getElementById('ebayListMenuBtn');
-            const isUpdate = inlineBtn && inlineBtn.dataset.ebayAction === 'update';
-
-            if (isUpdate) {
-                showComicConfirmModal('Are you sure you want to update this listing on eBay? This will modify the active listing with current comic data.');
-            } else {
-                showComicConfirmModal('Are you sure you want to list this item on eBay? This will create a new listing.');
-            }
+        // eBay Update action with confirmation (pushes changes to existing listing)
+        async function confirmEbayUpdateAction() {
+            pendingComicAction.type = 'ebay-update';
+            pendingComicAction.sku = editingSKU;
+            showComicConfirmModal('Are you sure you want to update this listing on eBay? This will modify the active listing with current comic data.');
         }
 
         // eBay Delist action with confirmation (from menu button)
@@ -6166,8 +6013,10 @@
                 await executeDeleteComic(pendingComicAction.sku);
             } else if (pendingComicAction.type === 'delist') {
                 await executeDelistFromEbay(pendingComicAction.sku);
-requirements.txt            } else if (pendingComicAction.type === 'ebay-list') {
+            } else if (pendingComicAction.type === 'ebay-list') {
                 await executeEbayListAction();
+            } else if (pendingComicAction.type === 'ebay-update') {
+                await executeEbayUpdateAction();
             } else if (pendingComicAction.type === 'ebay-delist') {
                 await executeEbayDelistAction(pendingComicAction.sku);
             }
@@ -6250,6 +6099,80 @@ requirements.txt            } else if (pendingComicAction.type === 'ebay-list') 
             } catch (error) {
                 console.error('[executeEbayListAction] Error:', error);
                 showNotification(`Failed to list: ${error.message}`, 'error');
+            }
+            pendingComicAction = { type: null, sku: null };
+        }
+
+        // Execute eBay update action after confirmation
+        async function executeEbayUpdateAction() {
+            try {
+                if (!editingSKU || !currentComicEbayId) {
+                    showNotification('Comic is not linked to an eBay listing', 'error');
+                    pendingComicAction = { type: null, sku: null };
+                    return;
+                }
+
+                showNotification('Updating eBay listing...', 'info');
+
+                // First save the comic to persist any form changes
+                const form = document.getElementById('comicForm');
+                if (form) {
+                    const formData = new FormData(form);
+                    formData.append('sku', editingSKU);
+                    const saveResponse = await fetch(`/api/comic/${encodeURIComponent(editingSKU)}`, {
+                        method: 'PUT',
+                        headers: { 'X-CSRF-Token': window.csrfToken },
+                        body: formData
+                    });
+                    if (!saveResponse.ok) {
+                        const saveResult = await saveResponse.json();
+                        throw new Error(saveResult.message || saveResult.error || 'Failed to save comic before updating eBay');
+                    }
+                }
+
+                // Now push the update to eBay
+                const response = await fetch(`/api/comic/${encodeURIComponent(editingSKU)}/ebay/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    },
+                    body: JSON.stringify({
+                        environment: 'production',
+                        mode: 'update'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Failed to update eBay listing');
+                }
+
+                showNotification('✓ eBay listing updated successfully', 'success');
+
+                // Reload the comic to get fresh data
+                try {
+                    const comicResponse = await fetch(`/api/comic/${encodeURIComponent(editingSKU)}`);
+                    if (comicResponse.ok) {
+                        const comicData = await comicResponse.json();
+                        if (comicData.success && comicData.comic) {
+                            const cacheIndex = allComics.findIndex(c => String(c.SKU) === String(editingSKU));
+                            if (cacheIndex !== -1) allComics[cacheIndex] = comicData.comic;
+                            if (viewMode) {
+                                loadComicForView(comicData.comic);
+                            } else {
+                                loadComicForEdit(comicData.comic, true);
+                            }
+                        }
+                    }
+                } catch (reloadError) {
+                    console.error('Error reloading comic after eBay update:', reloadError);
+                }
+
+            } catch (error) {
+                console.error('[executeEbayUpdateAction] Error:', error);
+                showNotification(`Failed to update eBay: ${error.message}`, 'error');
             }
             pendingComicAction = { type: null, sku: null };
         }
