@@ -164,7 +164,61 @@ class S3Service:
             str or None: The bucket name from environment/config.
         """
         return _get_config('S3_BUCKET')
-    
+
+    def generate_presigned_url(self, s3_url, expires_in=3600):
+        """
+        Generate a presigned URL for a private S3 object.
+
+        Creates a temporary authenticated URL that allows anyone (including
+        external services like eBay) to download the object without AWS
+        credentials. Used when listing on eBay since the bucket blocks all
+        public access.
+
+        Args:
+            s3_url (str): Full S3 URL, e.g.
+                ``https://bucket.s3.amazonaws.com/path/to/image.jpg``
+            expires_in (int): URL lifetime in seconds. Defaults to 3600 (1 hour).
+
+        Returns:
+            str: Presigned URL, or the original URL if generation fails.
+        """
+        import urllib.parse
+
+        if not s3_url or 's3.amazonaws.com' not in s3_url:
+            return s3_url
+
+        try:
+            parsed = urllib.parse.urlparse(s3_url)
+            s3_key = urllib.parse.unquote(parsed.path.lstrip('/'))
+            bucket = self.bucket_name
+
+            if not bucket:
+                _log_warning("Cannot generate presigned URL: bucket name not configured")
+                return s3_url
+
+            url = self.client().generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket, 'Key': s3_key},
+                ExpiresIn=expires_in,
+            )
+            return url
+        except Exception as e:
+            _log_error(f"Failed to generate presigned URL for {s3_url}: {e}")
+            return s3_url
+
+    def get_presigned_urls(self, s3_urls, expires_in=3600):
+        """
+        Convert a list of S3 URLs to presigned URLs.
+
+        Args:
+            s3_urls (list): List of S3 URL strings.
+            expires_in (int): URL lifetime in seconds. Defaults to 3600.
+
+        Returns:
+            list: Presigned URLs in the same order.
+        """
+        return [self.generate_presigned_url(url, expires_in) for url in s3_urls if url]
+
     def optimize_image(self, file_path, max_width=1920, max_height=1920, quality=85):
         """
         Optimize an image before uploading to S3.
