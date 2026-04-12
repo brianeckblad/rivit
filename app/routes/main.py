@@ -227,7 +227,7 @@ def account():
 @main_bp.route('/ebay-listings')
 @login_required
 def ebay_listings():
-    """eBay listings summary page showing all active listings."""
+    """eBay listings summary page showing active and pending listings."""
     return render_template('ebay_listings.html', active_page='ebay-listings')
 
 

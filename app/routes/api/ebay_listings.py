@@ -128,7 +128,80 @@ def get_ebay_listings() -> Response:
                 current_app.logger.warning(f"Failed to load comics for link checking: {e}")
                 ebay_id_to_sku = {}
 
-            # Fetch ALL listings by iterating through eBay pages (ONLY ONCE)
+            def _parse_item(item, status_label):
+                """Parse an eBay item from API response into a listing dict."""
+                try:
+                    item_id = getattr(item, 'ItemID', '')
+                    title = getattr(item, 'Title', 'Unknown Title')
+                    quantity = int(getattr(item, 'Quantity', 1) or 1)
+                    quantity_sold = int(getattr(item, 'QuantitySold', 0) or 0)
+
+                    current_price = '0.00'
+                    try:
+                        selling_status = getattr(item, 'SellingStatus', None)
+                        if selling_status:
+                            price_obj = getattr(selling_status, 'CurrentPrice', None)
+                            if price_obj:
+                                if hasattr(price_obj, 'value'):
+                                    current_price = str(price_obj.value)
+                                else:
+                                    current_price = str(price_obj)
+                    except Exception as e:
+                        current_app.logger.debug(f"Price error for {item_id}: {e}")
+
+                    image_url = ''
+                    try:
+                        picture_details = getattr(item, 'PictureDetails', None)
+                        if picture_details:
+                            gallery_url = getattr(picture_details, 'GalleryURL', None)
+                            if gallery_url:
+                                image_url = gallery_url if isinstance(gallery_url, str) else str(gallery_url)
+                    except Exception as e:
+                        current_app.logger.debug(f"Image error for {item_id}: {e}")
+
+                    listing_type = getattr(item, 'ListingType', 'FixedPriceItem')
+
+                    # Extract statistics
+                    watch_count = 0
+                    try:
+                        watch_count = int(getattr(item, 'WatchCount', 0) or 0)
+                    except Exception as e:
+                        current_app.logger.debug(f"Watch count error for {item_id}: {e}")
+
+                    # Extract scheduled start time for pending listings
+                    scheduled_start = ''
+                    if status_label == 'Pending':
+                        try:
+                            listing_details = getattr(item, 'ListingDetails', None)
+                            if listing_details:
+                                start_time = getattr(listing_details, 'StartTime', None)
+                                if start_time:
+                                    scheduled_start = str(start_time)
+                        except Exception:
+                            pass
+
+                    # Check if this eBay item is linked to any inventory item
+                    linked_sku = ebay_id_to_sku.get(item_id, '')
+
+                    return {
+                        'Title': title,
+                        'ItemID': item_id,
+                        'CurrentPrice': current_price,
+                        'Quantity': quantity,
+                        'QuantitySold': quantity_sold,
+                        'ListingStatus': status_label,
+                        'ListingType': listing_type,
+                        'image_url': image_url,
+                        'linked_sku': linked_sku,
+                        'Description': extract_ebay_description_section(''),
+                        'WatchCount': watch_count,
+                        'ScheduledStart': scheduled_start,
+                    }
+                except Exception as e:
+                    current_app.logger.error(f"Item parse error: {e}")
+                    return None
+
+            # --- Fetch ACTIVE listings ---
             all_listings = []
             page_counter = 1
             total_fetched = 0
@@ -157,7 +230,7 @@ def get_ebay_listings() -> Response:
                         ]
                     }
 
-                    current_app.logger.info(f"eBay API call: GetMyeBaySelling page {page_counter}")
+                    current_app.logger.info(f"eBay API call: GetMyeBaySelling ActiveList page {page_counter}")
                     response = ebay_service._execute_trading_call('GetMyeBaySelling', payload, environment=environment, mode='read')
 
                     if response and hasattr(response.reply, 'ActiveList'):
@@ -166,74 +239,16 @@ def get_ebay_listings() -> Response:
                         if not isinstance(items, list):
                             items = [items] if items else []
 
-                        current_app.logger.info(f"eBay API returned {len(items)} items on page {page_counter}")
+                        current_app.logger.info(f"eBay API returned {len(items)} active items on page {page_counter}")
 
                         if not items:
                             break
 
                         for item in items:
-                            try:
-                                item_id = getattr(item, 'ItemID', '')
-                                title = getattr(item, 'Title', 'Unknown Title')
-                                quantity = int(getattr(item, 'Quantity', 1) or 1)
-                                quantity_sold = int(getattr(item, 'QuantitySold', 0) or 0)
-
-                                current_price = '0.00'
-                                try:
-                                    selling_status = getattr(item, 'SellingStatus', None)
-                                    if selling_status:
-                                        price_obj = getattr(selling_status, 'CurrentPrice', None)
-                                        if price_obj:
-                                            if hasattr(price_obj, 'value'):
-                                                current_price = str(price_obj.value)
-                                            else:
-                                                current_price = str(price_obj)
-                                except Exception as e:
-                                    current_app.logger.debug(f"Price error for {item_id}: {e}")
-
-                                image_url = ''
-                                try:
-                                    picture_details = getattr(item, 'PictureDetails', None)
-                                    if picture_details:
-                                        gallery_url = getattr(picture_details, 'GalleryURL', None)
-                                        if gallery_url:
-                                            image_url = gallery_url if isinstance(gallery_url, str) else str(gallery_url)
-                                except Exception as e:
-                                    current_app.logger.debug(f"Image error for {item_id}: {e}")
-
-                                listing_type = getattr(item, 'ListingType', 'FixedPriceItem')
-
-                                # Extract statistics
-                                watch_count = 0
-                                try:
-                                    watch_count = int(getattr(item, 'WatchCount', 0) or 0)
-                                except Exception as e:
-                                    current_app.logger.debug(f"Watch count error for {item_id}: {e}")
-
-                                # Description will be fetched on-demand when user opens modal or clicks Create New Item
-                                description = ''
-
-                                # Check if this eBay item is linked to any inventory item
-                                linked_sku = ebay_id_to_sku.get(item_id, '')
-
-                                all_listings.append({
-                                    'Title': title,
-                                    'ItemID': item_id,
-                                    'CurrentPrice': current_price,
-                                    'Quantity': quantity,
-                                    'QuantitySold': quantity_sold,
-                                    'ListingStatus': 'Active',
-                                    'ListingType': listing_type,
-                                    'image_url': image_url,
-                                    'linked_sku': linked_sku,
-                                    'Description': extract_ebay_description_section(description),
-                                    'WatchCount': watch_count,
-                                })
+                            parsed = _parse_item(item, 'Active')
+                            if parsed:
+                                all_listings.append(parsed)
                                 total_fetched += 1
-
-                            except Exception as e:
-                                current_app.logger.error(f"Item parse error: {e}")
-                                continue
 
                         # Check if more pages
                         try:
@@ -250,18 +265,90 @@ def get_ebay_listings() -> Response:
                         break
 
                 except Exception as e:
-                    current_app.logger.error(f"eBay fetch error page {page_counter}: {e}")
+                    current_app.logger.error(f"eBay fetch error ActiveList page {page_counter}: {e}")
                     break
 
-            # Sort listings
-            all_listings.sort(key=lambda x: x['Title'].lower())
+            active_count = len(all_listings)
+
+            # --- Fetch SCHEDULED (pending) listings ---
+            page_counter = 1
+            while page_counter <= 50:
+                try:
+                    payload = {
+                        'ScheduledList': {
+                            'Pagination': {
+                                'EntriesPerPage': 100,
+                                'PageNumber': page_counter
+                            },
+                            'Include': 'true'
+                        },
+                        'DetailLevel': 'ReturnAll',
+                        'OutputSelector': [
+                            'ItemID',
+                            'Title',
+                            'SellingStatus',
+                            'PrimaryCategory',
+                            'PictureDetails',
+                            'ListingType',
+                            'ListingDetails',
+                            'Quantity',
+                            'QuantitySold',
+                            'WatchCount'
+                        ]
+                    }
+
+                    current_app.logger.info(f"eBay API call: GetMyeBaySelling ScheduledList page {page_counter}")
+                    response = ebay_service._execute_trading_call('GetMyeBaySelling', payload, environment=environment, mode='read')
+
+                    if response and hasattr(response.reply, 'ScheduledList'):
+                        sched_list = response.reply.ScheduledList
+                        items = sched_list.ItemArray.Item if hasattr(sched_list, 'ItemArray') else []
+
+                        if not isinstance(items, list):
+                            items = [items] if items else []
+
+                        current_app.logger.info(f"eBay API returned {len(items)} pending items on page {page_counter}")
+
+                        if not items:
+                            break
+
+                        for item in items:
+                            parsed = _parse_item(item, 'Pending')
+                            if parsed:
+                                all_listings.append(parsed)
+                                total_fetched += 1
+
+                        # Check if more pages
+                        try:
+                            pagination = getattr(sched_list, 'PaginationResult', None)
+                            if pagination:
+                                total_pages = int(getattr(pagination, 'TotalNumberOfPages', 1) or 1)
+                                if page_counter >= total_pages:
+                                    break
+                        except Exception:
+                            pass
+
+                        page_counter += 1
+                    else:
+                        break
+
+                except Exception as e:
+                    current_app.logger.error(f"eBay fetch error ScheduledList page {page_counter}: {e}")
+                    break
+
+            pending_count = len(all_listings) - active_count
+
+            # Sort listings: pending first, then active, alphabetically within each group
+            all_listings.sort(key=lambda x: (0 if x['ListingStatus'] == 'Pending' else 1, x['Title'].lower()))
 
             # Cache the results for 1 hour
-            current_app.logger.info(f"Caching {len(all_listings)} eBay listings (will reuse for 1 hour)")
+            current_app.logger.info(f"Caching {len(all_listings)} eBay listings ({active_count} active, {pending_count} pending)")
             current_app.ebay_cache[cache_key] = {
                 'listings': all_listings,
                 'fetched_at': datetime.now().isoformat(),
-                'total_fetched': total_fetched
+                'total_fetched': total_fetched,
+                'active_count': active_count,
+                'pending_count': pending_count,
             }
 
         # Now paginate from cached results
@@ -271,7 +358,12 @@ def get_ebay_listings() -> Response:
         page_listings = all_listings[start_idx:end_idx]
         has_more = end_idx < total_count
 
-        current_app.logger.info(f"Page {page_number}: {len(page_listings)} listings of {total_count} total (from cache)")
+        # Get counts from cache
+        cached_data = current_app.ebay_cache.get(cache_key, {})
+        active_count = cached_data.get('active_count', total_count)
+        pending_count = cached_data.get('pending_count', 0)
+
+        current_app.logger.info(f"Page {page_number}: {len(page_listings)} listings of {total_count} total ({active_count} active, {pending_count} pending)")
 
         return jsonify({
             'success': True,
@@ -280,6 +372,8 @@ def get_ebay_listings() -> Response:
             'page': page_number,
             'per_page': items_per_page,
             'total_count': total_count,
+            'active_count': active_count,
+            'pending_count': pending_count,
             'has_more': has_more,
         })
 

@@ -173,6 +173,64 @@
             border: 1px solid var(--color-danger-border);
         }
 
+        .status-pending {
+            background: var(--color-warning-subtle);
+            color: var(--color-warning);
+            border: 1px solid var(--color-warning-border);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filter-tab {
+            padding: 8px 20px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--color-border);
+            background: transparent;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--color-border-hover);
+            color: var(--color-text);
+        }
+
+        .filter-tab.active {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: var(--color-accent-text);
+        }
+
+        .filter-tab .tab-count {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .filter-tab.active .tab-count {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .listing-scheduled {
+            font-size: 11px;
+            color: var(--color-warning);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .listing-actions {
             display: flex;
             gap: 12px;
@@ -454,7 +512,7 @@
                     ×
                 </button>
             </div>
-            <p>View all your active eBay listings</p>
+            <p>View your active and pending eBay listings</p>
             <button onclick="refreshFromEbay(event)" style="padding: 8px 16px; background: var(--color-info); color: var(--color-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 12px;">
                 🔄 Refresh from eBay
             </button>
@@ -469,13 +527,34 @@
         <!-- Summary Stats -->
         <div id="summaryStats" class="summary-stats" style="display: none;">
             <div class="stat-card">
-                <div class="stat-label">Total Active Listings</div>
+                <div class="stat-label">Active Listings</div>
+                <div class="stat-value" id="activeListings">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Listings</div>
+                <div class="stat-value" id="pendingListings">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Listings</div>
                 <div class="stat-value" id="totalListings">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Total Inventory Value</div>
                 <div class="stat-value" id="totalValue">$0.00</div>
             </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div id="filterTabs" class="filter-tabs" style="display: none;">
+            <button class="filter-tab active" data-filter="all" onclick="filterListings('all')">
+                All <span class="tab-count" id="tabCountAll">0</span>
+            </button>
+            <button class="filter-tab" data-filter="active" onclick="filterListings('active')">
+                Active <span class="tab-count" id="tabCountActive">0</span>
+            </button>
+            <button class="filter-tab" data-filter="pending" onclick="filterListings('pending')">
+                Pending <span class="tab-count" id="tabCountPending">0</span>
+            </button>
         </div>
 
         <!-- Loading State -->
@@ -498,12 +577,12 @@
         <!-- Empty State -->
         <div id="emptyState" class="empty-state" style="display: none;">
             <div class="empty-state-icon">📦</div>
-            <p><strong>No Active Listings Found</strong></p>
+            <p><strong>No Listings Found</strong></p>
             <p style="font-size: 13px; margin-top: 16px; color: var(--color-text);">
-                Your eBay account doesn't have any active listings at this time.
+                Your eBay account doesn't have any active or pending listings at this time.
             </p>
             <p style="font-size: 11px; color: var(--color-text-dim); margin-top: 16px;">
-                💡 This is a debug view that pulls all active listings directly from your eBay account.
+                💡 This view pulls active and scheduled listings directly from your eBay account.
             </p>
         </div>
     </main>
@@ -573,6 +652,9 @@
         let itemsPerPage = 24;  // Will be updated from API response
         let allFetchedListings = [];  // Store ALL listings fetched from API
         let totalListingsCount = 0;  // Total count from API
+        let activeListingsCount = 0;
+        let pendingListingsCount = 0;
+        let currentFilter = 'all';  // 'all', 'active', or 'pending'
         let currentPageStartIndex = 0;
         let currentPageEndIndex = 0;
 
@@ -668,6 +750,8 @@
                 // Get settings from first page
                 itemsPerPage = data.per_page || 24;
                 totalListingsCount = data.total_count || 0;
+                activeListingsCount = data.active_count || 0;
+                pendingListingsCount = data.pending_count || 0;
 
                 // Start collecting all listings
                 allFetchedListings = data.listings || [];
@@ -753,6 +837,25 @@
             }
         }
 
+        function getFilteredListings() {
+            if (currentFilter === 'all') return allFetchedListings;
+            if (currentFilter === 'active') return allFetchedListings.filter(l => l.ListingStatus === 'Active');
+            if (currentFilter === 'pending') return allFetchedListings.filter(l => l.ListingStatus === 'Pending');
+            return allFetchedListings;
+        }
+
+        function filterListings(filter) {
+            currentFilter = filter;
+
+            // Update tab styles
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === filter);
+            });
+
+            // Reset to page 1 and re-render
+            displayPage(1);
+        }
+
         function displayPage(pageNum) {
             currentPage = pageNum;
 
@@ -765,26 +868,46 @@
                 return;
             }
 
+            const filteredListings = getFilteredListings();
+
             // Calculate which items to show on this page
             currentPageStartIndex = (pageNum - 1) * itemsPerPage;
-            currentPageEndIndex = Math.min(currentPageStartIndex + itemsPerPage, allFetchedListings.length);
-            const pageListings = allFetchedListings.slice(currentPageStartIndex, currentPageEndIndex);
+            currentPageEndIndex = Math.min(currentPageStartIndex + itemsPerPage, filteredListings.length);
+            const pageListings = filteredListings.slice(currentPageStartIndex, currentPageEndIndex);
 
 
-            // Calculate total value from ALL fetched listings (not just current page)
+            // Calculate total value from ALL fetched listings (not just current filter)
             let totalValue = 0;
             for (const item of allFetchedListings) {
                 totalValue += parseFloat(item.CurrentPrice) || 0;
             }
 
             // Update stats
+            const activeListingsEl = document.getElementById('activeListings');
+            const pendingListingsEl = document.getElementById('pendingListings');
             const totalListingsEl = document.getElementById('totalListings');
             const totalValueEl = document.getElementById('totalValue');
             const summaryStatsEl = document.getElementById('summaryStats');
 
+            if (activeListingsEl) activeListingsEl.textContent = activeListingsCount;
+            if (pendingListingsEl) pendingListingsEl.textContent = pendingListingsCount;
             if (totalListingsEl) totalListingsEl.textContent = totalListingsCount;
             if (totalValueEl) totalValueEl.textContent = '$' + totalValue.toFixed(2);
             if (summaryStatsEl) summaryStatsEl.style.display = 'grid';
+
+            // Update filter tab counts
+            const tabCountAll = document.getElementById('tabCountAll');
+            const tabCountActive = document.getElementById('tabCountActive');
+            const tabCountPending = document.getElementById('tabCountPending');
+            if (tabCountAll) tabCountAll.textContent = totalListingsCount;
+            if (tabCountActive) tabCountActive.textContent = activeListingsCount;
+            if (tabCountPending) tabCountPending.textContent = pendingListingsCount;
+
+            // Show filter tabs (only if there are pending listings)
+            const filterTabsEl = document.getElementById('filterTabs');
+            if (filterTabsEl) {
+                filterTabsEl.style.display = (pendingListingsCount > 0) ? 'flex' : 'none';
+            }
 
             // Render current page listings (append to existing items, not replace)
             const container = document.getElementById('listingsContainer');
@@ -808,13 +931,14 @@
 
             if (pageSizeEl) pageSizeEl.textContent = itemsPerPage;
 
-            const hasMorePages = currentPageEndIndex < allFetchedListings.length;
+            const hasMorePages = currentPageEndIndex < filteredListings.length;
 
             if (paginationContainer) {
                 if (hasMorePages) {
                     paginationContainer.style.display = 'block';
                     if (paginationInfoEl) {
-                        paginationInfoEl.textContent = `Showing ${currentPageStartIndex + 1}-${currentPageEndIndex} of ${totalListingsCount} total listings`;
+                        const filterLabel = currentFilter === 'all' ? 'total' : currentFilter;
+                        paginationInfoEl.textContent = `Showing ${currentPageStartIndex + 1}-${currentPageEndIndex} of ${filteredListings.length} ${filterLabel} listings`;
                     }
                     if (loadMoreBtn) {
                         loadMoreBtn.disabled = false;
@@ -828,7 +952,8 @@
 
         function loadNextPage() {
             const nextPage = currentPage + 1;
-            const hasMorePages = currentPageEndIndex < allFetchedListings.length;
+            const filteredListings = getFilteredListings();
+            const hasMorePages = currentPageEndIndex < filteredListings.length;
 
             if (!hasMorePages) {
                 return;
@@ -902,12 +1027,31 @@
             let statusClass = 'status-active';
             let statusText = '✓ Active';
 
-            if (status === 'Not Found' || status === 'Error') {
+            if (status === 'Pending') {
+                statusClass = 'status-pending';
+                statusText = '⏳ Pending';
+            } else if (status === 'Not Found' || status === 'Error') {
                 statusClass = 'status-inactive';
                 statusText = '✗ ' + status;
             } else if (status !== 'Active' && status !== 'ActiveListing') {
                 statusClass = 'status-inactive';
                 statusText = '○ ' + status;
+            }
+
+            // Format scheduled start time for pending listings
+            let scheduledHtml = '';
+            const scheduledStart = item.ScheduledStart || '';
+            if (status === 'Pending' && scheduledStart) {
+                try {
+                    const schedDate = new Date(scheduledStart);
+                    const formatted = schedDate.toLocaleString(undefined, {
+                        month: 'short', day: 'numeric',
+                        hour: 'numeric', minute: '2-digit'
+                    });
+                    scheduledHtml = `<div class="listing-scheduled">📅 Scheduled: ${formatted}</div>`;
+                } catch (e) {
+                    scheduledHtml = `<div class="listing-scheduled">📅 Scheduled</div>`;
+                }
             }
 
 
@@ -921,6 +1065,7 @@
                         <div class="listing-price">$${price.toFixed(2)}</div>
                         <div class="listing-info-block">
                             <div class="listing-status ${statusClass}">${statusText}</div>
+                            ${scheduledHtml}
                             <div class="listing-info">ID: ${itemId || 'N/A'}</div>
                         </div>
                         <div class="listing-actions-bottom">

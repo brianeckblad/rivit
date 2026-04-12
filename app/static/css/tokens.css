@@ -88,6 +88,7 @@
   --color-danger-border:   rgba(196, 92, 92, 0.4);
   --color-success-border:  rgba(92, 138, 92, 0.4);
   --color-info-border:     rgba(92, 158, 184, 0.3);
+  --color-warning-border:  rgba(184, 160, 92, 0.4);
   --color-neutral-bg:      rgba(107, 107, 107, 0.12);
   --color-neutral-border:  rgba(107, 107, 107, 0.3);
 
