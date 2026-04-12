@@ -13,7 +13,7 @@ from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 from app.services.ebay_service import ebay_service
-import requests
+import os
 
 
 @api_bp.route('/ebay/lookup-price', methods=['POST'])
@@ -274,10 +274,11 @@ def search_by_image() -> Response:
 @api_bp.route('/proxy-image', methods=['GET'])
 @login_required
 def proxy_image() -> Tuple[bytes, int, Dict[str, str]]:
-    """Proxy S3 images to avoid CORS issues in browser.
+    """Proxy S3 images through the server using IAM credentials.
 
-    Acts as a proxy server for S3 images, allowing the frontend to access
-    images without running into Cross-Origin Resource Sharing (CORS) restrictions.
+    The S3 bucket blocks all public access, so the browser cannot load images
+    directly. This route fetches images via the boto3 S3 client (IAM-authenticated)
+    and streams them to the authenticated user.
 
     Query Parameters:
         url (str): S3 image URL to proxy
@@ -292,41 +293,63 @@ def proxy_image() -> Tuple[bytes, int, Dict[str, str]]:
         200: Image successfully proxied
         400: URL parameter missing
         403: URL not from allowed S3 bucket (security)
+        404: Image not found in S3
         500: Failed to fetch image from S3
 
     Example Request:
-        GET /proxy-image?url=https://s3.amazonaws.com/bucket/production/images/1001_1.jpg
+        GET /api/proxy-image?url=https://bucket.s3.amazonaws.com/users/brian/images/1001_1.jpg
 
     Security:
-        - Only allows S3 URLs from app bucket
+        - Only allows S3 URLs from the app's configured bucket
         - Rejects external URLs to prevent abuse
-        - Sets cache headers for performance
+        - Requires authentication (login_required)
 
     Note:
-        - Required for eBay image search results display
-        - Caches images for 24 hours (86400 seconds)
-        - 10 second timeout on S3 requests
-        - Preserves original image content type
+        - Uses boto3 S3 client with IAM credentials (bucket is private)
+        - Browser caches images for 7 days (604800 seconds)
+        - Content type inferred from S3 metadata or file extension
     """
+    import urllib.parse
+
     image_url = request.args.get('url')
     if not image_url:
         return jsonify({'error': 'URL parameter required'}), 400
 
     # Security: Only allow S3 URLs from our bucket
-    s3_bucket = os.environ.get('S3_BUCKET_NAME', '')
-    if not ('s3.amazonaws.com' in image_url and (not s3_bucket or s3_bucket in image_url)):
+    s3_bucket = current_app.config.get('S3_BUCKET', os.environ.get('S3_BUCKET_NAME', ''))
+    if not s3_bucket or 's3.amazonaws.com' not in image_url or s3_bucket not in image_url:
         return jsonify({'error': 'Invalid image URL'}), 403
 
     try:
-        # Fetch image from S3
-        response = requests.get(image_url, timeout=10)
-        response.raise_for_status()
+        # Extract S3 key from the URL
+        parsed = urllib.parse.urlparse(image_url)
+        # URL format: https://{bucket}.s3.amazonaws.com/{key}
+        s3_key = urllib.parse.unquote(parsed.path.lstrip('/'))
 
-        # Return image with proper content type
-        return response.content, 200, {
-            'Content-Type': response.headers.get('Content-Type', 'image/jpeg'),
-            'Cache-Control': 'public, max-age=86400'
+        # Fetch image from S3 using IAM-authenticated boto3 client
+        from app.services.s3_service import s3_service
+        response = s3_service.client().get_object(Bucket=s3_bucket, Key=s3_key)
+        body = response['Body'].read()
+
+        # Determine content type from S3 metadata or file extension
+        content_type = response.get('ContentType', '')
+        if not content_type or content_type == 'binary/octet-stream':
+            if s3_key.endswith('.webp'):
+                content_type = 'image/webp'
+            elif s3_key.endswith('.png'):
+                content_type = 'image/png'
+            elif s3_key.endswith('.gif'):
+                content_type = 'image/gif'
+            else:
+                content_type = 'image/jpeg'
+
+        return body, 200, {
+            'Content-Type': content_type,
+            'Cache-Control': 'public, max-age=604800'
         }
     except Exception as e:
+        error_code = getattr(e, 'response', {}).get('Error', {}).get('Code', '')
+        if error_code in ('NoSuchKey', '404'):
+            return jsonify({'error': 'Image not found'}), 404
         current_app.logger.error(f"Error proxying image {image_url}: {e}")
         return jsonify({'error': 'Failed to fetch image'}), 500

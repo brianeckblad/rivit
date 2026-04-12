@@ -693,6 +693,15 @@
     </div>
 
     <script>
+        // Helper: route S3 URLs through the server proxy (bucket blocks public access)
+        function getProxiedUrl(url) {
+            if (!url) return '';
+            if (url.includes('s3.amazonaws.com')) {
+                return '/api/proxy-image?url=' + encodeURIComponent(url);
+            }
+            return url;
+        }
+
         // Pagination state
         let currentPage = 1;
         let itemsPerPage = 24;  // Will be updated from API response
@@ -1533,11 +1542,10 @@
             // Helper function to convert image URL to S3 thumbnail URL
             function getThumbnailUrl(imageUrl) {
                 if (!imageUrl) return null;
-                // For S3 URLs: https://bucket.s3.amazonaws.com/production/images/1001_3.jpg
-                // Convert to: https://bucket.s3.amazonaws.com/production/images/1001_3_thumb.webp
                 const lastDot = imageUrl.lastIndexOf('.');
-                if (lastDot === -1) return imageUrl;
-                return imageUrl.substring(0, lastDot) + '_thumb.webp';
+                if (lastDot === -1) return getProxiedUrl(imageUrl);
+                const thumbUrl = imageUrl.substring(0, lastDot) + '_thumb.webp';
+                return getProxiedUrl(thumbUrl);
             }
 
             let html = '';
@@ -1555,7 +1563,7 @@
                 // Create image element using S3 thumbnail
                 let imageHtml = '';
                 if (thumbnailUrl) {
-                    imageHtml = `<img src="${thumbnailUrl}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" onerror="this.src='${firstImage}'">`;
+                    imageHtml = `<img src="${thumbnailUrl}" alt="${title}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" onerror="this.onerror=null; this.src='${getProxiedUrl(firstImage)}'">>`;
                 } else {
                     // Only show box icon if there's NO image
                     imageHtml = '<span style="font-size: 24px;">📦</span>';

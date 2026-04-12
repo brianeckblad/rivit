@@ -1066,14 +1066,22 @@
 
 {% block extra_js %}
 <script>
+        // Helper: route S3 URLs through the server proxy (bucket blocks public access)
+        function getProxiedUrl(url) {
+            if (!url) return '';
+            if (url.includes('s3.amazonaws.com')) {
+                return '/api/proxy-image?url=' + encodeURIComponent(url);
+            }
+            return url;
+        }
+
         // Helper function to convert full image URL to thumbnail URL (WebP)
         function getThumbnailUrl(fullUrl) {
             if (!fullUrl) return '';
-            // For S3 URLs: https://bucket.s3.amazonaws.com/production/images/1001_3.jpg
-            // Convert to: https://bucket.s3.amazonaws.com/production/images/1001_3_thumb.webp
             const lastDot = fullUrl.lastIndexOf('.');
-            if (lastDot === -1) return fullUrl;
-            return fullUrl.substring(0, lastDot) + '_thumb.webp';
+            if (lastDot === -1) return getProxiedUrl(fullUrl);
+            const thumbUrl = fullUrl.substring(0, lastDot) + '_thumb.webp';
+            return getProxiedUrl(thumbUrl);
         }
 
         // Helper function to get condition acronym
@@ -2085,8 +2093,8 @@
             `;
 
             // Determine the best image URL to use
-            let imgSrc = thumbnailUrl || imageUrl;
-            let imgFallback = imageUrl || thumbnailUrl;
+            let imgSrc = thumbnailUrl || getProxiedUrl(imageUrl);
+            let imgFallback = getProxiedUrl(imageUrl) || thumbnailUrl;
 
             // If no images available, use a data URI placeholder
             if (!imgSrc) {

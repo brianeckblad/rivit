@@ -644,7 +644,7 @@
                             </svg>
                         </a>
                     </div>
-                    <img src="${thumbnailUrl || imageUrl}" class="comic-card-image" onerror="this.src='${imageUrl}'">
+                    <img src="${thumbnailUrl || getProxiedUrl(imageUrl)}" class="comic-card-image" onerror="this.onerror=null; this.src='${getProxiedUrl(imageUrl)}'">
                     <div class="comic-card-content">
                         <div class="comic-card-title">${comic.Title}</div>
                         <div class="comic-card-info">
@@ -1137,15 +1137,25 @@
             }
         }
 
+        // Helper: route S3 URLs through the server proxy (bucket blocks public access)
+        function getProxiedUrl(url) {
+            if (!url) return '';
+            if (url.includes('s3.amazonaws.com')) {
+                return '/api/proxy-image?url=' + encodeURIComponent(url);
+            }
+            return url;
+        }
+
         // Helper function to convert full image URL to thumbnail URL (WebP)
         function getThumbnailUrl(fullUrl) {
             if (!fullUrl) return '';
             // If it's a placeholder or already a thumbnail, return as is
-            if (fullUrl.includes('placeholder.png') || fullUrl.includes('_thumb.')) return fullUrl;
-            
+            if (fullUrl.includes('placeholder.png') || fullUrl.includes('_thumb.')) return getProxiedUrl(fullUrl);
+
             const lastDot = fullUrl.lastIndexOf('.');
-            if (lastDot === -1) return fullUrl;
-            return fullUrl.substring(0, lastDot) + '_thumb.webp';
+            if (lastDot === -1) return getProxiedUrl(fullUrl);
+            const thumbUrl = fullUrl.substring(0, lastDot) + '_thumb.webp';
+            return getProxiedUrl(thumbUrl);
         }
 
         async function loadComics(page = 1, append = false) {

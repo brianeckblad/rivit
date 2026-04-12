@@ -210,13 +210,22 @@
 
 {% block extra_js %}
 <script>
+    // Helper: route S3 URLs through the server proxy (bucket blocks public access)
+    function getProxiedUrl(url) {
+        if (!url) return '';
+        if (url.includes('s3.amazonaws.com')) {
+            return '/api/proxy-image?url=' + encodeURIComponent(url);
+        }
+        return url;
+    }
+
     // Helper function to convert full image URL to thumbnail URL (WebP)
     function getThumbnailUrl(fullUrl) {
         if (!fullUrl) return '';
-        // Convert: image_1.jpg -> image_1_thumb.webp
         const lastDot = fullUrl.lastIndexOf('.');
-        if (lastDot === -1) return fullUrl;
-        return fullUrl.substring(0, lastDot) + '_thumb.webp';
+        if (lastDot === -1) return getProxiedUrl(fullUrl);
+        const thumbUrl = fullUrl.substring(0, lastDot) + '_thumb.webp';
+        return getProxiedUrl(thumbUrl);
     }
 
     async function loadTrash() {
@@ -272,7 +281,7 @@
                     <div class="trash-item">
                         <div class="trash-thumb">
                             ${thumbnail
-                                ? `<img src="${thumbnail}" alt="${item.title}" onerror="this.onerror=null; this.src='${firstImage}';" />`
+                                ? `<img src="${thumbnail}" alt="${item.title}" onerror="this.onerror=null; this.src='${getProxiedUrl(firstImage)}';" />`
                                 : `<div class="no-thumb">No Image</div>`
                             }
                         </div>
