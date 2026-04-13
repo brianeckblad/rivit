@@ -694,64 +694,52 @@ def populate_ebay_fields_from_item(item):
                     shipping_details = getattr(item, 'shipping_details', '')
                     signoff = getattr(item, 'signoff', '')
 
-                # Parse description into lines (split by newlines or periods)
-                desc_lines = []
+                # Parse description into bullet points (split by newlines or periods)
+                desc_bullets = []
                 if description:
                     # Split by newlines first, then by periods if no newlines
                     lines = description.strip().split('\n')
                     if len(lines) == 1:
                         # Try splitting by periods
                         lines = [s.strip() for s in description.split('.') if s.strip()]
-                    desc_lines = [line.strip() for line in lines if line.strip()]
+                    desc_bullets = [line.strip() for line in lines if line.strip()]
 
-                # Build description HTML as plain text lines separated by <br />
-                desc_html = '<br />'.join(desc_lines) if desc_lines else ''
+                # Build description bullet points HTML
+                desc_bullets_html = ''.join([f'<li>{bullet}</li>' for bullet in desc_bullets]) if desc_bullets else ''
 
                 # Build condition section HTML - use Condition Details field if available, otherwise use default boilerplate
                 if condition_details and condition_details.strip():
                     condition_lines = condition_details.strip().split('\n')
-                    condition_parts = [line.strip() for line in condition_lines if line.strip()]
-                    condition_html = '<br />'.join(condition_parts)
+                    condition_bullets = [line.strip() for line in condition_lines if line.strip()]
+                    condition_html = ''.join([f'<li style="text-align: left;">{bullet}</li>' for bullet in condition_bullets])
                 else:
                     # Default boilerplate
-                    condition_html = 'NM – Like New, Raw, Never Read, Stored Carefully<br />Please use the photos to judge condition'
+                    condition_html = '<li style="text-align: left;">NM – Like New, raw copy, Never Read, Stored Carefully</li><li style="text-align: left;">Please use the photos to judge condition</li>'
 
                 # Build photos section HTML - use Photos Details field if available, otherwise use default boilerplate
                 if photos_details and photos_details.strip():
                     photos_lines = photos_details.strip().split('\n')
-                    photos_parts = [line.strip() for line in photos_lines if line.strip()]
-                    photos_html = '<br />'.join(photos_parts)
+                    photos_bullets = [line.strip() for line in photos_lines if line.strip()]
+                    photos_html = ''.join([f'<li style="text-align: left;">{bullet}</li>' for bullet in photos_bullets])
                 else:
                     # Default boilerplate
-                    photos_html = 'Exact book you will receive is pictured'
+                    photos_html = '<li style="text-align: left;">Exact book you will recieve is pictured</li>'
 
                 # Build shipping section HTML - use Shipping Details field if available, otherwise use default boilerplate
                 if shipping_details and shipping_details.strip():
                     shipping_lines = shipping_details.strip().split('\n')
-                    shipping_parts = [line.strip() for line in shipping_lines if line.strip()]
-                    shipping_html = '<br />'.join(shipping_parts)
+                    shipping_bullets = [line.strip() for line in shipping_lines if line.strip()]
+                    shipping_html = ''.join([f'<li style="text-align: left;">{bullet}</li>' for bullet in shipping_bullets])
                 else:
                     # Default boilerplate
-                    shipping_html = 'All comics are bagged and boarded<br />Securely ships in Gemini Mailer within two business days'
+                    shipping_html = '<li style="text-align: left;">All comics are bagged and boarded</li><li style="text-align: left;">Securely ships in Gemini Mailer within two business days</li>'
 
                 # Build signoff text - use Signoff field if available, otherwise use default
                 if not signoff or not signoff.strip():
                     signoff = 'Thanks for looking, Message with any questions'
 
-                # Generate the full HTML template (title, description, condition, photos, shipping, and signoff are all dynamic)
-                # Plain text layout with section headings — no bullet points
-                # Note: All self-closing tags use " />" format (space before slash) for XML compatibility
-                html_template = f'''<div><div style="text-align: left;"><div><strong>Title</strong></div>
-{title}
-<br /><strong>Description</strong><br /><span></span>
-<br />{desc_html}
-<br /><strong>Condition</strong>
-<br />{condition_html}
-<br /><div><strong>Photos</strong></div>
-{photos_html}
-<br /><strong>Shipping</strong>
-<br />{shipping_html}
-<br />{signoff}</div></div>'''
+                # Generate the full HTML template matching eBay listing format
+                html_template = f'''<div style="text-align: center;"><p class="p1" style="text-align: left; "></p><div style="text-align: left;"><b style="font-weight: bold; text-align: center;"><div style="text-align: left;"><b>Title</b></div></b><b style="text-align: center;"></b><p style="text-align: center;"></p><p class="p2"></p><ul style="text-align: center;"><li style="text-align: left;">{title}</li></ul><b>Description</b><br><span style="text-align: center;"></span><p class="p1"></p><ul>{desc_bullets_html}</ul></div><div style="text-align: left;"><p style="text-align: center;"></p><p class="p1"><b>Condition</b></p><p class="p1"></p><ul style="text-align: center;">{condition_html}</ul><div><b>Photos</b><br style="text-align: center;"><ul style="text-align: center;"></ul></div><ul style="text-align: center;">{photos_html}</ul><p class="p2"></p><p style="text-align: center;"></p><p class="p3"><b>Shipping</b></p><p class="p1"></p><ul style="text-align: center;">{shipping_html}</ul><strong style="font-weight: bold;">{signoff}</strong></div><div style="text-align: left;"></div><p></p></div>'''
 
                 ebay_data[ebay_field] = html_template
                 continue
