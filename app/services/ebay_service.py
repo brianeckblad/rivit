@@ -970,6 +970,126 @@ class EbayService:
             warnings=True
         )
 
+    # ------------------------------------------------------------------
+    # Error simplification helpers
+    # ------------------------------------------------------------------
+
+    # Map of eBay error codes to user-friendly messages.
+    # Keys are string error codes, values are short descriptions.
+    _EBAY_ERROR_MESSAGES = {
+        '5': 'XML parsing error — please try again or contact support',
+        '10': 'Internal eBay error — please try again later',
+        '17': 'Invalid eBay category — check the category setting',
+        '21916275': 'Listing upgrade not available for this category',
+        '21916286': 'Invalid shipping service — check eBay shipping settings',
+        '21916293': 'Return policy is required — check eBay return profile',
+        '21916550': 'Title too long — eBay titles cannot exceed 80 characters',
+        '21916578': 'Invalid item specifics — check required item details',
+        '21916684': 'Not authorized for this action — check eBay account permissions',
+        '21916750': 'Missing required field — check that all eBay fields are filled in',
+        '21916799': 'Invalid condition for this category',
+        '21917091': 'Listing cannot be revised — it may have bids or sales',
+        '21919067': 'Duplicate listing — this item is already listed on eBay',
+        '21919136': 'Image does not meet eBay requirements (min 500×500 pixels)',
+        '21919188': 'Invalid return policy — check eBay return profile',
+        '21919303': 'Invalid shipping policy — check eBay shipping profile',
+        '21919474': 'Payment policy error — check eBay payment profile',
+        '240': 'Selling limits reached — you have hit your eBay selling allowance',
+        '488': 'Item cannot be listed or revised — it may be restricted',
+        '21916547': 'Image URL not understood — image upload failed',
+    }
+
+    def _parse_trading_error(self, exc, conn, call_name):
+        """Parse a TradingError and return a user-friendly exception.
+
+        Tries to extract structured error data from the connection response.
+        Falls back to regex parsing of the raw error string.
+
+        Returns:
+            EbayDuplicateListingError for duplicate listings, otherwise RuntimeError.
+        """
+        raw = str(exc)
+
+        # Try structured parsing from the response object
+        try:
+            resp = getattr(conn, 'response', None)
+            reply = getattr(resp, 'reply', None) if resp else None
+            errors = getattr(reply, 'Errors', None) if reply else None
+
+            if errors:
+                for err in errors if isinstance(errors, list) else [errors]:
+                    code = str(getattr(err, 'ErrorCode', ''))
+                    msg = str(getattr(err, 'LongMessage', getattr(err, 'ShortMessage', '')))
+
+                    # Duplicate listing detection
+                    if code == '21919067' or 'duplicate listing' in msg.lower():
+                        existing_title, existing_item_id = self._extract_duplicate_info(msg)
+                        raise EbayDuplicateListingError(msg, existing_item_id, existing_title)
+
+                    # Known error code → friendly message
+                    if code in self._EBAY_ERROR_MESSAGES:
+                        raise RuntimeError(self._EBAY_ERROR_MESSAGES[code])
+        except (EbayDuplicateListingError, RuntimeError):
+            raise  # Let our own exceptions propagate
+        except Exception:
+            pass  # Structured parsing failed, fall back to string parsing
+
+        # Fall back to regex on the raw string
+        return RuntimeError(self._simplify_ebay_error(raw))
+
+    @staticmethod
+    def _extract_duplicate_info(msg):
+        """Extract title and item ID from a duplicate-listing error message."""
+        match = re.search(
+            r'(?:already have|already exists) on eBay:\s*(.+?)\s*\((\d+)\)',
+            msg, re.IGNORECASE
+        )
+        if match:
+            return match.group(1).strip(), match.group(2).strip()
+        # Fallback: just the item ID in parentheses
+        match = re.search(r'\((\d{12,})\)', msg)
+        if match:
+            return None, match.group(1).strip()
+        return None, None
+
+    @classmethod
+    def _simplify_ebay_error(cls, raw):
+        """Convert a raw eBay error string to a short user-friendly message.
+
+        Strips the verbose 'CallName: Class: …, Severity: …, Code: …,' prefix
+        and maps known codes to plain-English text.
+        """
+        # Try to extract error code from the raw string
+        code_match = re.search(r'Code:\s*(\d+)', raw)
+        if code_match:
+            code = code_match.group(1)
+            if code in cls._EBAY_ERROR_MESSAGES:
+                return cls._EBAY_ERROR_MESSAGES[code]
+
+        # Duplicate listing check by content
+        if 'duplicate listing' in raw.lower():
+            return 'Duplicate listing — this item is already listed on eBay'
+
+        # Strip the verbose prefix: "CallName: Class: RequestError, Severity: Error, Code: XXXX, "
+        stripped = re.sub(
+            r'^[A-Za-z]+:\s*Class:\s*\w+,\s*Severity:\s*\w+,\s*Code:\s*\d+,\s*',
+            '', raw
+        )
+        if stripped and stripped != raw:
+            # Truncate if still too long (keep first sentence)
+            if len(stripped) > 150:
+                first_period = stripped.find('.')
+                if 0 < first_period < 150:
+                    stripped = stripped[:first_period + 1]
+                else:
+                    stripped = stripped[:147] + '...'
+            return stripped
+
+        # Last resort: truncate the raw message
+        if len(raw) > 150:
+            return raw[:147] + '...'
+        return raw or 'eBay request failed'
+
     def _execute_trading_call(self, call_name, payload, environment=None, mode='list', files=None):
         """Execute an eBay Trading API call with error handling.
 
@@ -994,7 +1114,7 @@ class EbayService:
         try:
             response = conn.execute(call_name, payload, files=files)
         except TradingError as exc:
-            # Log the XML request and response on error
+            # Log full details for debugging (XML request/response)
             xml_request = None
             if hasattr(conn, 'request_xml'):
                 xml_request = conn.request_xml
@@ -1007,52 +1127,18 @@ class EbayService:
                 "TradingError during %s (%s): %s", call_name, env, exc,
                 exc_info=True
             )
-            raise
+
+            # Parse the error into a user-friendly message instead of exposing raw API output
+            raise self._parse_trading_error(exc, conn, call_name) from exc
         except Exception as exc:
             current_app.logger.error(
                 "Unexpected error during %s (%s): %s", call_name, env, exc,
                 exc_info=True
             )
-            raise
+            raise RuntimeError(self._simplify_ebay_error(str(exc))) from exc
 
         ack = getattr(response.reply, 'Ack', None)
         warnings = getattr(response.reply, 'Errors', None) if ack == 'Warning' else None
-        errors = getattr(response.reply, 'Errors', None) if ack not in ('Success', 'Warning') else None
-
-        if errors:
-            error_messages = []
-            duplicate_item_id = None
-            duplicate_title = None
-            is_duplicate_error = False
-
-            for err in errors if isinstance(errors, list) else [errors]:
-                code = getattr(err, 'ErrorCode', 'UNKNOWN')
-                msg = getattr(err, 'LongMessage', getattr(err, 'ShortMessage', 'Unknown error'))
-                error_messages.append(f"[{code}] {msg}")
-
-                # Check for duplicate listing error (code 21919067)
-                if code == '21919067' or 'Duplicate Listing' in msg or 'duplicate listing' in msg.lower():
-                    is_duplicate_error = True
-                    # Try to extract existing item ID from message
-                    # Pattern 1: "item already have/exists on eBay: Title (ItemID)" or "already have/exists on eBay: Title (ItemID)"
-                    match = re.search(r'(?:item\s+)?(?:already have|already exists|exists) on eBay:\s*(.+?)\s*\((\d+)\)', msg, re.IGNORECASE)
-                    if match:
-                        duplicate_title = match.group(1).strip()
-                        duplicate_item_id = match.group(2).strip()
-                    else:
-                        # Try alternate pattern: just the item ID in parentheses
-                        match = re.search(r'\((\d{12,})\)', msg)
-                        if match:
-                            duplicate_item_id = match.group(1).strip()
-
-            message = '; '.join(error_messages) or 'Trading API call failed'
-            current_app.logger.error("eBay Trading %s failed: %s", call_name, message)
-
-            # If it's a duplicate listing error, raise custom exception with helpful info
-            if is_duplicate_error:
-                raise EbayDuplicateListingError(message, duplicate_item_id, duplicate_title)
-
-            raise RuntimeError(message)
 
         if warnings:
             warn_messages = []

@@ -4078,7 +4078,7 @@
                     body: JSON.stringify(body)
                 });
                 const data = await resp.json();
-                if (!data.success) throw new Error(data.error || 'eBay request failed');
+                if (!data.success) throw new Error(data.message || data.error || 'eBay request failed');
 
                 if (modeValue === 'end') {
                     currentComicEbayId = '';
