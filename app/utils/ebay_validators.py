@@ -694,6 +694,13 @@ def populate_ebay_fields_from_item(item):
                     shipping_details = getattr(item, 'shipping_details', '')
                     signoff = getattr(item, 'signoff', '')
 
+                # Safety: strip HTML tags from description if old generated HTML
+                # leaked into the CSV field (prevents double-nesting the template)
+                if description and ('<div>' in description or '<li>' in description or '<strong>' in description):
+                    import re as _re
+                    description = _re.sub(r'<[^>]+>', ' ', description)
+                    description = _re.sub(r'\s+', ' ', description).strip()
+
                 # Parse description into bullet points (split by newlines or periods)
                 desc_bullets = []
                 if description:

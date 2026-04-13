@@ -271,6 +271,15 @@ def add_comic() -> Response:
         # Apply admin defaults to ensure all required fields have values
         data = apply_defaults_to_comic_data(data, is_new_comic=True)
 
+        # Safety: prevent generated eBay HTML from being saved into the Description field
+        if 'Description' in data:
+            desc_val = data['Description']
+            if desc_val and ('<div>' in desc_val or '<li>' in desc_val or '<strong>' in desc_val):
+                import re
+                data['Description'] = re.sub(r'<[^>]+>', ' ', desc_val)
+                data['Description'] = re.sub(r'\s+', ' ', data['Description']).strip()
+                current_app.logger.warning(f"[add_comic] Stripped HTML from Description field to prevent template nesting")
+
         # Create comic
         success, result = comic_service.create_comic(data, files, duplicate_image_urls=images_to_duplicate)
 
@@ -459,6 +468,14 @@ def update_comic(sku: str) -> Response:
                          'ebayOfferMin', 'ebayOfferMax']  # These get converted to proper CSV names below
         cleaned_data = {k: v for k, v in data.items() if k not in non_csv_fields}
 
+        # Safety: prevent generated eBay HTML from being saved into the Description field
+        if 'Description' in cleaned_data:
+            desc_val = cleaned_data['Description']
+            if desc_val and ('<div>' in desc_val or '<li>' in desc_val or '<strong>' in desc_val):
+                import re
+                cleaned_data['Description'] = re.sub(r'<[^>]+>', ' ', desc_val)
+                cleaned_data['Description'] = re.sub(r'\s+', ' ', cleaned_data['Description']).strip()
+                current_app.logger.warning(f"[update_comic] SKU {sku}: Stripped HTML from Description field to prevent template nesting")
 
         # Handle eBay listing settings (these GO TO CSV)
         # Convert camelCase to proper CSV column names
