@@ -711,35 +711,36 @@ def populate_ebay_fields_from_item(item):
                 if condition_details and condition_details.strip():
                     condition_lines = condition_details.strip().split('\n')
                     condition_bullets = [line.strip() for line in condition_lines if line.strip()]
-                    condition_html = ''.join([f'<li style="text-align: left;">{bullet}</li>' for bullet in condition_bullets])
+                    condition_html = ''.join([f'<li>{bullet}</li>' for bullet in condition_bullets])
                 else:
                     # Default boilerplate
-                    condition_html = '<li style="text-align: left;">NM – Like New, raw copy, Never Read, Stored Carefully</li><li style="text-align: left;">Please use the photos to judge condition</li>'
+                    condition_html = '<li>NM – Like New, raw copy, Never Read, Stored Carefully</li><li>Please use the photos to judge condition</li>'
 
                 # Build photos section HTML - use Photos Details field if available, otherwise use default boilerplate
                 if photos_details and photos_details.strip():
                     photos_lines = photos_details.strip().split('\n')
                     photos_bullets = [line.strip() for line in photos_lines if line.strip()]
-                    photos_html = ''.join([f'<li style="text-align: left;">{bullet}</li>' for bullet in photos_bullets])
+                    photos_html = ''.join([f'<li>{bullet}</li>' for bullet in photos_bullets])
                 else:
                     # Default boilerplate
-                    photos_html = '<li style="text-align: left;">Exact book you will recieve is pictured</li>'
+                    photos_html = '<li>Exact book you will recieve is pictured</li>'
 
                 # Build shipping section HTML - use Shipping Details field if available, otherwise use default boilerplate
                 if shipping_details and shipping_details.strip():
                     shipping_lines = shipping_details.strip().split('\n')
                     shipping_bullets = [line.strip() for line in shipping_lines if line.strip()]
-                    shipping_html = ''.join([f'<li style="text-align: left;">{bullet}</li>' for bullet in shipping_bullets])
+                    shipping_html = ''.join([f'<li>{bullet}</li>' for bullet in shipping_bullets])
                 else:
                     # Default boilerplate
-                    shipping_html = '<li style="text-align: left;">All comics are bagged and boarded</li><li style="text-align: left;">Securely ships in Gemini Mailer within two business days</li>'
+                    shipping_html = '<li>All comics are bagged and boarded</li><li>Securely ships in Gemini Mailer within two business days</li>'
 
                 # Build signoff text - use Signoff field if available, otherwise use default
                 if not signoff or not signoff.strip():
                     signoff = 'Thanks for looking, Message with any questions'
 
-                # Generate the full HTML template matching eBay listing format
-                html_template = f'''<div style="text-align: center;"><p class="p1" style="text-align: left; "></p><div style="text-align: left;"><b style="font-weight: bold; text-align: center;"><div style="text-align: left;"><b>Title</b></div></b><b style="text-align: center;"></b><p style="text-align: center;"></p><p class="p2"></p><ul style="text-align: center;"><li style="text-align: left;">{title}</li></ul><b>Description</b><br><span style="text-align: center;"></span><p class="p1"></p><ul>{desc_bullets_html}</ul></div><div style="text-align: left;"><p style="text-align: center;"></p><p class="p1"><b>Condition</b></p><p class="p1"></p><ul style="text-align: center;">{condition_html}</ul><div><b>Photos</b><br style="text-align: center;"><ul style="text-align: center;"></ul></div><ul style="text-align: center;">{photos_html}</ul><p class="p2"></p><p style="text-align: center;"></p><p class="p3"><b>Shipping</b></p><p class="p1"></p><ul style="text-align: center;">{shipping_html}</ul><strong style="font-weight: bold;">{signoff}</strong></div><div style="text-align: left;"></div><p></p></div>'''
+                # Generate clean HTML template — consistent section pattern:
+                # <div><strong>Heading</strong></div><div><ul><li>content</li></ul></div>
+                html_template = f'''<div><div><div><strong>Title</strong></div><div><ul><li>{title}</li></ul></div><div><strong>Description</strong></div><div><ul>{desc_bullets_html}</ul></div><div><strong>Condition</strong></div><div><ul>{condition_html}</ul></div><div><strong>Photos</strong></div><div><ul>{photos_html}</ul></div><div><strong>Shipping</strong></div><div><ul>{shipping_html}</ul></div><div><strong>{signoff}</strong></div></div></div>'''
 
                 ebay_data[ebay_field] = html_template
                 continue
