@@ -738,9 +738,27 @@ def populate_ebay_fields_from_item(item):
                 if not signoff or not signoff.strip():
                     signoff = 'Thanks for looking, Message with any questions'
 
-                # Generate clean HTML template — consistent section pattern:
-                # <div><strong>Heading</strong></div><div><ul><li>content</li></ul></div>
-                html_template = f'''<div><div><div><strong>Title</strong></div><div><ul><li>{title}</li></ul></div><div><strong>Description</strong></div><div><ul>{desc_bullets_html}</ul></div><div><strong>Condition</strong></div><div><ul>{condition_html}</ul></div><div><strong>Photos</strong></div><div><ul>{photos_html}</ul></div><div><strong>Shipping</strong></div><div><ul>{shipping_html}</ul></div><div><strong>{signoff}</strong></div></div></div>'''
+                # Load description template from external file (customizable without editing Python)
+                # File: app/templates/ebay_description_template.html
+                import os
+                template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'ebay_description_template.html')
+                try:
+                    with open(template_path, 'r') as f:
+                        html_template = f.read()
+                    # Strip HTML comments (<!-- ... -->) so they don't appear in the eBay listing
+                    import re
+                    html_template = re.sub(r'<!--.*?-->', '', html_template, flags=re.DOTALL).strip()
+                except FileNotFoundError:
+                    # Fallback: inline template if file is missing
+                    html_template = '<div><div><div><strong>Title</strong></div><div><ul><li>{{title}}</li></ul></div><div><strong>Description</strong></div><div><ul>{{description}}</ul></div><div><strong>Condition</strong></div><div><ul>{{condition}}</ul></div><div><strong>Photos</strong></div><div><ul>{{photos}}</ul></div><div><strong>Shipping</strong></div><div><ul>{{shipping}}</ul></div><div><strong>{{signoff}}</strong></div></div></div>'
+
+                # Replace placeholders with dynamic content
+                html_template = html_template.replace('{{title}}', title)
+                html_template = html_template.replace('{{description}}', desc_bullets_html)
+                html_template = html_template.replace('{{condition}}', condition_html)
+                html_template = html_template.replace('{{photos}}', photos_html)
+                html_template = html_template.replace('{{shipping}}', shipping_html)
+                html_template = html_template.replace('{{signoff}}', signoff)
 
                 ebay_data[ebay_field] = html_template
                 continue
