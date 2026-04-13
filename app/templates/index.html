@@ -6262,6 +6262,9 @@
             removedImageUrls = [];
             // eBay integration - use the actual key from CSV/API: 'eBay Item ID'
             currentComicEbayId = comic['eBay Item ID'] || '';
+            // Keep the hidden form field in sync so saves don't blank the value
+            const ebayHiddenField = document.getElementById('ebay-item-id');
+            if (ebayHiddenField) ebayHiddenField.value = currentComicEbayId;
             // WhatNot integration
             currentComicWhatNotId = comic['WhatNot Item ID'] || '';
             refreshEbayControls();

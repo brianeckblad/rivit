@@ -446,7 +446,10 @@ def update_comic(sku: str) -> Response:
             existing_images = existing_comic.image_urls  # Keep all existing images
 
         # Filter out non-CSV fields (frontend-only fields)
-        non_csv_fields = ['sku', 'existing_image_1', 'existing_image_2', 'existing_image_3',
+        # NOTE: 'eBay Item ID' is excluded here because it must only be set/cleared by
+        # the dedicated eBay routes (list, update, delist, unlink) — not by the general save form.
+        non_csv_fields = ['sku', 'eBay Item ID',
+                         'existing_image_1', 'existing_image_2', 'existing_image_3',
                          'existing_image_4', 'existing_image_5', 'existing_image_6',
                          'existing_image_7', 'existing_image_8', 'images_managed',
                          'ebayShippingProfile',
