@@ -26,6 +26,37 @@ import time
 import os
 
 
+def _sanitize_error(exc):
+    """Return a user-friendly error string, stripping raw eBay API noise.
+
+    The service layer already simplifies Trading API errors, but network
+    errors, timeouts, and other unexpected exceptions can still be verbose.
+    This is the final safety net before the message reaches the browser.
+    """
+    msg = str(exc)
+
+    # Connection / network errors
+    if 'ConnectionError' in type(exc).__name__ or 'timeout' in msg.lower():
+        return 'Could not reach eBay — please check your connection and try again'
+    if 'ConnectionRefused' in msg or 'Connection refused' in msg:
+        return 'eBay is not responding — please try again later'
+
+    # Already-clean messages from our service layer (RuntimeError, ValueError)
+    if isinstance(exc, (RuntimeError, ValueError)):
+        # Truncate if somehow still very long
+        return msg[:200] if len(msg) > 200 else msg
+
+    # Generic fallback: strip Python exception class name prefix and truncate
+    class_name = type(exc).__name__
+    if msg.startswith(class_name):
+        msg = msg[len(class_name):].lstrip(':').strip()
+
+    if len(msg) > 200:
+        msg = msg[:197] + '...'
+
+    return msg or 'An unexpected error occurred'
+
+
 @api_bp.route('/comic/<sku>/ebay/list', methods=['POST'])
 @login_required
 @csrf_required
@@ -118,7 +149,7 @@ def list_comic_on_ebay(sku: str) -> Response:
         return jsonify({'success': False, **error_detail}), 409  # 409 Conflict
     except Exception as exc:
         current_app.logger.error(f"Failed to list {sku} on eBay: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 
 @api_bp.route('/comic/<sku>/ebay/update', methods=['POST'])
@@ -184,7 +215,7 @@ def update_comic_on_ebay(sku: str) -> Response:
         return jsonify({'success': False, **error_detail}), 409  # 409 Conflict
     except Exception as exc:
         current_app.logger.error(f"Failed to update eBay listing for {sku}: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 
 @api_bp.route('/comic/<sku>/ebay/end', methods=['POST'])
@@ -240,7 +271,7 @@ def end_comic_on_ebay(sku: str) -> Response:
         return jsonify({'success': True, 'environment': environment, 'mode': 'end'})
     except Exception as exc:
         current_app.logger.error(f"Failed to end eBay listing for {sku}: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 
 @api_bp.route('/comic/<sku>/ebay/unlink', methods=['POST'])
@@ -289,7 +320,7 @@ def unlink_comic_from_ebay(sku: str) -> Response:
         return jsonify({'success': True, 'sku': sku, 'old_item_id': old_item_id})
     except Exception as exc:
         current_app.logger.error(f"Failed to unlink {sku} from eBay: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 
 @api_bp.route('/comic/<sku>/ebay/verify', methods=['GET'])
@@ -388,7 +419,7 @@ def verify_comic_on_ebay(sku: str) -> Response:
         # If verification fails, we don't know the status
         return jsonify({
             'success': False,
-            'error': str(exc),
+            'error': _sanitize_error(exc),
             'item_id': comic.ebay_item_id,
             'status': 'unknown'
         }), 500
@@ -452,7 +483,7 @@ def update_comic_ebay_item_id(sku: str) -> Response:
         return jsonify({'success': True, 'item_id': item_id})
     except Exception as exc:
         current_app.logger.error(f"Failed to update eBay ItemID for {sku}: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 
 @api_bp.route('/comic/<sku>/whatnot/status', methods=['POST'])
@@ -509,7 +540,7 @@ def update_comic_whatnot_status(sku: str) -> Response:
         })
     except Exception as exc:
         current_app.logger.error(f"Failed to update WhatNot status for {sku}: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 
 @api_bp.route('/ebay/trading-api-status', methods=['GET'])
@@ -588,7 +619,7 @@ def ebay_trading_api_status() -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error checking Trading API status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(e)}), 500
 
 
 @api_bp.route('/ebay/token-info', methods=['GET'])
@@ -680,7 +711,7 @@ def ebay_token_info() -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error getting eBay token info: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': _sanitize_error(e)}), 500
 
 
 @api_bp.route('/ebay/marketplace-account-deletion', methods=['POST', 'GET'])
