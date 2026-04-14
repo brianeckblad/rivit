@@ -1351,6 +1351,184 @@ class EbayService:
         payload = {'EndingReason': reason, 'ItemID': comic.ebay_item_id}
         self._execute_trading_call('EndFixedPriceItem', payload, environment=environment, mode='end')
 
+    def end_item_by_id(self, item_id, reason='NotAvailable', environment=None):
+        """End an eBay listing by item ID (no Comic object needed).
+
+        Useful for deleting drafts or ending listings that aren't linked
+        to a local inventory item.
+
+        Args:
+            item_id (str): eBay Item ID to end.
+            reason (str): End reason (NotAvailable, LostOrBroken, etc.).
+            environment (str, optional): 'production' or 'sandbox'.
+        """
+        if not item_id:
+            raise ValueError('Item ID is required')
+        payload = {'EndingReason': reason, 'ItemID': str(item_id)}
+        self._execute_trading_call('EndFixedPriceItem', payload, environment=environment, mode='end')
+        current_app.logger.info(f"Ended eBay item {item_id} (reason={reason})")
+
+    def get_item_details(self, item_id, environment=None):
+        """Get full item details from eBay for cloning / import.
+
+        Returns comprehensive metadata including description, item specifics,
+        category, condition, and picture URLs — everything needed to replicate
+        a listing locally.
+
+        Args:
+            item_id (str): The eBay Item ID to retrieve.
+            environment (str, optional): 'production' or 'sandbox'.
+
+        Returns:
+            dict: Full item details, or None if not found.
+        """
+        if not item_id:
+            return None
+
+        try:
+            payload = {
+                'ItemID': item_id,
+                'DetailLevel': 'ReturnAll',
+                'IncludeItemSpecifics': True
+            }
+            response = self._execute_trading_call('GetItem', payload, environment=environment, mode='read')
+
+            if not response or not hasattr(response.reply, 'Item'):
+                return None
+
+            item = response.reply.Item
+
+            # --- Extract basic fields ---
+            result = {
+                'ItemID': getattr(item, 'ItemID', None),
+                'Title': getattr(item, 'Title', None),
+                'ListingStatus': None,
+                'CurrentPrice': None,
+                'Quantity': getattr(item, 'Quantity', None),
+                'QuantitySold': None,
+                'ListingType': getattr(item, 'ListingType', None),
+                'ConditionID': getattr(item, 'ConditionID', None),
+                'ConditionDisplayName': getattr(item, 'ConditionDisplayName', None),
+                'Description': getattr(item, 'Description', ''),
+                'SKU': getattr(item, 'SKU', ''),
+                'PostalCode': getattr(item, 'PostalCode', ''),
+            }
+
+            # Selling status
+            selling_status = getattr(item, 'SellingStatus', None)
+            if selling_status:
+                result['ListingStatus'] = getattr(selling_status, 'ListingStatus', None)
+                result['QuantitySold'] = getattr(selling_status, 'QuantitySold', None)
+                price_obj = getattr(selling_status, 'CurrentPrice', None)
+                if price_obj:
+                    result['CurrentPrice'] = str(price_obj.value) if hasattr(price_obj, 'value') else str(price_obj)
+
+            # Category
+            primary_cat = getattr(item, 'PrimaryCategory', None)
+            if primary_cat:
+                result['CategoryID'] = getattr(primary_cat, 'CategoryID', None)
+                result['CategoryName'] = getattr(primary_cat, 'CategoryName', None)
+
+            # Pictures
+            pic_details = getattr(item, 'PictureDetails', None)
+            if pic_details:
+                gallery_url = getattr(pic_details, 'GalleryURL', '')
+                result['GalleryURL'] = str(gallery_url) if gallery_url else ''
+                pic_urls = getattr(pic_details, 'PictureURL', [])
+                if pic_urls:
+                    if isinstance(pic_urls, str):
+                        result['PictureURLs'] = [pic_urls]
+                    elif isinstance(pic_urls, list):
+                        result['PictureURLs'] = [str(u) for u in pic_urls]
+                    else:
+                        result['PictureURLs'] = [str(pic_urls)]
+                else:
+                    result['PictureURLs'] = []
+
+            # Item specifics
+            item_specifics = getattr(item, 'ItemSpecifics', None)
+            if item_specifics:
+                nv_list = getattr(item_specifics, 'NameValueList', [])
+                if nv_list:
+                    if not isinstance(nv_list, list):
+                        nv_list = [nv_list]
+                    specifics = {}
+                    for nv in nv_list:
+                        name = getattr(nv, 'Name', '')
+                        values = getattr(nv, 'Value', [])
+                        if isinstance(values, list):
+                            specifics[name] = values[0] if len(values) == 1 else values
+                        else:
+                            specifics[name] = str(values)
+                    result['ItemSpecifics'] = specifics
+
+            # Shipping details
+            shipping_details = getattr(item, 'ShippingDetails', None)
+            if shipping_details:
+                services = getattr(shipping_details, 'ShippingServiceOptions', [])
+                if services:
+                    if not isinstance(services, list):
+                        services = [services]
+                    result['ShippingService'] = getattr(services[0], 'ShippingService', '')
+                    cost_obj = getattr(services[0], 'ShippingServiceCost', None)
+                    if cost_obj:
+                        result['ShippingCost'] = str(cost_obj.value) if hasattr(cost_obj, 'value') else str(cost_obj)
+
+            # Listing dates
+            listing_details = getattr(item, 'ListingDetails', None)
+            if listing_details:
+                result['StartTime'] = getattr(listing_details, 'StartTime', None)
+                result['EndTime'] = getattr(listing_details, 'EndTime', None)
+                result['ViewItemURL'] = getattr(listing_details, 'ViewItemURL', None)
+
+            current_app.logger.info(f"Retrieved full details for eBay item {item_id}")
+            return result
+
+        except Exception as e:
+            current_app.logger.warning(f"Failed to get eBay item details for {item_id}: {e}")
+            return None
+
+    def relist_item(self, comic, environment=None, overrides=None, mode='list', schedule_time=None):
+        """Relist an ended eBay item with the app's generated description.
+
+        This ends any existing listing (if still active), then creates a
+        brand-new listing using the comic's current data, which generates a
+        fresh description from the template.
+
+        Args:
+            comic: Comic model instance (must have ebay_item_id set).
+            environment (str, optional): 'production' or 'sandbox'.
+            overrides (dict, optional): Field overrides for the new listing.
+            mode (str): 'list' or 'future'.
+            schedule_time: Optional schedule time for future listings.
+
+        Returns:
+            str: New eBay Item ID.
+        """
+        old_item_id = comic.ebay_item_id
+
+        # Try to end the old listing (ignore errors if already ended)
+        if old_item_id:
+            try:
+                self.end_item_by_id(old_item_id, reason='NotAvailable', environment=environment)
+                current_app.logger.info(f"Ended old listing {old_item_id} before relist")
+            except Exception as e:
+                current_app.logger.warning(f"Could not end old listing {old_item_id}: {e}")
+
+        # Clear the old item ID so list_comic creates a fresh listing
+        comic.ebay_item_id = ''
+
+        # Create a new listing with the app's generated description
+        new_item_id = self.list_comic(
+            comic,
+            environment=environment,
+            mode=mode,
+            overrides=overrides,
+            schedule_time=schedule_time
+        )
+
+        current_app.logger.info(f"Relisted SKU {comic.sku}: old={old_item_id} -> new={new_item_id}")
+        return new_item_id
 
     def get_call_statistics(self):
         """

@@ -13,7 +13,11 @@ from app.routes.auth import login_required
 from app.services.ebay_service import ebay_service
 from app.services.comic_service import comic_service
 from app.utils.defaults_helpers import get_user_preferences
-from app.utils.ebay_helpers import extract_ebay_description_section, extract_ebay_condition_section
+from app.utils.ebay_helpers import (
+    extract_ebay_description_section,
+    extract_ebay_condition_section,
+    extract_all_sections_from_ebay_description,
+)
 from datetime import datetime
 
 
@@ -183,6 +187,23 @@ def get_ebay_listings() -> Response:
                     # Check if this eBay item is linked to any inventory item
                     linked_sku = ebay_id_to_sku.get(item_id, '')
 
+                    # Extract end reason for unsold items (e.g. "NotAvailable" = seller ended)
+                    end_reason = ''
+                    if status_label == 'Unsold':
+                        try:
+                            selling_status = getattr(item, 'SellingStatus', None)
+                            if selling_status:
+                                listing_status = getattr(selling_status, 'ListingStatus', '')
+                                end_reason = str(listing_status) if listing_status else ''
+                            # Also try ListingDetails.EndingReason
+                            listing_details = getattr(item, 'ListingDetails', None)
+                            if listing_details:
+                                ending_reason = getattr(listing_details, 'EndingReason', '')
+                                if ending_reason:
+                                    end_reason = str(ending_reason)
+                        except Exception:
+                            pass
+
                     return {
                         'Title': title,
                         'ItemID': item_id,
@@ -196,6 +217,7 @@ def get_ebay_listings() -> Response:
                         'Description': extract_ebay_description_section(''),
                         'WatchCount': watch_count,
                         'ScheduledStart': scheduled_start,
+                        'EndReason': end_reason,
                     }
                 except Exception as e:
                     current_app.logger.error(f"Item parse error: {e}")
@@ -361,7 +383,8 @@ def get_ebay_listings() -> Response:
                             'ListingType',
                             'Quantity',
                             'QuantitySold',
-                            'WatchCount'
+                            'WatchCount',
+                            'ListingDetails',
                         ]
                     }
 
@@ -383,6 +406,15 @@ def get_ebay_listings() -> Response:
                         for item in items:
                             parsed = _parse_item(item, 'Unsold')
                             if parsed:
+                                # Filter out items ended by the seller (deleted/ended manually)
+                                # Keep only items that expired naturally (relisting candidates)
+                                end_reason = parsed.get('EndReason', '')
+                                if end_reason in ('NotAvailable', 'Incorrect', 'LostOrBroken',
+                                                  'OtherListingError', 'SellToHighBidder',
+                                                  'ProductDeleted'):
+                                    current_app.logger.debug(
+                                        f"Filtering out seller-ended unsold item: {parsed['Title']} (reason: {end_reason})")
+                                    continue
                                 all_listings.append(parsed)
                                 total_fetched += 1
 
@@ -525,7 +557,7 @@ def get_ebay_item_description(item_id: str) -> Response:
             - success (bool): Whether fetch succeeded
             - itemId (str): eBay Item ID
             - title (str): Item title
-            - description (str): Full HTML description (extracted from CDATA)
+            - description (str): Full HTML description
             - condition_details (str): Condition description text
             - price (float): Current price
             - quantity (int): Available quantity
@@ -581,17 +613,24 @@ def get_ebay_item_description(item_id: str) -> Response:
         item = item_response.reply.Item
         full_description = getattr(item, 'Description', '')
 
-        # Extract description and condition sections
-        description = ''
-        condition_details = ''
-        if full_description:
+        # Parse the structured HTML template into individual sections
+        sections = extract_all_sections_from_ebay_description(full_description)
+
+        # Fall back to legacy extraction if structured parsing found nothing
+        description = sections.get('description', '')
+        condition_details = sections.get('condition', '')
+        if not description and full_description:
             description = extract_ebay_description_section(full_description)
+        if not condition_details and full_description:
             condition_details = extract_ebay_condition_section(full_description)
 
         return jsonify({
             'success': True,
             'description': description,
             'condition_details': condition_details,
+            'photos_details': sections.get('photos', ''),
+            'shipping_details': sections.get('shipping', ''),
+            'signoff': sections.get('signoff', ''),
             'itemId': item_id
         })
 

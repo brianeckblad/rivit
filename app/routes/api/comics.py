@@ -271,14 +271,23 @@ def add_comic() -> Response:
         # Apply admin defaults to ensure all required fields have values
         data = apply_defaults_to_comic_data(data, is_new_comic=True)
 
-        # Safety: prevent generated eBay HTML from being saved into the Description field
+        # Safety: prevent generated eBay listing template HTML from being saved
+        # into the Description field (the full template has <strong>Title</strong>
+        # section headers).  Simple rich-text tags (<div>, <br>, <b>, <i>, lists)
+        # from the description editor are allowed through.
         if 'Description' in data:
             desc_val = data['Description']
-            if desc_val and ('<div>' in desc_val or '<li>' in desc_val or '<strong>' in desc_val):
+            if desc_val and '<strong>' in desc_val and any(
+                    label in desc_val for label in
+                    ['<strong>Title</strong>', '<strong>Description</strong>',
+                     '<strong>Condition</strong>', '<strong>Shipping</strong>']):
                 import re
-                data['Description'] = re.sub(r'<[^>]+>', ' ', desc_val)
-                data['Description'] = re.sub(r'\s+', ' ', data['Description']).strip()
-                current_app.logger.warning(f"[add_comic] Stripped HTML from Description field to prevent template nesting")
+                # This looks like a full eBay listing template — strip it all
+                data['Description'] = re.sub(r'</?(div|p|br|li|ul|ol)[^>]*/??>', '\n', desc_val, flags=re.IGNORECASE)
+                data['Description'] = re.sub(r'<[^>]+>', '', data['Description'])
+                data['Description'] = '\n'.join(l.strip() for l in data['Description'].split('\n'))
+                data['Description'] = re.sub(r'\n{3,}', '\n\n', data['Description']).strip()
+                current_app.logger.warning(f"[add_comic] Stripped eBay template HTML from Description field")
 
         # Create comic
         success, result = comic_service.create_comic(data, files, duplicate_image_urls=images_to_duplicate)
@@ -468,14 +477,20 @@ def update_comic(sku: str) -> Response:
                          'ebayOfferMin', 'ebayOfferMax']  # These get converted to proper CSV names below
         cleaned_data = {k: v for k, v in data.items() if k not in non_csv_fields}
 
-        # Safety: prevent generated eBay HTML from being saved into the Description field
+        # Safety: prevent generated eBay listing template HTML from being saved
+        # into the Description field.  Simple rich-text tags from the editor are OK.
         if 'Description' in cleaned_data:
             desc_val = cleaned_data['Description']
-            if desc_val and ('<div>' in desc_val or '<li>' in desc_val or '<strong>' in desc_val):
+            if desc_val and '<strong>' in desc_val and any(
+                    label in desc_val for label in
+                    ['<strong>Title</strong>', '<strong>Description</strong>',
+                     '<strong>Condition</strong>', '<strong>Shipping</strong>']):
                 import re
-                cleaned_data['Description'] = re.sub(r'<[^>]+>', ' ', desc_val)
-                cleaned_data['Description'] = re.sub(r'\s+', ' ', cleaned_data['Description']).strip()
-                current_app.logger.warning(f"[update_comic] SKU {sku}: Stripped HTML from Description field to prevent template nesting")
+                cleaned_data['Description'] = re.sub(r'</?(div|p|br|li|ul|ol)[^>]*/??>', '\n', desc_val, flags=re.IGNORECASE)
+                cleaned_data['Description'] = re.sub(r'<[^>]+>', '', cleaned_data['Description'])
+                cleaned_data['Description'] = '\n'.join(l.strip() for l in cleaned_data['Description'].split('\n'))
+                cleaned_data['Description'] = re.sub(r'\n{3,}', '\n\n', cleaned_data['Description']).strip()
+                current_app.logger.warning(f"[update_comic] SKU {sku}: Stripped eBay template HTML from Description field")
 
         # Handle eBay listing settings (these GO TO CSV)
         # Convert camelCase to proper CSV column names

@@ -2,34 +2,85 @@
 import re
 
 
-def extract_ebay_description_section(full_description):
+def extract_all_sections_from_ebay_description(full_description):
     """
-    Extract the user-editable description section from a full eBay item description.
+    Parse a structured eBay HTML description into individual sections.
 
-    The full description may contain:
-    - User's description (editable)
-    - Boilerplate sections (policies, etc.)
+    The app's listing template uses this structure:
+        <strong>Label</strong>...<ul><li>bullet</li>...</ul>
 
-    This function extracts only the editable portion.
+    This function extracts each section's bullet text so it can be mapped
+    back to form fields (Description, Condition Details, etc.).
 
     Args:
         full_description (str): Full HTML description from eBay
 
     Returns:
-        str: Extracted description section or original if no markers found
+        dict: Mapping of section names to their content.
+            Keys: 'description', 'condition', 'photos', 'shipping', 'signoff'
+            Values: newline-joined plain-text strings (empty string if absent)
+    """
+    if not full_description:
+        return {}
+
+    sections = {}
+    known_labels = ['Title', 'Description', 'Condition', 'Photos', 'Shipping']
+
+    for label in known_labels:
+        # Match: <strong>Label</strong> ... <ul> ... </ul>
+        pattern = rf'<strong>\s*{label}\s*</strong>.*?<ul>(.*?)</ul>'
+        match = re.search(pattern, full_description, re.DOTALL | re.IGNORECASE)
+        if match:
+            ul_content = match.group(1)
+            # Extract text from each <li>
+            items = re.findall(r'<li>(.*?)</li>', ul_content, re.DOTALL)
+            items = [re.sub(r'<[^>]+>', '', item).strip() for item in items]
+            items = [item for item in items if item]
+            if items:
+                sections[label.lower()] = '\n'.join(items)
+
+    # Signoff: last <strong> whose text isn't a known label
+    strong_matches = re.findall(r'<strong>(.*?)</strong>', full_description, re.DOTALL)
+    for text in reversed(strong_matches):
+        cleaned = re.sub(r'<[^>]+>', '', text).strip()
+        if cleaned and cleaned not in known_labels:
+            sections['signoff'] = cleaned
+            break
+
+    return sections
+
+
+def extract_ebay_description_section(full_description):
+    """
+    Extract the user-editable description section from a full eBay item description.
+
+    Tries structured template parsing first, then legacy comment markers,
+    then falls back to returning the full description.
+
+    Args:
+        full_description (str): Full HTML description from eBay
+
+    Returns:
+        str: Extracted description text (plain text, newline-separated bullets)
     """
     if not full_description:
         return ''
 
-    # Try to find content between description markers
+    # 1. Try structured template parsing (our listing template format)
+    sections = extract_all_sections_from_ebay_description(full_description)
+    if 'description' in sections:
+        return sections['description']
+
+    # 2. Try legacy comment markers
     pattern = r'<!--DESCRIPTION_START-->(.*?)<!--DESCRIPTION_END-->'
     match = re.search(pattern, full_description, re.DOTALL)
-
     if match:
         return match.group(1).strip()
 
-    # Fallback: return full description
-    return full_description
+    # 3. Fallback: strip all HTML tags and return plain text
+    plain = re.sub(r'<[^>]+>', ' ', full_description)
+    plain = re.sub(r'\s+', ' ', plain).strip()
+    return plain[:500] if plain else ''
 
 
 def extract_ebay_condition_section(full_description):
@@ -40,12 +91,17 @@ def extract_ebay_condition_section(full_description):
         full_description (str): Full HTML description from eBay
 
     Returns:
-        str: Extracted condition section or empty string
+        str: Extracted condition text (plain text, newline-separated bullets)
     """
     if not full_description:
         return ''
 
-    # Try to find content between condition markers
+    # 1. Try structured template parsing
+    sections = extract_all_sections_from_ebay_description(full_description)
+    if 'condition' in sections:
+        return sections['condition']
+
+    # 2. Try legacy comment markers
     pattern = r'<!--CONDITION_START-->(.*?)<!--CONDITION_END-->'
     match = re.search(pattern, full_description, re.DOTALL)
 

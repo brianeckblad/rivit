@@ -696,10 +696,18 @@ def populate_ebay_fields_from_item(item):
 
                 # Safety: strip HTML tags from description if old generated HTML
                 # leaked into the CSV field (prevents double-nesting the template)
-                if description and ('<div>' in description or '<li>' in description or '<strong>' in description):
+                if description and ('<div>' in description or '<li>' in description
+                                    or '<strong>' in description or '<br' in description
+                                    or '<p>' in description):
                     import re as _re
-                    description = _re.sub(r'<[^>]+>', ' ', description)
-                    description = _re.sub(r'\s+', ' ', description).strip()
+                    # Convert block-level and break tags to newlines BEFORE stripping
+                    description = _re.sub(r'</?(div|p|br|li|ul|ol)[^>]*/?>', '\n', description, flags=_re.IGNORECASE)
+                    # Strip remaining HTML tags
+                    description = _re.sub(r'<[^>]+>', '', description)
+                    # Collapse multiple blank lines but keep single newlines
+                    description = _re.sub(r'\n{3,}', '\n\n', description)
+                    description = '\n'.join(line.strip() for line in description.split('\n'))
+                    description = description.strip()
 
                 # Parse description into bullet points (split by newlines or periods)
                 desc_bullets = []

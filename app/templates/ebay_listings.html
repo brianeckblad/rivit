@@ -1141,6 +1141,8 @@
                         <div class="listing-actions-bottom">
                             ${itemId ? `<a href="${ebayUrl}" target="_blank" class="listing-btn listing-btn-view">View eBay</a>` : '<button class="listing-btn listing-btn-view" disabled>No ID</button>'}
                             <button class="listing-btn listing-btn-link${unlinkClass}" onclick="${buttonOnclick}">${buttonText}</button>
+                            ${status === 'Unsold' && linkedSku ? `<button class="listing-btn listing-btn-relist" onclick="relistFromEbay('${linkedSku}', '${itemId}')" style="background:var(--color-ebay);color:var(--color-bg);border-color:var(--color-ebay);">Relist</button>` : ''}
+                            ${(status === 'Pending' || status === 'Unsold') && itemId ? `<button class="listing-btn listing-btn-delete" onclick="deleteEbayDraft('${itemId}')" style="color:var(--color-danger);border-color:var(--color-danger);">Delete</button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1213,6 +1215,15 @@
                             if (descData.condition_details) {
                                 currentEbayItem.ConditionDetails = descData.condition_details;
                                 console.log('Successfully fetched condition details, length:', descData.condition_details.length);
+                            }
+                            if (descData.photos_details) {
+                                currentEbayItem.PhotosDetails = descData.photos_details;
+                            }
+                            if (descData.shipping_details) {
+                                currentEbayItem.ShippingDetails = descData.shipping_details;
+                            }
+                            if (descData.signoff) {
+                                currentEbayItem.Signoff = descData.signoff;
                             }
                         }
                     }
@@ -1912,10 +1923,17 @@
                 price: currentEbayItem.CurrentPrice || 0,
                 description: currentEbayItem.Description || '',
                 condition_details: currentEbayItem.ConditionDetails || '',
+                photos_details: currentEbayItem.PhotosDetails || '',
+                shipping_details: currentEbayItem.ShippingDetails || '',
+                signoff: currentEbayItem.Signoff || '',
                 category: currentEbayItem.PrimaryCategoryName || '',
                 itemId: currentEbayItem.ItemID || currentEbayItem.itemId || '',
                 ebayItemId: currentEbayItem.ItemID || currentEbayItem.itemId || '',
-                imageUrl: currentEbayItem.image_url || ''
+                imageUrl: currentEbayItem.image_url || '',
+                // Pass source item ID so draft can be deleted after listing
+                sourceEbayDraftId: (currentEbayItem.ListingStatus === 'Pending' || currentEbayItem.ListingStatus === 'Unsold')
+                    ? (currentEbayItem.ItemID || currentEbayItem.itemId || '')
+                    : ''
             };
 
             // Store the eBay data in sessionStorage so we can retrieve it on the add item page
@@ -1923,6 +1941,76 @@
 
             // Navigate to the add item page
             window.location.href = '/add';
+        }
+
+        // Relist an unsold item with the app's generated description
+        async function relistFromEbay(sku, oldItemId) {
+            if (!confirm('Relist this item? The old listing will be ended and a new one created with your updated description.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/comic/${sku}/ebay/relist`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ environment: 'production' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatusModal(`Relisted successfully. New Item ID: ${data.item_id}`, 'success');
+                    // Clear cache and reload listings
+                    await fetch('/api/ebay/listings/clear-cache', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-Token': csrfToken }
+                    });
+                    fetchAllEbayListings();
+                } else {
+                    showStatusModal(data.error || 'Failed to relist item', 'error');
+                }
+            } catch (error) {
+                console.error('Relist error:', error);
+                showStatusModal('Failed to relist item. Please try again.', 'error');
+            }
+        }
+
+        // Delete an eBay draft or ended listing
+        async function deleteEbayDraft(itemId) {
+            if (!confirm('Delete this eBay listing? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/ebay/item/${itemId}/end`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ environment: 'production' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatusModal('Listing deleted from eBay.', 'success');
+                    // Clear cache and reload listings
+                    await fetch('/api/ebay/listings/clear-cache', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-Token': csrfToken }
+                    });
+                    fetchAllEbayListings();
+                } else {
+                    showStatusModal(data.error || 'Failed to delete listing', 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showStatusModal('Failed to delete listing. Please try again.', 'error');
+            }
         }
 
         // Close modal when clicking outside of it

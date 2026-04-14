@@ -182,8 +182,8 @@ def restore_from_trash(sku: str) -> Response:
 
         # Add to inventory
         if csv_service.add(comic):
-            # Remove from trash
-            trash_service.delete(sku)
+            # Remove from trash (restore only removes the JSON, preserves S3 images)
+            trash_service.restore(sku)
 
             # Backup CSV to S3 (user-specific)
             s3_service.backup_main_csv_to_s3(str(user_csv_file))

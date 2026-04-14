@@ -165,6 +165,12 @@
             white-space: nowrap;
         }
 
+        /* Toggle labels are mobile-only; hide on desktop where .nav-label is visible */
+        .toggle-label-left,
+        .toggle-label-right {
+            display: none;
+        }
+
         .container {
             max-width: 1600px;
             margin: 0 auto;
@@ -1818,11 +1824,12 @@
 
             let imagesHtml = '';
             imageUrls.forEach((url, index) => {
+                const proxiedUrl = getProxiedUrl(url);
                 imagesHtml += `
                     <div class="image-selector-item"
                          onclick="loadComicImageAndClose('${comic.SKU}', '${url.replace(/'/g, "\\'")}', ${index}, '${overlay.id}')">
                         <div style="display: flex; align-items: center; gap: 16px;">
-                            <img src="${url}" style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-sm); background: var(--color-elevated);" onerror="this.style.background='var(--color-elevated)'; this.style.border='1px solid var(--color-border-hover)'">
+                            <img src="${proxiedUrl}" style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-sm); background: var(--color-elevated);" onerror="this.style.background='var(--color-elevated)'; this.style.border='1px solid var(--color-border-hover)'">
                             <div>
                                 <div style="color: var(--color-accent); font-weight: 600; margin-bottom: 4px;">Image ${index + 1}</div>
                                 <div style="color: var(--color-text-muted); font-size: 12px;">Click to use this image</div>

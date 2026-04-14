@@ -104,9 +104,29 @@ def list_comic_on_ebay(sku: str) -> Response:
     if not comic:
         return jsonify({'success': False, 'error': 'Comic not found'}), 404
 
+    # If the comic is already linked to an eBay item (e.g. imported from a draft),
+    # try to end the old item first so the new listing replaces it.
     if comic.ebay_item_id:
-        return jsonify({'success': False, 'error': 'Comic already listed on eBay'}), 400
+        old_item_id = comic.ebay_item_id
+        try:
+            payload_peek = request.get_json(silent=True) or {}
+            env_peek, _, _, _ = resolve_ebay_context(payload_peek)
+            ebay_service.end_item_by_id(old_item_id, environment=env_peek)
+            current_app.logger.info(
+                f"Ended linked eBay item {old_item_id} (draft/unsold) before creating new listing for SKU {sku}"
+            )
+        except Exception as end_exc:
+            current_app.logger.warning(
+                f"Could not end linked eBay item {old_item_id} for SKU {sku}: {end_exc}"
+            )
+        # Clear the old ID so the new listing proceeds
+        comic.ebay_item_id = ''
+        comic_service.save_comic(comic)
+        # Re-fetch comic to get the saved state
+        comic = comic_service.get_comic(sku)
+
     try:
+        # Note: request.get_json() is cached by Flask, safe to call multiple times
         payload = request.get_json(silent=True) or {}
 
         # Read eBay listing settings from the comic object itself
@@ -271,6 +291,159 @@ def end_comic_on_ebay(sku: str) -> Response:
         return jsonify({'success': True, 'environment': environment, 'mode': 'end'})
     except Exception as exc:
         current_app.logger.error(f"Failed to end eBay listing for {sku}: {exc}")
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
+
+
+@api_bp.route('/comic/<sku>/ebay/relist', methods=['POST'])
+@login_required
+@csrf_required
+def relist_comic_on_ebay(sku: str) -> Response:
+    """Relist a comic on eBay with the app's generated description.
+
+    Ends any existing listing (active or draft), then creates a fresh listing
+    using the comic's current data. The description is regenerated from the
+    template, preventing stale or duplicate content.
+
+    Path Parameters:
+        sku (str): Comic SKU to relist
+
+    Request Body (JSON):
+        {
+            "delete_draft_id": str  # Optional: eBay Item ID of a draft to delete
+        }
+
+    Returns:
+        Response: JSON with new eBay Item ID
+
+    Status Codes:
+        200: Relisted successfully
+        404: Comic not found
+        500: eBay API error
+    """
+    comic = comic_service.get_comic(sku)
+    if not comic:
+        return jsonify({'success': False, 'error': 'Comic not found'}), 404
+
+    try:
+        payload = request.get_json(silent=True) or {}
+        environment, listing_mode, overrides, schedule_time = resolve_ebay_context(payload)
+
+        # If a draft ID is provided, delete it first
+        delete_draft_id = payload.get('delete_draft_id')
+        if delete_draft_id:
+            try:
+                ebay_service.end_item_by_id(delete_draft_id, reason='NotAvailable', environment=environment)
+                current_app.logger.info(f"Deleted eBay draft {delete_draft_id} before relist")
+            except Exception as e:
+                current_app.logger.warning(f"Could not delete draft {delete_draft_id}: {e}")
+
+        new_item_id = ebay_service.relist_item(
+            comic,
+            environment=environment,
+            overrides=overrides,
+            mode=listing_mode,
+            schedule_time=schedule_time
+        )
+
+        if not new_item_id:
+            raise RuntimeError('eBay did not return an ItemID')
+
+        comic.ebay_item_id = new_item_id
+        comic_service.save_comic(comic)
+
+        # Clear listings cache so fresh data is fetched
+        cache_key = f'ebay_listings_{environment}'
+        if hasattr(current_app, 'ebay_cache') and cache_key in current_app.ebay_cache:
+            del current_app.ebay_cache[cache_key]
+
+        return jsonify({
+            'success': True,
+            'item_id': new_item_id,
+            'environment': environment,
+            'mode': listing_mode,
+            'message': 'Relisted successfully with updated description'
+        })
+    except EbayDuplicateListingError as exc:
+        error_detail = {
+            'error': 'Duplicate listing detected',
+            'message': str(exc),
+            'is_duplicate': True
+        }
+        if exc.existing_item_id:
+            error_detail['existing_item_id'] = exc.existing_item_id
+        return jsonify({'success': False, **error_detail}), 409
+    except Exception as exc:
+        current_app.logger.error(f"Failed to relist {sku} on eBay: {exc}")
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
+
+
+@api_bp.route('/ebay/item/<item_id>/end', methods=['POST'])
+@login_required
+@csrf_required
+def end_ebay_item_by_id(item_id: str) -> Response:
+    """End/delete an eBay listing by item ID (no local comic required).
+
+    Useful for deleting drafts or ending orphaned listings that aren't
+    linked to a local inventory item.
+
+    Path Parameters:
+        item_id (str): eBay Item ID to end
+
+    Request Body (JSON):
+        {
+            "reason": str  # Optional end reason (default: NotAvailable)
+        }
+
+    Status Codes:
+        200: Listing ended
+        500: eBay API error
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        reason = payload.get('reason', 'NotAvailable')
+        environment, _, _, _ = resolve_ebay_context(payload)
+
+        ebay_service.end_item_by_id(item_id, reason=reason, environment=environment)
+
+        # Clear listings cache
+        cache_key = f'ebay_listings_{environment}'
+        if hasattr(current_app, 'ebay_cache') and cache_key in current_app.ebay_cache:
+            del current_app.ebay_cache[cache_key]
+
+        return jsonify({'success': True, 'item_id': item_id, 'message': 'Listing ended'})
+    except Exception as exc:
+        current_app.logger.error(f"Failed to end eBay item {item_id}: {exc}")
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
+
+
+@api_bp.route('/ebay/item/<item_id>/details', methods=['GET'])
+@login_required
+def get_ebay_item_full_details(item_id: str) -> Response:
+    """Get full item details from eBay for the clone / import flow.
+
+    Returns comprehensive metadata including title, description, item
+    specifics, category, condition, and picture URLs — everything needed
+    to populate the add-comic form from an existing eBay listing.
+
+    Path Parameters:
+        item_id (str): eBay Item ID
+
+    Status Codes:
+        200: Details retrieved
+        404: Item not found
+        500: eBay API error
+    """
+    try:
+        environment = request.args.get('environment', 'production')
+        details = ebay_service.get_item_details(item_id, environment=environment)
+
+        if not details:
+            return jsonify({'success': False, 'error': 'Item not found on eBay'}), 404
+
+        return jsonify({'success': True, **details})
+
+    except Exception as exc:
+        current_app.logger.error(f"Failed to get eBay item details for {item_id}: {exc}")
         return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 

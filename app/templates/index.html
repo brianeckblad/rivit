@@ -542,6 +542,124 @@
             min-height: 70px;
         }
 
+        /* ── Rich-text description editor ── */
+        .desc-editor {
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-inset);
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .desc-editor:focus-within {
+            border-color: var(--color-border-focus);
+        }
+        .desc-editor.error {
+            border-color: var(--color-danger);
+            box-shadow: 0 0 0 2px var(--color-danger-subtle);
+        }
+        .desc-editor.readonly {
+            opacity: 0.85;
+            background: var(--color-surface);
+        }
+        .desc-editor.readonly .desc-toolbar {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        .desc-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 8px;
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            flex-wrap: wrap;
+        }
+        .desc-toolbar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--color-text-muted);
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .desc-toolbar button:hover {
+            background: var(--color-elevated);
+            color: var(--color-text);
+        }
+        .desc-toolbar button.active {
+            background: var(--color-accent-subtle);
+            color: var(--color-accent-hover);
+        }
+        .desc-toolbar-sep {
+            width: 1px;
+            height: 20px;
+            background: var(--color-border);
+            margin: 0 4px;
+        }
+        .desc-toolbar-spacer {
+            flex: 1;
+        }
+        .desc-html-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-dim);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .desc-html-toggle input[type="checkbox"] {
+            accent-color: var(--color-accent);
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+        .desc-editable {
+            min-height: 90px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px 12px;
+            color: var(--color-text);
+            font-family: var(--font-family);
+            font-size: var(--font-size-base);
+            line-height: 1.6;
+            outline: none;
+        }
+        .desc-editable:empty::before {
+            content: attr(data-placeholder);
+            color: var(--color-text-dim);
+            pointer-events: none;
+        }
+        .desc-editable ul, .desc-editable ol {
+            margin: 4px 0;
+            padding-left: 22px;
+        }
+        .desc-editable li {
+            margin-bottom: 2px;
+        }
+        .desc-html-source {
+            width: 100%;
+            min-height: 90px;
+            max-height: 300px;
+            padding: 10px 12px;
+            border: none;
+            background: var(--color-bg);
+            color: var(--color-info);
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            box-sizing: border-box;
+        }
+
         .pricing-section {
             display: flex;
             flex-direction: column;
@@ -878,6 +996,232 @@
             border-color: var(--color-accent);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px var(--color-accent-subtle);
+        }
+
+        /* Add from eBay button (footer) */
+        #addFromEbayBtn:hover {
+            color: var(--color-ebay);
+            border-color: var(--color-ebay);
+            background: var(--color-ebay-subtle);
+        }
+
+        /* eBay search modal */
+        .ebay-search-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 60px;
+        }
+
+        .ebay-search-modal.show {
+            display: flex;
+        }
+
+        .ebay-search-modal-content {
+            background: var(--color-elevated);
+            border: 1px solid var(--color-ebay);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .ebay-search-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ebay-search-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--color-ebay);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ebay-search-body {
+            padding: 16px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .ebay-search-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ebay-filter-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .ebay-filter-pill {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            background: transparent;
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .ebay-filter-pill:hover {
+            border-color: var(--color-ebay);
+            color: var(--color-ebay);
+        }
+
+        .ebay-filter-pill.active {
+            background: var(--color-ebay);
+            color: var(--color-bg);
+            border-color: var(--color-ebay);
+        }
+
+        .ebay-filter-text {
+            flex: 1;
+            min-width: 140px;
+            padding: 6px 12px;
+            background: var(--color-inset);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            color: var(--color-text);
+            font-size: 13px;
+        }
+
+        .ebay-filter-text:focus {
+            border-color: var(--color-ebay);
+            outline: none;
+        }
+
+        .ebay-refresh-btn {
+            padding: 6px 14px;
+            background: transparent;
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .ebay-refresh-btn:hover {
+            border-color: var(--color-ebay);
+            color: var(--color-ebay);
+        }
+
+        .ebay-status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .ebay-status-badge.active { background: var(--color-success-subtle); color: var(--color-success); }
+        .ebay-status-badge.pending { background: var(--color-warning-subtle); color: var(--color-warning); }
+        .ebay-status-badge.unsold { background: var(--color-danger-subtle); color: var(--color-danger); }
+
+        .ebay-linked-badge {
+            font-size: 11px;
+            color: var(--color-accent);
+            font-weight: 600;
+        }
+
+        .ebay-search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .ebay-result-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ebay-result-card:hover {
+            border-color: var(--color-ebay);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .ebay-result-card.selected {
+            border-color: var(--color-ebay);
+            background: var(--color-ebay-subtle);
+        }
+
+        .ebay-result-card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            background: var(--color-inset);
+            margin-bottom: 8px;
+        }
+
+        .ebay-result-card .ebay-result-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .ebay-result-card .ebay-result-meta {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ebay-result-card .ebay-result-price {
+            font-weight: 700;
+            color: var(--color-ebay);
+        }
+
+        .ebay-search-status {
+            text-align: center;
+            padding: 24px;
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+
+        .ebay-search-footer {
+            padding: 12px 24px;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
         }
 
         /* Button icons - hidden by default (desktop), shown on mobile */
@@ -1873,7 +2217,41 @@
 
                             <div class="form-group">
                                 <label for="description">Description <span class="required">*</span></label>
-                                <textarea id="description" name="Description" required></textarea>
+                                <div class="desc-editor" id="descEditor">
+                                    <div class="desc-toolbar" id="descToolbar">
+                                        <button type="button" data-cmd="bold" title="Bold"><strong>B</strong></button>
+                                        <button type="button" data-cmd="italic" title="Italic"><em>I</em></button>
+                                        <div class="desc-toolbar-sep"></div>
+                                        <button type="button" data-cmd="insertUnorderedList" title="Bullet List">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="4" r="1.5"/><rect x="6" y="3" width="8" height="2" rx="0.5"/><circle cx="3" cy="8" r="1.5"/><rect x="6" y="7" width="8" height="2" rx="0.5"/><circle cx="3" cy="12" r="1.5"/><rect x="6" y="11" width="8" height="2" rx="0.5"/></svg>
+                                        </button>
+                                        <button type="button" data-cmd="insertOrderedList" title="Numbered List">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><text x="1" y="5.5" font-size="5" font-weight="600">1</text><rect x="6" y="3" width="8" height="2" rx="0.5"/><text x="1" y="9.5" font-size="5" font-weight="600">2</text><rect x="6" y="7" width="8" height="2" rx="0.5"/><text x="1" y="13.5" font-size="5" font-weight="600">3</text><rect x="6" y="11" width="8" height="2" rx="0.5"/></svg>
+                                        </button>
+                                        <div class="desc-toolbar-sep"></div>
+                                        <button type="button" data-cmd="removeFormat" title="Remove Formatting">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 2.5h13M5.5 2.5V14" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line x1="3" y1="13.5" x2="12.5" y2="3" stroke="var(--color-danger)" stroke-width="1.8" stroke-linecap="round"/></svg>
+                                        </button>
+                                        <div class="desc-toolbar-sep"></div>
+                                        <button type="button" data-cmd="justifyLeft" title="Align Left">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.5" rx="0.5"/><rect x="2" y="6.5" width="8" height="1.5" rx="0.5"/><rect x="2" y="10" width="11" height="1.5" rx="0.5"/></svg>
+                                        </button>
+                                        <button type="button" data-cmd="justifyCenter" title="Align Center">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.5" rx="0.5"/><rect x="4" y="6.5" width="8" height="1.5" rx="0.5"/><rect x="3" y="10" width="10" height="1.5" rx="0.5"/></svg>
+                                        </button>
+                                        <button type="button" data-cmd="justifyRight" title="Align Right">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.5" rx="0.5"/><rect x="6" y="6.5" width="8" height="1.5" rx="0.5"/><rect x="3" y="10" width="11" height="1.5" rx="0.5"/></svg>
+                                        </button>
+                                        <div class="desc-toolbar-spacer"></div>
+                                        <label class="desc-html-toggle">
+                                            <input type="checkbox" id="descHtmlToggle"> Show HTML Code
+                                        </label>
+                                    </div>
+                                    <div class="desc-editable" id="descEditable" contenteditable="true" data-placeholder="Enter a description..."></div>
+                                    <textarea class="desc-html-source" id="descHtmlSource" style="display:none;"></textarea>
+                                </div>
+                                <!-- Hidden field carries value for form submission -->
+                                <textarea id="description" name="Description" required style="display:none;"></textarea>
                             </div>
 
                             <div class="form-group">
@@ -2231,6 +2609,14 @@
                     <span>Grading</span>
                 </button>
 
+                <button type="button" id="addFromEbayBtn" onclick="openEbaySearchModal()" title="Clone metadata from your eBay drafts or listings" class="footer-icon-btn-idx" style="color: var(--color-ebay); border-color: var(--color-ebay);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                        <rect x="8" y="2" width="8" height="4" rx="1"/>
+                    </svg>
+                    <span>Add from eBay</span>
+                </button>
+
                 <!-- WhatNot Menu Pill -->
                 <div id="whatnotMenuPill" class="menu-pill" style="display:none; position: relative;">
                     <button type="button" class="menu-pill-btn" id="whatnotMenuBtn" onclick="toggleWhatNotMenu(event)">
@@ -2528,6 +2914,41 @@
                     </div>
                     <div class="grading-description">A heavily defaced collectible with a number major defects. Some pieces will also be missing.</div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- eBay Search Modal (Add from eBay) -->
+    <div class="ebay-search-modal" id="ebaySearchModal" onclick="if(event.target===this)closeEbaySearchModal()">
+        <div class="ebay-search-modal-content" onclick="event.stopPropagation()">
+            <div class="ebay-search-header">
+                <h2>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                    Add from eBay
+                </h2>
+                <button onclick="closeEbaySearchModal()" style="background:none;border:none;color:var(--color-text-muted);font-size:24px;cursor:pointer;padding:4px;">&times;</button>
+            </div>
+            <div class="ebay-search-body">
+                <p style="color:var(--color-text-muted);font-size:13px;margin:0 0 12px;">Select one of your eBay drafts or listings to clone its metadata into a new item. Find an item on eBay → Sell One Like This → Save as Draft → select it here.</p>
+                <div class="ebay-search-input-row">
+                    <div class="ebay-filter-pills">
+                        <button class="ebay-filter-pill active" onclick="setEbayStatusFilter('All', this)">All</button>
+                        <button class="ebay-filter-pill" onclick="setEbayStatusFilter('Pending', this)">Scheduled</button>
+                        <button class="ebay-filter-pill" onclick="setEbayStatusFilter('Active', this)">Active</button>
+                        <button class="ebay-filter-pill" onclick="setEbayStatusFilter('Unsold', this)">Unsold</button>
+                    </div>
+                    <input type="text" class="ebay-filter-text" id="ebayFilterInput" placeholder="Filter by title..." oninput="renderFilteredEbayListings()">
+                    <button class="ebay-refresh-btn" onclick="refreshEbayListings()" id="ebayRefreshBtn" title="Clear cache and reload from eBay">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Refresh
+                    </button>
+                </div>
+                <div id="ebaySearchStatus" class="ebay-search-status" style="display:none;"></div>
+                <div id="ebaySearchResults" class="ebay-search-results"></div>
+            </div>
+            <div class="ebay-search-footer">
+                <button onclick="closeEbaySearchModal()" class="btn btn-secondary" style="padding:8px 20px;">Cancel</button>
+                <button id="ebayCloneBtn" onclick="cloneSelectedEbayItem()" class="btn" style="padding:8px 20px;background:var(--color-ebay);color:var(--color-bg);font-weight:600;" disabled>Add</button>
             </div>
         </div>
     </div>
@@ -2964,12 +3385,25 @@
             }
 
             const isListed = Boolean(currentComicEbayId);
+            const isSourceDraft = isListed && window._sourceEbayDraftId && currentComicEbayId === window._sourceEbayDraftId;
 
-            if (isListed) {
-                // Linked to eBay — show Update, Delist, Unlink; hide List, Link
+            if (isListed && !isSourceDraft) {
+                // Linked to an active eBay listing — show Update, Delist, Unlink; hide List, Link
                 if (listBtn) listBtn.style.display = 'none';
                 if (linkBtn) linkBtn.style.display = 'none';
                 if (updateBtn) updateBtn.style.display = 'flex';
+                if (delistBtn) delistBtn.style.display = 'flex';
+                if (unlinkBtn) unlinkBtn.style.display = 'flex';
+                if (menuBtn) menuBtn.classList.add('active');
+            } else if (isSourceDraft) {
+                // Linked to a draft — show List (will replace draft), Unlink; hide Update, Link
+                if (listBtn) {
+                    listBtn.style.display = 'flex';
+                    const listText = document.getElementById('ebayListMenuText');
+                    if (listText) listText.textContent = 'List on eBay';
+                }
+                if (linkBtn) linkBtn.style.display = 'none';
+                if (updateBtn) updateBtn.style.display = 'none';
                 if (delistBtn) delistBtn.style.display = 'flex';
                 if (unlinkBtn) unlinkBtn.style.display = 'flex';
                 if (menuBtn) menuBtn.classList.add('active');
@@ -4095,6 +4529,14 @@
                 setEbayActionStatus('success', successMsg);
                 showNotification(`${sourceLabel} completed`, 'success');
 
+                // If this item was created from an eBay draft, the backend already
+                // ended the draft during listing. Clear the tracking variable.
+                if (window._sourceEbayDraftId && modeValue !== 'end' && modeValue !== 'update') {
+                    console.log('Source eBay draft replaced by new listing:', window._sourceEbayDraftId);
+                    showNotification('Source eBay draft removed', 'info');
+                    window._sourceEbayDraftId = null;
+                }
+
                 // Reload the comic and switch to VIEW mode after successful eBay action
                 // Fetch fresh data from server to get the updated eBay Item ID
                 try {
@@ -4971,6 +5413,163 @@
             }
         });
 
+        /* ── Rich-text description editor ─────────────────────── */
+        (function initDescEditor() {
+            const editable   = document.getElementById('descEditable');
+            const htmlSource = document.getElementById('descHtmlSource');
+            const htmlToggle = document.getElementById('descHtmlToggle');
+            const hidden     = document.getElementById('description');   // form field
+            const toolbar    = document.getElementById('descToolbar');
+            const editor     = document.getElementById('descEditor');
+            if (!editable || !hidden) return;
+
+            /* — Sync helpers — */
+            function cleanEditorHtml(rawHtml) {
+                // Strip inline style/color/font attributes the browser injects
+                const tmp = document.createElement('div');
+                tmp.innerHTML = rawHtml;
+                tmp.querySelectorAll('*').forEach(el => {
+                    el.removeAttribute('style');
+                    el.removeAttribute('color');
+                    el.removeAttribute('face');
+                    el.removeAttribute('size');
+                });
+                // Unwrap <font> tags (keep children)
+                tmp.querySelectorAll('font').forEach(f => f.replaceWith(...f.childNodes));
+                // Unwrap <span> tags that have no attributes left (just wrappers)
+                tmp.querySelectorAll('span').forEach(s => {
+                    if (!s.attributes.length) s.replaceWith(...s.childNodes);
+                });
+                return tmp.innerHTML;
+            }
+
+            function syncToHidden() {
+                const text = editable.textContent.trim();
+                hidden.value = text ? cleanEditorHtml(editable.innerHTML) : '';
+            }
+
+            function loadIntoEditor(val) {
+                if (!val) { editable.innerHTML = ''; return; }
+                // If it looks like plain text (no HTML tags), convert newlines to <br>
+                if (!/<[a-z][\s\S]*>/i.test(val)) {
+                    editable.innerHTML = val.replace(/\n/g, '<br>');
+                } else {
+                    editable.innerHTML = val;
+                }
+            }
+
+            /* — Toolbar commands — */
+            toolbar.addEventListener('click', function(e) {
+                const btn = e.target.closest('button[data-cmd]');
+                if (!btn) return;
+                e.preventDefault();
+                editable.focus();
+                document.execCommand(btn.dataset.cmd, false, null);
+                updateToolbarState();
+                syncToHidden();
+            });
+
+            /* — Update active state on toolbar buttons — */
+            function updateToolbarState() {
+                toolbar.querySelectorAll('button[data-cmd]').forEach(btn => {
+                    const cmd = btn.dataset.cmd;
+                    btn.classList.toggle('active', document.queryCommandState(cmd));
+                });
+            }
+
+            editable.addEventListener('keyup',     updateToolbarState);
+            editable.addEventListener('mouseup',   updateToolbarState);
+
+            /* — Keep hidden field in sync — */
+            editable.addEventListener('input', () => {
+                syncToHidden();
+                formHasChanged = true;
+            });
+
+            /* — Paste: strip inline styles so content stays clean — */
+            editable.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const html = e.clipboardData.getData('text/html');
+                const plain = e.clipboardData.getData('text/plain');
+                if (html) {
+                    // Keep structure (b, i, ul, ol, li, br, p) but strip style/color/font attrs
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = html;
+                    tmp.querySelectorAll('*').forEach(el => {
+                        el.removeAttribute('style');
+                        el.removeAttribute('color');
+                        el.removeAttribute('face');
+                        el.removeAttribute('size');
+                    });
+                    // Remove font tags (keep their content)
+                    tmp.querySelectorAll('font').forEach(font => {
+                        font.replaceWith(...font.childNodes);
+                    });
+                    document.execCommand('insertHTML', false, tmp.innerHTML);
+                } else {
+                    document.execCommand('insertText', false, plain);
+                }
+                syncToHidden();
+            });
+
+            /* — HTML source toggle — */
+            htmlToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    // Switch to HTML source view
+                    syncToHidden();
+                    htmlSource.value = editable.innerHTML;
+                    editable.style.display   = 'none';
+                    htmlSource.style.display  = 'block';
+                    htmlSource.focus();
+                } else {
+                    // Switch back to visual view
+                    editable.innerHTML = htmlSource.value;
+                    syncToHidden();
+                    htmlSource.style.display = 'none';
+                    editable.style.display   = 'block';
+                    editable.focus();
+                }
+            });
+
+            htmlSource.addEventListener('input', () => {
+                hidden.value = htmlSource.value;
+                formHasChanged = true;
+            });
+
+            /* — Public helper: set editor value from JS — */
+            window.setDescriptionEditor = function(val) {
+                loadIntoEditor(val);
+                syncToHidden();
+                // If HTML toggle is on, also update source view
+                if (htmlToggle.checked) {
+                    htmlSource.value = editable.innerHTML;
+                }
+            };
+
+            /* — Expose syncToHidden for form submit — */
+            window._descSyncToHidden = syncToHidden;
+
+            /* — Read-only support — */
+            window.setDescriptionEditorReadOnly = function(readonly) {
+                editable.contentEditable = !readonly;
+                editor.classList.toggle('readonly', readonly);
+                if (readonly) {
+                    editor.style.cursor = 'pointer';
+                    editor.ondblclick = enableEditMode;
+                    editor.title = 'Double-click to edit';
+                } else {
+                    editor.style.cursor = '';
+                    editor.ondblclick = null;
+                    editor.title = '';
+                }
+            };
+
+            /* — Listen for external value changes on hidden field — */
+            hidden.addEventListener('change', () => {
+                loadIntoEditor(hidden.value);
+            });
+        })();
+
         // Function to populate form fields from eBay item data
         function populateFormFromEbayData(ebayData) {
             if (ebayData.title) {
@@ -4995,6 +5594,7 @@
                 const descriptionField = document.getElementById('description');
                 if (descriptionField) {
                     descriptionField.value = ebayData.description;
+                    if (window.setDescriptionEditor) setDescriptionEditor(ebayData.description);
                     descriptionField.dispatchEvent(new Event('change'));
                     descriptionField.dispatchEvent(new Event('input'));
                 }
@@ -5006,6 +5606,33 @@
                     conditionDetailsField.value = ebayData.condition_details;
                     conditionDetailsField.dispatchEvent(new Event('change'));
                     conditionDetailsField.dispatchEvent(new Event('input'));
+                }
+            }
+
+            if (ebayData.photos_details) {
+                const photosField = document.getElementById('photosDetails');
+                if (photosField) {
+                    photosField.value = ebayData.photos_details;
+                    photosField.dispatchEvent(new Event('change'));
+                    photosField.dispatchEvent(new Event('input'));
+                }
+            }
+
+            if (ebayData.shipping_details) {
+                const shippingField = document.getElementById('shippingDetails');
+                if (shippingField) {
+                    shippingField.value = ebayData.shipping_details;
+                    shippingField.dispatchEvent(new Event('change'));
+                    shippingField.dispatchEvent(new Event('input'));
+                }
+            }
+
+            if (ebayData.signoff) {
+                const signoffField = document.getElementById('signoff');
+                if (signoffField) {
+                    signoffField.value = ebayData.signoff;
+                    signoffField.dispatchEvent(new Event('change'));
+                    signoffField.dispatchEvent(new Event('input'));
                 }
             }
 
@@ -5023,6 +5650,11 @@
                     ebayItemIdField.value = ebayData.ebayItemId;
                     ebayItemIdField.dispatchEvent(new Event('change'));
                 }
+            }
+
+            // Store source eBay draft ID for deletion after listing
+            if (ebayData.sourceEbayDraftId) {
+                window._sourceEbayDraftId = ebayData.sourceEbayDraftId;
             }
 
             // Show a notification that the form was pre-filled from eBay
@@ -5046,9 +5678,10 @@
                 animation: slideIn 0.3s ease-out;
                 max-width: 400px;
             `;
+            const isDraft = window._sourceEbayDraftId;
             notification.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <span>✓ Form pre-filled from eBay listing</span>
+                    <span>✓ Form pre-filled from eBay${isDraft ? ' draft — linked for listing' : ' listing'}</span>
                     <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: var(--color-text); font-size: 20px; cursor: pointer; padding: 0; margin-left: 8px;">×</button>
                 </div>
             `;
@@ -5062,6 +5695,409 @@
             }, 5000);
         }
 
+        // =====================================================================
+        // Add from eBay — browse own listings and clone
+        // =====================================================================
+        let ebaySearchSelectedItem = null;
+        let ebaySearchSelectedItemId = null;
+        let ebayModalListings = [];        // All listings fetched from API
+        let ebayModalStatusFilter = 'All'; // Current status filter
+
+        function openEbaySearchModal() {
+            const modal = document.getElementById('ebaySearchModal');
+            modal.classList.add('show');
+            document.getElementById('ebaySearchResults').innerHTML = '';
+            document.getElementById('ebayCloneBtn').disabled = true;
+            document.getElementById('ebayFilterInput').value = '';
+            ebaySearchSelectedItem = null;
+            ebaySearchSelectedItemId = null;
+            ebayModalStatusFilter = 'All';
+
+            // Reset filter pills
+            document.querySelectorAll('.ebay-filter-pill').forEach(p => p.classList.remove('active'));
+            document.querySelector('.ebay-filter-pill')?.classList.add('active');
+
+            fetchEbayListingsForModal();
+        }
+
+        function closeEbaySearchModal() {
+            document.getElementById('ebaySearchModal').classList.remove('show');
+            ebaySearchSelectedItem = null;
+            ebaySearchSelectedItemId = null;
+        }
+
+        function setEbayStatusFilter(status, btn) {
+            ebayModalStatusFilter = status;
+            document.querySelectorAll('.ebay-filter-pill').forEach(p => p.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderFilteredEbayListings();
+        }
+
+        async function fetchEbayListingsForModal() {
+            const status = document.getElementById('ebaySearchStatus');
+            const resultsContainer = document.getElementById('ebaySearchResults');
+
+            status.style.display = 'block';
+            status.textContent = 'Loading your eBay listings...';
+            resultsContainer.innerHTML = '';
+            document.getElementById('ebayCloneBtn').disabled = true;
+            ebaySearchSelectedItem = null;
+            ebaySearchSelectedItemId = null;
+
+            try {
+                // Always clear cache first so we get fresh data from eBay
+                await fetch('/api/ebay/listings/clear-cache', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': window.csrfToken || '' }
+                }).catch(() => {});
+
+                const response = await fetch('/api/ebay/listings?page=1&per_page=500');
+                const data = await response.json();
+
+                if (!data.success || !data.listings || data.listings.length === 0) {
+                    status.innerHTML = '<div>No eBay listings found.</div><div style="margin-top:8px;font-size:12px;color:var(--color-text-dim);">To use this feature: find an item on eBay → click <strong>Sell One Like This</strong> → save as a <strong>Draft</strong> → then refresh here.</div>';
+                    return;
+                }
+
+                ebayModalListings = data.listings;
+                status.style.display = 'none';
+                renderFilteredEbayListings();
+            } catch (error) {
+                console.error('Failed to fetch eBay listings:', error);
+                status.textContent = 'Failed to load listings. Please try again.';
+            }
+        }
+
+        async function refreshEbayListings() {
+            const btn = document.getElementById('ebayRefreshBtn');
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+
+            try {
+                await fetch('/api/ebay/listings/clear-cache', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': window.csrfToken || '' }
+                });
+            } catch (e) {
+                console.warn('Cache clear failed:', e);
+            }
+
+            await fetchEbayListingsForModal();
+            btn.disabled = false;
+            btn.style.opacity = '';
+        }
+
+        function renderFilteredEbayListings() {
+            const container = document.getElementById('ebaySearchResults');
+            const textFilter = (document.getElementById('ebayFilterInput')?.value || '').toLowerCase();
+            container.innerHTML = '';
+
+            let filtered = ebayModalListings;
+
+            // Status filter
+            if (ebayModalStatusFilter !== 'All') {
+                filtered = filtered.filter(item => item.ListingStatus === ebayModalStatusFilter);
+            }
+
+            // Text filter
+            if (textFilter) {
+                filtered = filtered.filter(item => (item.Title || '').toLowerCase().includes(textFilter));
+            }
+
+            if (filtered.length === 0) {
+                const status = document.getElementById('ebaySearchStatus');
+                status.style.display = 'block';
+                status.textContent = ebayModalListings.length > 0
+                    ? 'No listings match the current filter.'
+                    : 'No eBay listings found.';
+                return;
+            }
+
+            document.getElementById('ebaySearchStatus').style.display = 'none';
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'ebay-result-card';
+                card.dataset.itemId = item.ItemID;
+
+                const imgSrc = item.image_url || '/static/placeholder.png';
+                const price = item.CurrentPrice ? '$' + parseFloat(item.CurrentPrice).toFixed(2) : '';
+                const statusClass = (item.ListingStatus || '').toLowerCase();
+                const statusLabel = item.ListingStatus === 'Pending' ? 'Draft' : (item.ListingStatus || '');
+                const linkedHtml = item.linked_sku
+                    ? `<span class="ebay-linked-badge">SKU ${escapeHtml(item.linked_sku)}</span>`
+                    : '';
+
+                card.innerHTML = `
+                    <img src="${imgSrc}" alt="" loading="lazy" onerror="this.src='/static/placeholder.png'">
+                    <div class="ebay-result-title">${escapeHtml(item.Title || '')}</div>
+                    <div class="ebay-result-meta">
+                        <span class="ebay-status-badge ${statusClass}">${statusLabel}</span>
+                        ${linkedHtml}
+                        <span class="ebay-result-price">${price}</span>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => selectEbayResult(card, {
+                    itemId: item.ItemID,
+                    title: item.Title,
+                    price: item.CurrentPrice,
+                    image_url: item.image_url,
+                    status: item.ListingStatus,
+                    linked_sku: item.linked_sku
+                }));
+                container.appendChild(card);
+            });
+        }
+
+        function selectEbayResult(card, item) {
+            // Deselect previous
+            document.querySelectorAll('.ebay-result-card.selected').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+
+            ebaySearchSelectedItem = item;
+            ebaySearchSelectedItemId = item.itemId;
+            document.getElementById('ebayCloneBtn').disabled = false;
+        }
+
+        // Clone selected eBay item: fetch full details, then populate form
+        async function cloneSelectedEbayItem() {
+            if (!ebaySearchSelectedItemId) return;
+
+            const cloneBtn = document.getElementById('ebayCloneBtn');
+            cloneBtn.disabled = true;
+            cloneBtn.textContent = 'Loading...';
+
+            try {
+                const response = await fetch(`/api/ebay/item/${ebaySearchSelectedItemId}/details`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    populateFormFromEbayClone(ebaySearchSelectedItem, null);
+                } else {
+                    populateFormFromEbayClone(ebaySearchSelectedItem, data);
+                }
+
+                // Track source draft for auto-deletion after listing
+                const itemStatus = ebaySearchSelectedItem.status || '';
+                if (itemStatus === 'Pending' || itemStatus === 'Unsold') {
+                    window._sourceEbayDraftId = ebaySearchSelectedItemId;
+                }
+
+                // Link the eBay Item ID so the comic is connected to the draft
+                // When later listed, the backend will end this draft and create a new listing
+                const ebayHiddenField = document.getElementById('ebay-item-id');
+                if (ebayHiddenField) {
+                    ebayHiddenField.value = ebaySearchSelectedItemId;
+                }
+                currentComicEbayId = ebaySearchSelectedItemId;
+
+                closeEbaySearchModal();
+                showEbayPreFillNotification();
+            } catch (error) {
+                console.error('Failed to fetch eBay item details:', error);
+                // Use basic search data as fallback
+                populateFormFromEbayClone(ebaySearchSelectedItem, null);
+                closeEbaySearchModal();
+                showEbayPreFillNotification();
+            }
+
+            cloneBtn.disabled = false;
+            cloneBtn.textContent = 'Add';
+        }
+
+        /**
+         * Populate form fields from a cloned eBay item.
+         * @param {object} searchItem - Basic data from the search result
+         * @param {object|null} details - Full details from GetItem (may be null)
+         */
+        function populateFormFromEbayClone(searchItem, details) {
+            // Title
+            const title = (details && details.Title) || searchItem.title || '';
+            setField('title', title);
+
+            // Price
+            const price = (details && details.CurrentPrice) || searchItem.price || '';
+            if (price) {
+                setField('price', parseFloat(price).toFixed(2));
+            }
+
+            // Parse structured description from eBay listing HTML template
+            // Our template format: <strong>Label</strong>...<ul><li>items</li></ul>
+            if (details && details.Description) {
+                const sections = parseEbayTemplateSections(details.Description);
+
+                if (sections.description) {
+                    setField('description', sections.description);
+                }
+                if (sections.condition) {
+                    setField('conditionDetails', sections.condition);
+                }
+                if (sections.photos) {
+                    setField('photosDetails', sections.photos);
+                }
+                if (sections.shipping) {
+                    setField('shippingDetails', sections.shipping);
+                }
+                if (sections.signoff) {
+                    setField('signoff', sections.signoff);
+                }
+
+                // Fallback: if structured parsing found no description, use plain text
+                if (!sections.description) {
+                    const descField = document.getElementById('description');
+                    if (descField && !descField.value.trim()) {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = details.Description;
+                        const plainDesc = (tmp.textContent || tmp.innerText || '').trim();
+                        if (plainDesc) {
+                            setField('description', plainDesc.substring(0, 500));
+                        }
+                    }
+                }
+            }
+
+            // Condition details from item specifics (fallback if not parsed from HTML)
+            if (details && details.ConditionDisplayName) {
+                const condField = document.getElementById('conditionDetails');
+                if (condField && !condField.value.trim()) {
+                    setField('conditionDetails', details.ConditionDisplayName);
+                }
+            }
+
+            // Item specifics → extra fields or known fields
+            if (details && details.ItemSpecifics) {
+                const specifics = details.ItemSpecifics;
+
+                // Map common eBay item specifics to form fields
+                // These are "C:" prefixed fields in the eBay export
+                const specificMappings = {
+                    'Publisher': null,       // Will be stored as extra field
+                    'Era': null,
+                    'Series Title': null,
+                    'Character': null,
+                    'Genre': null,
+                    'Artist/Writer': null,
+                    'Cover Artist': null,
+                    'Publication Year': null,
+                    'Format': null,
+                    'Grade': null,
+                    'Type': null,
+                    'Features': null,
+                    'Variant Type': null,
+                    'Issue Number': null,
+                    'Tradition': null,
+                    'Language': null,
+                    'Country of Origin': null,
+                };
+
+                // Store specifics info for display
+                let specificsSummary = [];
+                for (const [name, value] of Object.entries(specifics)) {
+                    const displayValue = Array.isArray(value) ? value.join(', ') : value;
+                    specificsSummary.push(`${name}: ${displayValue}`);
+                }
+
+                // Show cloned specifics info in description if description is empty
+                if (specificsSummary.length > 0) {
+                    const descField = document.getElementById('description');
+                    if (descField && !descField.value.trim()) {
+                        setField('description', specificsSummary.join('\n'));
+                    }
+                }
+            }
+
+            // Store the eBay item ID for reference — link to the draft
+            // This persists the connection when the comic is saved
+            if (searchItem && searchItem.itemId) {
+                const ebayHiddenField = document.getElementById('ebay-item-id');
+                if (ebayHiddenField) {
+                    ebayHiddenField.value = searchItem.itemId;
+                }
+            }
+
+            function setField(id, value) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = value;
+                    // Sync rich-text editor when setting description
+                    if (id === 'description' && window.setDescriptionEditor) {
+                        setDescriptionEditor(value);
+                    }
+                    el.dispatchEvent(new Event('change'));
+                    el.dispatchEvent(new Event('input'));
+                }
+            }
+        }
+
+        /**
+         * Parse structured eBay description HTML into individual sections.
+         * Handles the app's listing template: <strong>Label</strong>...<ul><li>items</li></ul>
+         * @param {string} html - Full HTML description from eBay
+         * @returns {object} Parsed sections: { description, condition, photos, shipping, signoff }
+         */
+        function parseEbayTemplateSections(html) {
+            const sections = {};
+            if (!html) return sections;
+
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+
+            const knownLabels = ['Title', 'Description', 'Condition', 'Photos', 'Shipping'];
+            const strongs = tmp.querySelectorAll('strong');
+
+            for (const strong of strongs) {
+                const label = strong.textContent.trim();
+                const matchedLabel = knownLabels.find(l => label === l);
+
+                if (matchedLabel) {
+                    // Walk up to the parent div, then find the next sibling's <ul>
+                    const parentDiv = strong.closest('div');
+                    if (!parentDiv) continue;
+                    let nextEl = parentDiv.nextElementSibling;
+                    if (!nextEl) continue;
+                    const ul = nextEl.querySelector('ul');
+                    if (!ul) continue;
+
+                    const items = [];
+                    for (const li of ul.querySelectorAll('li')) {
+                        const text = li.textContent.trim();
+                        if (text) items.push(text);
+                    }
+                    if (items.length > 0) {
+                        sections[matchedLabel.toLowerCase()] = items.join('\n');
+                    }
+                } else if (label && !knownLabels.includes(label)) {
+                    // Last non-label <strong> is the signoff text
+                    const cleaned = label.replace(/\s+/g, ' ').trim();
+                    if (cleaned) {
+                        sections.signoff = cleaned;
+                    }
+                }
+            }
+
+            return sections;
+        }
+
+        // Escape HTML to prevent XSS in search results
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow Enter key in text filter to prevent form submission
+        document.addEventListener('DOMContentLoaded', () => {
+            const filterInput = document.getElementById('ebayFilterInput');
+            if (filterInput) {
+                filterInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -5070,6 +6106,12 @@
 
             // ESC - Close modal or cancel edit/view
             if (e.key === 'Escape' || e.key === 'Esc') {
+                // Close eBay search modal first if open
+                const ebayModal = document.getElementById('ebaySearchModal');
+                if (ebayModal && ebayModal.classList.contains('show')) {
+                    closeEbaySearchModal();
+                    return;
+                }
                 if (isModalOpen) {
                     closeImageModal();
                 } else if ((editMode || viewMode) && !e.target.matches('input, textarea, select')) {
@@ -5462,6 +6504,16 @@
 
             // Clear previous error highlights
             document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+            const _descEditor = document.getElementById('descEditor');
+            if (_descEditor) _descEditor.classList.remove('error');
+
+            // Sync rich-text editor content to hidden field before validation
+            // (syncToHidden runs cleanEditorHtml to strip inline styles)
+            const _editable = document.getElementById('descEditable');
+            const _hidden   = document.getElementById('description');
+            if (_editable && _hidden && window._descSyncToHidden) {
+                window._descSyncToHidden();
+            }
 
             // Validate required fields - only core fields, not marketplace-specific settings
             const requiredFields = [
@@ -5480,7 +6532,13 @@
                     return; // Skip this field if element doesn't exist
                 }
                 if (!element.value || element.value.trim() === '') {
-                    element.classList.add('error');
+                    // For the description editor, highlight the editor wrapper instead
+                    if (field.id === 'description') {
+                        const editorEl = document.getElementById('descEditor');
+                        if (editorEl) editorEl.classList.add('error');
+                    } else {
+                        element.classList.add('error');
+                    }
                     emptyFields.push(field.name);
                 }
             });
@@ -6272,6 +7330,10 @@
             const pageTitle = document.getElementById('pageTitle');
             if (pageTitle) pageTitle.textContent = 'Edit Comic';
 
+            // Hide Add from eBay button in edit mode
+            const addFromEbayBtn = document.getElementById('addFromEbayBtn');
+            if (addFromEbayBtn) addFromEbayBtn.style.display = 'none';
+
             editMode = true;
             editingSKU = comic.SKU;
             removedImageUrls = [];
@@ -6386,7 +7448,10 @@
             if (categoryEl) categoryEl.value = comic.Category || '';
             if (subCategoryEl) subCategoryEl.value = comic['Sub Category'] || '';
             if (titleEl) titleEl.value = comic.Title || '';
-            if (descriptionEl) descriptionEl.value = comic.Description || '';
+            if (descriptionEl) {
+                descriptionEl.value = comic.Description || '';
+                if (window.setDescriptionEditor) setDescriptionEditor(comic.Description || '');
+            }
             if (quantityEl) quantityEl.value = comic.Quantity || '';
             if (shippingProfileEl) shippingProfileEl.value = comic['Shipping Profile'] || '';
             if (offerableEl) offerableEl.value = comic.Offerable || '';
@@ -6643,6 +7708,7 @@
             document.getElementById('comicForm').reset();
             document.getElementById('title').value = '';
             document.getElementById('description').value = '';
+            if (window.setDescriptionEditor) setDescriptionEditor('');
             document.getElementById('quantity').value = '';
             document.getElementById('price').value = '';
             document.getElementById('category').value = '';
@@ -6705,6 +7771,10 @@
             // Reset page title
             const pageTitle = document.getElementById('pageTitle');
             if (pageTitle) pageTitle.textContent = 'Add Comic';
+
+            // Show Add from eBay button (only visible in add mode)
+            const addFromEbayBtn = document.getElementById('addFromEbayBtn');
+            if (addFromEbayBtn) addFromEbayBtn.style.display = '';
 
             // Reload defaults (this now handles Condition Details, Photos Details, Shipping Details, and Signoff)
             populateForm();
@@ -6988,6 +8058,11 @@
                     input.disabled = readonly;
                 }
             });
+
+            // Handle description rich-text editor read-only state
+            if (window.setDescriptionEditorReadOnly) {
+                setDescriptionEditorReadOnly(readonly);
+            }
 
             // Also handle settings fields (eBay and WhatNot settings)
             const settingsInputs = document.querySelectorAll('#whatnotSettings input, #whatnotSettings select, #whatnotSettings textarea, #ebayAdminSettings input, #ebayAdminSettings select, #ebayAdminSettings textarea');
