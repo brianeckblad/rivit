@@ -3385,25 +3385,13 @@
             }
 
             const isListed = Boolean(currentComicEbayId);
-            const isSourceDraft = isListed && window._sourceEbayDraftId && currentComicEbayId === window._sourceEbayDraftId;
 
-            if (isListed && !isSourceDraft) {
-                // Linked to an active eBay listing — show Update, Delist, Unlink; hide List, Link
+            if (isListed) {
+                // Linked to an eBay listing (active, scheduled, or unsold)
+                // Show Update, Delist, Unlink; hide List, Link
                 if (listBtn) listBtn.style.display = 'none';
                 if (linkBtn) linkBtn.style.display = 'none';
                 if (updateBtn) updateBtn.style.display = 'flex';
-                if (delistBtn) delistBtn.style.display = 'flex';
-                if (unlinkBtn) unlinkBtn.style.display = 'flex';
-                if (menuBtn) menuBtn.classList.add('active');
-            } else if (isSourceDraft) {
-                // Linked to a draft — show List (will replace draft), Unlink; hide Update, Link
-                if (listBtn) {
-                    listBtn.style.display = 'flex';
-                    const listText = document.getElementById('ebayListMenuText');
-                    if (listText) listText.textContent = 'List on eBay';
-                }
-                if (linkBtn) linkBtn.style.display = 'none';
-                if (updateBtn) updateBtn.style.display = 'none';
                 if (delistBtn) delistBtn.style.display = 'flex';
                 if (unlinkBtn) unlinkBtn.style.display = 'flex';
                 if (menuBtn) menuBtn.classList.add('active');
