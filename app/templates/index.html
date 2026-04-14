@@ -2345,6 +2345,7 @@
                                 <div class="settings-tabs">
                                     <button type="button" class="settings-tab active" onclick="switchSettingsTab('whatnot')">WhatNot</button>
                                     <button type="button" class="settings-tab" onclick="switchSettingsTab('ebay')">eBay</button>
+                                    <button type="button" class="settings-tab" onclick="switchSettingsTab('metadata')">Metadata</button>
                                 </div>
 
                                 <!-- WhatNot Settings Tab -->
@@ -2587,6 +2588,127 @@
                                     </div>
                                     </div><!-- End of ebayAdminOnlySettings -->
                                 </div>
+
+                                <!-- Metadata Tab (eBay Item Specifics) -->
+                                <div id="metadataSettings" class="settings-tab-content">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <div style="font-size: 12px; color: var(--color-text-dim); text-transform: uppercase; letter-spacing: 0.05em;">eBay Item Specifics</div>
+                                        <button type="button" onclick="openMetadataSearchModal()" style="padding: 4px 12px; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer;">Import from eBay</button>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div class="admin-form-group">
+                                            <label for="metaPublisher">Publisher</label>
+                                            <input type="text" id="metaPublisher" name="C:Publisher" class="admin-input" placeholder="e.g. Marvel Comics">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaSeriesTitle">Series Title</label>
+                                            <input type="text" id="metaSeriesTitle" name="C:Series Title" class="admin-input" placeholder="e.g. Amazing Spider-Man">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaIssueNumber">Issue Number</label>
+                                            <input type="text" id="metaIssueNumber" name="C:Issue Number" class="admin-input" placeholder="e.g. 300">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaPublicationYear">Publication Year</label>
+                                            <input type="text" id="metaPublicationYear" name="C:Publication Year" class="admin-input" placeholder="e.g. 2022">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaCharacter">Character</label>
+                                            <input type="text" id="metaCharacter" name="C:Character" class="admin-input" placeholder="e.g. Spider-Man">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaArtistWriter">Artist/Writer</label>
+                                            <input type="text" id="metaArtistWriter" name="C:Artist/Writer" class="admin-input" placeholder="e.g. Todd McFarlane">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaCoverArtist">Cover Artist</label>
+                                            <input type="text" id="metaCoverArtist" name="C:Cover Artist" class="admin-input" placeholder="e.g. Jim Lee">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaGenre">Genre</label>
+                                            <input type="text" id="metaGenre" name="C:Genre" class="admin-input" placeholder="e.g. Superhero">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaEra">Era</label>
+                                            <input type="text" id="metaEra" name="C:Era" class="admin-input" placeholder="e.g. Modern Age (1992-Now)">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaFormat">Format</label>
+                                            <input type="text" id="metaFormat" name="C:Format" class="admin-input" placeholder="e.g. Single Issue">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaType">Type</label>
+                                            <input type="text" id="metaType" name="C:Type" class="admin-input" placeholder="e.g. Comic Book">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaGrade">Grade</label>
+                                            <input type="text" id="metaGrade" name="C:Grade" class="admin-input" placeholder="e.g. Near Mint">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaUniverse">Universe</label>
+                                            <input type="text" id="metaUniverse" name="C:Universe" class="admin-input" placeholder="e.g. Marvel Universe">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaSuperheroTeam">Superhero Team</label>
+                                            <input type="text" id="metaSuperheroTeam" name="C:Superhero Team" class="admin-input" placeholder="e.g. Avengers">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaTradition">Tradition</label>
+                                            <input type="text" id="metaTradition" name="C:Tradition" class="admin-input" placeholder="e.g. US Comics">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaFeatures">Features</label>
+                                            <input type="text" id="metaFeatures" name="C:Features" class="admin-input" placeholder="e.g. Variant Cover">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaVariantType">Variant Type</label>
+                                            <input type="text" id="metaVariantType" name="C:Variant Type" class="admin-input" placeholder="e.g. Exclusive">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaLanguage">Language</label>
+                                            <input type="text" id="metaLanguage" name="C:Language" class="admin-input" placeholder="e.g. English">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaConventionEvent">Convention/Event</label>
+                                            <input type="text" id="metaConventionEvent" name="C:Convention/Event" class="admin-input" placeholder="e.g. SDCC 2022">
+                                        </div>
+                                        <div class="admin-form-group">
+                                            <label for="metaStoryTitle">Story Title</label>
+                                            <input type="text" id="metaStoryTitle" name="C:Story Title" class="admin-input" placeholder="e.g. Venom">
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border-hover);">
+                                        <div style="font-size: 12px; color: var(--color-text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">Grading & Authentication</div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                            <div class="admin-form-group">
+                                                <label for="metaProfessionalGrader">Professional Grader</label>
+                                                <input type="text" id="metaProfessionalGrader" name="C:Professional Grader" class="admin-input" placeholder="e.g. CGC">
+                                            </div>
+                                            <div class="admin-form-group">
+                                                <label for="metaCertificationNumber">Certification Number</label>
+                                                <input type="text" id="metaCertificationNumber" name="C:Certification Number" class="admin-input" placeholder="e.g. 1234567890">
+                                            </div>
+                                            <div class="admin-form-group">
+                                                <label for="metaSigned">Signed</label>
+                                                <select id="metaSigned" name="C:Signed" class="admin-input">
+                                                    <option value="">—</option>
+                                                    <option value="Yes">Yes</option>
+                                                    <option value="No">No</option>
+                                                </select>
+                                            </div>
+                                            <div class="admin-form-group">
+                                                <label for="metaSignedBy">Signed By</label>
+                                                <input type="text" id="metaSignedBy" name="C:Signed By" class="admin-input" placeholder="e.g. Stan Lee">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 8px; font-size: 11px; color: var(--color-text-dim);">
+                                        These fields are sent as eBay Item Specifics when listing. Use "Import from eBay" to auto-fill from a matching listing.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2669,6 +2791,9 @@
                         </button>
                         <button type="button" class="menu-item" id="ebayUnlinkMenuBtn" style="color: var(--color-text-dim);" onclick="unlinkFromEbay(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
                             <span>Unlink from eBay</span>
+                        </button>
+                        <button type="button" class="menu-item" id="ebayMetadataMenuBtn" onclick="openMetadataSearchModal(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
+                            <span>Import eBay Metadata</span>
                         </button>
                     </div>
                 </div>
@@ -5684,6 +5809,263 @@
         }
 
         // =====================================================================
+        // Import eBay Metadata — search marketplace and import Item Specifics
+        // =====================================================================
+
+        // Mapping from eBay ItemSpecifics names to form field IDs
+        const METADATA_FIELD_MAP = {
+            'Publisher': 'metaPublisher',
+            'Series Title': 'metaSeriesTitle',
+            'Issue Number': 'metaIssueNumber',
+            'Publication Year': 'metaPublicationYear',
+            'Character': 'metaCharacter',
+            'Artist/Writer': 'metaArtistWriter',
+            'Cover Artist': 'metaCoverArtist',
+            'Genre': 'metaGenre',
+            'Era': 'metaEra',
+            'Format': 'metaFormat',
+            'Type': 'metaType',
+            'Grade': 'metaGrade',
+            'Universe': 'metaUniverse',
+            'Superhero Team': 'metaSuperheroTeam',
+            'Tradition': 'metaTradition',
+            'Features': 'metaFeatures',
+            'Variant Type': 'metaVariantType',
+            'Language': 'metaLanguage',
+            'Convention/Event': 'metaConventionEvent',
+            'Story Title': 'metaStoryTitle',
+            'Professional Grader': 'metaProfessionalGrader',
+            'Certification Number': 'metaCertificationNumber',
+            'Signed': 'metaSigned',
+            'Signed By': 'metaSignedBy',
+        };
+
+        function openMetadataSearchModal() {
+            // Create or show the metadata search modal
+            let modal = document.getElementById('metadataSearchModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'metadataSearchModal';
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--overlay-medium);z-index:1000;display:flex;align-items:center;justify-content:center;';
+                modal.innerHTML = `
+                    <div style="background:var(--color-surface);border:1px solid var(--color-elevated);border-radius:var(--radius-lg);width:90%;max-width:800px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
+                        <div style="padding:20px 24px;border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;">
+                            <h2 style="margin:0;color:var(--color-accent);font-size:18px;">Import eBay Metadata</h2>
+                            <button onclick="closeMetadataSearchModal()" style="background:none;border:none;color:var(--color-text-muted);font-size:24px;cursor:pointer;">&times;</button>
+                        </div>
+                        <div style="padding:16px 24px;border-bottom:1px solid var(--color-border);">
+                            <div style="display:flex;gap:8px;">
+                                <input type="text" id="metadataSearchInput" placeholder="Search eBay for a matching item..." style="flex:1;padding:10px 14px;background:var(--color-inset);border:1px solid var(--color-border-hover);border-radius:var(--radius-sm);color:var(--color-text);font-size:14px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchEbayForMetadata();}">
+                                <button onclick="searchEbayForMetadata()" style="padding:10px 20px;background:var(--color-accent);color:var(--color-bg);border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;white-space:nowrap;">Search</button>
+                            </div>
+                            <div style="font-size:11px;color:var(--color-text-dim);margin-top:6px;">Search the eBay marketplace for a similar item. Select one to import its Item Specifics (Publisher, Era, Grade, etc.)</div>
+                        </div>
+                        <div id="metadataSearchResults" style="flex:1;overflow-y:auto;padding:16px 24px;">
+                            <div style="text-align:center;color:var(--color-text-dim);padding:40px 0;">Enter a title and click Search to find matching eBay items</div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } else {
+                modal.style.display = 'flex';
+            }
+
+            // Pre-fill search with current title
+            const titleInput = document.getElementById('title');
+            const searchInput = document.getElementById('metadataSearchInput');
+            if (titleInput && searchInput && titleInput.value.trim()) {
+                searchInput.value = titleInput.value.trim();
+            }
+        }
+
+        function closeMetadataSearchModal() {
+            const modal = document.getElementById('metadataSearchModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function searchEbayForMetadata() {
+            const searchInput = document.getElementById('metadataSearchInput');
+            const resultsContainer = document.getElementById('metadataSearchResults');
+            const query = searchInput ? searchInput.value.trim() : '';
+
+            if (!query) {
+                resultsContainer.innerHTML = '<div style="text-align:center;color:var(--color-danger);padding:20px;">Please enter a search term</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = '<div style="text-align:center;color:var(--color-text-muted);padding:40px;"><span class="loading-spinner" style="display:inline-block;width:20px;height:20px;border:2px solid var(--color-border);border-top-color:var(--color-accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:8px;vertical-align:middle;"></span>Searching eBay...</div>';
+
+            try {
+                const response = await fetch('/api/ebay/search-active', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    },
+                    body: JSON.stringify({ title: query, limit: 12 })
+                });
+
+                const data = await response.json();
+
+                if (!data.success || !data.results || data.results.length === 0) {
+                    const errorMsg = data.error || 'No results found';
+                    const isRateLimit = errorMsg.toLowerCase().includes('rate') || errorMsg.toLowerCase().includes('exceeded');
+                    resultsContainer.innerHTML = `<div style="text-align:center;color:var(--color-text-muted);padding:40px;">
+                        <div style="margin-bottom:8px;">${isRateLimit ? '⚠️ eBay API rate limit reached. Try again in a minute.' : 'No matching items found on eBay.'}</div>
+                        <div style="font-size:12px;color:var(--color-text-dim);">Try adjusting your search terms</div>
+                    </div>`;
+                    return;
+                }
+
+                renderMetadataSearchResults(data.results);
+
+            } catch (error) {
+                console.error('Metadata search error:', error);
+                resultsContainer.innerHTML = '<div style="text-align:center;color:var(--color-danger);padding:20px;">Search failed. Please try again.</div>';
+            }
+        }
+
+        function renderMetadataSearchResults(results) {
+            const container = document.getElementById('metadataSearchResults');
+            let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">';
+
+            results.forEach((item, index) => {
+                const title = item.title || 'Untitled';
+                const price = item.currentPrice || item.soldPrice || '';
+                const imageUrl = item.imageUrl || item.galleryURL || '';
+                const itemId = item.itemId || '';
+                const url = item.url || item.viewItemURL || '';
+
+                html += `
+                    <div class="metadata-result-card" style="background:var(--color-elevated);border:1px solid var(--color-border);border-radius:var(--radius-md);overflow:hidden;cursor:pointer;transition:border-color 0.2s;" onclick="selectMetadataItem('${itemId}', this)" onmouseenter="this.style.borderColor='var(--color-accent)'" onmouseleave="if(!this.classList.contains('selected'))this.style.borderColor='var(--color-border)'">
+                        <div style="height:140px;background:var(--color-inset);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                            ${imageUrl ? `<img src="${imageUrl}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;">` : '<div style="color:var(--color-text-dim);font-size:32px;">🖼️</div>'}
+                        </div>
+                        <div style="padding:10px;">
+                            <div style="font-size:12px;color:var(--color-text);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(title)}</div>
+                            ${price ? `<div style="font-size:13px;color:var(--color-accent);font-weight:600;margin-top:4px;">${price}</div>` : ''}
+                            ${url ? `<a href="${url}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--color-info);text-decoration:none;display:block;margin-top:4px;">View on eBay →</a>` : ''}
+                        </div>
+                        <div id="metaStatus_${index}" style="padding:0 10px 10px;font-size:11px;color:var(--color-text-dim);display:none;"></div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function selectMetadataItem(itemId, cardEl) {
+            if (!itemId) return;
+
+            // Deselect previous
+            document.querySelectorAll('.metadata-result-card.selected').forEach(c => {
+                c.classList.remove('selected');
+                c.style.borderColor = 'var(--color-border)';
+            });
+
+            // Select this card
+            cardEl.classList.add('selected');
+            cardEl.style.borderColor = 'var(--color-accent)';
+
+            // Find the status div for this card
+            const statusDiv = cardEl.querySelector('[id^="metaStatus_"]');
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.innerHTML = '<span style="color:var(--color-accent);">Loading specifics...</span>';
+            }
+
+            try {
+                const response = await fetch(`/api/ebay/item/${itemId}/details`);
+                const data = await response.json();
+
+                if (!data.success || !data.ItemSpecifics) {
+                    if (statusDiv) statusDiv.innerHTML = '<span style="color:var(--color-warning);">No Item Specifics found for this listing</span>';
+                    return;
+                }
+
+                const specifics = data.ItemSpecifics;
+                const fieldCount = Object.keys(specifics).length;
+
+                // Show the specifics in the card
+                let previewHtml = `<div style="color:var(--color-success);margin-bottom:6px;">✓ ${fieldCount} fields found</div>`;
+                const previewFields = Object.entries(specifics).slice(0, 5);
+                previewFields.forEach(([name, value]) => {
+                    const displayVal = Array.isArray(value) ? value.join(', ') : value;
+                    previewHtml += `<div style="color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><strong>${escapeHtml(name)}:</strong> ${escapeHtml(displayVal)}</div>`;
+                });
+                if (fieldCount > 5) previewHtml += `<div style="color:var(--color-text-dim);">+ ${fieldCount - 5} more...</div>`;
+                previewHtml += `<button onclick="event.stopPropagation();applyMetadataFromEbay(${JSON.stringify(specifics).replace(/"/g, '&quot;')})" style="margin-top:8px;width:100%;padding:8px;background:var(--color-accent);color:var(--color-bg);border:none;border-radius:var(--radius-sm);font-weight:600;font-size:12px;cursor:pointer;">Apply Metadata</button>`;
+
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = previewHtml;
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch item details:', error);
+                if (statusDiv) statusDiv.innerHTML = '<span style="color:var(--color-danger);">Failed to load details</span>';
+            }
+        }
+
+        function applyMetadataFromEbay(specifics) {
+            let appliedCount = 0;
+
+            for (const [ebayName, value] of Object.entries(specifics)) {
+                const fieldId = METADATA_FIELD_MAP[ebayName];
+                if (!fieldId) continue;
+
+                const field = document.getElementById(fieldId);
+                if (!field) continue;
+
+                const displayVal = Array.isArray(value) ? value.join(', ') : String(value);
+
+                if (field.tagName === 'SELECT') {
+                    // Try to set select value, check if option exists
+                    const options = Array.from(field.options).map(o => o.value);
+                    if (options.includes(displayVal)) {
+                        field.value = displayVal;
+                        appliedCount++;
+                    }
+                } else {
+                    field.value = displayVal;
+                    appliedCount++;
+                }
+            }
+
+            closeMetadataSearchModal();
+            // Switch to the metadata tab so user can see the imported fields
+            switchSettingsTab('metadata');
+            showNotification(`✓ Imported ${appliedCount} metadata fields from eBay`, 'success');
+        }
+
+        // Populate metadata fields when loading a comic for editing
+        function populateMetadataFields(comic) {
+            for (const [ebayName, fieldId] of Object.entries(METADATA_FIELD_MAP)) {
+                const csvKey = 'C:' + ebayName;
+                const value = comic[csvKey] || '';
+                const field = document.getElementById(fieldId);
+                if (field && value) {
+                    field.value = value;
+                }
+            }
+        }
+
+        // Clear all metadata fields (for new item form reset)
+        function clearMetadataFields() {
+            for (const fieldId of Object.values(METADATA_FIELD_MAP)) {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    if (field.tagName === 'SELECT') {
+                        field.selectedIndex = 0;
+                    } else {
+                        field.value = '';
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
         // Add from eBay — browse own listings and clone
         // =====================================================================
         let ebaySearchSelectedItem = null;
@@ -5991,6 +6373,21 @@
                     const descField = document.getElementById('description');
                     if (descField && !descField.value.trim()) {
                         setField('description', specificsSummary.join('\n'));
+                    }
+                }
+
+                // Also populate the metadata form fields from the cloned specifics
+                for (const [ebayName, value] of Object.entries(specifics)) {
+                    const fieldId = METADATA_FIELD_MAP[ebayName];
+                    if (!fieldId) continue;
+                    const field = document.getElementById(fieldId);
+                    if (!field) continue;
+                    const displayVal = Array.isArray(value) ? value.join(', ') : String(value);
+                    if (field.tagName === 'SELECT') {
+                        const options = Array.from(field.options).map(o => o.value);
+                        if (options.includes(displayVal)) field.value = displayVal;
+                    } else {
+                        field.value = displayVal;
                     }
                 }
             }
@@ -7528,6 +7925,10 @@
                 }
             }
             displayExistingImages();
+
+            // Populate eBay metadata fields (C: prefixed item specifics)
+            populateMetadataFields(comic);
+
             document.querySelectorAll('.comics-table tbody tr').forEach(row => {
                 row.classList.remove('editing');
                 if (String(row.dataset.sku) === String(comic.SKU)) {
@@ -7779,6 +8180,10 @@
             // Clear edit mode
             editMode = false;
             editingSKU = null;
+
+            // Clear metadata fields
+            clearMetadataFields();
+
             document.getElementById('submitBtn').querySelector('.btn-text').textContent = 'Save';
             document.getElementById('submitBtn').disabled = false;
             document.getElementById('submitBtn').style.opacity = '1';
@@ -7868,6 +8273,7 @@
             const tabs = document.querySelectorAll('.settings-tab');
             const whatnotContent = document.getElementById('whatnotSettings');
             const ebayContent = document.getElementById('ebayAdminSettings');
+            const metadataContent = document.getElementById('metadataSettings');
             if (!whatnotContent || !ebayContent) {
                 console.error('[switchSettingsTab] Missing content containers!');
                 return;
@@ -7879,6 +8285,7 @@
             // Hide all content
             whatnotContent.classList.remove('active');
             ebayContent.classList.remove('active');
+            if (metadataContent) metadataContent.classList.remove('active');
 
             // Activate selected tab and content
             if (tabName === 'whatnot') {
@@ -7887,6 +8294,9 @@
             } else if (tabName === 'ebay') {
                 if (tabs[1]) tabs[1].classList.add('active');
                 ebayContent.classList.add('active');
+            } else if (tabName === 'metadata') {
+                if (tabs[2]) tabs[2].classList.add('active');
+                if (metadataContent) metadataContent.classList.add('active');
             }
         }
         window.switchSettingsTab = switchSettingsTab;

@@ -1061,6 +1061,14 @@ def build_trading_item(comic, overrides=None, mode='list', include_item_id=False
     from flask import current_app
 
     ebay_fields = populate_ebay_fields_from_item(comic)
+
+    # Merge C: prefixed item specifics from comic's extra_fields
+    # These are stored in the CSV as extra columns (e.g. C:Publisher, C:Era)
+    if hasattr(comic, 'extra_fields') and comic.extra_fields:
+        for key, value in comic.extra_fields.items():
+            if key.startswith('C:') and value:
+                ebay_fields[key] = value
+
     pictures = [url for url in getattr(comic, 'image_urls', []) if url]
 
     current_app.logger.debug(f"[build_trading_item] SKU {comic.sku}: comic.image_urls = {getattr(comic, 'image_urls', [])}")
@@ -1235,10 +1243,10 @@ def build_trading_item(comic, overrides=None, mode='list', include_item_id=False
     item['Site'] = 'US'
     item['AutoPay'] = False
 
-    # ItemSpecifics - REMOVED, not in working sample
-    # specifics = _build_item_specifics(ebay_fields)
-    # if specifics:
-    #     item['ItemSpecifics'] = {'NameValueList': specifics}
+    # ItemSpecifics — send C: prefixed fields from the comic's extra_fields
+    specifics = _build_item_specifics(ebay_fields)
+    if specifics:
+        item['ItemSpecifics'] = {'NameValueList': specifics}
 
     # Apply mode-specific overrides (draft, future listing, etc.)
     item = _apply_mode_overrides(item, mode=mode, schedule_time_override=schedule_time)
