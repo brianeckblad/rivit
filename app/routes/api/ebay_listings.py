@@ -360,97 +360,18 @@ def get_ebay_listings() -> Response:
 
             pending_count = len(all_listings) - active_count
 
-            # --- Fetch UNSOLD (ended) listings ---
-            page_counter = 1
-            while page_counter <= 10:  # Limit to 10 pages for unsold (can be many)
-                try:
-                    payload = {
-                        'UnsoldList': {
-                            'Pagination': {
-                                'EntriesPerPage': 100,
-                                'PageNumber': page_counter
-                            },
-                            'Include': 'true',
-                            'DurationInDays': 30,
-                        },
-                        'DetailLevel': 'ReturnAll',
-                        'OutputSelector': [
-                            'ItemID',
-                            'Title',
-                            'SellingStatus',
-                            'PrimaryCategory',
-                            'PictureDetails',
-                            'ListingType',
-                            'Quantity',
-                            'QuantitySold',
-                            'WatchCount',
-                            'ListingDetails',
-                        ]
-                    }
-
-                    current_app.logger.info(f"eBay API call: GetMyeBaySelling UnsoldList page {page_counter}")
-                    response = ebay_service._execute_trading_call('GetMyeBaySelling', payload, environment=environment, mode='read')
-
-                    if response and hasattr(response.reply, 'UnsoldList'):
-                        unsold_list = response.reply.UnsoldList
-                        items = unsold_list.ItemArray.Item if hasattr(unsold_list, 'ItemArray') else []
-
-                        if not isinstance(items, list):
-                            items = [items] if items else []
-
-                        current_app.logger.info(f"eBay API returned {len(items)} unsold items on page {page_counter}")
-
-                        if not items:
-                            break
-
-                        for item in items:
-                            parsed = _parse_item(item, 'Unsold')
-                            if parsed:
-                                # Filter out items ended by the seller (deleted/ended manually)
-                                # Keep only items that expired naturally (relisting candidates)
-                                end_reason = parsed.get('EndReason', '')
-                                if end_reason in ('NotAvailable', 'Incorrect', 'LostOrBroken',
-                                                  'OtherListingError', 'SellToHighBidder',
-                                                  'ProductDeleted'):
-                                    current_app.logger.debug(
-                                        f"Filtering out seller-ended unsold item: {parsed['Title']} (reason: {end_reason})")
-                                    continue
-                                all_listings.append(parsed)
-                                total_fetched += 1
-
-                        # Check if more pages
-                        try:
-                            pagination = getattr(unsold_list, 'PaginationResult', None)
-                            if pagination:
-                                total_pages = int(getattr(pagination, 'TotalNumberOfPages', 1) or 1)
-                                if page_counter >= total_pages:
-                                    break
-                        except Exception:
-                            pass
-
-                        page_counter += 1
-                    else:
-                        break
-
-                except Exception as e:
-                    current_app.logger.error(f"eBay fetch error UnsoldList page {page_counter}: {e}")
-                    break
-
-            unsold_count = len(all_listings) - active_count - pending_count
-
-            # Sort: pending first, then active, then unsold — alphabetically within each group
-            status_order = {'Pending': 0, 'Active': 1, 'Unsold': 2}
+            # Sort: pending first, then active — alphabetically within each group
+            status_order = {'Pending': 0, 'Active': 1}
             all_listings.sort(key=lambda x: (status_order.get(x['ListingStatus'], 3), x['Title'].lower()))
 
             # Cache the results for 1 hour
-            current_app.logger.info(f"Caching {len(all_listings)} eBay listings ({active_count} active, {pending_count} scheduled, {unsold_count} unsold)")
+            current_app.logger.info(f"Caching {len(all_listings)} eBay listings ({active_count} active, {pending_count} scheduled)")
             current_app.ebay_cache[cache_key] = {
                 'listings': all_listings,
                 'fetched_at': datetime.now().isoformat(),
                 'total_fetched': total_fetched,
                 'active_count': active_count,
                 'pending_count': pending_count,
-                'unsold_count': unsold_count,
             }
 
         # Now paginate from cached results
@@ -464,9 +385,8 @@ def get_ebay_listings() -> Response:
         cached_data = current_app.ebay_cache.get(cache_key, {})
         active_count = cached_data.get('active_count', total_count)
         pending_count = cached_data.get('pending_count', 0)
-        unsold_count = cached_data.get('unsold_count', 0)
 
-        current_app.logger.info(f"Page {page_number}: {len(page_listings)} listings of {total_count} total ({active_count} active, {pending_count} scheduled, {unsold_count} unsold)")
+        current_app.logger.info(f"Page {page_number}: {len(page_listings)} listings of {total_count} total ({active_count} active, {pending_count} scheduled)")
 
         return jsonify({
             'success': True,
@@ -477,7 +397,6 @@ def get_ebay_listings() -> Response:
             'total_count': total_count,
             'active_count': active_count,
             'pending_count': pending_count,
-            'unsold_count': unsold_count,
             'has_more': has_more,
         })
 

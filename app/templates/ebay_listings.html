@@ -541,7 +541,7 @@
                     ×
                 </button>
             </div>
-            <p>View your active, scheduled, and ended eBay listings</p>
+            <p>View your active and scheduled eBay listings</p>
             <button onclick="refreshFromEbay(event)" style="padding: 8px 16px; background: var(--color-info); color: var(--color-text); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 12px;">
                 🔄 Refresh from eBay
             </button>
@@ -562,10 +562,6 @@
             <div class="stat-card">
                 <div class="stat-label">Scheduled</div>
                 <div class="stat-value" id="pendingListings">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Unsold / Ended</div>
-                <div class="stat-value" id="unsoldListings">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Total Inventory Value</div>
@@ -593,9 +589,6 @@
             <button class="filter-tab" data-filter="pending" onclick="filterListings('pending')">
                 Scheduled <span class="tab-count" id="tabCountPending">0</span>
             </button>
-            <button class="filter-tab" data-filter="unsold" onclick="filterListings('unsold')">
-                Unsold <span class="tab-count" id="tabCountUnsold">0</span>
-            </button>
         </div>
 
         <!-- Loading State -->
@@ -620,14 +613,14 @@
             <div class="empty-state-icon">📦</div>
             <p><strong>No Published Listings Found</strong></p>
             <p style="font-size: 13px; margin-top: 16px; color: var(--color-text); line-height: 1.6;">
-                Your eBay account doesn't have any active, scheduled, or ended listings.
+                Your eBay account doesn't have any active or scheduled listings.
             </p>
             <p style="font-size: 13px; margin-top: 12px; color: var(--color-text); line-height: 1.6;">
                 <strong>Looking for drafts?</strong> eBay drafts are only accessible through Seller Hub.<br>
                 <a href="https://www.ebay.com/sh/lst/drafts" target="_blank" rel="noopener" style="color: var(--color-info); font-weight: 500;">View your drafts on eBay ↗</a>
             </p>
             <p style="font-size: 11px; color: var(--color-text-dim); margin-top: 16px;">
-                This page shows active, scheduled, and recently ended listings from your eBay account via the API.
+                This page shows active and scheduled listings from your eBay account via the API.
                 Drafts are stored only in eBay Seller Hub and cannot be retrieved programmatically.
             </p>
         </div>
@@ -709,8 +702,7 @@
         let totalListingsCount = 0;  // Total count from API
         let activeListingsCount = 0;
         let pendingListingsCount = 0;
-        let unsoldListingsCount = 0;
-        let currentFilter = 'all';  // 'all', 'active', 'pending', or 'unsold'
+        let currentFilter = 'all';  // 'all', 'active', or 'pending'
         let currentPageStartIndex = 0;
         let currentPageEndIndex = 0;
 
@@ -808,7 +800,6 @@
                 totalListingsCount = data.total_count || 0;
                 activeListingsCount = data.active_count || 0;
                 pendingListingsCount = data.pending_count || 0;
-                unsoldListingsCount = data.unsold_count || 0;
 
                 // Start collecting all listings
                 allFetchedListings = data.listings || [];
@@ -898,7 +889,6 @@
             if (currentFilter === 'all') return allFetchedListings;
             if (currentFilter === 'active') return allFetchedListings.filter(l => l.ListingStatus === 'Active');
             if (currentFilter === 'pending') return allFetchedListings.filter(l => l.ListingStatus === 'Pending');
-            if (currentFilter === 'unsold') return allFetchedListings.filter(l => l.ListingStatus === 'Unsold');
             return allFetchedListings;
         }
 
@@ -943,13 +933,11 @@
             // Update stats
             const activeListingsEl = document.getElementById('activeListings');
             const pendingListingsEl = document.getElementById('pendingListings');
-            const unsoldListingsEl = document.getElementById('unsoldListings');
             const totalValueEl = document.getElementById('totalValue');
             const summaryStatsEl = document.getElementById('summaryStats');
 
             if (activeListingsEl) activeListingsEl.textContent = activeListingsCount;
             if (pendingListingsEl) pendingListingsEl.textContent = pendingListingsCount;
-            if (unsoldListingsEl) unsoldListingsEl.textContent = unsoldListingsCount;
             if (totalValueEl) totalValueEl.textContent = '$' + totalValue.toFixed(2);
             if (summaryStatsEl) summaryStatsEl.style.display = 'grid';
 
@@ -957,14 +945,12 @@
             const tabCountAll = document.getElementById('tabCountAll');
             const tabCountActive = document.getElementById('tabCountActive');
             const tabCountPending = document.getElementById('tabCountPending');
-            const tabCountUnsold = document.getElementById('tabCountUnsold');
             if (tabCountAll) tabCountAll.textContent = totalListingsCount;
             if (tabCountActive) tabCountActive.textContent = activeListingsCount;
             if (tabCountPending) tabCountPending.textContent = pendingListingsCount;
-            if (tabCountUnsold) tabCountUnsold.textContent = unsoldListingsCount;
 
             // Show filter tabs when there's more than one type
-            const hasMultipleTypes = (pendingListingsCount > 0 || unsoldListingsCount > 0);
+            const hasMultipleTypes = (pendingListingsCount > 0 && activeListingsCount > 0);
             const filterTabsEl = document.getElementById('filterTabs');
             if (filterTabsEl) {
                 filterTabsEl.style.display = hasMultipleTypes ? 'flex' : 'none';
@@ -1097,9 +1083,6 @@
             if (status === 'Pending') {
                 statusClass = 'status-pending';
                 statusText = '⏳ Scheduled';
-            } else if (status === 'Unsold') {
-                statusClass = 'status-unsold';
-                statusText = '○ Ended';
             } else if (status === 'Not Found' || status === 'Error') {
                 statusClass = 'status-inactive';
                 statusText = '✗ ' + status;
@@ -1141,8 +1124,7 @@
                         <div class="listing-actions-bottom">
                             ${itemId ? `<a href="${ebayUrl}" target="_blank" class="listing-btn listing-btn-view">View eBay</a>` : '<button class="listing-btn listing-btn-view" disabled>No ID</button>'}
                             <button class="listing-btn listing-btn-link${unlinkClass}" onclick="${buttonOnclick}">${buttonText}</button>
-                            ${status === 'Unsold' && linkedSku ? `<button class="listing-btn listing-btn-relist" onclick="relistFromEbay('${linkedSku}', '${itemId}')" style="background:var(--color-ebay);color:var(--color-bg);border-color:var(--color-ebay);">Relist</button>` : ''}
-                            ${(status === 'Pending' || status === 'Unsold') && itemId ? `<button class="listing-btn listing-btn-delete" onclick="deleteEbayDraft('${itemId}')" style="color:var(--color-danger);border-color:var(--color-danger);">Delete</button>` : ''}
+                            ${status === 'Pending' && itemId ? `<button class="listing-btn listing-btn-delete" onclick="deleteEbayDraft('${itemId}')" style="color:var(--color-danger);border-color:var(--color-danger);">Delete</button>` : ''}
                         </div>
                     </div>
                 </div>

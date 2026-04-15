@@ -4,6 +4,7 @@ import shutil
 import logging
 from pathlib import Path
 from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, METADATA_FIELDS, WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
+from app.utils.ebay_validators import EBAY_FIELD_NAMES
 
 # Metadata fields specific to eBay listings in the CSV
 EBAY_METADATA_FIELDS = [
@@ -29,6 +30,11 @@ EBAY_ITEM_FIELDS = [
     'eBay Package Width',     # Package width in inches
     'eBay Package Depth',     # Package depth in inches
     'eBay Immediate Pay',     # 'TRUE' or 'FALSE'
+]
+
+# eBay Item Specifics (C: prefixed) — auto-generated from EBAY_FIELD_NAMES
+EBAY_ITEM_SPECIFICS_FIELDS = [
+    v for v in EBAY_FIELD_NAMES.values() if v.startswith('C:')
 ]
 
 from app.models.comic import Comic
@@ -129,6 +135,14 @@ class CSVService:
             if field not in existing_fieldnames:
                 needs_migration = True
                 logger.info("Migration: Adding eBay item column '%s'", field)
+
+        # Add eBay Item Specifics (C: prefixed) columns
+        for field in EBAY_ITEM_SPECIFICS_FIELDS:
+            if field not in final_fieldnames:
+                final_fieldnames.append(field)
+            if field not in existing_fieldnames:
+                needs_migration = True
+                logger.info("Migration: Adding eBay item specifics column '%s'", field)
 
         # Preserve existing custom columns after metadata (but skip legacy duplicates)
         for field in existing_fieldnames:
@@ -236,7 +250,7 @@ class CSVService:
                             logger.warning(f"Could not parse price '{original_price}' for {WHATNOT_FIELD_NAMES['SKU']} {row.get(WHATNOT_FIELD_NAMES['SKU'], 'unknown')}")
 
                     # Ensure all required fields are present with defaults
-                    for field in METADATA_FIELDS + EBAY_METADATA_FIELDS + WHATNOT_LISTING_FIELDS + EBAY_ITEM_FIELDS:
+                    for field in METADATA_FIELDS + EBAY_METADATA_FIELDS + WHATNOT_LISTING_FIELDS + EBAY_ITEM_FIELDS + EBAY_ITEM_SPECIFICS_FIELDS:
                         if field not in row:
                             row[field] = ''
 
@@ -388,7 +402,7 @@ class CSVService:
 
             # Write back to CSV
             with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), quoting=csv.QUOTE_ALL)
+                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), extrasaction='ignore', quoting=csv.QUOTE_ALL)
                 csv_writer.writeheader()
                 csv_writer.writerows([comic.to_dict() for comic in comics])
 
@@ -428,7 +442,7 @@ class CSVService:
 
             # Write back to CSV
             with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), quoting=csv.QUOTE_MINIMAL)
+                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), extrasaction='ignore', quoting=csv.QUOTE_MINIMAL)
                 csv_writer.writeheader()
                 csv_writer.writerows([comic.to_dict() for comic in filtered_comics])
 
