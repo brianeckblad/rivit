@@ -503,50 +503,67 @@
 
         .cl-action-card:hover {
             transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .cl-action-card.accent {
-            background: var(--color-accent-subtle);
+            background: rgba(89, 95, 57, 0.25);
             color: var(--color-accent);
             border-color: var(--color-accent);
         }
 
+        .cl-action-card.accent:hover {
+            background: rgba(89, 95, 57, 0.35);
+        }
+
         .cl-action-card.ebay {
-            background: var(--color-ebay-subtle);
+            background: rgba(0, 191, 255, 0.15);
             color: var(--color-ebay);
             border-color: var(--color-ebay);
         }
 
+        .cl-action-card.ebay:hover {
+            background: rgba(0, 191, 255, 0.22);
+        }
+
         .cl-action-card.whatnot-brand {
-            background: var(--color-whatnot-subtle);
+            background: rgba(255, 0, 255, 0.15);
             color: var(--color-whatnot);
             border-color: var(--color-whatnot);
         }
 
+        .cl-action-card.whatnot-brand:hover {
+            background: rgba(255, 0, 255, 0.22);
+        }
+
         .cl-action-card.info {
-            background: var(--color-info-subtle);
+            background: rgba(92, 158, 184, 0.18);
             color: var(--color-info);
             border-color: var(--color-info);
         }
 
-        .cl-action-card.danger {
-            background: var(--color-danger-subtle);
-            color: var(--color-danger);
-            border-color: var(--color-danger-subtle);
+        .cl-action-card.info:hover {
+            background: rgba(92, 158, 184, 0.25);
         }
 
-        .cl-action-card.danger:hover {
+        .cl-action-card.danger {
+            background: rgba(196, 92, 92, 0.18);
+            color: var(--color-danger);
             border-color: var(--color-danger);
         }
 
+        .cl-action-card.danger:hover {
+            background: rgba(196, 92, 92, 0.25);
+        }
+
         .cl-action-card.warning {
-            background: var(--color-warning-subtle);
+            background: rgba(184, 160, 92, 0.18);
             color: var(--color-warning);
-            border-color: var(--color-warning-subtle);
+            border-color: var(--color-warning);
         }
 
         .cl-action-card.warning:hover {
-            border-color: var(--color-warning);
+            background: rgba(184, 160, 92, 0.25);
         }
 
         /* WhatNot/eBay selection option buttons */
@@ -565,25 +582,25 @@
         }
 
         .cl-option-btn.accent {
-            background: var(--color-accent-subtle);
+            background: rgba(89, 95, 57, 0.25);
             color: var(--color-accent);
             border-color: var(--color-accent);
         }
 
         .cl-option-btn.ebay {
-            background: var(--color-ebay-subtle);
+            background: rgba(0, 191, 255, 0.15);
             color: var(--color-ebay);
             border-color: var(--color-ebay);
         }
 
         .cl-option-btn.whatnot-brand {
-            background: var(--color-whatnot-subtle);
+            background: rgba(255, 0, 255, 0.15);
             color: var(--color-whatnot);
             border-color: var(--color-whatnot);
         }
 
         .cl-option-btn.info {
-            background: var(--color-info-subtle);
+            background: rgba(92, 158, 184, 0.18);
             color: var(--color-info);
             border-color: var(--color-info);
         }
