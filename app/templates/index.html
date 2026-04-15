@@ -2808,6 +2808,13 @@
                 </svg>
                 <span class="btn-text">Exit</span>
             </button>
+            <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display:none;" onclick="cancelEditMode()">
+                <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                <span class="btn-text">Cancel</span>
+            </button>
             <button type="submit" form="comicForm" class="btn btn-add-new" id="submitBtn">
                 <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -6764,6 +6771,10 @@
                 // Update the underlying data structures
                 reorderImagesData();
                 updateImageNumbers();
+
+                // Mark form as changed so Save button appears
+                formHasChanged = true;
+                refreshEbayControls();
             }
 
             return false;
@@ -6829,6 +6840,10 @@
                 // Update the underlying data structures
                 reorderImagesData();
                 updateImageNumbers();
+
+                // Mark form as changed so Save button appears
+                formHasChanged = true;
+                refreshEbayControls();
             }
 
             draggedElement = null;
@@ -7244,6 +7259,12 @@
                                 // Switch to view mode after successful save
                                 loadComicForView(comicResult.comic);
 
+                                // Auto-sync linked eBay listing in background
+                                if (comicResult.comic['eBay Item ID'] && wasEditMode) {
+                                    autoSyncEbayListing(skuToEdit);
+                                }
+
+
                                 // If this comic is listed on eBay, ensure the Update button is ready
                                 if (comicResult.comic['eBay Item ID']) {
                                     // Refresh eBay controls to ensure button state is correct
@@ -7412,6 +7433,62 @@
         }
 
         // eBay List action with confirmation
+        // Cancel edit mode — discard changes and return to view mode
+        async function cancelEditMode() {
+            if (!editingSKU) {
+                window.history.back();
+                return;
+            }
+
+            try {
+                // Fetch the current saved data from the server (discards local changes)
+                const response = await fetch(`/api/comic/${encodeURIComponent(editingSKU)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.comic) {
+                        formHasChanged = false;
+                        loadComicForView(data.comic);
+                        showNotification('Changes discarded.', 'info');
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.error('Error cancelling edit:', err);
+            }
+
+            // Fallback — try cached data
+            const cached = allComics.find(c => String(c.SKU) === String(editingSKU));
+            if (cached) {
+                formHasChanged = false;
+                loadComicForView(cached);
+                showNotification('Changes discarded.', 'info');
+            }
+        }
+
+        // Auto-sync saved data to linked eBay listing (runs silently in background)
+        async function autoSyncEbayListing(sku) {
+            try {
+                const response = await fetch(`/api/comic/${encodeURIComponent(sku)}/ebay/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    },
+                    body: JSON.stringify({ environment: 'production', mode: 'update' })
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    showNotification('eBay listing synced.', 'success');
+                } else {
+                    console.warn('eBay auto-sync failed:', result.error);
+                    showNotification('Saved locally. eBay sync failed: ' + (result.error || 'unknown error'), 'error');
+                }
+            } catch (err) {
+                console.error('eBay auto-sync error:', err);
+            }
+        }
+
+
         async function confirmEbayListAction() {
             pendingComicAction.type = 'ebay-list';
             pendingComicAction.sku = editingSKU;
@@ -7858,6 +7935,9 @@
                 submitBtn.style.opacity = '1';
             }
             if (cancelBtn) cancelBtn.disabled = false;
+            // Show cancel-edit button in edit mode
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            if (cancelEditBtn) cancelEditBtn.style.display = '';
             document.body.classList.add('edit-mode');
 
             // Update SKU in settings header
@@ -8181,6 +8261,10 @@
             // Remove edit-mode class that loadComicForEdit adds (prevents light background)
             document.body.classList.remove('edit-mode');
 
+            // Hide cancel-edit button in view mode
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            if (cancelEditBtn) cancelEditBtn.style.display = 'none';
+
             // Update page title
             const pageTitle = document.getElementById('pageTitle');
             if (pageTitle) pageTitle.textContent = 'View Comic';
@@ -8241,6 +8325,9 @@
             document.getElementById('submitBtn').disabled = false;
             document.getElementById('submitBtn').style.opacity = '1';
             document.getElementById('cancelBtn').disabled = true;
+            // Hide cancel-edit button in add mode
+            const _cancelEditBtn = document.getElementById('cancelEditBtn');
+            if (_cancelEditBtn) _cancelEditBtn.style.display = 'none';
             document.getElementById('editModeIndicator').classList.remove('show');
             document.getElementById('viewModeIndicator').classList.remove('show');
             document.body.classList.remove('edit-mode');
