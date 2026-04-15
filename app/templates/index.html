@@ -2415,14 +2415,9 @@
                             <option value="custom">Schedule (Custom Date)</option>
                         </select>
 
-                                        <!-- Locked indicator (shown when mode is locked - active listings) -->
-                                        <div id="ebayModeLockMessage" style="display:none;font-size:11px;color:var(--color-accent);padding:6px 8px;background:var(--color-elevated);border-radius:4px;border-left:3px solid var(--color-accent);">
-                                            🔒 Listing mode is locked while item is actively listed on eBay. You can still update other fields.
-                                        </div>
-
                                         <!-- Scheduled listing controls (shown for scheduled/future listings) -->
                                         <div id="ebayScheduledControls" style="display:none;font-size:11px;color:var(--color-info);padding:8px;background:var(--color-elevated);border-radius:4px;border-left:3px solid var(--color-info);margin-top:4px;">
-                                            <div style="margin-bottom:6px;">📅 This item is scheduled on eBay. The schedule cannot be changed, but you can list it immediately.</div>
+                                            <div style="margin-bottom:6px;">📅 This item is scheduled on eBay. You can change the mode or list it immediately.</div>
                                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                                 <button type="button" class="btn btn-sm btn-primary" onclick="listScheduledNow()" id="ebayListNowBtn" style="font-size:11px;padding:4px 10px;">
                                                     ⚡ List Now
@@ -3218,42 +3213,24 @@
                 modeSelect.style.opacity = '1';
             }
 
-            // Lock/unlock schedule DATE and show controls based on eBay status
-            if (isActivelyListed) {
-                // Item is actively live on eBay
-                if (lockMessage) lockMessage.style.display = 'block';
-                if (scheduledControls) scheduledControls.style.display = 'none';
-                if (scheduleInput) {
-                    scheduleInput.readOnly = true;
-                    scheduleInput.style.cursor = 'not-allowed';
-                    scheduleInput.style.opacity = '0.6';
-                }
-            } else if (isScheduled) {
-                // Item is scheduled on eBay — date is locked, but show List Now button
-                if (lockMessage) lockMessage.style.display = 'none';
+            // Show/hide schedule controls based on eBay status
+            // Dropdown is always unlocked — user can freely switch modes
+            if (lockMessage) lockMessage.style.display = 'none';
+
+            if (isScheduled) {
+                // Item is scheduled on eBay — show List Now shortcut button
                 if (scheduledControls) scheduledControls.style.display = 'block';
-                // Lock the schedule date (cannot be changed once scheduled)
-                if (scheduleInput) {
-                    scheduleInput.readOnly = true;
-                    scheduleInput.style.cursor = 'not-allowed';
-                    scheduleInput.style.opacity = '0.6';
-                }
-                // Show schedule date as read-only so user can see it
-                if (futureDateDiv) {
-                    futureDateDiv.style.display = 'flex';
-                    // Hide the day picker buttons (can't reschedule)
-                    const dayPicker = document.getElementById('scheduleDayPicker');
-                    if (dayPicker) dayPicker.style.display = 'none';
-                }
+                // Show schedule date section
+                if (futureDateDiv) futureDateDiv.style.display = 'flex';
             } else {
-                // Item is not active on eBay — everything unlocked
-                if (lockMessage) lockMessage.style.display = 'none';
                 if (scheduledControls) scheduledControls.style.display = 'none';
-                if (scheduleInput) {
-                    scheduleInput.readOnly = false;
-                    scheduleInput.style.cursor = '';
-                    scheduleInput.style.opacity = '1';
-                }
+            }
+
+            // Schedule date and day picker are always editable
+            if (scheduleInput) {
+                scheduleInput.readOnly = false;
+                scheduleInput.style.cursor = '';
+                scheduleInput.style.opacity = '1';
             }
 
             if (result.status === 'active') {
