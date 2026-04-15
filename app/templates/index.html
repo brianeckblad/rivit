@@ -2786,6 +2786,9 @@
                         <button type="button" class="menu-item" id="ebayUpdateMenuBtn" onclick="confirmEbayUpdateAction(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
                             <span>Update on eBay</span>
                         </button>
+                        <button type="button" class="menu-item" id="ebayUpdateFromMenuBtn" onclick="updateFromEbay(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
+                            <span>Update from eBay</span>
+                        </button>
                         <button type="button" class="menu-item" id="ebayDelistMenuBtn" onclick="confirmEbayDelistAction(editingSKU); document.getElementById('ebayMenuDropdown').classList.remove('show');">
                             <span>Delist from eBay</span>
                         </button>
@@ -3486,6 +3489,7 @@
             const listBtn = document.getElementById('ebayListMenuBtn');
             const linkBtn = document.getElementById('ebayLinkMenuBtn');
             const updateBtn = document.getElementById('ebayUpdateMenuBtn');
+            const updateFromBtn = document.getElementById('ebayUpdateFromMenuBtn');
             const delistBtn = document.getElementById('ebayDelistMenuBtn');
             const unlinkBtn = document.getElementById('ebayUnlinkMenuBtn');
             const menuBtn = document.getElementById('ebayMenuBtn');
@@ -3512,18 +3516,20 @@
 
             if (isListed) {
                 // Linked to an eBay listing (active, scheduled, or unsold)
-                // Show Update, Delist, Unlink; hide List, Link
+                // Show Update, Update From, Delist, Unlink; hide List, Link
                 if (listBtn) listBtn.style.display = 'none';
                 if (linkBtn) linkBtn.style.display = 'none';
                 if (updateBtn) updateBtn.style.display = 'flex';
+                if (updateFromBtn) updateFromBtn.style.display = 'flex';
                 if (delistBtn) delistBtn.style.display = 'flex';
                 if (unlinkBtn) unlinkBtn.style.display = 'flex';
                 if (menuBtn) menuBtn.classList.add('active');
             } else {
-                // Not linked — show List, Link; hide Update, Delist, Unlink
+                // Not linked — show List, Link; hide Update, Update From, Delist, Unlink
                 if (listBtn) listBtn.style.display = 'flex';
                 if (linkBtn) linkBtn.style.display = 'flex';
                 if (updateBtn) updateBtn.style.display = 'none';
+                if (updateFromBtn) updateFromBtn.style.display = 'none';
                 if (delistBtn) delistBtn.style.display = 'none';
                 if (unlinkBtn) unlinkBtn.style.display = 'none';
                 if (menuBtn) menuBtn.classList.remove('active');
@@ -6291,6 +6297,19 @@
             cloneBtn.textContent = 'Add';
         }
 
+        function setField(id, value) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = value;
+                // Sync rich-text editor when setting description
+                if (id === 'description' && window.setDescriptionEditor) {
+                    setDescriptionEditor(value);
+                }
+                el.dispatchEvent(new Event('change'));
+                el.dispatchEvent(new Event('input'));
+            }
+        }
+
         /**
          * Populate form fields from a cloned eBay item.
          * @param {object} searchItem - Basic data from the search result
@@ -6413,19 +6432,6 @@
                 const ebayHiddenField = document.getElementById('ebay-item-id');
                 if (ebayHiddenField) {
                     ebayHiddenField.value = searchItem.itemId;
-                }
-            }
-
-            function setField(id, value) {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.value = value;
-                    // Sync rich-text editor when setting description
-                    if (id === 'description' && window.setDescriptionEditor) {
-                        setDescriptionEditor(value);
-                    }
-                    el.dispatchEvent(new Event('change'));
-                    el.dispatchEvent(new Event('input'));
                 }
             }
         }
@@ -7424,6 +7430,98 @@
             pendingComicAction.type = 'ebay-delist';
             pendingComicAction.sku = sku;
             showComicConfirmModal('Are you sure you want to delist this item from eBay? This will end the listing immediately and it will no longer be visible to buyers.');
+        }
+
+        // Pull all values from the linked eBay listing into the local form (except images)
+        async function updateFromEbay() {
+            if (!currentComicEbayId) {
+                showNotification('This comic is not linked to an eBay listing.', 'error');
+                return;
+            }
+
+            showNotification('Fetching latest data from eBay...', 'info');
+
+            try {
+                const response = await fetch(`/api/ebay/item/${currentComicEbayId}/details`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showNotification(data.error || 'Failed to fetch eBay listing details.', 'error');
+                    return;
+                }
+
+                // --- Title ---
+                if (data.Title) {
+                    setField('title', data.Title);
+                }
+
+                // --- Price ---
+                if (data.CurrentPrice) {
+                    setField('price', Math.ceil(parseFloat(data.CurrentPrice)).toString());
+                }
+
+                // --- Quantity ---
+                if (data.Quantity) {
+                    setField('quantity', String(data.Quantity));
+                }
+
+                // --- Description (parse structured HTML from our template) ---
+                if (data.Description) {
+                    const sections = parseEbayTemplateSections(data.Description);
+                    if (sections.description) setField('description', sections.description);
+                    if (sections.condition)   setField('conditionDetails', sections.condition);
+                    if (sections.photos)      setField('photosDetails', sections.photos);
+                    if (sections.shipping)    setField('shippingDetails', sections.shipping);
+                    if (sections.signoff)     setField('signoff', sections.signoff);
+
+                    // Fallback: if structured parsing found no description, use plain text
+                    if (!sections.description) {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = data.Description;
+                        const plainDesc = (tmp.textContent || tmp.innerText || '').trim();
+                        if (plainDesc) setField('description', plainDesc.substring(0, 500));
+                    }
+                }
+
+                // --- Condition ---
+                if (data.ConditionDisplayName) {
+                    const condField = document.getElementById('conditionDetails');
+                    if (condField && !condField.value.trim()) {
+                        setField('conditionDetails', data.ConditionDisplayName);
+                    }
+                }
+
+                // --- eBay Category ---
+                if (data.CategoryID) {
+                    const catIdField = document.getElementById('ebayCategoryId');
+                    const catNameField = document.getElementById('ebayCategoryName');
+                    if (catIdField) catIdField.value = data.CategoryID;
+                    if (catNameField) catNameField.value = data.CategoryName || '';
+                }
+
+                // --- Item Specifics → metadata form fields ---
+                if (data.ItemSpecifics) {
+                    for (const [ebayName, value] of Object.entries(data.ItemSpecifics)) {
+                        const fieldId = METADATA_FIELD_MAP[ebayName];
+                        if (!fieldId) continue;
+                        const field = document.getElementById(fieldId);
+                        if (!field) continue;
+                        const displayVal = Array.isArray(value) ? value.join(', ') : String(value);
+                        if (field.tagName === 'SELECT') {
+                            const options = Array.from(field.options).map(o => o.value);
+                            if (options.includes(displayVal)) field.value = displayVal;
+                        } else {
+                            field.value = displayVal;
+                        }
+                    }
+                }
+
+                showNotification('Form updated from eBay. Click Save to keep changes.', 'success');
+
+            } catch (error) {
+                console.error('Update from eBay error:', error);
+                showNotification('Failed to fetch data from eBay. Please try again.', 'error');
+            }
         }
 
         function showComicConfirmModal(message) {
