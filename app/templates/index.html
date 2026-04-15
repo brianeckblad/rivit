@@ -2438,12 +2438,11 @@
                                             <label style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Schedule Go-Live Date</label>
                                             <!-- Quick-pick buttons for common day offsets -->
                                             <div id="scheduleDayPicker" style="display:flex;gap:6px;flex-wrap:wrap;">
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(1)">1 day</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(3)">3 days</button>
                                                 <button type="button" class="schedule-day-btn" onclick="setScheduleDays(7)">7 days</button>
-                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(9)">9 days</button>
-                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(14)">14 days</button>
-                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(18)">18 days</button>
-                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(21)">21 days</button>
-                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(30)">30 days</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(12)">12 days</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(17)">Max</button>
                                             </div>
                                             <!-- Calendar date/time picker -->
                                             <div style="display:flex;align-items:center;gap:8px;">
@@ -4512,7 +4511,7 @@
 
         function updateFutureDateTime() {
             // Delegate to setScheduleDays so button highlight and label stay in sync
-            setScheduleDays(18);
+            setScheduleDays(17);
         }
 
         function toggleScheduleDateTime() {
@@ -4525,17 +4524,17 @@
                 const mode = modeSelect.value;
 
                 if (mode === 'future') {
-                    // Auto-calculate 18 days from now
-                    setScheduleDays(18);
+                    // Auto-calculate 17 days from now (eBay max is 18)
+                    setScheduleDays(17);
                     futureDiv.style.display = 'flex';
                     if (dayPicker) dayPicker.style.display = 'flex';
                 } else if (mode === 'custom') {
                     // Show calendar without auto-filling — let user pick
                     futureDiv.style.display = 'flex';
                     if (dayPicker) dayPicker.style.display = 'flex';
-                    // If no date set yet, default to 18 days
+                    // If no date set yet, default to 17 days
                     if (!futureInput.value) {
-                        setScheduleDays(18);
+                        setScheduleDays(17);
                     }
                     updateScheduleDaysLabel();
                 } else {
@@ -4575,7 +4574,11 @@
             });
             // Find the matching button
             document.querySelectorAll('.schedule-day-btn').forEach(btn => {
-                if (btn.textContent.trim() === days + ' days') {
+                const text = btn.textContent.trim();
+                const match = (days === 17 && text === 'Max') ||
+                              (days === 1 && text === '1 day') ||
+                              (text === days + ' days');
+                if (match) {
                     btn.style.border = '1px solid var(--color-accent)';
                     btn.style.background = 'var(--color-accent-subtle)';
                     btn.style.color = 'var(--color-accent)';
