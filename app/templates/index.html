@@ -3209,15 +3209,18 @@
             const isScheduled = listingStatus === 'Scheduled';
             const isActivelyListed = result.status === 'active' && !isScheduled;
 
-            // Lock/unlock listing mode based on active status
+            // Always keep the listing mode dropdown UNLOCKED so user can switch
+            // between List Now and Schedule modes
+            if (modeSelect) {
+                modeSelect.disabled = false;
+                modeSelect.title = '';
+                modeSelect.style.cursor = '';
+                modeSelect.style.opacity = '1';
+            }
+
+            // Lock/unlock schedule DATE and show controls based on eBay status
             if (isActivelyListed) {
-                // Item is actively live - LOCK the listing mode dropdown
-                if (modeSelect) {
-                    modeSelect.disabled = true;
-                    modeSelect.title = 'Listing mode is locked while item is actively listed on eBay';
-                    modeSelect.style.cursor = 'not-allowed';
-                    modeSelect.style.opacity = '0.6';
-                }
+                // Item is actively live on eBay
                 if (lockMessage) lockMessage.style.display = 'block';
                 if (scheduledControls) scheduledControls.style.display = 'none';
                 if (scheduleInput) {
@@ -3226,14 +3229,7 @@
                     scheduleInput.style.opacity = '0.6';
                 }
             } else if (isScheduled) {
-                // Item is scheduled on eBay - LOCK the mode (schedule cannot be changed)
-                // but allow "List Now" to go live immediately
-                if (modeSelect) {
-                    modeSelect.disabled = true;
-                    modeSelect.title = 'Schedule is locked once listed. Use List Now to go live immediately.';
-                    modeSelect.style.cursor = 'not-allowed';
-                    modeSelect.style.opacity = '0.6';
-                }
+                // Item is scheduled on eBay — date is locked, but show List Now button
                 if (lockMessage) lockMessage.style.display = 'none';
                 if (scheduledControls) scheduledControls.style.display = 'block';
                 // Lock the schedule date (cannot be changed once scheduled)
@@ -3250,13 +3246,7 @@
                     if (dayPicker) dayPicker.style.display = 'none';
                 }
             } else {
-                // Item is not active - UNLOCK the listing mode dropdown
-                if (modeSelect) {
-                    modeSelect.disabled = false;
-                    modeSelect.title = '';
-                    modeSelect.style.cursor = '';
-                    modeSelect.style.opacity = '1';
-                }
+                // Item is not active on eBay — everything unlocked
                 if (lockMessage) lockMessage.style.display = 'none';
                 if (scheduledControls) scheduledControls.style.display = 'none';
                 if (scheduleInput) {
