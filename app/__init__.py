@@ -102,7 +102,7 @@ def _setup_dedicated_logger(app, config_name, logger_name, log_filename, attr_na
         # Remove any existing handlers
         dedicated_logger.handlers = []
 
-        # Create rotating file handler
+        # Main handler: all messages → dedicated log file
         handler = RotatingFileHandler(
             str(log_path),
             maxBytes=10 * 1024 * 1024,  # 10MB
@@ -112,8 +112,21 @@ def _setup_dedicated_logger(app, config_name, logger_name, log_filename, attr_na
         handler.setFormatter(logging.Formatter(
             '[%(asctime)s] %(levelname)s in %(name)s: %(message)s'
         ))
-
         dedicated_logger.addHandler(handler)
+
+        # Error handler: ERROR+ also → error.log (production only)
+        if config_name == 'production':
+            error_path = log_dir / 'error.log'
+            error_handler = RotatingFileHandler(
+                str(error_path),
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=10
+            )
+            error_handler.setLevel(logging.ERROR)
+            error_handler.setFormatter(logging.Formatter(
+                '[%(asctime)s] %(levelname)s in %(name)s: %(message)s'
+            ))
+            dedicated_logger.addHandler(error_handler)
 
         # Store reference on app for easy access
         setattr(app, attr_name, dedicated_logger)
@@ -155,10 +168,13 @@ def create_app(config_name='development'):
         try:
             # Get app name from environment (required in production)
             app_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'app'))
-            log_file = Path(f'/var/log/{app_name}/app.log')
+            log_dir = Path(f'/var/log/{app_name}')
 
             # Only set up file logging if directory exists and is writable
-            if log_file.parent.exists() and os.access(log_file.parent, os.W_OK):
+            if log_dir.exists() and os.access(log_dir, os.W_OK):
+                log_file = log_dir / 'app.log'
+
+                # Main handler: INFO+ → app.log (all application messages)
                 file_handler = RotatingFileHandler(
                     str(log_file),
                     maxBytes=10 * 1024 * 1024,  # 10MB
@@ -170,6 +186,21 @@ def create_app(config_name='development'):
                 ))
                 file_handler.addFilter(UserContextFilter())
                 app.logger.addHandler(file_handler)
+
+                # Error handler: ERROR+ → error.log (errors only)
+                error_file = log_dir / 'error.log'
+                error_handler = RotatingFileHandler(
+                    str(error_file),
+                    maxBytes=10 * 1024 * 1024,  # 10MB
+                    backupCount=10
+                )
+                error_handler.setLevel(logging.ERROR)
+                error_handler.setFormatter(logging.Formatter(
+                    '[%(asctime)s] %(username)s - %(levelname)s in %(module)s: %(message)s'
+                ))
+                error_handler.addFilter(UserContextFilter())
+                app.logger.addHandler(error_handler)
+
                 app.logger.setLevel(logging.INFO)
                 app.logger.propagate = False  # Prevent propagation to gunicorn's logger
                 app.logger.addFilter(UserContextFilter())

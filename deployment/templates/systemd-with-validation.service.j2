@@ -124,8 +124,7 @@ ExecStart={{ venv_dir }}/bin/gunicorn \
     --timeout 120 \
     --access-logfile {{ log_dir }}/access.log \
     --error-logfile {{ log_dir }}/error.log \
-    --log-level info \
-    --capture-output \
+    --log-level warning \
     runapp:app
 
 # ============================================================================
@@ -156,8 +155,8 @@ PrivateTmp=true
 # ============================================================================
 # LOGGING CONFIGURATION
 # ============================================================================
-# StandardOutput: App logs written to /var/log/...
-# StandardError: App errors written to /var/log/...
+# StandardOutput: App stdout written to app.log
+# StandardError: App stderr also written to app.log (Flask handles error.log itself)
 #
 # View logs:
 #   journalctl -u {{ app_name }} -f          # Real-time follow
@@ -168,7 +167,7 @@ PrivateTmp=true
 # ============================================================================
 # Logging
 StandardOutput=append:{{ log_dir }}/app.log
-StandardError=append:{{ log_dir }}/error.log
+StandardError=append:{{ log_dir }}/app.log
 
 # ============================================================================
 # RESOURCE LIMITS

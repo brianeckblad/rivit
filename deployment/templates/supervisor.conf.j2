@@ -30,11 +30,14 @@
 #   -b: Bind address and port (127.0.0.1:8000 = localhost only)
 #   --timeout: Kill worker if request takes longer
 #   --access-logfile: Track all HTTP requests
-#   --error-logfile: Application exceptions
+#   --error-logfile: Gunicorn process errors (worker crashes, timeouts)
 #   --log-level: Verbosity (debug, info, warning, error)
-#   --capture-output: Redirect print() to logging
+#
+#   NOTE: Do NOT use --capture-output. Flask writes its own app.log and error.log
+#         via RotatingFileHandler. --capture-output would duplicate INFO into
+#         Gunicorn's error.log.
 # ============================================================================
-command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers }} -b 127.0.0.1:8000 --timeout {{ gunicorn_timeout }} --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level info --capture-output "app:create_app('production')"
+command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers }} -b 127.0.0.1:8000 --timeout {{ gunicorn_timeout }} --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level warning "app:create_app('production')"
 
 # Working directory for the process
 directory={{ app_dir }}
