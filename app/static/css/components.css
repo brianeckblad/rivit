@@ -18,6 +18,17 @@
   box-sizing: border-box;
 }
 
+/* Strip browser-default button chrome so class-based styles apply cleanly */
+button {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  border: none;
+  cursor: pointer;
+}
+
 body {
   font-family: var(--font-family);
   background: var(--color-bg);
