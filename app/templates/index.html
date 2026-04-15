@@ -6312,8 +6312,8 @@
                 if (id === 'description' && window.setDescriptionEditor) {
                     setDescriptionEditor(value);
                 }
-                el.dispatchEvent(new Event('change'));
-                el.dispatchEvent(new Event('input'));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                el.dispatchEvent(new Event('input', { bubbles: true }));
             }
         }
 
@@ -7594,6 +7594,12 @@
                 }
 
                 showNotification('Form updated from eBay. Click Save to keep changes.', 'success');
+
+                // Switch to edit mode so the Save button is visible
+                if (viewMode) {
+                    enableEditMode();
+                }
+                formHasChanged = true;
 
             } catch (error) {
                 console.error('Update from eBay error:', error);
