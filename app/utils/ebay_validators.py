@@ -881,7 +881,7 @@ def _build_item_specifics(ebay_fields):
 
     The Trading API expects NameValueList entries with:
     - Name: the specific name (e.g., 'Publisher', 'Grade')
-    - Value: a single string value (if multiple values, join with comma or create multiple entries)
+    - Value: a single string value, max 65 characters per eBay rules
 
     Args:
         ebay_fields: Dictionary of eBay fields including C: prefixed specifics
@@ -889,6 +889,8 @@ def _build_item_specifics(ebay_fields):
     Returns:
         List of NameValueList dicts or None if no specifics
     """
+    MAX_VALUE_LEN = 65  # eBay item specifics value limit
+
     specifics = []
     for key, value in ebay_fields.items():
         if not value or not isinstance(key, str) or not key.startswith('C:'):
@@ -901,12 +903,12 @@ def _build_item_specifics(ebay_fields):
         if isinstance(value, (list, tuple)):
             # For multiple values, create separate entries for each
             for v in value:
-                v_str = str(v).strip()
+                v_str = str(v).strip()[:MAX_VALUE_LEN]
                 if v_str:
                     specifics.append({'Name': name, 'Value': v_str})
         else:
             # Single value
-            v_str = str(value).strip()
+            v_str = str(value).strip()[:MAX_VALUE_LEN]
             if v_str:
                 specifics.append({'Name': name, 'Value': v_str})
 
