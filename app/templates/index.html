@@ -1262,6 +1262,24 @@
             transition: all 0.2s;
         }
 
+        .schedule-day-btn {
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--color-border-hover);
+            background: var(--color-bg);
+            color: var(--color-text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+        }
+
+        .schedule-day-btn:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+            background: var(--color-accent-subtle);
+        }
+
         .ebay-status-pill.neutral::before {
             content: '○';
             font-size: 14px;
@@ -2393,7 +2411,8 @@
                         <label for="ebayActionMode" style="font-size:11px;color:var(--color-text-muted);">Listing Mode</label>
                         <select id="ebayActionMode" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-bg);color:var(--color-text);font-size:13px;" onchange="toggleScheduleDateTime()">
                             <option value="list">List Now</option>
-                            <option value="future">List in 18 days</option>
+                            <option value="future">Schedule in 18 days</option>
+                            <option value="custom">Schedule (Custom Date)</option>
                         </select>
 
                                         <!-- Locked indicator (shown when mode is locked - active listings) -->
@@ -2414,10 +2433,23 @@
                                             </div>
                                         </div>
 
-                                        <!-- Future DateTime Display (18 days) -->
-                                        <div id="futureDateTime" style="display:none;flex-direction:column;gap:6px;margin-top:4px;">
-                                            <label for="ebayFutureDate" style="font-size:11px;color:var(--color-text-muted);">Will Go Live On</label>
-                                            <input type="datetime-local" id="ebayScheduleDate" style="padding:6px 8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-surface);color:var(--color-accent);font-size:13px;">
+                                        <!-- Future DateTime Display -->
+                                        <div id="futureDateTime" style="display:none;flex-direction:column;gap:8px;margin-top:4px;">
+                                            <label style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Schedule Go-Live Date</label>
+                                            <!-- Quick-pick buttons for common day offsets -->
+                                            <div id="scheduleDayPicker" style="display:flex;gap:6px;flex-wrap:wrap;">
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(7)">7 days</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(9)">9 days</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(14)">14 days</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(18)">18 days</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(21)">21 days</button>
+                                                <button type="button" class="schedule-day-btn" onclick="setScheduleDays(30)">30 days</button>
+                                            </div>
+                                            <!-- Calendar date/time picker -->
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <input type="datetime-local" id="ebayScheduleDate" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-surface);color:var(--color-accent);font-size:13px;">
+                                                <span id="scheduleDaysLabel" style="font-size:11px;color:var(--color-text-dim);white-space:nowrap;"></span>
+                                            </div>
                                         </div>
 
                                         <div id="manualEbayItemIdStatus" class="ebay-action-status" style="margin-top:4px;"></div>
@@ -4479,14 +4511,52 @@
         }
 
         function updateFutureDateTime() {
-            // Calculate 18 days from now and update the future date input
+            // Delegate to setScheduleDays so button highlight and label stay in sync
+            setScheduleDays(18);
+        }
+
+        function toggleScheduleDateTime() {
+            const modeSelect = document.getElementById('ebayActionMode');
+            const futureDiv = document.getElementById('futureDateTime');
+            const futureInput = document.getElementById('ebayScheduleDate');
+            const dayPicker = document.getElementById('scheduleDayPicker');
+
+            if (modeSelect && futureDiv && futureInput) {
+                const mode = modeSelect.value;
+
+                if (mode === 'future') {
+                    // Auto-calculate 18 days from now
+                    setScheduleDays(18);
+                    futureDiv.style.display = 'flex';
+                    if (dayPicker) dayPicker.style.display = 'flex';
+                } else if (mode === 'custom') {
+                    // Show calendar without auto-filling — let user pick
+                    futureDiv.style.display = 'flex';
+                    if (dayPicker) dayPicker.style.display = 'flex';
+                    // If no date set yet, default to 18 days
+                    if (!futureInput.value) {
+                        setScheduleDays(18);
+                    }
+                    updateScheduleDaysLabel();
+                } else {
+                    futureDiv.style.display = 'none';
+                    // Clear the schedule when not in future mode
+                    futureInput.value = '';
+                    userSelectedEbaySchedule = null;
+                }
+            }
+        }
+
+        /**
+         * Set the schedule date to N days from now and highlight the active button.
+         */
+        function setScheduleDays(days) {
             const futureInput = document.getElementById('ebayScheduleDate');
             if (!futureInput) return;
 
             const futureDate = new Date();
-            futureDate.setDate(futureDate.getDate() + 18);
+            futureDate.setDate(futureDate.getDate() + days);
 
-            // Format for datetime-local input (YYYY-MM-DDTHH:MM)
             const year = futureDate.getFullYear();
             const month = String(futureDate.getMonth() + 1).padStart(2, '0');
             const day = String(futureDate.getDate()).padStart(2, '0');
@@ -4495,40 +4565,55 @@
             const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
 
             futureInput.value = formattedDate;
+            userSelectedEbaySchedule = formattedDate;
+
+            // Highlight the active day button
+            document.querySelectorAll('.schedule-day-btn').forEach(btn => {
+                btn.style.border = '1px solid var(--color-border-hover)';
+                btn.style.background = 'var(--color-bg)';
+                btn.style.color = 'var(--color-text-muted)';
+            });
+            // Find the matching button
+            document.querySelectorAll('.schedule-day-btn').forEach(btn => {
+                if (btn.textContent.trim() === days + ' days') {
+                    btn.style.border = '1px solid var(--color-accent)';
+                    btn.style.background = 'var(--color-accent-subtle)';
+                    btn.style.color = 'var(--color-accent)';
+                }
+            });
+
+            updateScheduleDaysLabel();
+            formHasChanged = true;
+            refreshEbayControls();
         }
 
-        function toggleScheduleDateTime() {
-            const modeSelect = document.getElementById('ebayActionMode');
-            const futureDiv = document.getElementById('futureDateTime');
+        /**
+         * Update the "X days from now" label next to the calendar input.
+         */
+        function updateScheduleDaysLabel() {
             const futureInput = document.getElementById('ebayScheduleDate');
+            const label = document.getElementById('scheduleDaysLabel');
+            if (!futureInput || !label) return;
 
-            if (modeSelect && futureDiv && futureInput) {
-                const mode = modeSelect.value;
+            if (!futureInput.value) {
+                label.textContent = '';
+                return;
+            }
 
-                // Show/calculate 18 days from now for 'future' mode
-                if (mode === 'future') {
-                    // Calculate 18 days from now
-                    const futureDate = new Date();
-                    futureDate.setDate(futureDate.getDate() + 18);
+            const selected = new Date(futureInput.value);
+            const now = new Date();
+            const diffMs = selected - now;
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-                    // Format for datetime-local input (YYYY-MM-DDTHH:MM)
-                    const year = futureDate.getFullYear();
-                    const month = String(futureDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(futureDate.getDate()).padStart(2, '0');
-                    const hours = String(futureDate.getHours()).padStart(2, '0');
-                    const minutes = String(futureDate.getMinutes()).padStart(2, '0');
-                    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-                    futureInput.value = formattedDate;
-                    // IMPORTANT: Set the user-selected schedule when auto-calculated
-                    userSelectedEbaySchedule = formattedDate;
-                    futureDiv.style.display = 'flex';
-                } else {
-                    futureDiv.style.display = 'none';
-                    // Clear the schedule when not in future mode
-                    futureInput.value = '';
-                    userSelectedEbaySchedule = null;
-                }
+            if (diffDays <= 0) {
+                label.textContent = '(in the past)';
+                label.style.color = 'var(--color-danger)';
+            } else if (diffDays === 1) {
+                label.textContent = '(tomorrow)';
+                label.style.color = 'var(--color-text-dim)';
+            } else {
+                label.textContent = `(${diffDays} days from now)`;
+                label.style.color = 'var(--color-text-dim)';
             }
         }
 
@@ -4548,6 +4633,13 @@
         if (scheduleInputEl) {
             scheduleInputEl.addEventListener('change', (e) => {
                 userSelectedEbaySchedule = e.target.value;
+                // Deselect all quick-pick buttons (user chose a custom date)
+                document.querySelectorAll('.schedule-day-btn').forEach(btn => {
+                    btn.style.border = '1px solid var(--color-border-hover)';
+                    btn.style.background = 'var(--color-bg)';
+                    btn.style.color = 'var(--color-text-muted)';
+                });
+                updateScheduleDaysLabel();
                 formHasChanged = true;
                 refreshEbayControls();
             });
@@ -4640,7 +4732,7 @@
                     showNotification('Scheduled date must be in the future', 'error');
                     return;
                 }
-            } else if (modeValue === 'future' && !scheduleTime) {
+            } else if ((modeValue === 'future' || modeValue === 'custom') && !scheduleTime) {
                 // If no explicit schedule time, read from DOM
                 const futureDateInput = document.getElementById('ebayScheduleDate');
                 if (futureDateInput && futureDateInput.value) {
@@ -4656,13 +4748,13 @@
             activeEbayRequest = { action: modeValue };
 
             const body = {
-                mode: modeValue,
+                mode: modeValue === 'custom' ? 'future' : modeValue,
                 environment: currentEbayEnv,
                 overrides: {}
             };
 
-            // Add scheduled date if mode is schedule or future (using resolved scheduleTime)
-            if ((modeValue === 'schedule' || modeValue === 'future') && scheduleTime) {
+            // Add scheduled date if mode is schedule or future/custom (using resolved scheduleTime)
+            if ((modeValue === 'schedule' || modeValue === 'future' || modeValue === 'custom') && scheduleTime) {
                 body.schedule_time = scheduleTime;
             }
 
@@ -4756,7 +4848,8 @@
 
         function capitalizeModeLabel(mode) {
             if (mode === 'list') return 'List on eBay';
-            if (mode === 'future') return 'List in 18 Days';
+            if (mode === 'future') return 'Schedule in 18 Days';
+            if (mode === 'custom') return 'Schedule (Custom Date)';
             if (mode === 'update') return 'Update eBay Listing';
             if (mode === 'end') return 'End eBay Listing';
             return 'Run Action';
@@ -8395,6 +8488,9 @@
                 // If mode is 'future', calculate and populate the future date
                 if (modeSelect.value === 'future') {
                     updateFutureDateTime();
+                } else if (modeSelect.value === 'custom') {
+                    // Custom mode: show the picker but keep the saved date
+                    updateScheduleDaysLabel();
                 }
             }
 
