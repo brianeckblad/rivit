@@ -3467,7 +3467,8 @@
             // ONLY set default listing mode from admin defaults for NEW comics
             // For EXISTING comics being edited, the mode should already be set by loadComicForEdit()
             // DO NOT override the saved value when editing an existing comic
-            if (!editMode && !viewMode && modeSelect && modeSelect !== document.activeElement) {
+            // DO NOT override if the user has explicitly selected a mode this session
+            if (!editMode && !viewMode && !userSelectedEbayMode && modeSelect && modeSelect !== document.activeElement) {
                 // Check if adminDefaults is initialized and has the property
                 let mode = 'future'; // Default fallback
                 let source = 'hardcoded fallback';
@@ -8632,6 +8633,8 @@
             // Clear edit mode
             editMode = false;
             editingSKU = null;
+            userSelectedEbayMode = null;
+            userSelectedEbaySchedule = null;
             document.getElementById('submitBtn').querySelector('.btn-text').textContent = 'Save';
             document.getElementById('submitBtn').disabled = false;
             document.getElementById('submitBtn').style.opacity = '1';
