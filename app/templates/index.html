@@ -2411,7 +2411,7 @@
                         <label for="ebayActionMode" style="font-size:11px;color:var(--color-text-muted);">Listing Mode</label>
                         <select id="ebayActionMode" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-bg);color:var(--color-text);font-size:13px;" onchange="toggleScheduleDateTime()">
                             <option value="list">List Now</option>
-                            <option value="future">Schedule in 18 days</option>
+                            <option value="future">Schedule (Max 17 days)</option>
                             <option value="custom">Schedule (Custom Date)</option>
                         </select>
 
@@ -2422,11 +2422,8 @@
 
                                         <!-- Scheduled listing controls (shown for scheduled/future listings) -->
                                         <div id="ebayScheduledControls" style="display:none;font-size:11px;color:var(--color-info);padding:8px;background:var(--color-elevated);border-radius:4px;border-left:3px solid var(--color-info);margin-top:4px;">
-                                            <div style="margin-bottom:6px;">📅 This item is scheduled on eBay. You can change the go-live date or list it immediately.</div>
+                                            <div style="margin-bottom:6px;">📅 This item is scheduled on eBay. The schedule cannot be changed, but you can list it immediately.</div>
                                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                                <button type="button" class="btn btn-sm btn-secondary" onclick="rescheduleEbayListing()" id="ebayRescheduleBtn" style="font-size:11px;padding:4px 10px;">
-                                                    📅 Reschedule
-                                                </button>
                                                 <button type="button" class="btn btn-sm btn-primary" onclick="listScheduledNow()" id="ebayListNowBtn" style="font-size:11px;padding:4px 10px;">
                                                     ⚡ List Now
                                                 </button>
@@ -3229,23 +3226,29 @@
                     scheduleInput.style.opacity = '0.6';
                 }
             } else if (isScheduled) {
-                // Item is scheduled (future) - UNLOCK so user can reschedule
+                // Item is scheduled on eBay - LOCK the mode (schedule cannot be changed)
+                // but allow "List Now" to go live immediately
                 if (modeSelect) {
-                    modeSelect.disabled = false;
-                    modeSelect.title = 'You can change the listing mode for scheduled items';
-                    modeSelect.style.cursor = '';
-                    modeSelect.style.opacity = '1';
+                    modeSelect.disabled = true;
+                    modeSelect.title = 'Schedule is locked once listed. Use List Now to go live immediately.';
+                    modeSelect.style.cursor = 'not-allowed';
+                    modeSelect.style.opacity = '0.6';
                 }
                 if (lockMessage) lockMessage.style.display = 'none';
                 if (scheduledControls) scheduledControls.style.display = 'block';
-                // Make schedule date editable
+                // Lock the schedule date (cannot be changed once scheduled)
                 if (scheduleInput) {
-                    scheduleInput.readOnly = false;
-                    scheduleInput.style.cursor = '';
-                    scheduleInput.style.opacity = '1';
+                    scheduleInput.readOnly = true;
+                    scheduleInput.style.cursor = 'not-allowed';
+                    scheduleInput.style.opacity = '0.6';
                 }
-                // Show the schedule date section
-                if (futureDateDiv) futureDateDiv.style.display = 'flex';
+                // Show schedule date as read-only so user can see it
+                if (futureDateDiv) {
+                    futureDateDiv.style.display = 'flex';
+                    // Hide the day picker buttons (can't reschedule)
+                    const dayPicker = document.getElementById('scheduleDayPicker');
+                    if (dayPicker) dayPicker.style.display = 'none';
+                }
             } else {
                 // Item is not active - UNLOCK the listing mode dropdown
                 if (modeSelect) {
