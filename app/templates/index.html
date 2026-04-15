@@ -4557,6 +4557,7 @@
             });
 
             updateScheduleDaysLabel();
+            if (viewMode) enableEditMode();
             formHasChanged = true;
         }
 
@@ -4598,6 +4599,9 @@
                 userSelectedEbayMode = e.target.value;
                 defaultListingMode = e.target.value || defaultListingMode;
                 toggleScheduleDateTime();
+                // Enable edit mode and show save button
+                if (viewMode) enableEditMode();
+                formHasChanged = true;
             });
         }
 
@@ -4613,6 +4617,8 @@
                     btn.style.color = 'var(--color-text-muted)';
                 });
                 updateScheduleDaysLabel();
+                // Enable edit mode and show save button
+                if (viewMode) enableEditMode();
                 formHasChanged = true;
             });
         }
@@ -7588,13 +7594,25 @@
         // Auto-sync saved data to linked eBay listing (runs silently in background)
         async function autoSyncEbayListing(sku) {
             try {
+                // Include the current listing mode and schedule in the sync
+                const modeSelect = document.getElementById('ebayActionMode');
+                const scheduleInput = document.getElementById('ebayScheduleDate');
+                const syncMode = userSelectedEbayMode || (modeSelect ? modeSelect.value : 'update');
+                const syncPayload = {
+                    environment: 'production',
+                    mode: syncMode === 'list' ? 'list' : 'update'
+                };
+                // Include schedule time if in future/custom mode
+                if ((syncMode === 'future' || syncMode === 'custom') && scheduleInput && scheduleInput.value) {
+                    syncPayload.schedule_time = scheduleInput.value;
+                }
                 const response = await fetch(`/api/comic/${encodeURIComponent(sku)}/ebay/update`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': window.csrfToken
                     },
-                    body: JSON.stringify({ environment: 'production', mode: 'update' })
+                    body: JSON.stringify(syncPayload)
                 });
                 const result = await response.json();
                 if (response.ok && result.success) {
