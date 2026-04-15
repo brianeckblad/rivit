@@ -171,6 +171,33 @@
             display: none;
         }
 
+        .view-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .view-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+            font-family: var(--font-family);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: color 0.2s;
+        }
+
+        .view-btn:hover {
+            color: var(--color-text);
+        }
+
+        .view-btn.active {
+            color: var(--color-accent);
+            font-weight: 600;
+        }
+
         .container {
             max-width: 1600px;
             margin: 0 auto;
