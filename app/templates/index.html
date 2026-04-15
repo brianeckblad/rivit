@@ -2396,15 +2396,28 @@
                             <option value="future">List in 18 days</option>
                         </select>
 
-                                        <!-- Locked indicator (shown when mode is locked) -->
+                                        <!-- Locked indicator (shown when mode is locked - active listings) -->
                                         <div id="ebayModeLockMessage" style="display:none;font-size:11px;color:var(--color-accent);padding:6px 8px;background:var(--color-elevated);border-radius:4px;border-left:3px solid var(--color-accent);">
                                             🔒 Listing mode is locked while item is actively listed on eBay. You can still update other fields.
+                                        </div>
+
+                                        <!-- Scheduled listing controls (shown for scheduled/future listings) -->
+                                        <div id="ebayScheduledControls" style="display:none;font-size:11px;color:var(--color-info);padding:8px;background:var(--color-elevated);border-radius:4px;border-left:3px solid var(--color-info);margin-top:4px;">
+                                            <div style="margin-bottom:6px;">📅 This item is scheduled on eBay. You can change the go-live date or list it immediately.</div>
+                                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                                <button type="button" class="btn btn-sm btn-secondary" onclick="rescheduleEbayListing()" id="ebayRescheduleBtn" style="font-size:11px;padding:4px 10px;">
+                                                    📅 Reschedule
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-primary" onclick="listScheduledNow()" id="ebayListNowBtn" style="font-size:11px;padding:4px 10px;">
+                                                    ⚡ List Now
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <!-- Future DateTime Display (18 days) -->
                                         <div id="futureDateTime" style="display:none;flex-direction:column;gap:6px;margin-top:4px;">
                                             <label for="ebayFutureDate" style="font-size:11px;color:var(--color-text-muted);">Will Go Live On</label>
-                                            <input type="datetime-local" id="ebayScheduleDate" readonly style="padding:6px 8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-surface);color:var(--color-accent);font-size:13px;cursor:not-allowed;">
+                                            <input type="datetime-local" id="ebayScheduleDate" style="padding:6px 8px;border-radius:6px;border:1px solid var(--color-border-hover);background:var(--color-surface);color:var(--color-accent);font-size:13px;">
                                         </div>
 
                                         <div id="manualEbayItemIdStatus" class="ebay-action-status" style="margin-top:4px;"></div>
@@ -3159,20 +3172,49 @@
             const statusIndicator = document.getElementById('ebayStatusText');
             const modeSelect = document.getElementById('ebayActionMode');
             const lockMessage = document.getElementById('ebayModeLockMessage');
+            const scheduledControls = document.getElementById('ebayScheduledControls');
+            const scheduleInput = document.getElementById('ebayScheduleDate');
+            const futureDateDiv = document.getElementById('futureDateTime');
+
+            // Determine the actual listing status
+            const listingStatus = (result.status === 'active') ? (result.listing_status || 'Active') : '';
+            const isScheduled = listingStatus === 'Scheduled';
+            const isActivelyListed = result.status === 'active' && !isScheduled;
+
             // Lock/unlock listing mode based on active status
-            if (result.status === 'active') {
-                // Item is actively listed - LOCK the listing mode dropdown
+            if (isActivelyListed) {
+                // Item is actively live - LOCK the listing mode dropdown
                 if (modeSelect) {
                     modeSelect.disabled = true;
                     modeSelect.title = 'Listing mode is locked while item is actively listed on eBay';
                     modeSelect.style.cursor = 'not-allowed';
                     modeSelect.style.opacity = '0.6';
                 }
-
-                // Show lock message
-                if (lockMessage) {
-                    lockMessage.style.display = 'block';
+                if (lockMessage) lockMessage.style.display = 'block';
+                if (scheduledControls) scheduledControls.style.display = 'none';
+                if (scheduleInput) {
+                    scheduleInput.readOnly = true;
+                    scheduleInput.style.cursor = 'not-allowed';
+                    scheduleInput.style.opacity = '0.6';
                 }
+            } else if (isScheduled) {
+                // Item is scheduled (future) - UNLOCK so user can reschedule
+                if (modeSelect) {
+                    modeSelect.disabled = false;
+                    modeSelect.title = 'You can change the listing mode for scheduled items';
+                    modeSelect.style.cursor = '';
+                    modeSelect.style.opacity = '1';
+                }
+                if (lockMessage) lockMessage.style.display = 'none';
+                if (scheduledControls) scheduledControls.style.display = 'block';
+                // Make schedule date editable
+                if (scheduleInput) {
+                    scheduleInput.readOnly = false;
+                    scheduleInput.style.cursor = '';
+                    scheduleInput.style.opacity = '1';
+                }
+                // Show the schedule date section
+                if (futureDateDiv) futureDateDiv.style.display = 'flex';
             } else {
                 // Item is not active - UNLOCK the listing mode dropdown
                 if (modeSelect) {
@@ -3181,10 +3223,12 @@
                     modeSelect.style.cursor = '';
                     modeSelect.style.opacity = '1';
                 }
-
-                // Hide lock message
-                if (lockMessage) {
-                    lockMessage.style.display = 'none';
+                if (lockMessage) lockMessage.style.display = 'none';
+                if (scheduledControls) scheduledControls.style.display = 'none';
+                if (scheduleInput) {
+                    scheduleInput.readOnly = false;
+                    scheduleInput.style.cursor = '';
+                    scheduleInput.style.opacity = '1';
                 }
             }
 
@@ -4504,6 +4548,8 @@
         if (scheduleInputEl) {
             scheduleInputEl.addEventListener('change', (e) => {
                 userSelectedEbaySchedule = e.target.value;
+                formHasChanged = true;
+                refreshEbayControls();
             });
         }
 
@@ -6517,6 +6563,15 @@
             const modal = document.getElementById('imageModal');
             const isModalOpen = modal.classList.contains('show');
 
+            // Helper: check if the focused element is an editable field (input, textarea, select, or contenteditable)
+            function isEditableField(el) {
+                if (!el) return false;
+                if (el.matches('input, textarea, select')) return true;
+                if (el.isContentEditable) return true;
+                if (el.closest && el.closest('[contenteditable="true"]')) return true;
+                return false;
+            }
+
             // ESC - Close modal or cancel edit/view
             if (e.key === 'Escape' || e.key === 'Esc') {
                 // Close eBay search modal first if open
@@ -6527,7 +6582,7 @@
                 }
                 if (isModalOpen) {
                     closeImageModal();
-                } else if ((editMode || viewMode) && !e.target.matches('input, textarea, select')) {
+                } else if ((editMode || viewMode) && !isEditableField(e.target)) {
                     if (viewMode) {
                         // In view mode, ESC switches to edit mode
                         enableEditMode();
@@ -6559,7 +6614,7 @@
                 }
 
                 // Otherwise, navigate between comics in edit or view mode
-                if ((editMode || viewMode) && !e.target.matches('input, textarea, select')) {
+                if ((editMode || viewMode) && !isEditableField(e.target)) {
                     e.preventDefault();
 
                     // Check if there are unsaved changes (only in edit mode)
@@ -7607,6 +7662,156 @@
             }
         }
 
+        /**
+         * Reschedule a scheduled eBay listing to a new date/time.
+         * Reads the date from the ebayScheduleDate input and sends
+         * a ReviseItem call with the new ScheduleTime.
+         */
+        async function rescheduleEbayListing() {
+            if (!editingSKU || !currentComicEbayId) {
+                showNotification('No eBay listing to reschedule.', 'error');
+                return;
+            }
+
+            const scheduleInput = document.getElementById('ebayScheduleDate');
+            if (!scheduleInput || !scheduleInput.value) {
+                showNotification('Please select a new date and time first.', 'error');
+                return;
+            }
+
+            const newDate = new Date(scheduleInput.value);
+            const now = new Date();
+            if (newDate <= now) {
+                showNotification('Schedule date must be in the future. Use List Now to go live immediately.', 'error');
+                return;
+            }
+
+            // eBay requires schedule at least 48 min in the future
+            const minFuture = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour buffer
+            if (newDate < minFuture) {
+                showNotification('Schedule date must be at least 1 hour in the future. Use List Now to go live immediately.', 'error');
+                return;
+            }
+
+            const confirmMsg = `Reschedule this listing to go live on ${newDate.toLocaleString()}?`;
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                showNotification('Rescheduling eBay listing...', 'info');
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+                const isoDate = newDate.toISOString();
+
+                const response = await fetch(`/api/comic/${editingSKU}/ebay/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        schedule_time: isoDate,
+                        mode: 'future'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showNotification(`Listing rescheduled to ${newDate.toLocaleString()}.`, 'success');
+                    // Update the local comic data
+                    const comic = allComics.find(c => String(c.SKU) === String(editingSKU));
+                    if (comic) {
+                        comic['eBay Schedule Date'] = scheduleInput.value;
+                    }
+                    formHasChanged = true;
+                    refreshEbayControls();
+                } else {
+                    showNotification(data.error || 'Failed to reschedule listing.', 'error');
+                }
+            } catch (error) {
+                console.error('Reschedule error:', error);
+                showNotification('Failed to reschedule. Please try again.', 'error');
+            }
+        }
+
+        /**
+         * List a scheduled eBay item immediately by ending the scheduled
+         * listing and relisting it with mode=list.
+         */
+        async function listScheduledNow() {
+            if (!editingSKU || !currentComicEbayId) {
+                showNotification('No eBay listing found.', 'error');
+                return;
+            }
+
+            if (!confirm('This will cancel the scheduled listing and list it immediately. Continue?')) return;
+
+            try {
+                showNotification('Ending scheduled listing and relisting now...', 'info');
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+                // Step 1: End the scheduled listing
+                const endResponse = await fetch(`/api/comic/${editingSKU}/ebay/end`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ reason: 'NotAvailable' })
+                });
+
+                const endData = await endResponse.json();
+                if (!endData.success) {
+                    showNotification(endData.error || 'Failed to end scheduled listing.', 'error');
+                    return;
+                }
+
+                // Step 2: Relist immediately
+                const relistResponse = await fetch(`/api/comic/${editingSKU}/ebay/relist`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ mode: 'list' })
+                });
+
+                const relistData = await relistResponse.json();
+                if (relistData.success) {
+                    showNotification('Item is now live on eBay!', 'success');
+                    // Update local state
+                    currentComicEbayId = relistData.item_id || currentComicEbayId;
+                    const ebayHiddenField = document.getElementById('ebay-item-id');
+                    if (ebayHiddenField) ebayHiddenField.value = currentComicEbayId;
+
+                    // Update mode to list
+                    const modeSelect = document.getElementById('ebayActionMode');
+                    if (modeSelect) modeSelect.value = 'list';
+
+                    // Clear the schedule date
+                    const scheduleInput = document.getElementById('ebayScheduleDate');
+                    if (scheduleInput) scheduleInput.value = '';
+                    const futureDateDiv = document.getElementById('futureDateTime');
+                    if (futureDateDiv) futureDateDiv.style.display = 'none';
+
+                    // Hide scheduled controls
+                    const scheduledControls = document.getElementById('ebayScheduledControls');
+                    if (scheduledControls) scheduledControls.style.display = 'none';
+
+                    formHasChanged = true;
+                    refreshEbayControls();
+
+                    // Re-verify status
+                    const verifyResult = await verifyEbayListingStatus(currentComicEbayId);
+                    updateVerificationStatus(verifyResult);
+                } else {
+                    showNotification(relistData.error || 'Ended scheduled listing but failed to relist. Please list manually.', 'error');
+                }
+            } catch (error) {
+                console.error('List Now error:', error);
+                showNotification('Failed to list now. Please try again.', 'error');
+            }
+        }
         function showComicConfirmModal(message) {
             const modal = document.createElement('div');
             modal.style.cssText = `
