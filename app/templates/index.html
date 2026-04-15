@@ -5854,13 +5854,13 @@
                         </div>
                         <div style="padding:16px 24px;border-bottom:1px solid var(--color-border);">
                             <div style="display:flex;gap:8px;">
-                                <input type="text" id="metadataSearchInput" placeholder="Search your eBay listings..." style="flex:1;padding:10px 14px;background:var(--color-inset);border:1px solid var(--color-border-hover);border-radius:var(--radius-sm);color:var(--color-text);font-size:14px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchEbayForMetadata();}">
+                                <input type="text" id="metadataSearchInput" placeholder="Search eBay marketplace..." style="flex:1;padding:10px 14px;background:var(--color-inset);border:1px solid var(--color-border-hover);border-radius:var(--radius-sm);color:var(--color-text);font-size:14px;" onkeydown="if(event.key==='Enter'){event.preventDefault();searchEbayForMetadata();}">
                                 <button onclick="searchEbayForMetadata()" style="padding:10px 20px;background:var(--color-accent);color:var(--color-bg);border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;white-space:nowrap;">Search</button>
                             </div>
-                            <div style="font-size:11px;color:var(--color-text-dim);margin-top:6px;">Search your own eBay listings for a similar item. Select one to import its Item Specifics (Publisher, Era, Grade, etc.)</div>
+                            <div style="font-size:11px;color:var(--color-text-dim);margin-top:6px;">Search all of eBay for a similar item. Select one to import its Item Specifics (Publisher, Era, Grade, etc.)</div>
                         </div>
                         <div id="metadataSearchResults" style="flex:1;overflow-y:auto;padding:16px 24px;">
-                            <div style="text-align:center;color:var(--color-text-dim);padding:40px 0;">Enter a title and click Search to find matching items in your eBay listings</div>
+                            <div style="text-align:center;color:var(--color-text-dim);padding:40px 0;">Enter a title and click Search to find matching items on eBay</div>
                         </div>
                     </div>
                 `;
@@ -5892,52 +5892,44 @@
                 return;
             }
 
-            resultsContainer.innerHTML = '<div style="text-align:center;color:var(--color-text-muted);padding:40px;"><span class="loading-spinner" style="display:inline-block;width:20px;height:20px;border:2px solid var(--color-border);border-top-color:var(--color-accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:8px;vertical-align:middle;"></span>Searching your eBay listings...</div>';
+            resultsContainer.innerHTML = '<div style="text-align:center;color:var(--color-text-muted);padding:40px;"><span class="loading-spinner" style="display:inline-block;width:20px;height:20px;border:2px solid var(--color-border);border-top-color:var(--color-accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:8px;vertical-align:middle;"></span>Searching eBay marketplace...</div>';
 
             try {
-                // Search the user's own eBay listings (uses Trading API, no Finding API quota)
-                const response = await fetch('/api/ebay/listings?page=1&per_page=500', {
-                    method: 'GET',
+                // Search all of eBay using Browse API (separate quota from Finding API)
+                const response = await fetch('/api/ebay/search-marketplace', {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': window.csrfToken
-                    }
+                    },
+                    body: JSON.stringify({ title: query, limit: 20 })
                 });
 
                 const data = await response.json();
 
-                if (!data.success || !data.listings || data.listings.length === 0) {
-                    resultsContainer.innerHTML = `<div style="text-align:center;color:var(--color-text-muted);padding:40px;">
-                        <div style="margin-bottom:8px;">No eBay listings found in your account.</div>
-                        <div style="font-size:12px;color:var(--color-text-dim);">List items on eBay first, then search here to import their metadata.</div>
+                if (!data.success) {
+                    resultsContainer.innerHTML = `<div style="text-align:center;color:var(--color-danger);padding:40px;">
+                        <div style="margin-bottom:8px;">${data.error || 'Search failed'}</div>
+                        <div style="font-size:12px;color:var(--color-text-dim);">Try different search terms or check your eBay API credentials.</div>
                     </div>`;
                     return;
                 }
 
-                // Filter listings by search query (title match)
-                const queryLower = query.toLowerCase();
-                const queryWords = queryLower.split(/\s+/).filter(w => w.length > 1);
-                const matchingListings = data.listings.filter(item => {
-                    const title = (item.Title || '').toLowerCase();
-                    // Match if any query word appears in the title
-                    return queryWords.some(word => title.includes(word));
-                });
-
-                if (matchingListings.length === 0) {
+                if (!data.items || data.items.length === 0) {
                     resultsContainer.innerHTML = `<div style="text-align:center;color:var(--color-text-muted);padding:40px;">
-                        <div style="margin-bottom:8px;">No matching items found in your eBay listings.</div>
-                        <div style="font-size:12px;color:var(--color-text-dim);">Try different search terms or list a similar item on eBay first.</div>
+                        <div style="margin-bottom:8px;">No matching items found on eBay.</div>
+                        <div style="font-size:12px;color:var(--color-text-dim);">Try broader search terms (e.g. just the series name).</div>
                     </div>`;
                     return;
                 }
 
                 // Convert to the format renderMetadataSearchResults expects
-                const results = matchingListings.slice(0, 12).map(item => ({
-                    title: item.Title || '',
-                    currentPrice: item.CurrentPrice ? '$' + parseFloat(item.CurrentPrice).toFixed(2) : '',
+                const results = data.items.map(item => ({
+                    title: item.title || '',
+                    currentPrice: item.price ? '$' + parseFloat(item.price).toFixed(2) : '',
                     imageUrl: item.image_url || '',
-                    itemId: item.ItemID || '',
-                    url: item.ItemID ? `https://www.ebay.com/itm/${item.ItemID}` : ''
+                    itemId: item.itemId || '',
+                    url: item.listing_url || (item.itemId ? `https://www.ebay.com/itm/${item.itemId}` : '')
                 }));
 
                 renderMetadataSearchResults(results);

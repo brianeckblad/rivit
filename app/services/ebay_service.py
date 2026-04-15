@@ -936,6 +936,99 @@ class EbayService:
             current_app.logger.error(f"eBay image search error: {e}")
             return {'success': False, 'error': str(e)}
 
+    def search_marketplace(self, query, limit=12):
+        """
+        Search all of eBay marketplace using the Browse API (text-based).
+
+        Uses the Browse API /item_summary/search endpoint which has separate
+        rate limits from the Finding API. Returns active listings from all sellers.
+
+        Args:
+            query (str): Search keywords.
+            limit (int): Maximum number of results (1-50, default 12).
+
+        Returns:
+            dict: Search results with items list, or error info.
+        """
+        self._log_init()
+
+        try:
+            token = self._get_oauth_token()
+            if not token:
+                return {'success': False, 'error': 'Failed to obtain OAuth token. Check eBay credentials.'}
+
+            url = f"{self.browse_api_url}/item_summary/search"
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json',
+                'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US'
+            }
+
+            params = {
+                'q': query,
+                'category_ids': '63',  # Comics category
+                'limit': str(min(50, max(1, limit))),
+            }
+
+            current_app.logger.info(f"Searching eBay marketplace via Browse API: '{query}' (limit: {limit})")
+            response = requests.get(url, headers=headers, params=params, timeout=15)
+
+            # Log rate limit headers
+            rl_remaining = response.headers.get('X-EBAY-C-CALL-LIMIT-REMAINING')
+            if rl_remaining:
+                current_app.logger.info(f"eBay Browse API calls remaining: {rl_remaining}")
+
+            if response.status_code != 200:
+                error_detail = response.text
+                current_app.logger.error(f"eBay Browse search HTTP error: {response.status_code} - {error_detail}")
+                return {'success': False, 'error': f'eBay API returned HTTP {response.status_code}', 'detail': error_detail}
+
+            data = response.json()
+            item_summaries = data.get('itemSummaries', [])
+
+            if not item_summaries:
+                return {'success': True, 'count': 0, 'items': [], 'message': 'No items found'}
+
+            items = []
+            for item in item_summaries:
+                try:
+                    price_info = item.get('price', {})
+                    price_value = price_info.get('value', '0')
+                    image_obj = item.get('image', {})
+                    image_url = image_obj.get('imageUrl', '')
+
+                    # Extract the legacy item ID from the Browse API itemId
+                    # Browse API returns itemId like "v1|123456789|0" — extract middle part
+                    browse_item_id = item.get('itemId', '')
+                    legacy_item_id = browse_item_id
+                    if '|' in browse_item_id:
+                        parts = browse_item_id.split('|')
+                        if len(parts) >= 2:
+                            legacy_item_id = parts[1]
+
+                    items.append({
+                        'title': item.get('title', 'No title'),
+                        'itemId': legacy_item_id,
+                        'price': float(price_value),
+                        'condition': item.get('condition', 'Unknown'),
+                        'listing_url': item.get('itemWebUrl', ''),
+                        'image_url': image_url,
+                        'seller': item.get('seller', {}).get('username', ''),
+                    })
+                except (KeyError, ValueError) as e:
+                    current_app.logger.warning(f"Error parsing Browse API item: {e}")
+                    continue
+
+            current_app.logger.info(f"Browse API search found {len(items)} items for '{query}'")
+            return {'success': True, 'count': len(items), 'items': items}
+
+        except requests.RequestException as e:
+            current_app.logger.error(f"eBay Browse search request error: {e}")
+            return {'success': False, 'error': f'API request failed: {str(e)}'}
+        except Exception as e:
+            current_app.logger.error(f"eBay Browse search error: {e}")
+            return {'success': False, 'error': str(e)}
+
     def _get_trading_credentials(self, environment=None):
         env = (environment or self.environment or 'production').lower()
         cfg = current_app.config

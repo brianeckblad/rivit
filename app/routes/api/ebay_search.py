@@ -186,6 +186,45 @@ def search_active_items() -> Response:
         return jsonify({'success': False, 'error': 'Failed to search active eBay listings'}), 500
 
 
+@api_bp.route('/ebay/search-marketplace', methods=['POST'])
+@login_required
+@csrf_required
+def search_marketplace() -> Response:
+    """Search all of eBay marketplace using the Browse API.
+
+    Uses the Browse API text search which has separate rate limits
+    from the Finding API. Returns active listings from any seller.
+
+    Request Body (JSON):
+        {
+            "title": str,               # Search keywords
+            "limit": Optional[int]      # Max results (1-50, default 12)
+        }
+
+    Returns:
+        Response: Flask JSON response with search results.
+    """
+    try:
+        data = request.get_json()
+        title = data.get('title')
+        limit = data.get('limit', 12)
+
+        if not title:
+            return jsonify({'success': False, 'error': 'Search query is required'}), 400
+
+        try:
+            limit = max(1, min(50, int(limit)))
+        except (ValueError, TypeError):
+            limit = 12
+
+        result = ebay_service.search_marketplace(title, limit=limit)
+        return jsonify(result)
+
+    except Exception as e:
+        current_app.logger.error(f"Error searching eBay marketplace: {e}")
+        return jsonify({'success': False, 'error': 'Failed to search eBay marketplace'}), 500
+
+
 @api_bp.route('/ebay/search-by-image', methods=['POST'])
 @login_required
 @csrf_required
