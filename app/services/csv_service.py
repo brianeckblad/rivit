@@ -267,7 +267,7 @@ class CSVService:
                 shutil.copy2(self.csv_file_path, backup_path)
 
                 with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                    writer = csv.DictWriter(csv_file, fieldnames=final_fieldnames, extrasaction='ignore', quoting=csv.QUOTE_MINIMAL)
+                    writer = csv.DictWriter(csv_file, fieldnames=final_fieldnames, extrasaction='ignore', quoting=csv.QUOTE_ALL)
                     writer.writeheader()
                     writer.writerows(rows)
                 logger.info(f"✓ Migrated {len(rows)} comics to new schema and format (removed {len([f for f in original_fieldnames if f in ['ID', 'added_by', 'date_added', 'last_modified', 'ebay_item_id', 'last_exported']])} duplicate columns)")
@@ -442,7 +442,7 @@ class CSVService:
 
             # Write back to CSV
             with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), extrasaction='ignore', quoting=csv.QUOTE_MINIMAL)
+                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), extrasaction='ignore', quoting=csv.QUOTE_ALL)
                 csv_writer.writeheader()
                 csv_writer.writerows([comic.to_dict() for comic in filtered_comics])
 
@@ -502,7 +502,7 @@ class CSVService:
             shutil.copy2(self.csv_file_path, backup_path)
 
             with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                writer = csv.DictWriter(csv_file, fieldnames=final_fieldnames, extrasaction='ignore', quoting=csv.QUOTE_MINIMAL)
+                writer = csv.DictWriter(csv_file, fieldnames=final_fieldnames, extrasaction='ignore', quoting=csv.QUOTE_ALL)
                 writer.writeheader()
                 writer.writerows(rows)
 
