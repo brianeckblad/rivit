@@ -595,29 +595,26 @@ def create_app(config_name='development'):
             return _version_dict('unavailable')
 
     # Startup Health Check: Validate CSV integrity
-    # Note: Cannot use comic_service.get_all_comics() here because it
-    # requires a request context (session) to resolve the current user.
-    # Instead, check the default CSV file directly.
+    # Startup CSV health check — verify per-user CSV files
     with app.app_context():
-        try:
-            csv_path = Path(app.config['CSV_FILE'])
-            if csv_path.exists():
-                import csv
-                with open(csv_path, 'r', newline='', encoding='utf-8') as f:
-                    comic_count = sum(1 for _ in csv.DictReader(f))
+        for username in registered_usernames:
+            try:
+                csv_path = get_user_csv_file(username)
+                if csv_path.exists():
+                    import csv
+                    with open(csv_path, 'r', newline='', encoding='utf-8') as f:
+                        comic_count = sum(1 for _ in csv.DictReader(f))
 
-                if comic_count == 0:
-                    app.logger.warning("⚠️  STARTUP WARNING: CSV file is empty! Mass deletion protection activated.")
-                    app.logger.warning("   Cleanup operations will be blocked until at least 5 comics are added.")
-                elif comic_count < 5:
-                    app.logger.warning(f"⚠️  STARTUP WARNING: Only {comic_count} comics in CSV - below safety threshold (5)")
-                    app.logger.warning("   Some cleanup operations may be blocked for safety.")
+                    if comic_count == 0:
+                        app.logger.warning(f"⚠️  STARTUP WARNING: CSV for {username} is empty! Mass deletion protection activated.")
+                    elif comic_count < 5:
+                        app.logger.warning(f"⚠️  STARTUP WARNING: Only {comic_count} comics for {username} - below safety threshold (5)")
+                    else:
+                        app.logger.info(f"✓ CSV health check passed for {username} - {comic_count} comics")
                 else:
-                    app.logger.info(f"✓ CSV health check passed - {comic_count} comics loaded")
-            else:
-                app.logger.info("ℹ️  No CSV file yet — will be created on first use")
-        except Exception as e:
-            app.logger.error(f"CSV health check failed on startup: {e}")
+                    app.logger.info(f"ℹ️  No CSV file yet for {username} — will be created on first use")
+            except Exception as e:
+                app.logger.error(f"CSV health check failed for {username}: {e}")
 
     return app
 

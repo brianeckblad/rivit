@@ -33,8 +33,8 @@ Add user accounts and manage access.
 ## Overview
 
 The application now supports multiple users, each with their own:
-- **CSV file** for items (e.g., `brian-items.csv`, `sarah-items.csv`)
-- **SKU counter** (e.g., `brian-sku.txt`, `sarah-sku.txt`)
+- **CSV file** for items (e.g., `data/brian/items.csv`, `data/sarah/items.csv`)
+- **SKU counter** (e.g., `data/brian/sku.txt`, `data/sarah/sku.txt`)
 - **eBay API credentials** (optional, can share app-level credentials)
 
 Each user logs in with username/password and sees only their own items.
@@ -48,15 +48,13 @@ Each user logs in with username/password and sees only their own items.
 **Local Storage:**
 ```
 instance/
-├── items.csv              # Legacy/default user file
-├── sku.txt                # Legacy/default SKU counter
 ├── user_preferences.json  # All users' accounts (shared)
 ├── app_defaults.json      # App-level defaults (shared)
 ├── ebay_category_cache.json  # eBay category cache (shared)
 └── data/                  # Multi-user data directory
     ├── brian/             # Brian's complete data
-    │   ├── brian-items.csv    # Brian's items
-    │   ├── brian-sku.txt      # Brian's SKU counter
+    │   ├── items.csv          # Brian's items
+    │   ├── sku.txt            # Brian's SKU counter
     │   ├── snapshots/         # Brian's manual backups
     │   ├── trash/             # Brian's deleted items (30-day retention)
     │   ├── analytics/         # Brian's usage analytics
@@ -64,8 +62,8 @@ instance/
     │   ├── uploads/           # Brian's temporary uploads
     │   └── images/            # Brian's local images (if not using S3)
     └── sarah/             # Sarah's complete data
-        ├── sarah-items.csv    # Sarah's items
-        ├── sarah-sku.txt      # Sarah's SKU counter
+        ├── items.csv          # Sarah's items
+        ├── sku.txt            # Sarah's SKU counter
         ├── snapshots/         # Sarah's manual backups
         ├── trash/             # Sarah's deleted items
         ├── analytics/         # Sarah's usage analytics
@@ -307,8 +305,8 @@ ansible-playbook playbooks/secret-sync.yml --vault-password-file ~/.vault_pass
 - Click "Add User"
 - System automatically creates:
   - User account in `user_preferences.json`
-  - Empty CSV file: `instance/data/{username}-items.csv`
-  - SKU counter file: `instance/data/{username}-sku.txt`
+  - Empty CSV file: `instance/data/{username}/items.csv`
+  - SKU counter file: `instance/data/{username}/sku.txt`
 - Notify user of their temporary credentials
 
 **What happens automatically:**
@@ -871,7 +869,7 @@ User can now:
 
 ### Item Management
 
-- User sees only their own items from `{username}-items.csv`
+- User sees only their own items from `{username}/items.csv`
 - SKU counter is per-user (no conflicts)
 - eBay listings use user's credentials (if configured)
 
@@ -902,9 +900,9 @@ cp instance/items.csv instance/items.csv.bak
 cp instance/sku.txt instance/sku.txt.bak
 
 # Move to user-specific files
-mkdir -p instance/data
-mv instance/items.csv instance/data/brian-items.csv
-mv instance/sku.txt instance/data/brian-sku.txt
+mkdir -p instance/data/brian
+mv instance/items.csv instance/data/brian/items.csv
+mv instance/sku.txt instance/data/brian/sku.txt
 
 # Create new default files (empty)
 touch instance/items.csv
@@ -942,7 +940,7 @@ session['username'] = 'brian'
 # During requests
 from app.utils.user_context import get_current_username
 username = get_current_username()  # Returns 'brian'
-csv_file = get_user_csv_file(username)  # Returns 'instance/data/brian-items.csv'
+csv_file = get_user_csv_file(username)  # Returns 'instance/data/brian/items.csv'
 ```
 
 ### Backward Compatibility
@@ -959,20 +957,21 @@ csv_file = get_user_csv_file(username)  # Returns 'instance/data/brian-items.csv
 
 **Check:**
 1. User is logged in: `session['username']`
-2. CSV file exists: `instance/data/{username}-items.csv`
+2. CSV file exists: `instance/data/{username}/items.csv`
 3. File permissions are correct
 
 **Fix:**
 ```bash
 # Check if file exists
-ls -la instance/data/
+ls -la instance/data/brian/
 
-# Create empty file if missing
-touch instance/data/brian-items.csv
+# Create directory and empty file if missing
+mkdir -p instance/data/brian
+touch instance/data/brian/items.csv
 
 # Fix permissions
-chown ubuntu:{app_name} instance/data/brian-items.csv
-chmod 664 instance/data/brian-items.csv
+chown -R ubuntu:{app_name} instance/data/brian
+chmod 664 instance/data/brian/items.csv
 ```
 
 ### eBay API errors
