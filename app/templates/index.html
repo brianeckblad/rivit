@@ -3162,7 +3162,7 @@
 
         // Optional: Verify eBay listing status by calling eBay API
         async function verifyEbayListingStatus(sku, itemId) {
-            if (!itemId) {
+            if (!itemId || !sku) {
                 return null;
             }
             try {
@@ -7885,7 +7885,7 @@
                     refreshEbayControls();
 
                     // Re-verify status
-                    const verifyResult = await verifyEbayListingStatus(currentComicEbayId);
+                    const verifyResult = await verifyEbayListingStatus(editingSKU, currentComicEbayId);
                     updateVerificationStatus(verifyResult);
                 } else {
                     showNotification(relistData.error || 'Ended scheduled listing but failed to relist. Please list manually.', 'error');
