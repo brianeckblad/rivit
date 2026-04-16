@@ -265,11 +265,17 @@ class Comic:
                 return value
             return ''
 
+        # Parse quantity safely (CSV corruption can put non-numeric values here)
+        try:
+            quantity = int(get_field('QUANTITY') or data.get('quantity', 0))
+        except (ValueError, TypeError):
+            quantity = 0
+
         return cls(
             sku=get_field('SKU') or data.get('sku', ''),
             title=get_field('TITLE') or data.get('title', ''),
             description=get_field('DESCRIPTION') or data.get('description', ''),
-            quantity=int(get_field('QUANTITY') or data.get('quantity', 0)),
+            quantity=quantity,
             price=price,
             category=get_field('CATEGORY') or data.get('category', ''),
             sub_category=get_field('SUB_CATEGORY') or data.get('subCategory', '') or data.get('sub_category', ''),
