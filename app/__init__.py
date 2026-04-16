@@ -204,6 +204,15 @@ def create_app(config_name='development'):
                 app.logger.setLevel(logging.INFO)
                 app.logger.propagate = False  # Prevent propagation to gunicorn's logger
                 app.logger.addFilter(UserContextFilter())
+
+                # Also attach handlers to the 'app' package logger so that
+                # logging.getLogger(__name__) in app.services.*, app.utils.*, etc.
+                # writes to app.log / error.log instead of Gunicorn's stderr (error.log).
+                package_logger = logging.getLogger('app')
+                package_logger.setLevel(logging.INFO)
+                package_logger.addHandler(file_handler)
+                package_logger.addHandler(error_handler)
+                package_logger.propagate = False  # Don't bubble up to root/Gunicorn
             else:
                 # Just use default logging to stderr/stdout (captured by supervisor)
                 app.logger.setLevel(logging.INFO)
