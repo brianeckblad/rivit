@@ -261,99 +261,11 @@ def create_app(config_name='development'):
     from app.utils.user_context import migrate_legacy_user_files
     migrate_legacy_user_files()
 
-    # Sync SKU, CSV, and User Preferences from S3 on startup BEFORE initializing users
+    # Sync User Preferences and S3 data on startup
     from app.services.s3_service import s3_service
     from datetime import timezone
-    sku_file = Path(app.config['SKU_FILE'])
-    csv_file = Path(app.config['CSV_FILE'])
 
-    # 1. Sync SKU
-    local_sku = None
-    local_sku_mtime = None
-    if sku_file.exists() and sku_file.stat().st_size > 0:
-        try:
-            local_sku_mtime = sku_file.stat().st_mtime
-            with open(sku_file, 'r') as f:
-                local_sku = int(f.read().strip())
-        except (ValueError, IOError):
-            local_sku = None
-
-    sku_data_from_s3 = s3_service.restore_sku_from_s3()
-
-    final_sku = None
-    sku_source = None
-
-    # Determine which SKU to use. Always use the highest value to prevent
-    # duplicate SKUs across multiple instances. Modification time is ignored -
-    # only the numeric value matters for consistency.
-    if sku_data_from_s3 and local_sku:
-        s3_sku = sku_data_from_s3['sku']
-        if s3_sku > local_sku:
-            final_sku = s3_sku
-            sku_source = f'S3 (higher: {s3_sku} vs local: {local_sku})'
-        else:
-            final_sku = local_sku
-            sku_source = f'local (higher: {local_sku} vs S3: {s3_sku})'
-            # Upload local SKU to S3 when local is higher
-            if local_sku > s3_sku:
-                s3_service.backup_sku_to_s3(local_sku)
-    elif sku_data_from_s3:
-        final_sku = sku_data_from_s3['sku']
-        sku_source = 'S3'
-    elif local_sku:
-        final_sku = local_sku
-        sku_source = 'local'
-        # Upload local SKU to S3 when S3 is missing it
-        s3_service.backup_sku_to_s3(local_sku)
-    else:
-        final_sku = 1000
-        sku_source = 'default'
-
-    if local_sku != final_sku:
-        sku_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(sku_file, 'w') as f:
-            f.write(f"{final_sku}\n")
-
-    # 2. Sync Main CSV Inventory
-    local_csv_mtime = None
-    local_csv_size = 0
-    if csv_file.exists():
-        local_csv_mtime = csv_file.stat().st_mtime
-        local_csv_size = csv_file.stat().st_size
-
-    csv_data_from_s3 = s3_service.restore_main_csv_from_s3()
-
-    if csv_data_from_s3:
-        s3_csv_mtime = csv_data_from_s3['last_modified'].replace(tzinfo=timezone.utc).timestamp()
-
-        if not local_csv_mtime:
-            # Local doesn't exist - download from S3
-            csv_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(csv_file, 'wb') as f:
-                f.write(csv_data_from_s3['content'])
-        elif s3_csv_mtime > local_csv_mtime:
-            # S3 is newer - download from S3
-            csv_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(csv_file, 'wb') as f:
-                f.write(csv_data_from_s3['content'])
-        elif local_csv_mtime > s3_csv_mtime and local_csv_size > 300:
-            # Local is newer AND has real data - upload to S3
-            s3_service.backup_main_csv_to_s3(csv_file)
-        elif local_csv_mtime > s3_csv_mtime and local_csv_size <= 300:
-            # Local is newer but only has header - download from S3 instead
-            csv_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(csv_file, 'wb') as f:
-                f.write(csv_data_from_s3['content'])
-    else:
-        # S3 is missing the CSV - upload local if it exists and is valid
-        if csv_file.exists() and local_csv_size > 300:  # More than just header
-            s3_service.backup_main_csv_to_s3(csv_file)
-
-    # Initialize CSV file with headers if it still doesn't exist (after S3 sync attempt)
-    from app.services.csv_service import initialize_csv
-    initialize_csv(app.config['CSV_FILE'])
-
-    # 3. Sync User Preferences (with extra safety for user-created accounts)
+    # 1. Sync User Preferences FIRST (needed to know which users exist)
     user_prefs_file = Path(app.instance_path) / 'user_preferences.json'
     local_prefs_mtime = None
     local_user_count = 0
@@ -418,6 +330,77 @@ def create_app(config_name='development'):
             app.logger.info(f"✅ User authentication initialized with {user_count} user(s): {', '.join(registered_usernames)}")
         else:
             app.logger.warning("⚠️  No users found - create users via web interface or set USERS environment variable")
+
+    # 2. Sync SKU and CSV per user (after users are loaded so we know usernames)
+    from app.services.csv_service import initialize_csv
+    from app.utils.user_context import get_user_csv_file, get_user_sku_file
+
+    for username in registered_usernames:
+        try:
+            sku_file = get_user_sku_file(username)
+            csv_file = get_user_csv_file(username)
+
+            # Sync SKU — highest value wins
+            local_sku = None
+            if sku_file.exists() and sku_file.stat().st_size > 0:
+                try:
+                    with open(sku_file, 'r') as f:
+                        local_sku = int(f.read().strip())
+                except (ValueError, IOError):
+                    local_sku = None
+
+            sku_data_from_s3 = s3_service.restore_sku_from_s3(username)
+            final_sku = None
+
+            if sku_data_from_s3 and local_sku:
+                s3_sku = sku_data_from_s3['sku']
+                final_sku = max(s3_sku, local_sku)
+                if local_sku > s3_sku:
+                    s3_service.backup_sku_to_s3(local_sku, username)
+            elif sku_data_from_s3:
+                final_sku = sku_data_from_s3['sku']
+            elif local_sku:
+                final_sku = local_sku
+                s3_service.backup_sku_to_s3(local_sku, username)
+            else:
+                final_sku = 1000
+
+            if local_sku != final_sku:
+                sku_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(sku_file, 'w') as f:
+                    f.write(f"{final_sku}\n")
+
+            # Sync CSV — newer file wins (download or upload)
+            local_csv_mtime = None
+            local_csv_size = 0
+            if csv_file.exists():
+                local_csv_mtime = csv_file.stat().st_mtime
+                local_csv_size = csv_file.stat().st_size
+
+            csv_data_from_s3 = s3_service.restore_main_csv_from_s3(username)
+
+            if csv_data_from_s3:
+                s3_csv_mtime = csv_data_from_s3['last_modified'].replace(tzinfo=timezone.utc).timestamp()
+                if not local_csv_mtime or s3_csv_mtime > local_csv_mtime:
+                    csv_file.parent.mkdir(parents=True, exist_ok=True)
+                    with open(csv_file, 'wb') as f:
+                        f.write(csv_data_from_s3['content'])
+                elif local_csv_mtime > s3_csv_mtime and local_csv_size > 300:
+                    s3_service.backup_main_csv_to_s3(csv_file, username)
+                elif local_csv_mtime > s3_csv_mtime and local_csv_size <= 300:
+                    csv_file.parent.mkdir(parents=True, exist_ok=True)
+                    with open(csv_file, 'wb') as f:
+                        f.write(csv_data_from_s3['content'])
+            else:
+                if csv_file.exists() and local_csv_size > 300:
+                    s3_service.backup_main_csv_to_s3(csv_file, username)
+
+            # Initialize CSV with headers if it still doesn't exist
+            initialize_csv(csv_file)
+            app.logger.info(f"✅ Synced data for user: {username}")
+
+        except Exception as e:
+            app.logger.error(f"Error syncing data for user {username}: {e}")
 
     # Cleanup expired trash items on startup (for all registered users)
     with app.app_context():

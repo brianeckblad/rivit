@@ -604,7 +604,7 @@ class S3Service:
             _log_error(f"Unexpected error: {e}")
             return []
 
-    def backup_sku_to_s3(self, sku_value):
+    def backup_sku_to_s3(self, sku_value, username=None):
         """
         Backup the current SKU counter value to S3 for persistent state.
         Uses user-specific S3 prefix for multi-user isolation.
@@ -614,6 +614,7 @@ class S3Service:
         
         Args:
             sku_value: Current SKU value to backup (int, str, or Path to SKU file).
+            username (str, optional): Username for S3 prefix. If None, uses session user.
             
         Returns:
             bool: True if backup was successful, False otherwise.
@@ -626,7 +627,7 @@ class S3Service:
 
             # Get user-specific SKU prefix
             from app.utils.user_context import get_user_s3_sku_prefix
-            user_sku_prefix = get_user_s3_sku_prefix()
+            user_sku_prefix = get_user_s3_sku_prefix(username)
             sku_key = f'{user_sku_prefix}sku.txt'
 
             # Determine content to upload
@@ -689,10 +690,13 @@ class S3Service:
             _log_error(f"Unexpected error backing up SKU: {e}")
             return False
 
-    def restore_sku_from_s3(self):
+    def restore_sku_from_s3(self, username=None):
         """
         Retrieve the SKU counter value from S3.
         Uses user-specific S3 prefix for multi-user isolation.
+
+        Args:
+            username (str, optional): Username for S3 prefix. If None, uses session user.
 
         Returns:
             dict or None: Metadata about the SKU ({'sku': int, 'last_modified': dt})
@@ -706,7 +710,7 @@ class S3Service:
 
             # Get user-specific SKU prefix
             from app.utils.user_context import get_user_s3_sku_prefix
-            user_sku_prefix = get_user_s3_sku_prefix()
+            user_sku_prefix = get_user_s3_sku_prefix(username)
             sku_key = f'{user_sku_prefix}sku.txt'
 
             # Download SKU value from S3
@@ -736,7 +740,7 @@ class S3Service:
             _log_error(f"Unexpected error restoring SKU: {e}")
             return None
 
-    def backup_main_csv_to_s3(self, csv_file_path):
+    def backup_main_csv_to_s3(self, csv_file_path, username=None):
         """
         Backup the primary inventory CSV to S3 for state persistence.
         Uses user-specific S3 prefix for multi-user isolation.
@@ -746,7 +750,8 @@ class S3Service:
         
         Args:
             csv_file_path (str or Path): Path to the local CSV file.
-            
+            username (str, optional): Username for S3 prefix. If None, uses session user.
+
         Returns:
             bool: True if the backup was successful or skipped due to no 
                   changes, False if an error occurred.
@@ -766,7 +771,7 @@ class S3Service:
 
             # Get user-specific CSV prefix
             from app.utils.user_context import get_user_s3_csv_prefix
-            user_csv_prefix = get_user_s3_csv_prefix()
+            user_csv_prefix = get_user_s3_csv_prefix(username)
             csv_key = f'{user_csv_prefix}items.csv'
 
             # Get S3 file MD5 (ETag)
@@ -793,9 +798,12 @@ class S3Service:
             _log_error(f"Error backing up main CSV to S3: {e}")
             return False
 
-    def restore_main_csv_from_s3(self):
+    def restore_main_csv_from_s3(self, username=None):
         """
         Download the primary inventory CSV from S3.
+
+        Args:
+            username (str, optional): Username for S3 prefix. If None, uses session user.
         
         Returns:
             dict or None: Metadata and content ({'content': bytes, 'last_modified': dt})
@@ -810,7 +818,7 @@ class S3Service:
 
             # Try user-specific CSV prefix first, fall back to legacy path
             from app.utils.user_context import get_user_s3_csv_prefix
-            user_csv_prefix = get_user_s3_csv_prefix()
+            user_csv_prefix = get_user_s3_csv_prefix(username)
             csv_key = f'{user_csv_prefix}items.csv'
 
             try:
