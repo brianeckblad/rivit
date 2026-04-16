@@ -455,17 +455,25 @@ class CSVService:
 
     def clear_all(self):
         """
-        Permanently remove all comics from the CSV file while keeping headers.
+        Permanently remove all comics from the CSV file and re-initialize
+        with the latest schema headers.
+
+        This resets cached fieldnames so the new CSV always reflects the
+        current column definitions — no redeploy required.
 
         Returns:
             bool: True if the file was cleared successfully.
         """
         try:
+            # Reset cached fieldnames so we get a fresh schema
+            self._cached_fieldnames = None
+            fieldnames = self._get_all_fieldnames()
+
             with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), quoting=csv.QUOTE_ALL)
+                csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
                 csv_writer.writeheader()
 
-            # Invalidate cache after write
+            # Invalidate data cache after write
             self._invalidate_cache()
             return True
         except Exception as e:
