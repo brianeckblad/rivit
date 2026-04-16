@@ -30,7 +30,7 @@ def get_user_csv_file(username=None):
         username (str, optional): Username. If None, uses current session user.
 
     Returns:
-        Path: Path to user's items CSV file (e.g., instance/data/brian-items.csv)
+        Path: Path to user's items CSV file (e.g., instance/data/brian/items.csv)
     """
     if username is None:
         username = get_current_username()
@@ -39,12 +39,12 @@ def get_user_csv_file(username=None):
     if username == 'default':
         return Path(current_app.config['CSV_FILE'])
 
-    # Multi-user: username-items.csv in data subdirectory
+    # Multi-user: data/{username}/items.csv
     base_dir = Path(current_app.config['CSV_FILE']).parent
-    data_dir = base_dir / 'data'
-    data_dir.mkdir(exist_ok=True)
+    user_dir = base_dir / 'data' / username
+    user_dir.mkdir(exist_ok=True, parents=True)
 
-    return data_dir / f"{username}-items.csv"
+    return user_dir / "items.csv"
 
 
 def get_user_sku_file(username=None):
@@ -55,7 +55,7 @@ def get_user_sku_file(username=None):
         username (str, optional): Username. If None, uses current session user.
 
     Returns:
-        Path: Path to user's SKU counter file (e.g., instance/data/brian-sku.txt)
+        Path: Path to user's SKU counter file (e.g., instance/data/brian/sku.txt)
     """
     if username is None:
         username = get_current_username()
@@ -64,12 +64,12 @@ def get_user_sku_file(username=None):
     if username == 'default':
         return Path(current_app.config['SKU_FILE'])
 
-    # Multi-user: username-sku.txt in data subdirectory
+    # Multi-user: data/{username}/sku.txt
     base_dir = Path(current_app.config['SKU_FILE']).parent
-    data_dir = base_dir / 'data'
-    data_dir.mkdir(exist_ok=True)
+    user_dir = base_dir / 'data' / username
+    user_dir.mkdir(exist_ok=True, parents=True)
 
-    return data_dir / f"{username}-sku.txt"
+    return user_dir / "sku.txt"
 
 
 def get_user_secret_name(username=None):
@@ -375,4 +375,65 @@ def ensure_user_data_directory():
     csv_file = Path(current_app.config['CSV_FILE'])
     data_dir = csv_file.parent / 'data'
     data_dir.mkdir(exist_ok=True, parents=True)
+
+
+def migrate_legacy_user_files():
+    """
+    Migrate legacy flat-file user data to subdirectory structure.
+
+    Moves files like data/brian-items.csv → data/brian/items.csv
+    and data/brian-sku.txt → data/brian/sku.txt.
+
+    Safe to call multiple times; skips files that don't exist or
+    have already been migrated.
+    """
+    import shutil
+    import logging
+    logger = logging.getLogger(__name__)
+
+    csv_file = Path(current_app.config['CSV_FILE'])
+    data_dir = csv_file.parent / 'data'
+
+    if not data_dir.exists():
+        return
+
+    # Find legacy files matching {username}-items.csv pattern
+    for legacy_csv in data_dir.glob('*-items.csv'):
+        username = legacy_csv.stem.replace('-items', '')
+        if not username:
+            continue
+
+        user_dir = data_dir / username
+        user_dir.mkdir(exist_ok=True, parents=True)
+        new_csv = user_dir / 'items.csv'
+
+        if not new_csv.exists():
+            shutil.move(str(legacy_csv), str(new_csv))
+            logger.info(f"Migrated {legacy_csv.name} → {username}/items.csv")
+        else:
+            logger.info(f"Skipping migration of {legacy_csv.name} — {username}/items.csv already exists")
+
+        # Also move the .bak file if present
+        legacy_bak = legacy_csv.with_suffix('.csv.bak')
+        if legacy_bak.exists():
+            new_bak = user_dir / 'items.csv.bak'
+            if not new_bak.exists():
+                shutil.move(str(legacy_bak), str(new_bak))
+
+    # Find legacy SKU files matching {username}-sku.txt
+    for legacy_sku in data_dir.glob('*-sku.txt'):
+        username = legacy_sku.stem.replace('-sku', '')
+        if not username:
+            continue
+
+        user_dir = data_dir / username
+        user_dir.mkdir(exist_ok=True, parents=True)
+        new_sku = user_dir / 'sku.txt'
+
+        if not new_sku.exists():
+            shutil.move(str(legacy_sku), str(new_sku))
+            logger.info(f"Migrated {legacy_sku.name} → {username}/sku.txt")
+        else:
+            logger.info(f"Skipping migration of {legacy_sku.name} — {username}/sku.txt already exists")
+
 

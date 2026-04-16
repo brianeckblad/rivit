@@ -77,7 +77,7 @@ app/
 - **App factory:** `create_app(config_name)` in `app/__init__.py` — handles config, logging, security, S3 sync, blueprint registration.
 - **Blueprints:** Three blueprints — `auth_bp`, `main_bp`, `api_bp` (mounted at `/api`). API routes split into 11 domain modules in `app/routes/api/`.
 - **Service singletons:** Most services are module-level instances (`s3_service`, `comic_service`, `ebay_service`). Import and use directly; do not re-instantiate.
-- **Multi-user isolation:** Each user gets their own CSV (`instance/data/{username}-items.csv`), SKU counter, snapshots, trash, exports, and images directory. Use `app/utils/user_context.py` helpers.
+- **Multi-user isolation:** Each user gets their own subdirectory (`instance/data/{username}/`) containing `items.csv`, `sku.txt`, snapshots, trash, exports, and images. Use `app/utils/user_context.py` helpers.
 - **Secret precedence:** AWS Secrets Manager → environment variable → default value (see `get_secret()` in `config.py`).
 - **Logging:** Three dedicated loggers — `app.logger` (app.log), `service` (service.log), `cleanup` (cleanup.log). Use helpers from `app/utils/logging_utils.py`.
 - **Authentication:** Session-based via `login_required` decorator in `app/routes/auth.py`. Sessions invalidated on app restart. Additional decorators: `csrf_required`, `sync_not_locked`, `disk_space_required`.

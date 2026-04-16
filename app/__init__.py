@@ -257,6 +257,10 @@ def create_app(config_name='development'):
     os.makedirs(data_dir, exist_ok=True)
     app.logger.info(f"Multi-user data directory ensured: {data_dir}")
 
+    # Migrate legacy flat-file user data (e.g., brian-items.csv → brian/items.csv)
+    from app.utils.user_context import migrate_legacy_user_files
+    migrate_legacy_user_files()
+
     # Sync SKU, CSV, and User Preferences from S3 on startup BEFORE initializing users
     from app.services.s3_service import s3_service
     from datetime import timezone
