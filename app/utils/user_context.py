@@ -377,7 +377,7 @@ def ensure_user_data_directory():
     data_dir.mkdir(exist_ok=True, parents=True)
 
 
-def migrate_legacy_user_files():
+def migrate_legacy_user_files(app=None):
     """
     Migrate legacy flat-file user data to subdirectory structure.
 
@@ -386,12 +386,18 @@ def migrate_legacy_user_files():
 
     Safe to call multiple times; skips files that don't exist or
     have already been migrated.
+
+    Args:
+        app: Flask app instance. If None, uses current_app (requires app context).
     """
     import shutil
     import logging
     logger = logging.getLogger(__name__)
 
-    csv_file = Path(current_app.config['CSV_FILE'])
+    if app is None:
+        app = current_app._get_current_object()
+
+    csv_file = Path(app.config['CSV_FILE'])
     data_dir = csv_file.parent / 'data'
 
     if not data_dir.exists():
