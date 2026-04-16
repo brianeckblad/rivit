@@ -18,8 +18,8 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
     from app.services.s3_service import s3_service
