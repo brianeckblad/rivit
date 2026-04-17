@@ -89,6 +89,29 @@
                 - logs:DescribeLogStreams
               Resource: "*"
 
+    - name: Enable EC2 Serial Console access for the account
+      ansible.builtin.command:
+        cmd: >
+          aws ec2 enable-serial-console-access
+          --region {{ aws_region }}
+      register: serial_console_result
+      changed_when: true
+      ignore_errors: true
+
+    - name: Create serial console access IAM policy
+      amazon.aws.iam_policy:
+        iam_type: role
+        iam_name: "{{ app_name }}-ec2-role"
+        policy_name: "{{ app_name }}-serial-console-access"
+        state: present
+        policy_json:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2-instance-connect:SendSerialConsoleSSHPublicKey
+              Resource: "arn:aws:ec2:{{ aws_region }}:*:instance/*"
+
     - name: Create IAM instance profile
       amazon.aws.iam_instance_profile:
         name: "{{ app_name }}-instance-profile"
@@ -101,4 +124,4 @@
           - "✓ IAM role created successfully"
           - "Role: {{ app_name }}-ec2-role"
           - "Instance Profile: {{ app_name }}-instance-profile"
-          - "Policies: S3, Secrets Manager, CloudWatch, SSM"
+          - "Policies: S3, Secrets Manager, CloudWatch, SSM, Serial Console"
