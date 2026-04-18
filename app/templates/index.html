@@ -6472,15 +6472,11 @@
                     setField('signoff', sections.signoff);
                 }
 
-                // Fallback: if structured parsing found no description, use plain text
+                // Fallback: if structured parsing found no description, use HTML-aware extraction
                 if (!sections.description) {
                     const descField = document.getElementById('description');
                     if (descField && !descField.value.trim()) {
-                        const tmp = document.createElement('div');
-                        tmp.innerHTML = details.Description;
-                        const plainDesc = (tmp.textContent || tmp.innerText || '').trim();
-                        // Try to extract just the Description section from plain text
-                        const descText = extractDescriptionSection(plainDesc);
+                        const descText = extractDescriptionSection(details.Description);
                         if (descText) {
                             setField('description', descText);
                         }
@@ -6570,23 +6566,63 @@
          * @returns {object} Parsed sections: { description, condition, photos, shipping, signoff }
          */
         /**
-         * Extract just the Description section from a plain-text version of the eBay listing.
-         * Looks for text between "Description" and the next known section heading.
+         * Extract just the Description section from eBay listing HTML.
+         * Works on raw HTML to preserve line breaks from <li>, <div>, <br>, <p> elements.
          */
-        function extractDescriptionSection(plainText) {
-            if (!plainText) return '';
-            const sectionHeadings = ['Condition', 'Photos', 'Shipping', 'Title'];
-            const descIdx = plainText.indexOf('Description');
+        function extractDescriptionSection(html) {
+            if (!html) return '';
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            const text = tmp.textContent || '';
+            const sectionHeadings = ['Condition', 'Photos', 'Shipping'];
+
+            // Find "Description" label position in text
+            const descIdx = text.indexOf('Description');
             if (descIdx === -1) return '';
-            // Start after "Description"
-            let start = descIdx + 'Description'.length;
-            // Find end: next known heading
-            let end = plainText.length;
-            for (const heading of sectionHeadings) {
-                const idx = plainText.indexOf(heading, start);
-                if (idx !== -1 && idx < end) end = idx;
+
+            // Find the Description label element in the DOM to walk from there
+            const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT);
+            let descNode = null;
+            while (walker.nextNode()) {
+                if (walker.currentNode.textContent.includes('Description')) {
+                    descNode = walker.currentNode;
+                    break;
+                }
             }
-            return plainText.substring(start, end).trim();
+            if (!descNode) return '';
+
+            // Find the parent container of the Description label
+            let startEl = descNode.parentElement;
+            if (startEl && (startEl.tagName === 'STRONG' || startEl.tagName === 'B')) {
+                startEl = startEl.closest('div') || startEl.parentElement;
+            }
+            if (!startEl) return '';
+
+            // Collect text from subsequent elements until next section heading
+            const lines = [];
+            let el = startEl.nextElementSibling;
+            while (el) {
+                const elText = el.textContent.trim();
+                // Stop if we hit another section heading
+                if (sectionHeadings.some(h => {
+                    const strong = el.querySelector('strong, b');
+                    return strong && strong.textContent.trim() === h;
+                }) || sectionHeadings.includes(elText)) {
+                    break;
+                }
+                // Extract lines from list items or divs
+                const lis = el.querySelectorAll('li');
+                if (lis.length > 0) {
+                    lis.forEach(li => {
+                        const t = li.textContent.trim();
+                        if (t) lines.push(t);
+                    });
+                } else if (elText) {
+                    lines.push(elText);
+                }
+                el = el.nextElementSibling;
+            }
+            return lines.join('\n');
         }
 
         function parseEbayTemplateSections(html) {
@@ -7715,12 +7751,9 @@
                     if (sections.shipping)    setField('shippingDetails', sections.shipping);
                     if (sections.signoff)     setField('signoff', sections.signoff);
 
-                    // Fallback: if structured parsing found no description, use plain text
+                    // Fallback: if structured parsing found no description, use HTML-aware extraction
                     if (!sections.description) {
-                        const tmp = document.createElement('div');
-                        tmp.innerHTML = data.Description;
-                        const plainDesc = (tmp.textContent || tmp.innerText || '').trim();
-                        const descText = extractDescriptionSection(plainDesc);
+                        const descText = extractDescriptionSection(data.Description);
                         if (descText) setField('description', descText);
                     }
                 }
