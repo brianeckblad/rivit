@@ -6307,7 +6307,8 @@
             const textFilter = (document.getElementById('ebayFilterInput')?.value || '').toLowerCase();
             container.innerHTML = '';
 
-            let filtered = ebayModalListings;
+            // Exclude items already linked to a SKU in inventory
+            let filtered = ebayModalListings.filter(item => !item.linked_sku);
 
             // Status filter
             if (ebayModalStatusFilter !== 'All') {
