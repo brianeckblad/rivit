@@ -6479,8 +6479,10 @@
                         const tmp = document.createElement('div');
                         tmp.innerHTML = details.Description;
                         const plainDesc = (tmp.textContent || tmp.innerText || '').trim();
-                        if (plainDesc) {
-                            setField('description', plainDesc.substring(0, 500));
+                        // Try to extract just the Description section from plain text
+                        const descText = extractDescriptionSection(plainDesc);
+                        if (descText) {
+                            setField('description', descText);
                         }
                     }
                 }
@@ -6567,6 +6569,26 @@
          * @param {string} html - Full HTML description from eBay
          * @returns {object} Parsed sections: { description, condition, photos, shipping, signoff }
          */
+        /**
+         * Extract just the Description section from a plain-text version of the eBay listing.
+         * Looks for text between "Description" and the next known section heading.
+         */
+        function extractDescriptionSection(plainText) {
+            if (!plainText) return '';
+            const sectionHeadings = ['Condition', 'Photos', 'Shipping', 'Title'];
+            const descIdx = plainText.indexOf('Description');
+            if (descIdx === -1) return '';
+            // Start after "Description"
+            let start = descIdx + 'Description'.length;
+            // Find end: next known heading
+            let end = plainText.length;
+            for (const heading of sectionHeadings) {
+                const idx = plainText.indexOf(heading, start);
+                if (idx !== -1 && idx < end) end = idx;
+            }
+            return plainText.substring(start, end).trim();
+        }
+
         function parseEbayTemplateSections(html) {
             const sections = {};
             if (!html) return sections;
@@ -6575,7 +6597,7 @@
             tmp.innerHTML = html;
 
             const knownLabels = ['Title', 'Description', 'Condition', 'Photos', 'Shipping'];
-            const strongs = tmp.querySelectorAll('strong');
+            const strongs = tmp.querySelectorAll('strong, b');
 
             for (const strong of strongs) {
                 const label = strong.textContent.trim();
@@ -6596,7 +6618,10 @@
                         if (text) items.push(text);
                     }
                     if (items.length > 0) {
-                        sections[matchedLabel.toLowerCase()] = items.join('\n');
+                        // Skip 'title' section — we use the eBay Title field directly
+                        if (matchedLabel.toLowerCase() !== 'title') {
+                            sections[matchedLabel.toLowerCase()] = items.join('\n');
+                        }
                     }
                 } else if (label && !knownLabels.includes(label)) {
                     // Last non-label <strong> is the signoff text
@@ -7695,7 +7720,8 @@
                         const tmp = document.createElement('div');
                         tmp.innerHTML = data.Description;
                         const plainDesc = (tmp.textContent || tmp.innerText || '').trim();
-                        if (plainDesc) setField('description', plainDesc.substring(0, 500));
+                        const descText = extractDescriptionSection(plainDesc);
+                        if (descText) setField('description', descText);
                     }
                 }
 
