@@ -6626,38 +6626,51 @@
             tmp.innerHTML = html;
 
             const knownLabels = ['Title', 'Description', 'Condition', 'Photos', 'Shipping'];
+            const text = tmp.textContent || '';
+
+            // Find each label's position in the plain text, then extract between them
+            const labelPositions = [];
+            for (const label of knownLabels) {
+                const idx = text.indexOf(label);
+                if (idx !== -1) {
+                    labelPositions.push({ label, idx });
+                }
+            }
+
+            // Also find the signoff (last bold/strong text that isn't a known label)
             const strongs = tmp.querySelectorAll('strong, b');
+            let signoffText = '';
+            for (const s of strongs) {
+                const t = s.textContent.trim();
+                if (t && !knownLabels.includes(t) && t.length > 10) {
+                    signoffText = t;
+                }
+            }
+            if (signoffText) sections.signoff = signoffText;
 
-            for (const strong of strongs) {
-                const label = strong.textContent.trim();
-                const matchedLabel = knownLabels.find(l => label === l);
+            // Sort by position in text
+            labelPositions.sort((a, b) => a.idx - b.idx);
 
-                if (matchedLabel) {
-                    // Walk up to the parent div, then find the next sibling's <ul>
-                    const parentDiv = strong.closest('div');
-                    if (!parentDiv) continue;
-                    let nextEl = parentDiv.nextElementSibling;
-                    if (!nextEl) continue;
-                    const ul = nextEl.querySelector('ul');
-                    if (!ul) continue;
+            // Now use DOM: find all <li> elements and assign them to the preceding label
+            const allLis = tmp.querySelectorAll('li');
+            for (const lp of labelPositions) {
+                if (lp.label === 'Title') continue; // Skip title section
+                const key = lp.label.toLowerCase();
+                const nextLp = labelPositions.find(p => p.idx > lp.idx);
+                const items = [];
 
-                    const items = [];
-                    for (const li of ul.querySelectorAll('li')) {
-                        const text = li.textContent.trim();
-                        if (text) items.push(text);
+                for (const li of allLis) {
+                    const liText = li.textContent.trim();
+                    if (!liText) continue;
+                    // Check if this li's text falls between this label and the next
+                    const liPos = text.indexOf(liText);
+                    if (liPos > lp.idx && (!nextLp || liPos < nextLp.idx)) {
+                        items.push(liText);
                     }
-                    if (items.length > 0) {
-                        // Skip 'title' section — we use the eBay Title field directly
-                        if (matchedLabel.toLowerCase() !== 'title') {
-                            sections[matchedLabel.toLowerCase()] = items.join('\n');
-                        }
-                    }
-                } else if (label && !knownLabels.includes(label)) {
-                    // Last non-label <strong> is the signoff text
-                    const cleaned = label.replace(/\s+/g, ' ').trim();
-                    if (cleaned) {
-                        sections.signoff = cleaned;
-                    }
+                }
+
+                if (items.length > 0) {
+                    sections[key] = items.join('\n');
                 }
             }
 
