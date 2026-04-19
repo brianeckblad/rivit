@@ -6525,13 +6525,6 @@
                     specificsSummary.push(`${name}: ${displayValue}`);
                 }
 
-                // Show cloned specifics info in description if description is empty
-                if (specificsSummary.length > 0) {
-                    const descField = document.getElementById('description');
-                    if (descField && !descField.value.trim()) {
-                        setField('description', specificsSummary.join('\n'));
-                    }
-                }
 
                 // Also populate the metadata form fields from the cloned specifics
                 for (const [ebayName, value] of Object.entries(specifics)) {
