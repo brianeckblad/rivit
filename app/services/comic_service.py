@@ -887,6 +887,7 @@ class ComicService:
         Raises:
             Exception: If any part of the upload process fails.
         """
+        from PIL import Image
         image_urls = []
         upload_folder = Path(current_app.config['UPLOAD_FOLDER'])
         upload_folder.mkdir(parents=True, exist_ok=True)
@@ -898,6 +899,22 @@ class ComicService:
                     filename = generate_unique_filename(image_file.filename)
                     file_path = upload_folder / filename
                     image_file.save(str(file_path))
+                    
+                    # Validate that the file was saved properly and is a valid image
+                    try:
+                        with Image.open(str(file_path)) as img:
+                            img.verify()
+                        # Need to reopen after verify() as it closes the file
+                        with Image.open(str(file_path)) as img:
+                            pass  # Just verify it can be opened
+                    except Exception as validate_error:
+                        # File is corrupted or not a valid image - clean up and skip
+                        try:
+                            os.remove(str(file_path))
+                        except Exception:
+                            pass
+                        log_service_warning(f"Uploaded file for image {idx} is corrupted or invalid: {validate_error}")
+                        raise Exception(f"Image {idx} failed validation - file may be corrupted or incomplete")
 
                     # Upload to S3
                     s3_key = f"{sku}_{idx}.jpg"

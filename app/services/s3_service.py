@@ -5,6 +5,7 @@ from PIL import Image, ImageCms
 import io
 import os
 import hashlib
+from pathlib import Path
 from app.utils.logging_utils import log_service_info as _log_info, log_service_warning as _log_warning, log_service_error as _log_error
 
 
@@ -316,10 +317,25 @@ class S3Service:
             use_webp (bool): Whether to output WebP format. Defaults to True.
 
         Returns:
-            str or None: Path to the generated thumbnail file, or None on error.
+            tuple: (bytes, extension) where bytes is the thumbnail data and extension is '.webp' or '.jpg', or (None, None) on error.
         """
         try:
+            # Verify file exists and is readable
+            file_path_obj = Path(file_path)
+            if not file_path_obj.exists():
+                _log_error(f"Thumbnail source file does not exist: {file_path}")
+                return None, None
+
+            if file_path_obj.stat().st_size == 0:
+                _log_error(f"Thumbnail source file is empty: {file_path}")
+                return None, None
+
             with Image.open(file_path) as img:
+                # Verify image format is supported
+                if img.format is None:
+                    _log_error(f"Cannot identify image format for: {file_path}")
+                    return None, None
+
                 # Handle embedded color profiles for accurate color rendering
                 icc_profile = img.info.get("icc_profile")
                 
