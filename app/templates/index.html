@@ -1406,6 +1406,82 @@
             color: var(--color-danger);
         }
 
+        /* eBay action status bar - fixed above footer */
+        #ebayStatusBar {
+            position: fixed;
+            bottom: 56px; /* sits just above the footer bar */
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            min-width: 320px;
+            max-width: 600px;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1200;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #ebayStatusBar.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+        #ebayStatusBar.loading {
+            background: var(--color-elevated);
+            border: 1px solid var(--color-accent);
+            color: var(--color-accent);
+        }
+        #ebayStatusBar.success {
+            background: var(--color-elevated);
+            border: 1px solid var(--color-success);
+            color: var(--color-success);
+        }
+        #ebayStatusBar.error {
+            background: var(--color-elevated);
+            border: 1px solid var(--color-danger);
+            color: var(--color-danger);
+        }
+        #ebayStatusBar.warning {
+            background: var(--color-elevated);
+            border: 1px solid var(--color-warning);
+            color: var(--color-warning);
+        }
+        #ebayStatusBar .status-bar-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+        #ebayStatusBar .status-bar-icon {
+            flex-shrink: 0;
+            font-size: 15px;
+            line-height: 1;
+        }
+        #ebayStatusBar .status-bar-msg {
+            flex: 1;
+        }
+        #ebayStatusBar .status-bar-close {
+            background: none;
+            border: none;
+            color: currentColor;
+            opacity: 0.6;
+            cursor: pointer;
+            padding: 0 2px;
+            font-size: 16px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        #ebayStatusBar .status-bar-close:hover { opacity: 1; }
+
         .loading-spinner {
             width: 14px;
             height: 14px;
@@ -2872,6 +2948,14 @@
         </div>
     </div>
 
+    <!-- eBay Action Status Bar -->
+    <div id="ebayStatusBar" role="status" aria-live="polite">
+        <span class="status-bar-spinner" id="ebayStatusSpinner" style="display:none;"></span>
+        <span class="status-bar-icon" id="ebayStatusIcon" style="display:none;"></span>
+        <span class="status-bar-msg" id="ebayStatusMsg"></span>
+        <button class="status-bar-close" id="ebayStatusClose" onclick="hideEbayStatusBar()" title="Dismiss">×</button>
+    </div>
+
     <div class="image-modal" id="imageModal" onclick="closeImageModal()">
         <button class="image-modal-close" onclick="closeImageModal()">&times;</button>
         <img id="modalImage" src="" alt="Enlarged view">
@@ -3787,7 +3871,7 @@
 
             } catch (error) {
                 console.error('[triggerEbayActionFromFooter] Error:', error);
-                showNotification(error.message || 'Failed to save and list', 'error');
+                showEbayStatusBar('error', error.message || 'Failed to save and list');
                 inlineBtnText.textContent = originalText;
                 inlineBtn.disabled = false;
             }
@@ -4634,7 +4718,51 @@
             statusEl.style.display = message ? 'flex' : 'none';
         }
 
+        let _ebayStatusDismissTimer = null;
+
+        function showEbayStatusBar(state, message) {
+            const bar = document.getElementById('ebayStatusBar');
+            const spinner = document.getElementById('ebayStatusSpinner');
+            const icon = document.getElementById('ebayStatusIcon');
+            const msg = document.getElementById('ebayStatusMsg');
+            if (!bar) return;
+
+            // Clear any pending auto-dismiss
+            if (_ebayStatusDismissTimer) { clearTimeout(_ebayStatusDismissTimer); _ebayStatusDismissTimer = null; }
+
+            bar.className = `visible ${state}`;
+            spinner.style.display = state === 'loading' ? 'block' : 'none';
+            icon.style.display = state !== 'loading' ? 'block' : 'none';
+            if (state === 'success') icon.textContent = '✓';
+            else if (state === 'error') icon.textContent = '✕';
+            else if (state === 'warning') icon.textContent = '⚠';
+            msg.textContent = message || '';
+
+            if (state !== 'loading') {
+                // Auto-dismiss after 5 s for success/warning, stay on screen for error until dismissed
+                const delay = state === 'error' ? 8000 : 5000;
+                _ebayStatusDismissTimer = setTimeout(hideEbayStatusBar, delay);
+            }
+        }
+
+        function hideEbayStatusBar() {
+            const bar = document.getElementById('ebayStatusBar');
+            if (!bar) return;
+            bar.classList.remove('visible');
+            if (_ebayStatusDismissTimer) { clearTimeout(_ebayStatusDismissTimer); _ebayStatusDismissTimer = null; }
+        }
+
+        window.showEbayStatusBar = showEbayStatusBar;
+        window.hideEbayStatusBar = hideEbayStatusBar;
+
         function setEbayActionStatus(state, message) {
+            // Drive the persistent status bar instead of the inline element
+            if (state && message) {
+                showEbayStatusBar(state, message);
+            } else {
+                hideEbayStatusBar();
+            }
+            // Also keep the small inline element in sync (legacy)
             const statusEl = document.getElementById('ebayActionStatus');
             if (!statusEl) return;
             statusEl.className = `ebay-action-status ${state || ''}`.trim();
@@ -4673,7 +4801,7 @@
 
             // If there are unsaved changes, save the comic first
             if (editMode && formHasChanged) {
-                showNotification('Saving changes before eBay action...', 'info');
+                showEbayStatusBar('loading', 'Saving changes before eBay action…');
                 // Trigger form submission
                 const form = document.getElementById('comicForm');
                 if (form) {
@@ -4768,13 +4896,11 @@
                     : `eBay action succeeded${currentComicEbayId ? ` (#${currentComicEbayId})` : ''}`;
                 setManualEbayStatus('success', successMsg);
                 setEbayActionStatus('success', successMsg);
-                showNotification(`${sourceLabel} completed`, 'success');
 
                 // If this item was created from an eBay draft, the backend already
                 // ended the draft during listing. Clear the tracking variable.
                 if (window._sourceEbayDraftId && modeValue !== 'end' && modeValue !== 'update') {
                     console.log('Source eBay draft replaced by new listing:', window._sourceEbayDraftId);
-                    showNotification('Source eBay draft removed', 'info');
                     window._sourceEbayDraftId = null;
                 }
 
@@ -4811,7 +4937,6 @@
             } catch (err) {
                 setManualEbayStatus('error', err.message || 'eBay action failed');
                 setEbayActionStatus('error', err.message || 'eBay action failed');
-                showNotification(err.message || 'eBay action failed', 'error');
             } finally {
                 restoreButtons();
                 activeEbayRequest = null;
