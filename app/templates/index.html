@@ -7422,6 +7422,15 @@
 
                     showNotification(successMsg, 'success');
 
+                    // Signal the browse page to reload when we navigate there
+                    sessionStorage.setItem('comics_list_needs_refresh', '1');
+
+                    // Update Exit button to go directly to /browse (so it always has fresh data)
+                    const cancelBtn = document.getElementById('cancelBtn');
+                    if (cancelBtn) {
+                        cancelBtn.onclick = () => { window.location.href = '/browse'; };
+                    }
+
                     // Reset form change tracking
                     formHasChanged = false;
                     originalFormData = null;

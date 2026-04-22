@@ -1733,6 +1733,18 @@
             initializePage();
         }
 
+        // Reload comics when navigated back to via browser back/forward (bfcache restore)
+        // or when a comic was just added/updated on the add page
+        window.addEventListener('pageshow', (event) => {
+            const needsRefresh = sessionStorage.getItem('comics_list_needs_refresh');
+            if (event.persisted || needsRefresh) {
+                sessionStorage.removeItem('comics_list_needs_refresh');
+                allComics = [];
+                currentPage = 1;
+                loadComics(1, false);
+            }
+        });
+
         // Handle browser resize - recalculate and reload comics
         let resizeTimeout;
         let lastWidth = window.innerWidth;
