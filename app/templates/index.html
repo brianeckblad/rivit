@@ -1406,6 +1406,13 @@
             color: var(--color-danger);
         }
 
+        .ebay-action-status.warning {
+            display: flex;
+            background: var(--color-warning-subtle);
+            border: 1px solid var(--color-warning);
+            color: var(--color-warning);
+        }
+
         /* eBay action status bar - fixed above footer */
         #ebayStatusBar {
             position: fixed;
@@ -3389,7 +3396,7 @@
 
 
                 // Show notification and AUTO-CLEAR the eBay Item ID
-                showNotification('eBay Item ID not found on eBay. Clearing orphaned ID...', 'warning');
+                setEbayActionStatus('warning', 'eBay Item ID not found on eBay. Clearing orphaned ID...');
 
                 // Auto-clear the orphaned eBay Item ID from CSV
                 clearOrphanedEbayItemId();
@@ -3429,7 +3436,7 @@
                     const data = await response.json();
                     if (data.success) {
                         currentComicEbayId = '';
-                        showNotification('Orphaned eBay Item ID cleared from database', 'success');
+                        setEbayActionStatus('success', 'Orphaned eBay Item ID cleared from database');
 
                         // Update displays to show it's been cleared
                         const settingsDisplay = document.getElementById('ebayItemIdSettingsDisplay');
@@ -3776,7 +3783,7 @@
             const imageCheck = validateComicImages(currentSKU);
             if (!imageCheck.hasImages) {
                 console.warn('[triggerEbayActionFromFooter] No images found, blocking eBay list');
-                showNotification('Cannot list on eBay without at least 1 photo. Please add an image before listing.', 'error');
+                setEbayActionStatus('error', 'Cannot list on eBay without at least 1 photo. Please add an image before listing.');
                 return;
             }
             // First, save the comic
@@ -4239,7 +4246,7 @@
                 cancelEbayLinkConfirm();
 
                 if (data.success) {
-                    showNotification(`✓ Successfully linked ${comicSKU} to eBay item!`, 'success');
+                    setEbayActionStatus('success', `Successfully linked ${comicSKU} to eBay item.`);
 
                     // Immediately reload the comic data to reflect the link
                     try {
@@ -4378,7 +4385,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    showNotification(`✓ Successfully unlinked ${sku} from eBay`, 'success');
+                    setEbayActionStatus('success', `Successfully unlinked ${sku} from eBay.`);
 
                     // Clear the currentComicEbayId
                     currentComicEbayId = null;
@@ -4781,7 +4788,7 @@
             const footerBtn = document.getElementById('ebayActionButton');
             const action = explicitAction || footerBtn?.dataset.ebayAction || 'none';
             if (!editingSKU || action === 'none') {
-                showNotification('Select a comic to manage eBay listings.', 'error');
+                setEbayActionStatus('error', 'Select a comic to manage eBay listings.');
                 return;
             }
 
@@ -4828,14 +4835,14 @@
             if (modeValue === 'schedule' && !scheduleTime) {
                 const scheduleDateInput = document.getElementById('ebayScheduleDate');
                 if (!scheduleDateInput || !scheduleDateInput.value) {
-                    showNotification('Please select a date and time for scheduled listing', 'error');
+                    setEbayActionStatus('error', 'Please select a date and time for scheduled listing');
                     return;
                 }
                 scheduleTime = scheduleDateInput.value;
                 const scheduleDate = new Date(scheduleTime);
                 const now = new Date();
                 if (scheduleDate <= now) {
-                    showNotification('Scheduled date must be in the future', 'error');
+                    setEbayActionStatus('error', 'Scheduled date must be in the future');
                     return;
                 }
             } else if ((modeValue === 'future' || modeValue === 'custom') && !scheduleTime) {
@@ -6306,7 +6313,7 @@
             closeMetadataSearchModal();
             // Switch to the metadata tab so user can see the imported fields
             switchSettingsTab('metadata');
-            showNotification(`✓ Imported ${appliedCount} metadata fields from eBay`, 'success');
+            setEbayActionStatus('success', `Imported ${appliedCount} metadata fields from eBay`);
         }
 
         // Populate metadata fields when loading a comic for editing
@@ -7818,13 +7825,14 @@
                 });
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    showNotification('eBay listing synced.', 'success');
+                    // Keep autosync quiet on success to avoid interrupting manual workflows.
                 } else {
                     console.warn('eBay auto-sync failed:', result.error);
-                    showNotification('Saved locally. eBay sync failed: ' + (result.error || 'unknown error'), 'error');
+                    setEbayActionStatus('warning', 'Saved locally. eBay sync failed: ' + (result.error || 'unknown error'));
                 }
             } catch (err) {
                 console.error('eBay auto-sync error:', err);
+                setEbayActionStatus('warning', 'Saved locally. eBay sync failed: network error');
             }
         }
 
@@ -7852,18 +7860,18 @@
         // Pull all values from the linked eBay listing into the local form (except images)
         async function updateFromEbay() {
             if (!currentComicEbayId) {
-                showNotification('This comic is not linked to an eBay listing.', 'error');
+                setEbayActionStatus('error', 'This comic is not linked to an eBay listing.');
                 return;
             }
 
-            showNotification('Fetching latest data from eBay...', 'info');
+            setEbayActionStatus('loading', 'Fetching latest data from eBay...');
 
             try {
                 const response = await fetch(`/api/ebay/item/${currentComicEbayId}/details`);
                 const data = await response.json();
 
                 if (!data.success) {
-                    showNotification(data.error || 'Failed to fetch eBay listing details.', 'error');
+                    setEbayActionStatus('error', data.error || 'Failed to fetch eBay listing details.');
                     return;
                 }
 
@@ -7931,7 +7939,7 @@
                     }
                 }
 
-                showNotification('Form updated from eBay. Click Save to keep changes.', 'success');
+                setEbayActionStatus('success', 'Form updated from eBay. Click Save to keep changes.');
 
                 // Switch to edit mode so the Save button is visible
                 if (viewMode) {
@@ -7941,7 +7949,7 @@
 
             } catch (error) {
                 console.error('Update from eBay error:', error);
-                showNotification('Failed to fetch data from eBay. Please try again.', 'error');
+                setEbayActionStatus('error', 'Failed to fetch data from eBay. Please try again.');
             }
         }
 
@@ -7952,27 +7960,27 @@
          */
         async function rescheduleEbayListing() {
             if (!editingSKU || !currentComicEbayId) {
-                showNotification('No eBay listing to reschedule.', 'error');
+                setEbayActionStatus('error', 'No eBay listing to reschedule.');
                 return;
             }
 
             const scheduleInput = document.getElementById('ebayScheduleDate');
             if (!scheduleInput || !scheduleInput.value) {
-                showNotification('Please select a new date and time first.', 'error');
+                setEbayActionStatus('error', 'Please select a new date and time first.');
                 return;
             }
 
             const newDate = new Date(scheduleInput.value);
             const now = new Date();
             if (newDate <= now) {
-                showNotification('Schedule date must be in the future. Use List Now to go live immediately.', 'error');
+                setEbayActionStatus('error', 'Schedule date must be in the future. Use List Now to go live immediately.');
                 return;
             }
 
             // eBay requires schedule at least 48 min in the future
             const minFuture = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour buffer
             if (newDate < minFuture) {
-                showNotification('Schedule date must be at least 1 hour in the future. Use List Now to go live immediately.', 'error');
+                setEbayActionStatus('error', 'Schedule date must be at least 1 hour in the future. Use List Now to go live immediately.');
                 return;
             }
 
@@ -7980,7 +7988,7 @@
             if (!confirm(confirmMsg)) return;
 
             try {
-                showNotification('Rescheduling eBay listing...', 'info');
+                setEbayActionStatus('loading', 'Rescheduling eBay listing...');
 
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const isoDate = newDate.toISOString();
@@ -7999,7 +8007,7 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    showNotification(`Listing rescheduled to ${newDate.toLocaleString()}.`, 'success');
+                    setEbayActionStatus('success', `Listing rescheduled to ${newDate.toLocaleString()}.`);
                     // Update the local comic data
                     const comic = allComics.find(c => String(c.SKU) === String(editingSKU));
                     if (comic) {
@@ -8008,11 +8016,11 @@
                     formHasChanged = true;
                     refreshEbayControls();
                 } else {
-                    showNotification(data.error || 'Failed to reschedule listing.', 'error');
+                    setEbayActionStatus('error', data.error || 'Failed to reschedule listing.');
                 }
             } catch (error) {
                 console.error('Reschedule error:', error);
-                showNotification('Failed to reschedule. Please try again.', 'error');
+                setEbayActionStatus('error', 'Failed to reschedule. Please try again.');
             }
         }
 
@@ -8022,14 +8030,14 @@
          */
         async function listScheduledNow() {
             if (!editingSKU || !currentComicEbayId) {
-                showNotification('No eBay listing found.', 'error');
+                setEbayActionStatus('error', 'No eBay listing found.');
                 return;
             }
 
             if (!confirm('This will cancel the scheduled listing and list it immediately. Continue?')) return;
 
             try {
-                showNotification('Ending scheduled listing and relisting now...', 'info');
+                setEbayActionStatus('loading', 'Ending scheduled listing and relisting now...');
 
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
@@ -8045,7 +8053,7 @@
 
                 const endData = await endResponse.json();
                 if (!endData.success) {
-                    showNotification(endData.error || 'Failed to end scheduled listing.', 'error');
+                    setEbayActionStatus('error', endData.error || 'Failed to end scheduled listing.');
                     return;
                 }
 
@@ -8061,7 +8069,7 @@
 
                 const relistData = await relistResponse.json();
                 if (relistData.success) {
-                    showNotification('Item is now live on eBay!', 'success');
+                    setEbayActionStatus('success', 'Item is now live on eBay!');
                     // Update local state
                     currentComicEbayId = relistData.item_id || currentComicEbayId;
                     const ebayHiddenField = document.getElementById('ebay-item-id');
@@ -8088,11 +8096,11 @@
                     const verifyResult = await verifyEbayListingStatus(editingSKU, currentComicEbayId);
                     updateVerificationStatus(verifyResult);
                 } else {
-                    showNotification(relistData.error || 'Ended scheduled listing but failed to relist. Please list manually.', 'error');
+                    setEbayActionStatus('error', relistData.error || 'Ended scheduled listing but failed to relist. Please list manually.');
                 }
             } catch (error) {
                 console.error('List Now error:', error);
-                showNotification('Failed to list now. Please try again.', 'error');
+                setEbayActionStatus('error', 'Failed to list now. Please try again.');
             }
         }
         function showComicConfirmModal(message) {
@@ -8199,7 +8207,7 @@
 
         async function executeDelistFromEbay(sku) {
             try {
-                showNotification('Delisting item from eBay...', 'info');
+                setEbayActionStatus('loading', 'Delisting item from eBay...');
 
                 const response = await fetch(`/api/comic/${encodeURIComponent(sku)}/ebay/end`, {
                     method: 'POST',
@@ -8219,7 +8227,7 @@
                     throw new Error(result.error || 'Failed to delist item');
                 }
 
-                showNotification('✓ Item successfully delisted from eBay', 'success');
+                setEbayActionStatus('success', 'Item successfully delisted from eBay');
 
                 // Reload the comic to update the UI
                 const comic = await fetchComicBySKU(sku);
@@ -8229,7 +8237,7 @@
 
             } catch (error) {
                 console.error('[delistFromEbay] Error:', error);
-                showNotification(`Failed to delist: ${error.message}`, 'error');
+                setEbayActionStatus('error', `Failed to delist: ${error.message}`);
             }
             pendingComicAction = { type: null, sku: null };
         }
@@ -8241,7 +8249,7 @@
                 await triggerEbayActionFromFooter();
             } catch (error) {
                 console.error('[executeEbayListAction] Error:', error);
-                showNotification(`Failed to list: ${error.message}`, 'error');
+                setEbayActionStatus('error', `Failed to list: ${error.message}`);
             }
             pendingComicAction = { type: null, sku: null };
         }
@@ -8250,12 +8258,12 @@
         async function executeEbayUpdateAction() {
             try {
                 if (!editingSKU || !currentComicEbayId) {
-                    showNotification('Comic is not linked to an eBay listing', 'error');
+                    setEbayActionStatus('error', 'Comic is not linked to an eBay listing');
                     pendingComicAction = { type: null, sku: null };
                     return;
                 }
 
-                showNotification('Updating eBay listing...', 'info');
+                setEbayActionStatus('loading', 'Updating eBay listing...');
 
                 // First save the comic to persist any form changes
                 const form = document.getElementById('comicForm');
@@ -8292,7 +8300,7 @@
                     throw new Error(result.error || 'Failed to update eBay listing');
                 }
 
-                showNotification('✓ eBay listing updated successfully', 'success');
+                setEbayActionStatus('success', 'eBay listing updated successfully');
 
                 // Reload the comic to get fresh data
                 try {
@@ -8315,7 +8323,7 @@
 
             } catch (error) {
                 console.error('[executeEbayUpdateAction] Error:', error);
-                showNotification(`Failed to update eBay: ${error.message}`, 'error');
+                setEbayActionStatus('error', `Failed to update eBay: ${error.message}`);
             }
             pendingComicAction = { type: null, sku: null };
         }
@@ -8323,7 +8331,7 @@
         // Execute eBay delist action after confirmation (from menu)
         async function executeEbayDelistAction(sku) {
             try {
-                showNotification('Delisting item from eBay...', 'info');
+                setEbayActionStatus('loading', 'Delisting item from eBay...');
 
                 const response = await fetch(`/api/comic/${encodeURIComponent(sku)}/ebay/end`, {
                     method: 'POST',
@@ -8343,7 +8351,7 @@
                     throw new Error(result.error || 'Failed to delist item');
                 }
 
-                showNotification('✓ Item successfully delisted from eBay', 'success');
+                setEbayActionStatus('success', 'Item successfully delisted from eBay');
 
                 // Fetch fresh comic data and update cache
                 try {
@@ -8370,7 +8378,7 @@
 
             } catch (error) {
                 console.error('[executeEbayDelistAction] Error:', error);
-                showNotification(`Failed to delist: ${error.message}`, 'error');
+                setEbayActionStatus('error', `Failed to delist: ${error.message}`);
             }
             pendingComicAction = { type: null, sku: null };
         }
