@@ -130,6 +130,71 @@ All colors, spacing, and component classes live in two shared CSS files. See [AG
 
 ---
 
+## Secure Coding Standards - CRITICAL
+
+**Read the full rules in [AGENTS.md → Secure Coding Standards](../AGENTS.md#secure-coding-standards---critical) before writing any code that touches user input, files, secrets, or external data.**
+
+These rules are mandatory for every change. If a code path violates one of them, fix the
+code path — do not add an exception.
+
+### File uploads (images, CSVs, anything from the client)
+
+- **Always** wrap the client-supplied filename with `werkzeug.utils.secure_filename()` before joining it to a path. Never pass `request.files['x'].filename` straight into `os.path.join` / `open` / S3 keys.
+- **Always** validate image content with `PIL.Image.open(stream).verify()` (or re-decode) at the upload site — do not trust the extension or `Content-Type` alone. Reject on `UnidentifiedImageError` / `Image.DecompressionBombError`.
+- **Always** enforce a server-side size cap (`MAX_CONTENT_LENGTH` and/or explicit `len(stream.read())` check) and an allow-list of extensions/MIME types. Reject everything else.
+- **Never** serve uploaded files from a directory that also executes code (no uploads under `app/`, `static/` only for processed/sanitized output, prefer S3).
+- **Never** use the original filename in the stored key — generate one (UUID, SKU-based) so two users cannot collide and a crafted name cannot escape the directory.
+
+### Path handling
+
+- **Never** build filesystem paths by string concatenation with user input. Use `pathlib.Path` or `os.path.join` plus `secure_filename`, then assert the resolved path is inside the expected base (`Path(base).resolve() in resolved.parents`).
+- **Never** trust `..`, absolute paths, null bytes, or symlinks from user input. Reject before using the value.
+- Multi-user file access **must** go through helpers in `app/utils/user_context.py`. Do not hand-craft `instance/data/{username}/...` paths in routes or services.
+
+### Subprocess / shell / SQL / templates
+
+- **Never** pass user input to `subprocess.*` with `shell=True`. Use a list of args and `shell=False`.
+- **Never** build SQL/CSV/HTML/JSON by f-string concatenation of user input. Use parameterized APIs (`csv.writer`, `json.dumps`, Jinja autoescape, parameterized queries).
+- **Never** disable Jinja autoescape or use `{{ value|safe }}` on user-controlled data.
+- **Never** use `eval`, `exec`, `pickle.loads`, `yaml.load` (use `yaml.safe_load`), or `subprocess` with unvalidated input.
+
+### Authentication & authorization
+
+- Every route that reads or mutates user data **must** carry `@login_required` (and `@csrf_required` for state-changing requests). State-changing = POST/PUT/PATCH/DELETE.
+- **Always** scope file/CSV/S3 access to the current `session['username']` via `user_context` helpers. Never accept a username from the request body or query string for authorization decisions.
+- **Never** log secrets, full session cookies, raw passwords, eBay tokens, or AWS credentials. Use `safe_error_message()` from `app/utils/logging_utils.py` for client-facing error strings in production.
+
+### Secrets & config
+
+- **Never** hard-code API keys, tokens, passwords, or AWS credentials. Read them via `get_secret()` in `app/config.py` (Secrets Manager → env → default).
+- **Never** commit `.env`, decrypted vault, or `~/.vault_pass`. Vault stays encrypted in `deployment/group_vars/vault.yml`.
+- Per-user eBay credentials live in AWS Secrets Manager via `user_secrets_service.py` — do not write them to CSV, JSON, or logs.
+
+### External requests & SSRF
+
+- **Always** set an explicit `timeout=` on every `requests.*` / `urllib` call. No unbounded waits.
+- **Never** fetch a URL supplied by the client without an allow-list of hosts/schemes (block `file://`, `http://169.254.169.254`, private CIDRs).
+
+### Input validation & rate limiting
+
+- Validate every API input shape at the entry point. Reject unknown fields, enforce types, and cap string lengths before passing to services.
+- Respect `app/security.py` rate limiting — do not add new public endpoints that bypass it. Sensitive endpoints (login, password reset, bulk eBay actions) need explicit rate limits.
+
+### Pre-commit security checklist
+
+Before finishing any change, verify:
+
+- [ ] No `request.files[...].filename` reaches a path/S3 key without `secure_filename`
+- [ ] All image uploads run through `Image.open(...).verify()` and a size cap
+- [ ] No new `shell=True`, `eval`, `pickle`, `yaml.load`, or `|safe` on user data
+- [ ] Every new state-changing route has `@login_required` + `@csrf_required`
+- [ ] No secrets, tokens, or full request bodies in log messages
+- [ ] All outbound `requests` calls have an explicit `timeout`
+- [ ] User-controlled paths are resolved and confined under the expected base
+- [ ] CSV writes go through `csv_service` (which handles locking + sanitization), not raw `open(..., 'w')`
+
+---
+
 ## eBay Integration — Key Patterns
 
 - **XML sanitization:** `EbayService._sanitize_trading_payload_strings()` auto-escapes bare `&` in all `AddFixedPriceItem` / `ReviseFixedPriceItem` payloads. Do not manually escape titles.

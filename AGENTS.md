@@ -586,6 +586,174 @@ State is tracked in `bulkCurrentAction` and `bulkCurrentPlatform` globals. The e
 
 ---
 
+## Secure Coding Standards - CRITICAL
+
+### Why this section exists
+
+Insecure code has slipped into this project before — image uploads that trusted the
+client-supplied filename, paths built by string concatenation, missing Pillow validation,
+and routes that forgot `@login_required`. These rules are the standing fix. Apply them on
+every change. If existing code violates a rule, fix the existing code; do not copy it.
+
+This section is the canonical source. The condensed version in
+[`.github/copilot-instructions.md`](.github/copilot-instructions.md) is auto-loaded for
+every Copilot session and points back here.
+
+### Threat model summary
+
+- **Multi-user app**: every user has their own subtree under `instance/data/{username}/`.
+  A bug that lets user A read or write user B's files is a critical defect.
+- **No database**: storage is CSV + JSON + S3 objects. Path-traversal and key-collision
+  bugs map directly to data-loss / data-leak bugs.
+- **Public S3 bucket for images**: anything written there is world-readable. Never put
+  secrets, raw uploads, or PII there.
+- **AWS-deployed Flask**: SSRF to `169.254.169.254` would leak instance role credentials.
+
+### Rule 1 — File uploads
+
+| Do | Do not |
+|----|--------|
+| Wrap every client filename with `werkzeug.utils.secure_filename()` before joining it to a path or S3 key | Pass `request.files['x'].filename` directly into `os.path.join`, `open`, or an S3 key |
+| Validate image content with `PIL.Image.open(stream).verify()` (or full re-decode) at the upload site | Trust the file extension or `Content-Type` header |
+| Enforce a server-side size cap (Flask `MAX_CONTENT_LENGTH` and/or explicit length check) | Allow unbounded uploads — they enable DoS and decompression bombs |
+| Use an allow-list of extensions and MIME types (`.jpg`, `.jpeg`, `.png`, `.webp`) | Use a deny-list — attackers will find an extension you forgot |
+| Generate the stored filename (UUID, SKU-based, hash) | Reuse the user-supplied filename in storage |
+| Catch `PIL.UnidentifiedImageError` and `PIL.Image.DecompressionBombError` and reject the request | Let Pillow exceptions bubble up as a 500 |
+
+```python
+# GOOD - canonical upload validation
+from werkzeug.utils import secure_filename
+from PIL import Image, UnidentifiedImageError
+
+ALLOWED_EXT = {'jpg', 'jpeg', 'png', 'webp'}
+MAX_BYTES = 15 * 1024 * 1024
+
+def validate_uploaded_image(file_storage):
+    name = secure_filename(file_storage.filename or '')
+    ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
+    if ext not in ALLOWED_EXT:
+        abort(400, 'Unsupported image type')
+
+    file_storage.stream.seek(0, 2)
+    size = file_storage.stream.tell()
+    file_storage.stream.seek(0)
+    if size > MAX_BYTES:
+        abort(413, 'Image too large')
+
+    try:
+        img = Image.open(file_storage.stream)
+        img.verify()  # Pillow integrity check
+    except (UnidentifiedImageError, Image.DecompressionBombError, Exception):
+        abort(400, 'Invalid image')
+    file_storage.stream.seek(0)
+    return ext
+```
+
+### Rule 2 — Path handling
+
+- Never build filesystem paths by string concatenation with user input. Use `pathlib.Path`
+  or `os.path.join` + `secure_filename`, then **resolve and confine**:
+  ```python
+  base = Path(user_dir).resolve()
+  candidate = (base / secure_filename(name)).resolve()
+  if base not in candidate.parents and base != candidate:
+      abort(400, 'Invalid path')
+  ```
+- Reject `..`, absolute paths, null bytes (`\x00`), and symlink components from user input.
+- Multi-user file/CSV/S3 access **must** go through helpers in `app/utils/user_context.py`
+  (`get_user_csv_path`, `get_user_image_dir`, etc.). Routes and services must not hand-craft
+  `instance/data/{username}/...` strings.
+- Never accept a `username` (or any path component) from a request body, query string, or
+  header for authorization decisions. Use `session['username']` only.
+
+### Rule 3 — Subprocess, shell, SQL, templates, deserialization
+
+| Never | Use instead |
+|-------|-------------|
+| `subprocess.run(cmd, shell=True)` with user input | `subprocess.run([prog, arg1, arg2], shell=False)` |
+| f-string SQL / CSV / HTML / JSON with user input | Parameterized APIs (`csv.writer`, `json.dumps`, Jinja autoescape, DB params) |
+| `{{ value \| safe }}` on user content | Default Jinja autoescape; sanitize HTML server-side if rich text is required |
+| `eval`, `exec`, `pickle.loads` | `ast.literal_eval` for literals, JSON for data |
+| `yaml.load(s)` | `yaml.safe_load(s)` |
+| Concatenating XML for eBay | `EbayService._sanitize_trading_payload_strings()` (see eBay section) |
+
+### Rule 4 — Authentication & authorization
+
+- Every route that reads or mutates user data **must** carry `@login_required`.
+- Every state-changing route (POST / PUT / PATCH / DELETE) **must** also carry
+  `@csrf_required`.
+- Scope every file, CSV, JSON, and S3 access to `session['username']` via `user_context`.
+  Authorization is never derived from request parameters.
+- Sync-locked routes use `@sync_not_locked`; disk-sensitive routes use
+  `@disk_space_required`. Don't bypass these to "make a test work".
+- Sessions invalidate on app restart — do not add a "remember me" path that survives
+  restart without re-authentication.
+
+### Rule 5 — Secrets, logging, error responses
+
+- Read secrets only via `get_secret()` in `app/config.py` (precedence: AWS Secrets Manager
+  → environment variable → default). Never hard-code keys, tokens, passwords, or AWS
+  credentials.
+- Never commit `.env`, decrypted vault contents, or `~/.vault_pass`. Vault stays encrypted
+  in `deployment/group_vars/vault.yml`.
+- Per-user eBay credentials live in Secrets Manager via
+  `app/services/user_secrets_service.py`. Do not write them to CSV, JSON, logs, or
+  responses.
+- Use `safe_error_message(exc)` from `app/utils/logging_utils.py` when forming the
+  client-facing error string. In production it returns a generic message; full detail
+  goes to the logger only.
+- Never log: passwords, full session cookies, eBay user tokens, AWS credentials, full
+  request bodies for auth endpoints, or full S3 pre-signed URLs.
+
+### Rule 6 — External requests, SSRF, timeouts
+
+- Every `requests.*` / `urllib` call **must** set an explicit `timeout=` (connect + read).
+  Default to `timeout=(5, 30)` unless there's a reason for more.
+- Never fetch a URL supplied by the client without an allow-list of hosts and schemes.
+  Block `file://`, `gopher://`, `http://169.254.169.254`, and RFC-1918 / loopback CIDRs.
+- Disable redirects (`allow_redirects=False`) when fetching from an allow-listed host
+  unless redirects are explicitly required.
+
+### Rule 7 — Input validation & rate limiting
+
+- Validate every API input at the entry point: required fields, types, length caps,
+  numeric ranges, enum membership. Reject unknown fields rather than silently ignoring
+  them.
+- Cap string lengths server-side (titles, descriptions, SKUs). Don't rely on the browser.
+- Respect `app/security.py` rate limiting. New public endpoints must be explicitly added
+  to the rate-limit config; never bypass it.
+- Login, password reset, eBay token exchange, and bulk-action endpoints need stricter
+  rate limits than the default.
+
+### Rule 8 — CSV / JSON / S3 specifics
+
+- All CSV writes go through `app/services/csv_service.py` (file-locking + sanitization).
+  Do not open the CSV directly with `open(..., 'w')` from a route or another service.
+- CSV cell values that begin with `=`, `+`, `-`, `@`, tab, or CR must be prefixed with a
+  single quote (`csv_sanitizer.py`) to prevent CSV-injection in spreadsheet apps.
+- S3 object keys must be derived from `user_context` helpers + a generated filename.
+  Never put raw user filenames in keys.
+- `instance/user_preferences.json` is loaded with `json.load` — do not load arbitrary
+  user-supplied JSON without size caps and schema validation.
+
+### Pre-commit security checklist
+
+Before finalizing any code change, walk this list:
+
+- [ ] No `request.files[...].filename` reaches a path or S3 key without `secure_filename`
+- [ ] All image uploads run through `Image.open(...).verify()` **and** a size cap
+- [ ] No new `shell=True`, `eval`, `exec`, `pickle.loads`, `yaml.load`, or `|safe` on user data
+- [ ] Every new state-changing route has `@login_required` and `@csrf_required`
+- [ ] User-controlled filesystem paths are `secure_filename`-d, resolved, and confined under the expected base
+- [ ] No secrets, tokens, full cookies, or full request bodies appear in log calls
+- [ ] All outbound `requests` calls have an explicit `timeout`
+- [ ] CSV writes go through `csv_service`; CSV cells are sanitized
+- [ ] All colors / paths / filenames use existing helpers (`tokens.css`, `user_context`) rather than re-implementations
+- [ ] Multi-user file access uses `app/utils/user_context.py`, never hand-crafted `instance/data/{username}/...` strings
+- [ ] Error responses use `safe_error_message()`; full detail is in logs only
+
+---
+
 ## Documentation Standards
 
 All documentation in `deployment/docs/` follows a consistent style modeled after
