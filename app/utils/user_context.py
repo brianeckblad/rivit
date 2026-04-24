@@ -5,9 +5,48 @@ Provides functions to get user-specific file paths and settings.
 Each user has their own CSV file, SKU counter, and can optionally
 have their own eBay API credentials.
 """
+import re
 from pathlib import Path
 from flask import session, current_app, has_request_context
 import os
+
+
+# Defence-in-depth: the same allow-list as auth.validate_username. Duplicated
+# here to avoid a circular import at module-load time.
+_SAFE_USERNAME_RE = re.compile(r'^[A-Za-z0-9_\-]{3,32}$')
+
+
+def _assert_safe_username(username):
+    """Raise ValueError if the username is not allow-listed.
+
+    Any code path that constructs filesystem paths or S3 prefixes from a
+    username goes through this guard so a crafted value (``../``, slashes,
+    NULs, control chars) cannot escape the user data directory.
+    """
+    if username == 'default':
+        return
+    if not isinstance(username, str) or not _SAFE_USERNAME_RE.match(username):
+        raise ValueError(f"Unsafe username: {username!r}")
+
+
+def _safe_user_subpath(base_dir: Path, username: str) -> Path:
+    """Return ``base_dir / 'data' / username`` after verifying containment.
+
+    Uses ``Path.resolve()`` + ``is_relative_to`` to ensure the resolved
+    directory lives inside ``base_dir``. Raises ``ValueError`` if escape is
+    detected (belt-and-braces alongside the regex).
+    """
+    _assert_safe_username(username)
+    base_resolved = base_dir.resolve()
+    target = (base_dir / 'data' / username).resolve()
+    # Python 3.9+: Path.is_relative_to; fall back to string compare if older.
+    try:
+        ok = target.is_relative_to(base_resolved)
+    except AttributeError:  # pragma: no cover - Python <3.9 fallback
+        ok = str(target).startswith(str(base_resolved) + os.sep)
+    if not ok:
+        raise ValueError(f"Refusing to use user path outside data dir: {target}")
+    return target
 
 
 def get_current_username():
@@ -41,7 +80,7 @@ def get_user_csv_file(username=None):
 
     # Multi-user: data/{username}/items.csv
     base_dir = Path(current_app.config['CSV_FILE']).parent
-    user_dir = base_dir / 'data' / username
+    user_dir = _safe_user_subpath(base_dir, username)
     user_dir.mkdir(exist_ok=True, parents=True)
 
     return user_dir / "items.csv"
@@ -66,7 +105,7 @@ def get_user_sku_file(username=None):
 
     # Multi-user: data/{username}/sku.txt
     base_dir = Path(current_app.config['SKU_FILE']).parent
-    user_dir = base_dir / 'data' / username
+    user_dir = _safe_user_subpath(base_dir, username)
     user_dir.mkdir(exist_ok=True, parents=True)
 
     return user_dir / "sku.txt"
@@ -90,6 +129,7 @@ def get_user_secret_name(username=None):
         app_name = os.environ.get('APP_NAME', 'app-item-listing-tool')
         return os.environ.get('SECRET_NAME', f'{app_name}/production')
 
+    _assert_safe_username(username)
     # Multi-user: {app_prefix}/users/{username}
     # Keeps user secrets under the same IAM policy prefix as the main app secret
     secret_name = os.environ.get('SECRET_NAME', 'rampe/production')
@@ -156,6 +196,7 @@ def get_user_s3_prefix(username=None):
         s3_folder = os.environ.get('S3_FOLDER', 'production')
         return f"{s3_folder}/"
 
+    _assert_safe_username(username)
     # Multi-user: users/{username}/
     return f"users/{username}/"
 
@@ -252,7 +293,7 @@ def _get_user_subdir(dirname, username=None):
     if username == 'default':
         result = csv_file.parent / dirname
     else:
-        base_dir = csv_file.parent / 'data' / username
+        base_dir = _safe_user_subpath(csv_file.parent, username)
         base_dir.mkdir(exist_ok=True, parents=True)
         result = base_dir / dirname
 
@@ -403,11 +444,18 @@ def migrate_legacy_user_files(app=None):
     if not data_dir.exists():
         return
 
+    # Strict pattern: only migrate <safe-username>-items.csv — reject crafted
+    # names that could become directory-traversal targets.
+    legacy_csv_re = re.compile(r'^(?P<u>[A-Za-z0-9_]{3,32})-items\.csv$')
+    legacy_sku_re = re.compile(r'^(?P<u>[A-Za-z0-9_]{3,32})-sku\.txt$')
+
     # Find legacy files matching {username}-items.csv pattern
     for legacy_csv in data_dir.glob('*-items.csv'):
-        username = legacy_csv.stem.replace('-items', '')
-        if not username:
+        m = legacy_csv_re.match(legacy_csv.name)
+        if not m:
+            logger.warning(f"Skipping legacy file with unsafe name: {legacy_csv.name}")
             continue
+        username = m.group('u')
 
         user_dir = data_dir / username
         user_dir.mkdir(exist_ok=True, parents=True)
@@ -428,9 +476,11 @@ def migrate_legacy_user_files(app=None):
 
     # Find legacy SKU files matching {username}-sku.txt
     for legacy_sku in data_dir.glob('*-sku.txt'):
-        username = legacy_sku.stem.replace('-sku', '')
-        if not username:
+        m = legacy_sku_re.match(legacy_sku.name)
+        if not m:
+            logger.warning(f"Skipping legacy SKU file with unsafe name: {legacy_sku.name}")
             continue
+        username = m.group('u')
 
         user_dir = data_dir / username
         user_dir.mkdir(exist_ok=True, parents=True)

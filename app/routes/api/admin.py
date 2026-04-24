@@ -10,7 +10,7 @@ and code maintainability.
 """
 from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
-from app.routes.auth import login_required, csrf_required
+from app.routes.auth import login_required, csrf_required, admin_required
 from app.services.s3_service import s3_service
 from app.utils.defaults_helpers import get_app_defaults
 from pathlib import Path
@@ -88,6 +88,7 @@ def get_admin_defaults() -> Response:
 
 @api_bp.route('/admin/defaults', methods=['POST'])
 @login_required
+@admin_required
 @csrf_required
 def save_admin_defaults() -> Response:
     """Save custom default values for form fields.
@@ -167,6 +168,7 @@ def save_admin_defaults() -> Response:
 
 @api_bp.route('/admin/security/blocked-ips', methods=['GET'])
 @login_required
+@admin_required
 def get_blocked_ips() -> Response:
     """Get list of currently blocked IP addresses.
 
@@ -209,6 +211,7 @@ def get_blocked_ips() -> Response:
 
 @api_bp.route('/admin/security/unblock-ip', methods=['POST'])
 @login_required
+@admin_required
 @csrf_required
 def unblock_ip() -> Response:
     """Unblock a specific IP address.
@@ -253,6 +256,7 @@ def unblock_ip() -> Response:
 
 @api_bp.route('/admin/security/rate-limit/<ip>', methods=['GET'])
 @login_required
+@admin_required
 def check_rate_limit(ip: str) -> Response:
     """Check rate limit status for a specific IP address.
 
@@ -296,6 +300,7 @@ def check_rate_limit(ip: str) -> Response:
 
 @api_bp.route('/admin/security/stats', methods=['GET'])
 @login_required
+@admin_required
 def get_security_stats() -> Response:
     """Get overall security statistics.
 

@@ -12,7 +12,7 @@ All functions include type hints and comprehensive docstrings for better IDE sup
 from typing import Dict, Any, Tuple
 from flask import request, jsonify, current_app, session, Response
 from app.routes.api import api_bp
-from app.routes.auth import login_required, csrf_required
+from app.routes.auth import login_required, csrf_required, admin_required
 from app.models.user import user_manager
 
 
@@ -352,6 +352,7 @@ def update_preferences() -> Response:
 
 @api_bp.route('/account/users', methods=['GET'])
 @login_required
+@admin_required
 def list_users() -> Response:
     """List all users in the system.
 
@@ -399,6 +400,7 @@ def list_users() -> Response:
 
 @api_bp.route('/account/users', methods=['POST'])
 @login_required
+@admin_required
 @csrf_required
 def create_user() -> Response:
     """Create a new user account.
@@ -472,6 +474,7 @@ def create_user() -> Response:
 
 @api_bp.route('/account/users/<username>', methods=['DELETE'])
 @login_required
+@admin_required
 @csrf_required
 def delete_user(username: str) -> Response:
     """Delete a user account permanently.
@@ -535,6 +538,7 @@ def delete_user(username: str) -> Response:
 
 @api_bp.route('/account/debug-users', methods=['GET'])
 @login_required
+@admin_required
 def debug_users() -> Response:
     """Debug endpoint to inspect user state and cache.
 
@@ -580,6 +584,7 @@ def debug_users() -> Response:
 
 @api_bp.route('/account/cleanup-admin', methods=['POST'])
 @login_required
+@admin_required
 @csrf_required
 def cleanup_default_admin() -> Response:
     """Manually trigger cleanup of default admin user.
@@ -625,6 +630,7 @@ def cleanup_default_admin() -> Response:
 
 @api_bp.route('/account/clear-cache', methods=['POST'])
 @login_required
+@admin_required
 @csrf_required
 def clear_user_cache() -> Response:
     """Force clear user cache and reload from disk.

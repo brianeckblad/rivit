@@ -1,10 +1,34 @@
 """Authentication routes and decorators."""
+import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g
 from functools import wraps
 from urllib.parse import urlparse, urljoin
 from app.models.user import user_manager
 
 auth_bp = Blueprint('auth', __name__)
+
+
+# Strict username format — alphanumeric, underscore, hyphen only; 3-32 chars.
+# Prevents path traversal (/, \, .., :, NUL) and shell metacharacters when the
+# username is used to build filesystem paths or S3 keys.
+USERNAME_REGEX = re.compile(r'^[A-Za-z0-9_\-]{3,32}$')
+
+
+def validate_username(username):
+    """Return (True, normalized) if username is safe, otherwise (False, error_message).
+
+    Applies a strict allow-list regex. Any username that fails here must never
+    be used to construct a filesystem path, S3 key, or AWS Secrets Manager name.
+    """
+    if not isinstance(username, str):
+        return False, "Username must be a string"
+    candidate = username.strip()
+    if not candidate:
+        return False, "Username is required"
+    if not USERNAME_REGEX.match(candidate):
+        return False, ("Username must be 3-32 characters and contain only "
+                       "letters, numbers, underscores, or hyphens")
+    return True, candidate
 
 
 def login_required(f):
@@ -94,6 +118,30 @@ def csrf_required(f):
                 from flask import jsonify
                 return jsonify({'success': False, 'error': 'Invalid or missing CSRF token'}), 403
                 
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def admin_required(f):
+    """
+    Decorator that restricts access to admin users only.
+
+    Must be layered AFTER login_required. Returns 403 if the current user
+    is not flagged as admin. See ``UserManager.is_admin`` for the admin rule
+    (explicit ``is_admin`` flag, single-user bootstrap, or first-created user).
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask import jsonify, current_app
+        username = session.get('username')
+        if not username or not user_manager.is_admin(username):
+            current_app.logger.warning(
+                f"Admin-only endpoint denied for user={username!r} path={request.path}"
+            )
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'error': 'Administrator privileges required'}), 403
+            flash('Administrator privileges required.', 'error')
+            return redirect(url_for('main.landing'))
         return f(*args, **kwargs)
     return decorated_function
 

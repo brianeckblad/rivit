@@ -337,6 +337,13 @@ class UserManager:
         Returns:
             tuple: (bool, str) success status and message.
         """
+        # Validate the new username against the strict allow-list
+        from app.routes.auth import validate_username
+        ok, normalized = validate_username(new_username)
+        if not ok:
+            return False, normalized
+        new_username = normalized
+
         # Verify password
         if not self.verify_password(old_username, password):
             return False, "Password is incorrect"
@@ -388,6 +395,13 @@ class UserManager:
         Returns:
             tuple: (bool, str) success status and message.
         """
+        # Strict username validation (prevents path traversal and shell chars)
+        from app.routes.auth import validate_username
+        ok, normalized = validate_username(username)
+        if not ok:
+            return False, normalized
+        username = normalized
+
         users = self._load_users()
         username_lower = username.lower()
 
@@ -613,6 +627,60 @@ class UserManager:
         self._users_cache = None
         self._last_modified = None
         _log_user_message("🔄 User cache cleared - will reload from disk")
+
+    def is_admin(self, username):
+        """Return True if ``username`` has administrator privileges.
+
+        Admin rule (evaluated in order):
+        1. User has ``is_admin: True`` in their stored record, OR
+        2. No user has ``is_admin`` set AND this is the only user
+           (single-tenant bootstrap), OR
+        3. No user has ``is_admin`` set AND this is the alphabetically-first
+           username (legacy deployments before the flag existed).
+
+        Returns False for an unknown username or when outside both rules.
+        """
+        if not username:
+            return False
+        users = self._load_users()
+        key = username.lower()
+        user = users.get(key)
+        if not user:
+            return False
+
+        # Rule 1: explicit flag takes precedence
+        if user.get('is_admin') is True:
+            return True
+
+        # If any user carries the flag, only flagged users are admins
+        any_flagged = any(u.get('is_admin') is True for u in users.values())
+        if any_flagged:
+            return False
+
+        # Rule 2: single-user deployment — that user is admin
+        if len(users) == 1:
+            return True
+
+        # Rule 3: legacy fallback — first user sorted by lowercase key
+        first_key = sorted(users.keys())[0]
+        return key == first_key
+
+    def set_admin(self, username, is_admin=True):
+        """Grant or revoke admin on a user.
+
+        Returns (bool, str).
+        """
+        users = self._load_users()
+        key = (username or '').lower()
+        if key not in users:
+            return False, "User not found"
+        users[key]['is_admin'] = bool(is_admin)
+        try:
+            self._save_users(users)
+            self._users_cache = users
+            return True, ("Granted admin" if is_admin else "Revoked admin")
+        except Exception as e:
+            return False, f"Error updating admin flag: {e}"
 
 
 # Global user manager instance
