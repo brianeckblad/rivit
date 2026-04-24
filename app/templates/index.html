@@ -4745,22 +4745,18 @@
         window.hideEbayStatusBar = hideEbayStatusBar;
 
         function setEbayActionStatus(state, message) {
-            // Drive the persistent status bar instead of the inline element
+            // Drive the persistent status bar (single source of truth)
             if (state && message) {
                 showEbayStatusBar(state, message);
             } else {
                 hideEbayStatusBar();
             }
-            // Also keep the small inline element in sync (legacy)
+            // Ensure the legacy inline element is hidden so only one status shows
             const statusEl = document.getElementById('ebayActionStatus');
-            if (!statusEl) return;
-            statusEl.className = `status-chip ${state || ''}`.trim();
-            if (state === 'loading') {
-                statusEl.innerHTML = `<span class="loading-spinner"></span>${message || ''}`;
-            } else {
-                statusEl.textContent = message || '';
+            if (statusEl) {
+                statusEl.textContent = '';
+                statusEl.style.display = 'none';
             }
-            statusEl.style.display = message ? 'flex' : 'none';
         }
 
         async function triggerEbayAction(explicitAction = null, sourceButton = null, explicitScheduleTime = null) {
