@@ -19,10 +19,10 @@ from app.routes.auth import login_required, csrf_required, sync_not_locked, disk
 from app.services.comic_service import comic_service
 from app.services.ebay_service import ebay_service
 from app.utils.defaults_helpers import apply_defaults_to_comic_data
-from app.utils.whatnot_validators import allowed_file, WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
+from app.utils.upload_security import validate_uploaded_image, UploadValidationError
+from app.utils.whatnot_validators import WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
 from io import StringIO, BytesIO
 import csv
-import os
 import time
 import math
 
@@ -213,32 +213,23 @@ def add_comic() -> Response:
                 }), 400
 
         # Validate file uploads
-        max_file_size = 10 * 1024 * 1024  # 10MB per file
         max_files = 8
         allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif', 'webp'})
+        max_file_size = 10 * 1024 * 1024  # 10MB per file
 
         if len(files) > max_files:
             return jsonify({'success': False, 'message': f'Maximum {max_files} images allowed'}), 400
 
         for file in files:
             if file and file.filename:
-                # Check file extension
-                if not allowed_file(file.filename, allowed_extensions):
-                    return jsonify({
-                        'success': False,
-                        'message': f'Invalid file type: {file.filename}. Allowed: {", ".join(allowed_extensions)}'
-                    }), 400
-
-                # Check file size
-                file.seek(0, os.SEEK_END)
-                file_size = file.tell()
-                file.seek(0)  # Reset to beginning
-
-                if file_size > max_file_size:
-                    return jsonify({
-                        'success': False,
-                        'message': f'File {file.filename} exceeds 10MB limit'
-                    }), 400
+                try:
+                    validate_uploaded_image(
+                        file,
+                        allowed_extensions=allowed_extensions,
+                        max_bytes=max_file_size,
+                    )
+                except UploadValidationError as exc:
+                    return jsonify({'success': False, 'message': str(exc)}), exc.status_code
 
         # Handle image duplication if this is a duplicate request
         images_to_duplicate = request.form.getlist('duplicate_image_urls')
@@ -385,28 +376,19 @@ def update_comic(sku: str) -> Response:
         new_files = [] if is_json else request.files.getlist('images')
 
         # Validate file uploads
-        max_file_size = 10 * 1024 * 1024  # 10MB per file
         allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif', 'webp'})
+        max_file_size = 10 * 1024 * 1024  # 10MB per file
 
         for file in new_files:
             if file and file.filename:
-                # Check file extension
-                if not allowed_file(file.filename, allowed_extensions):
-                    return jsonify({
-                        'success': False,
-                        'message': f'Invalid file type: {file.filename}. Allowed: {", ".join(allowed_extensions)}'
-                    }), 400
-
-                # Check file size
-                file.seek(0, os.SEEK_END)
-                file_size = file.tell()
-                file.seek(0)  # Reset to beginning
-
-                if file_size > max_file_size:
-                    return jsonify({
-                        'success': False,
-                        'message': f'File {file.filename} exceeds 10MB limit'
-                    }), 400
+                try:
+                    validate_uploaded_image(
+                        file,
+                        allowed_extensions=allowed_extensions,
+                        max_bytes=max_file_size,
+                    )
+                except UploadValidationError as exc:
+                    return jsonify({'success': False, 'message': str(exc)}), exc.status_code
 
         # Get existing images that should be kept
         existing_images = []
