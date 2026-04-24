@@ -2155,7 +2155,7 @@
                     </div>
                     <div id="ebayItemIdDisplay" style="display: none;">
                         <div style="color: var(--color-text-dim); font-size: 11px; margin-bottom: 4px;">EBAY ITEM ID</div>
-                        <div id="ebayItemIdValue" style="color: var(--color-accent); font-family: monospace;">-</div>
+                        <a id="ebayItemIdValue" href="#" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); font-family: monospace; text-decoration: none;">-</a>
                     </div>
                 </div>
                 <button type="button" class="view-mode-edit-btn" onclick="enableEditMode()" title="Enter edit mode">
@@ -2373,6 +2373,7 @@
                                             <span id="ebayVerificationBadge" style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--color-elevated);color:var(--color-text-muted);">Checking...</span>
                                         </div>
                                         <div id="ebayItemIdSettingsValue" style="font-size:14px;color:var(--color-accent);font-family:monospace;font-weight:500;">-</div>
+                                        <a id="ebayItemIdSettingsLink" href="#" target="_blank" rel="noopener noreferrer" style="display:none;font-size:11px;color:var(--color-accent);margin-top:6px;text-decoration:none;opacity:0.8;">View on eBay ↗</a>
                                     </div>
 
                     <!-- Listing Mode Dropdown -->
@@ -2763,6 +2764,9 @@
                         <button type="button" class="menu-item" id="whatnotUnlistBtn" onclick="if (!this.classList.contains('disabled')) { toggleWhatNotListing(false); document.getElementById('whatnotMenuDropdown').classList.remove('show'); }">
                             <span>Unlist from WhatNot</span>
                         </button>
+                        <a id="whatnotViewListingBtn" class="menu-item" href="#" target="_blank" rel="noopener noreferrer" style="display:none; text-decoration: none; color: inherit;">
+                            <span>View on Whatnot ↗</span>
+                        </a>
                     </div>
                 </div>
 
@@ -2803,6 +2807,17 @@
                         <button type="button" class="menu-item" id="ebayMetadataMenuBtn" onclick="openMetadataSearchModal(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
                             <span>Import eBay Metadata</span>
                         </button>
+                        <!-- Shown when listing is Scheduled — move it live immediately -->
+                        <button type="button" class="menu-item" id="ebayMoveToLiveBtn" style="display:none;" onclick="listScheduledNow(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
+                            <span>⚡ Move to Live</span>
+                        </button>
+                        <!-- Shown when listing is Active — reschedule it -->
+                        <button type="button" class="menu-item" id="ebayMoveToScheduledBtn" style="display:none;" onclick="openMoveToScheduledPicker(); document.getElementById('ebayMenuDropdown').classList.remove('show');">
+                            <span>📅 Move to Scheduled</span>
+                        </button>
+                        <a id="ebayViewListingBtn" class="menu-item" href="#" target="_blank" rel="noopener noreferrer" style="display:none; text-decoration: none; color: inherit;">
+                            <span>View on eBay ↗</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -2854,6 +2869,31 @@
         <img id="modalImage" src="" alt="Enlarged view">
     </div>
 
+
+    <!-- Move to Scheduled Modal -->
+    <div class="modal" id="moveToScheduledModal" onclick="closeMoveToScheduledModal(event)" style="z-index: 1100;">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 400px; padding: 0;">
+            <div class="modal-header" style="padding: var(--space-lg);">
+                <h3 style="margin: 0; font-size: var(--font-size-md); color: var(--color-accent);">📅 Move to Scheduled</h3>
+                <button onclick="document.getElementById('moveToScheduledModal').style.display='none';" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: var(--space-md) var(--space-lg);">
+                <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0 0 var(--space-md) 0;">This will end the active listing and re-list it as a scheduled listing. Choose how many days from now to go live:</p>
+                <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap; margin-bottom: var(--space-md);">
+                    <button type="button" class="schedule-day-btn mts-day-btn" onclick="selectMoveToScheduledDays(1)" data-days="1">1 day</button>
+                    <button type="button" class="schedule-day-btn mts-day-btn" onclick="selectMoveToScheduledDays(3)" data-days="3">3 days</button>
+                    <button type="button" class="schedule-day-btn mts-day-btn" onclick="selectMoveToScheduledDays(7)" data-days="7">7 days</button>
+                    <button type="button" class="schedule-day-btn mts-day-btn" onclick="selectMoveToScheduledDays(12)" data-days="12">12 days</button>
+                    <button type="button" class="schedule-day-btn mts-day-btn" onclick="selectMoveToScheduledDays(17)" data-days="17">Max (17)</button>
+                </div>
+                <p id="mtsDateLabel" style="font-size: var(--font-size-xs); color: var(--color-text-dim); margin: 0 0 var(--space-md) 0;"></p>
+            </div>
+            <div style="padding: var(--space-md) var(--space-lg); display: flex; gap: var(--space-sm); justify-content: flex-end; border-top: 1px solid var(--color-border);">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('moveToScheduledModal').style.display='none';">Cancel</button>
+                <button type="button" class="btn btn-primary" id="mtsConfirmBtn" disabled onclick="executeMoveToScheduled()">Schedule</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Grading Scale Modal -->
     <div class="grading-modal" id="gradingModal" onclick="closeGradingModalOnOutsideClick(event)">
@@ -3124,6 +3164,7 @@
         let originalFormState = null; // Track original form state for change detection
         let userPreferences = {};
         let currentComicEbayId = '';
+        let currentComicEbayListingStatus = ''; // 'Active', 'Scheduled', 'Draft', or ''
         let currentComicWhatNotId = '';
         let currentEbayEnv = 'production';
         let defaultListingMode = null; // Will be set from admin defaults or user preferences
@@ -3180,6 +3221,10 @@
             const listingStatus = (result.status === 'active') ? (result.listing_status || 'Active') : '';
             const isScheduled = listingStatus === 'Scheduled';
             const isActivelyListed = result.status === 'active' && !isScheduled;
+
+            // Store globally so menu state can show correct toggle buttons
+            currentComicEbayListingStatus = listingStatus;
+            updateEbayMenuState();
 
             // Always keep the listing mode dropdown UNLOCKED so user can switch
             // between List Now and Schedule modes
@@ -3369,6 +3414,7 @@
             const settingsDisplay = document.getElementById('ebayItemIdSettingsDisplay');
             const settingsValue = document.getElementById('ebayItemIdSettingsValue');
             const settingsBadge = document.getElementById('ebayVerificationBadge');
+            const settingsLink = document.getElementById('ebayItemIdSettingsLink');
 
             // Show/hide eBay Item ID in view mode indicator when viewing a comic
             if (ebayItemIdDisplay && ebayItemIdValue) {
@@ -3377,7 +3423,8 @@
                     // Show ID with "verifying..." indicator initially
                     ebayItemIdValue.textContent = currentComicEbayId + ' ⏳';
                     ebayItemIdValue.style.color = 'var(--color-accent)';
-                    ebayItemIdValue.title = 'Verifying on eBay...';
+                    ebayItemIdValue.title = 'View on eBay';
+                    ebayItemIdValue.href = `https://www.ebay.com/itm/${currentComicEbayId}`;
 
                     // Auto-verify the listing status on eBay
                     verifyEbayListingStatus(editingSKU, currentComicEbayId).then(updateVerificationStatus);
@@ -3395,11 +3442,17 @@
                     settingsBadge.textContent = '⏳ Verifying...';
                     settingsBadge.style.background = 'var(--color-elevated)';
                     settingsBadge.style.color = 'var(--color-accent)';
+                    // Show View on eBay link in settings panel
+                    if (settingsLink) {
+                        settingsLink.href = `https://www.ebay.com/itm/${currentComicEbayId}`;
+                        settingsLink.style.display = 'block';
+                    }
 
                     // Auto-verify the listing status
                     verifyEbayListingStatus(editingSKU, currentComicEbayId).then(updateVerificationStatus);
                 } else {
                     settingsDisplay.style.display = 'none';
+                    if (settingsLink) settingsLink.style.display = 'none';
                 }
             }
 
@@ -3481,6 +3534,7 @@
             const listBtn = document.getElementById('whatnotListBtn');
             const unlistBtn = document.getElementById('whatnotUnlistBtn');
             const menuBtn = document.getElementById('whatnotMenuBtn');
+            const viewListingBtn = document.getElementById('whatnotViewListingBtn');
 
             if (!whatnotPill) return;
 
@@ -3509,6 +3563,20 @@
                         if (menuBtn) menuBtn.classList.remove('active');
                     }
                 }
+
+                // Show View on Whatnot link when listed
+                if (viewListingBtn) {
+                    if (isListedOnWhatNot) {
+                        const titleEl = document.getElementById('title');
+                        const titleVal = (titleEl && titleEl.value) ? encodeURIComponent(titleEl.value) : '';
+                        viewListingBtn.href = titleVal
+                            ? `https://www.whatnot.com/search/listings?q=${titleVal}`
+                            : 'https://www.whatnot.com';
+                        viewListingBtn.style.display = 'flex';
+                    } else {
+                        viewListingBtn.style.display = 'none';
+                    }
+                }
             } else {
                 whatnotPill.style.display = 'none';
             }
@@ -3523,6 +3591,7 @@
             const delistBtn = document.getElementById('ebayDelistMenuBtn');
             const unlinkBtn = document.getElementById('ebayUnlinkMenuBtn');
             const menuBtn = document.getElementById('ebayMenuBtn');
+            const viewListingBtn = document.getElementById('ebayViewListingBtn');
 
             if (!ebayPill) return;
 
@@ -3554,6 +3623,24 @@
                 if (delistBtn) delistBtn.style.display = 'flex';
                 if (unlinkBtn) unlinkBtn.style.display = 'flex';
                 if (menuBtn) menuBtn.classList.add('active');
+                // Show View on eBay link
+                if (viewListingBtn) {
+                    viewListingBtn.href = `https://www.ebay.com/itm/${currentComicEbayId}`;
+                    viewListingBtn.style.display = 'flex';
+                }
+                // Show the appropriate schedule/live toggle based on verified listing status
+                const moveToLiveBtn = document.getElementById('ebayMoveToLiveBtn');
+                const moveToScheduledBtn = document.getElementById('ebayMoveToScheduledBtn');
+                if (currentComicEbayListingStatus === 'Scheduled') {
+                    if (moveToLiveBtn) moveToLiveBtn.style.display = 'flex';
+                    if (moveToScheduledBtn) moveToScheduledBtn.style.display = 'none';
+                } else if (currentComicEbayListingStatus === 'Active') {
+                    if (moveToLiveBtn) moveToLiveBtn.style.display = 'none';
+                    if (moveToScheduledBtn) moveToScheduledBtn.style.display = 'flex';
+                } else {
+                    if (moveToLiveBtn) moveToLiveBtn.style.display = 'none';
+                    if (moveToScheduledBtn) moveToScheduledBtn.style.display = 'none';
+                }
             } else {
                 // Not linked — show List, Link; hide Update, Update From, Delist, Unlink
                 if (listBtn) listBtn.style.display = 'flex';
@@ -3563,6 +3650,13 @@
                 if (delistBtn) delistBtn.style.display = 'none';
                 if (unlinkBtn) unlinkBtn.style.display = 'none';
                 if (menuBtn) menuBtn.classList.remove('active');
+                // Hide View on eBay link
+                if (viewListingBtn) viewListingBtn.style.display = 'none';
+                // Hide toggle buttons
+                const moveToLiveBtn = document.getElementById('ebayMoveToLiveBtn');
+                const moveToScheduledBtn = document.getElementById('ebayMoveToScheduledBtn');
+                if (moveToLiveBtn) moveToLiveBtn.style.display = 'none';
+                if (moveToScheduledBtn) moveToScheduledBtn.style.display = 'none';
             }
         }
 
@@ -8006,6 +8100,95 @@
                 setEbayActionStatus('error', 'Failed to list now. Please try again.');
             }
         }
+        /**
+         * Open the day-picker modal for moving an active listing to scheduled.
+         */
+        let _mtsSelectedDays = 0;
+        function openMoveToScheduledPicker() {
+            _mtsSelectedDays = 0;
+            // Reset day buttons
+            document.querySelectorAll('.mts-day-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.background = '';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            });
+            const label = document.getElementById('mtsDateLabel');
+            if (label) label.textContent = '';
+            const confirmBtn = document.getElementById('mtsConfirmBtn');
+            if (confirmBtn) confirmBtn.disabled = true;
+            document.getElementById('moveToScheduledModal').style.display = 'flex';
+        }
+
+        function closeMoveToScheduledModal(event) {
+            if (!event || event.target.id === 'moveToScheduledModal') {
+                document.getElementById('moveToScheduledModal').style.display = 'none';
+            }
+        }
+
+        function selectMoveToScheduledDays(days) {
+            _mtsSelectedDays = days;
+            document.querySelectorAll('.mts-day-btn').forEach(btn => {
+                const btnDays = parseInt(btn.dataset.days);
+                if (btnDays === days) {
+                    btn.style.background = 'var(--color-accent-subtle)';
+                    btn.style.borderColor = 'var(--color-accent)';
+                    btn.style.color = 'var(--color-accent)';
+                } else {
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }
+            });
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + days);
+            const formatted = futureDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+            const label = document.getElementById('mtsDateLabel');
+            if (label) label.textContent = `Will go live on ${formatted}.`;
+            const confirmBtn = document.getElementById('mtsConfirmBtn');
+            if (confirmBtn) confirmBtn.disabled = false;
+        }
+
+        async function executeMoveToScheduled() {
+            if (!editingSKU || !currentComicEbayId || _mtsSelectedDays <= 0) return;
+            document.getElementById('moveToScheduledModal').style.display = 'none';
+
+            try {
+                setEbayActionStatus('loading', 'Rescheduling listing...');
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + _mtsSelectedDays);
+
+                const response = await fetch(`/api/comic/${editingSKU}/ebay/relist`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ mode: 'future', schedule_time: futureDate.toISOString() })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setEbayActionStatus('success', 'Listing moved to scheduled!');
+                    currentComicEbayId = data.item_id || currentComicEbayId;
+                    const ebayHiddenField = document.getElementById('ebay-item-id');
+                    if (ebayHiddenField) ebayHiddenField.value = currentComicEbayId;
+                    currentComicEbayListingStatus = 'Scheduled';
+                    updateEbayMenuState();
+                    const modeSelect = document.getElementById('ebayActionMode');
+                    if (modeSelect) modeSelect.value = 'future';
+                    const scheduledControls = document.getElementById('ebayScheduledControls');
+                    if (scheduledControls) scheduledControls.style.display = 'block';
+                    formHasChanged = true;
+                    refreshEbayControls();
+                    const verifyResult = await verifyEbayListingStatus(editingSKU, currentComicEbayId);
+                    updateVerificationStatus(verifyResult);
+                } else {
+                    setEbayActionStatus('error', data.error || 'Failed to reschedule listing. Please try again.');
+                }
+            } catch (error) {
+                console.error('Move to Scheduled error:', error);
+                setEbayActionStatus('error', 'Failed to reschedule. Please try again.');
+            }
+        }
+
         function showComicConfirmModal(message) {
             const modal = document.createElement('div');
             modal.style.cssText = `
