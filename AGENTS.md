@@ -375,36 +375,50 @@ Templates and inline styles must reference these variables — never hard-code h
 /* app/static/css/tokens.css — single source of truth */
 :root {
   /* Backgrounds */
-  --color-bg:             #111210;   /* body background (warm near-black) */
-  --color-surface:        #1B1B1B;   /* cards, header, footer */
-  --color-elevated:       #242422;   /* modals, dropdowns, popovers */
-  --color-inset:          #161615;   /* input fields, code blocks */
+  --color-bg:             #1B1A1B;   /* global app background */
+  --color-surface:        #242223;   /* top/bottom bars and core surfaces */
+  --color-elevated:       #2D2B2C;   /* cards, modals */
+  --color-inset:          #171616;   /* input fields, code blocks */
 
   /* Borders */
-  --color-border:         #2E2E2A;
-  --color-border-hover:   #3A3A36;
-  --color-border-focus:   #595F39;   /* same as accent */
+  --color-border:         #5A5758;
+  --color-border-hover:   #7A7778;
+  --color-border-focus:   #5C9EB8;   /* secondary accent for focus */
 
   /* Text */
-  --color-text:           #E4E4DE;   /* Ethereal Ivory — primary */
-  --color-text-muted:     #C4C5BA;   /* Sophisticated Sage — secondary */
-  --color-text-dim:       #7A7B72;   /* placeholders, disabled, captions */
+  --color-text:           #E8E8E6;   /* primary text */
+  --color-text-muted:     #C5C2BE;   /* secondary text */
+  --color-text-dim:       #ADADAD;   /* placeholders, disabled, captions */
 
-  /* Accent */
-  --color-accent:         #595F39;   /* Muted Moss — buttons, active nav, links */
-  --color-accent-hover:   #6B7244;
-  --color-accent-subtle:  rgba(89, 95, 57, 0.12); /* accent tint for backgrounds */
-  --color-accent-text:    #E4E4DE;   /* text ON accent-colored backgrounds */
+  /* Primary Accent — bright yellow highlight */
+  --color-accent:         #E2E800;
+  --color-accent-hover:   #D1D700;
+  --color-accent-subtle:  rgba(226, 232, 0, 0.16);
+  --color-accent-text:    #141414;   /* text ON accent-colored backgrounds */
+
+  /* Secondary Accent — steel blue */
+  --color-accent-2:       #5C9EB8;
+  --color-accent-2-hover: #6DB1CB;
+  --color-accent-2-subtle: rgba(92, 158, 184, 0.16);
 
   /* Semantic */
   --color-danger:         #C45C5C;
-  --color-danger-subtle:  rgba(196, 92, 92, 0.12);
+  --color-danger-subtle:  rgba(196, 92, 92, 0.14);
   --color-success:        #5C8A5C;
-  --color-success-subtle: rgba(92, 138, 92, 0.12);
+  --color-success-subtle: rgba(92, 138, 92, 0.14);
   --color-info:           #5C9EB8;
-  --color-info-subtle:    rgba(92, 158, 184, 0.12);
+  --color-info-subtle:    rgba(92, 158, 184, 0.14);
   --color-warning:        #B8A05C;
-  --color-warning-subtle: rgba(184, 160, 92, 0.12);
+  --color-warning-subtle: rgba(184, 160, 92, 0.14);
+
+  /* Platform Brand Colors */
+  --color-ebay:           #00BFFF;   /* eBay brand blue */
+  --color-ebay-subtle:    rgba(0, 191, 255, 0.14);
+  --color-whatnot:        #FF00FF;   /* WhatNot brand magenta */
+  --color-whatnot-subtle: rgba(255, 0, 255, 0.14);
+
+  /* Status feedback surfaces */
+  --color-status-surface: #312E2F;
 
   /* Typography */
   --font-family:          'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -429,9 +443,9 @@ Templates and inline styles must reference these variables — never hard-code h
   --radius-lg:  14px;   /* modals, sections, large containers */
 
   /* Shadows (neutral — no colored glows) */
-  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-sm:  0 1px 2px   rgba(0, 0, 0, 0.36);
+  --shadow-md:  0 4px 12px  rgba(0, 0, 0, 0.5);
+  --shadow-lg:  0 8px 24px  rgba(0, 0, 0, 0.6);
 }
 ```
 
@@ -499,15 +513,19 @@ box-shadow: var(--shadow-md);
 
 | Name | Hex | Role |
 |------|-----|------|
-| Ethereal Ivory | `#E4E4DE` | Primary text |
-| Sophisticated Sage | `#C4C5BA` | Secondary/muted text |
-| Eerie Black | `#1B1B1B` | Card/surface backgrounds |
-| Muted Moss | `#595F39` | Primary accent (buttons, active states, links) |
-| Background | `#111210` | Body background (warm near-black) |
-| Elevated | `#242422` | Modal/dropdown backgrounds |
-| Danger | `#C45C5C` | Destructive actions |
-| Info | `#5C9EB8` | Informational highlights |
-| Success | `#5C8A5C` | Positive confirmations |
+| Primary text | `#E8E8E6` | `--color-text` |
+| Secondary text | `#C5C2BE` | `--color-text-muted` |
+| App background | `#1B1A1B` | `--color-bg` |
+| Surface (bars, areas) | `#242223` | `--color-surface` |
+| Elevated (cards, modals) | `#2D2B2C` | `--color-elevated` |
+| Inset (inputs) | `#171616` | `--color-inset` |
+| Primary accent | `#E2E800` | `--color-accent` — bright yellow highlight |
+| Secondary accent | `#5C9EB8` | `--color-accent-2` — steel blue |
+| Danger | `#C45C5C` | `--color-danger` — destructive actions |
+| Success | `#5C8A5C` | `--color-success` |
+| Warning | `#B8A05C` | `--color-warning` |
+| eBay brand | `#00BFFF` | `--color-ebay` |
+| WhatNot brand | `#FF00FF` | `--color-whatnot` |
 
 ### Template Checklist
 
@@ -520,6 +538,51 @@ Before editing any template:
 - [ ] No `rgba(255, 229, 0, ...)` colored glow shadows
 - [ ] Border-radius uses `var(--radius-sm/md/lg)`
 - [ ] Page-specific styles only contain layout unique to that page
+
+---
+
+## eBay Integration Patterns
+
+### XML Payload Sanitization
+
+eBay's Trading API returns `Code: 5 — XML Parse error` when a title or field contains a
+bare `&` (e.g. "Street Fighter & Friends"). `EbayService` automatically sanitizes all
+`AddFixedPriceItem` and `ReviseFixedPriceItem` payloads before sending:
+
+- `_escape_bare_ampersands(value)` — replaces bare `&` with `&amp;` using a regex that
+  skips already-valid entities (`&amp;`, `&gt;`, named entities).
+- `_sanitize_trading_payload_strings(payload)` — recursively walks dicts and lists to
+  apply the escaper to every string value.
+
+Do not manually escape `&` in titles or descriptions — the sanitizer handles it.
+
+### Scheduled ↔ Live Toggle
+
+Comics can be moved between live and scheduled eBay listings without going through the
+full list/delist flow:
+
+- **Single-comic page (`index.html`):** eBay footer dropdown shows "⚡ Move to Live" when
+  the listing is `Scheduled`, or "📅 Move to Scheduled" when it is `Active`. Both call
+  `/api/comic/<sku>/ebay/relist` with the appropriate `mode` and optional `schedule_time`.
+- **Bulk actions (`comics_list.html`):** "Bulk Move to Live" and "Bulk Move to Scheduled"
+  action cards in the eBay Bulk Actions modal. "Move to Scheduled" shows a day-picker
+  (1–17 days) before confirming.
+
+The `/api/comic/<sku>/ebay/relist` endpoint (in `app/routes/api/ebay.py`) reads `mode`
+and `schedule_time` from the JSON body via `resolve_ebay_context()`. It internally ends
+the existing listing before relisting, so no separate end call is needed.
+
+### Bulk eBay Action Flow
+
+The three-modal flow for bulk eBay operations:
+
+1. **`bulkEbayModal`** — choose action (List, Update, End, Unlink, Move to Live, Move to Scheduled)
+2. **`bulkEbaySelectionModal`** — pick "All Listed Items" or select specific items
+3. **`bulkConfirmModal`** — confirm; shows day-picker for `update` (push schedule) and
+   `go-scheduled` (set future date) actions
+
+State is tracked in `bulkCurrentAction` and `bulkCurrentPlatform` globals. The executor
+`executeBulkAction()` processes items sequentially with a 100 ms delay between calls.
 
 ---
 
@@ -639,5 +702,5 @@ Before finalizing any documentation change:
 
 ---
 
-**Last Updated:** March 24, 2026
+**Last Updated:** April 24, 2026
 

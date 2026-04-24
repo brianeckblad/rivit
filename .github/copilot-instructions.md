@@ -116,13 +116,25 @@ All colors, spacing, and component classes live in two shared CSS files. See [AG
 
 | Token | Hex | Role |
 |-------|-----|------|
-| `--color-bg` | `#111210` | Body background |
-| `--color-surface` | `#1B1B1B` | Cards, header, footer |
-| `--color-elevated` | `#242422` | Modals, dropdowns |
-| `--color-text` | `#E4E4DE` | Primary text (Ethereal Ivory) |
-| `--color-text-muted` | `#C4C5BA` | Secondary text (Sophisticated Sage) |
-| `--color-accent` | `#595F39` | Buttons, active states (Muted Moss) |
+| `--color-bg` | `#1B1A1B` | App background |
+| `--color-surface` | `#242223` | Top/bottom bars, core surfaces |
+| `--color-elevated` | `#2D2B2C` | Cards, modals |
+| `--color-inset` | `#171616` | Input fields, code blocks |
+| `--color-text` | `#E8E8E6` | Primary text |
+| `--color-text-muted` | `#C5C2BE` | Secondary text |
+| `--color-accent` | `#E2E800` | Primary highlight accent (bright yellow) |
+| `--color-accent-2` | `#5C9EB8` | Secondary accent (steel blue) |
 | `--color-danger` | `#C45C5C` | Destructive actions |
+| `--color-ebay` | `#00BFFF` | eBay brand blue |
+| `--color-whatnot` | `#FF00FF` | WhatNot brand magenta |
+
+---
+
+## eBay Integration — Key Patterns
+
+- **XML sanitization:** `EbayService._sanitize_trading_payload_strings()` auto-escapes bare `&` in all `AddFixedPriceItem` / `ReviseFixedPriceItem` payloads. Do not manually escape titles.
+- **Scheduled ↔ Live toggle:** Call `POST /api/comic/<sku>/ebay/relist` with `{ "mode": "list" }` to go live or `{ "mode": "future", "schedule_time": "<ISO>" }` to schedule. The endpoint ends the existing listing internally — no separate end call needed.
+- **Bulk actions:** Three-modal flow — action picker → item selector → confirm. `bulkCurrentAction` values: `add`, `update`, `remove`, `unlink`, `go-live`, `go-scheduled`.
 
 ---
 
