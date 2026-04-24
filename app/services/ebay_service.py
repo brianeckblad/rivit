@@ -1183,6 +1183,43 @@ class EbayService:
             return raw[:147] + '...'
         return raw or 'eBay request failed'
 
+    @staticmethod
+    def _escape_bare_ampersands(value):
+        """Escape only raw ampersands that are not already valid XML entities."""
+        if not isinstance(value, str) or '&' not in value:
+            return value
+        return re.sub(r'&(?!#\d+;|#x[0-9A-Fa-f]+;|[A-Za-z][A-Za-z0-9]+;)', '&amp;', value)
+
+    def _sanitize_trading_payload_strings(self, value, path=''):
+        """Recursively sanitize payload string values and collect changed paths."""
+        changed_paths = []
+
+        if isinstance(value, dict):
+            sanitized = {}
+            for key, item in value.items():
+                child_path = f"{path}.{key}" if path else str(key)
+                sanitized_item, item_changes = self._sanitize_trading_payload_strings(item, child_path)
+                sanitized[key] = sanitized_item
+                changed_paths.extend(item_changes)
+            return sanitized, changed_paths
+
+        if isinstance(value, list):
+            sanitized = []
+            for idx, item in enumerate(value):
+                child_path = f"{path}[{idx}]"
+                sanitized_item, item_changes = self._sanitize_trading_payload_strings(item, child_path)
+                sanitized.append(sanitized_item)
+                changed_paths.extend(item_changes)
+            return sanitized, changed_paths
+
+        if isinstance(value, str):
+            sanitized = self._escape_bare_ampersands(value)
+            if sanitized != value:
+                changed_paths.append(path or '<root>')
+            return sanitized, changed_paths
+
+        return value, changed_paths
+
     def _execute_trading_call(self, call_name, payload, environment=None, mode='list', files=None):
         """Execute an eBay Trading API call with error handling.
 
@@ -1203,9 +1240,19 @@ class EbayService:
             list(payload.keys())
         )
 
+        payload_for_call = payload
+        if call_name in {'AddFixedPriceItem', 'ReviseFixedPriceItem'}:
+            payload_for_call, changed_paths = self._sanitize_trading_payload_strings(payload)
+            if changed_paths:
+                current_app.logger.warning(
+                    "Sanitized XML-unsafe ampersands for %s fields: %s",
+                    call_name,
+                    ', '.join(changed_paths[:10]) + (' ...' if len(changed_paths) > 10 else '')
+                )
+
         conn = self._get_trading_connection(env)
         try:
-            response = conn.execute(call_name, payload, files=files)
+            response = conn.execute(call_name, payload_for_call, files=files)
         except TradingError as exc:
             # Log full details for debugging (XML request/response)
             xml_request = None
