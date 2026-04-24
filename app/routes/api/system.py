@@ -10,6 +10,7 @@ This module handles:
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
 from flask import jsonify, current_app, send_file, Response
+from app.utils.logging_utils import safe_error_message
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 from app.services.comic_service import comic_service
@@ -362,7 +363,7 @@ def cleanup_orphaned_images() -> Response:
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f"Error in cleanup_orphaned_images route: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/backup-download', methods=['POST'])
@@ -465,4 +466,4 @@ def backup_download() -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error creating backup download: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500

@@ -11,6 +11,7 @@ All functions include type hints and comprehensive docstrings for better IDE sup
 """
 from typing import Dict, Any, Tuple
 from flask import request, jsonify, current_app, session, Response
+from app.utils.logging_utils import safe_error_message
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required, admin_required
 from app.models.user import user_manager
@@ -579,7 +580,7 @@ def debug_users() -> Response:
     except Exception as e:
         admin_user = session.get('username', 'unknown')
         current_app.logger.error(f"[Admin: {admin_user}] Error debugging users: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/account/cleanup-admin', methods=['POST'])
@@ -680,7 +681,7 @@ def clear_user_cache() -> Response:
     except Exception as e:
         admin_user = session.get('username', 'unknown')
         current_app.logger.error(f"[Admin: {admin_user}] Error clearing cache: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/account/ebay-credentials', methods=['GET'])
@@ -896,10 +897,9 @@ def save_ebay_credentials() -> Response:
             # Invalidate eBay service cache for this user
             try:
                 from app.services.ebay_service import ebay_service
-                if username in ebay_service._user_credentials_cache:
-                    del ebay_service._user_credentials_cache[username]
-                if username in ebay_service._user_tokens_cache:
-                    del ebay_service._user_tokens_cache[username]
+                with ebay_service._cache_lock:
+                    ebay_service._user_credentials_cache.pop(username, None)
+                    ebay_service._user_tokens_cache.pop(username, None)
                 current_app.logger.info(f"[User: {username}] Invalidated eBay credential cache")
             except Exception as cache_error:
                 current_app.logger.warning(f"[User: {username}] Could not invalidate eBay cache: {cache_error}")
@@ -962,10 +962,9 @@ def delete_ebay_credentials() -> Response:
             # Invalidate eBay service cache for this user
             try:
                 from app.services.ebay_service import ebay_service
-                if username in ebay_service._user_credentials_cache:
-                    del ebay_service._user_credentials_cache[username]
-                if username in ebay_service._user_tokens_cache:
-                    del ebay_service._user_tokens_cache[username]
+                with ebay_service._cache_lock:
+                    ebay_service._user_credentials_cache.pop(username, None)
+                    ebay_service._user_tokens_cache.pop(username, None)
                 current_app.logger.info(f"[User: {username}] Invalidated eBay credential cache after deletion")
             except Exception as cache_error:
                 current_app.logger.warning(f"[User: {username}] Could not invalidate eBay cache: {cache_error}")

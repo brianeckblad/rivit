@@ -13,6 +13,7 @@ from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required, admin_required
 from app.services.s3_service import s3_service
 from app.utils.defaults_helpers import get_app_defaults
+from app.utils.logging_utils import safe_error_message
 from pathlib import Path
 from datetime import datetime
 import json
@@ -83,7 +84,7 @@ def get_admin_defaults() -> Response:
         return jsonify({'success': True, 'defaults': defaults})
     except Exception as e:
         current_app.logger.error(f"Error loading app defaults: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/admin/defaults', methods=['POST'])
@@ -390,7 +391,7 @@ def update_sku() -> Response:
     """
     try:
         from app.utils.user_context import get_user_sku_file, get_current_username
-        from app.utils.logging_utils import get_log_prefix
+        from app.utils.logging_utils import get_log_prefix, safe_error_message
 
         username = get_current_username()
         data = request.get_json()

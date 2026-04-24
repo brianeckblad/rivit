@@ -312,7 +312,15 @@ def allowed_file(filename, allowed_extensions=None):
     """Check if filename has an allowed extension."""
     if allowed_extensions is None:
         allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+    if not filename or not isinstance(filename, str):
+        return False
+    # Reject path separators and NUL bytes outright — these should never
+    # appear in a legitimate uploaded filename.
+    if '/' in filename or '\\' in filename or '\x00' in filename:
+        return False
+    if '.' not in filename:
+        return False
+    return filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 
 def populate_whatnot_fields_from_item(item):

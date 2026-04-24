@@ -22,11 +22,20 @@ def generate_unique_filename(original_filename):
     """
     # Get current time in milliseconds for uniqueness
     timestamp = str(int(time.time() * 1000))
-    # Sanitize the filename to prevent security issues
-    filename = secure_filename(original_filename)
-    # Split into name and extension
-    name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, '')
-    # Append timestamp before extension
+    # Sanitize the filename to prevent security issues (directory traversal,
+    # NUL bytes, leading dots, etc.). ``secure_filename`` may return an empty
+    # string for input that is entirely non-ASCII or punctuation, so we fall
+    # back to a generic stem.
+    filename = secure_filename(original_filename or '') or 'upload'
+    # Split into name and extension; clamp the extension to a short
+    # alphanumeric tail so a crafted filename like "x.<200KB of dots>" cannot
+    # blow up filesystem path limits.
+    if '.' in filename:
+        name, ext = filename.rsplit('.', 1)
+    else:
+        name, ext = filename, ''
+    name = (name or 'upload')[:100]
+    ext = ''.join(c for c in ext if c.isalnum())[:8].lower()
     return f"{name}_{timestamp}.{ext}" if ext else f"{name}_{timestamp}"
 
 

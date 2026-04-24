@@ -9,6 +9,7 @@ This module handles:
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
 from flask import request, jsonify, current_app, Response
+from app.utils.logging_utils import safe_error_message
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 
@@ -80,7 +81,7 @@ def create_snapshot() -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error creating snapshot: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/snapshots/list')
@@ -136,7 +137,7 @@ def list_snapshots() -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error listing snapshots: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/snapshots/restore/<snapshot_id>', methods=['POST'])
@@ -205,7 +206,7 @@ def restore_snapshot(snapshot_id: str) -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error restoring snapshot: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/snapshots/delete/<snapshot_id>', methods=['DELETE'])
@@ -254,4 +255,4 @@ def delete_snapshot(snapshot_id: str) -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error deleting snapshot: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500

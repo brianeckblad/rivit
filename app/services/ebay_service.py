@@ -62,9 +62,12 @@ class EbayService:
 
     def __init__(self):
         """Initialize the eBay service and determine the environment (production/sandbox)."""
-        # User-specific state (cached per user to avoid repeated AWS calls)
+        import threading
+        # User-specific state (cached per user to avoid repeated AWS calls).
+        # Mutated from request handlers across threads; protect with a lock.
         self._user_credentials_cache = {}  # {username: {credentials}}
         self._user_tokens_cache = {}  # {username: {'token': ..., 'expires': ...}}
+        self._cache_lock = threading.Lock()
 
         # Shared cache for search results (include username in cache keys)
         self.cache = {}  # Simple in-memory cache
@@ -212,11 +215,13 @@ class EbayService:
         if username is None:
             username = get_current_username()
 
-        # Check if we have cached credentials for this user
-        if username not in self._user_credentials_cache:
-            self._user_credentials_cache[username] = get_ebay_credentials(username)
-
-        creds = self._user_credentials_cache[username]
+        # Check if we have cached credentials for this user (under lock to
+        # avoid two threads concurrently re-fetching for the same user).
+        with self._cache_lock:
+            creds = self._user_credentials_cache.get(username)
+            if creds is None:
+                creds = get_ebay_credentials(username)
+                self._user_credentials_cache[username] = creds
 
         if self.environment == 'sandbox':
             return creds.get('EBAY_SANDBOX_APP_ID') or os.getenv('EBAY_SANDBOX_APP_ID') or current_app.config.get('EBAY_SANDBOX_APP_ID')
@@ -230,11 +235,11 @@ class EbayService:
         if username is None:
             username = get_current_username()
 
-        # Check if we have cached credentials for this user
-        if username not in self._user_credentials_cache:
-            self._user_credentials_cache[username] = get_ebay_credentials(username)
-
-        creds = self._user_credentials_cache[username]
+        with self._cache_lock:
+            creds = self._user_credentials_cache.get(username)
+            if creds is None:
+                creds = get_ebay_credentials(username)
+                self._user_credentials_cache[username] = creds
 
         if self.environment == 'sandbox':
             return creds.get('EBAY_SANDBOX_CERT_ID') or os.getenv('EBAY_SANDBOX_CERT_ID') or current_app.config.get('EBAY_SANDBOX_CERT_ID')
@@ -248,10 +253,10 @@ class EbayService:
         if username is None:
             username = get_current_username()
 
-        # Check if current token for this user is still valid
-        if username in self._user_tokens_cache:
-            token_data = self._user_tokens_cache[username]
-            if token_data['token'] and time.time() < token_data['expires']:
+        # Check if current token for this user is still valid (under lock)
+        with self._cache_lock:
+            token_data = self._user_tokens_cache.get(username)
+            if token_data and token_data['token'] and time.time() < token_data['expires']:
                 return token_data['token']
 
         app_id = self._get_app_id(username)
@@ -303,11 +308,13 @@ class EbayService:
             expires_in = token_data.get('expires_in', 7200)  # Default 2 hours
             token_expires = time.time() + expires_in - 60  # Refresh 1 min early
 
-            # Cache token for this user
-            self._user_tokens_cache[username] = {
-                'token': oauth_token,
-                'expires': token_expires
-            }
+            # Cache token for this user (under lock — concurrent refreshes are
+            # acceptable and the last writer wins.)
+            with self._cache_lock:
+                self._user_tokens_cache[username] = {
+                    'token': oauth_token,
+                    'expires': token_expires
+                }
 
             current_app.logger.info(f"[User: {username}] Successfully obtained eBay OAuth token")
             return oauth_token

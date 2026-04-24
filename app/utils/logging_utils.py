@@ -101,3 +101,27 @@ def log_cleanup_error(message):
     """Log error cleanup message."""
     get_cleanup_logger().error(message)
 
+
+def safe_error_message(exc, default="An internal error occurred"):
+    """
+    Return an error string safe to send to API clients.
+
+    In ``debug`` mode the full ``str(exc)`` is returned to aid local
+    troubleshooting. In production we return a generic message so that
+    internal filesystem paths, SQL fragments, or stack details do not leak
+    to remote callers — the original exception should already have been
+    logged at the call site.
+
+    Args:
+        exc (BaseException): The raised exception.
+        default (str): Generic message used in production.
+
+    Returns:
+        str: A message suitable for inclusion in a JSON error response.
+    """
+    try:
+        if current_app and current_app.debug:
+            return str(exc) or default
+    except RuntimeError:
+        pass
+    return default

@@ -8,6 +8,7 @@ This module handles:
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
 from flask import jsonify, current_app, Response
+from app.utils.logging_utils import safe_error_message
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 from app.services.s3_service import s3_service
@@ -114,7 +115,7 @@ def list_trash() -> Response:
         })
     except Exception as e:
         current_app.logger.error(f"Error listing trash: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/trash/restore/<sku>', methods=['POST'])
@@ -195,7 +196,7 @@ def restore_from_trash(sku: str) -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error restoring from trash: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500
 
 
 @api_bp.route('/trash/empty', methods=['POST'])
@@ -259,4 +260,4 @@ def empty_trash() -> Response:
 
     except Exception as e:
         current_app.logger.error(f"Error emptying trash: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': safe_error_message(e)}), 500

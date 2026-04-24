@@ -1,4 +1,6 @@
 """Service for managing trash (deleted comics)."""
+import fcntl
+import os
 from pathlib import Path
 from datetime import datetime
 from flask import current_app
@@ -181,12 +183,17 @@ class TrashService:
                 except Exception as s3_err:
                     log_service_warning(f"Failed to access S3 service for SKU {sku}: {s3_err}")
 
-            # Delete the trash JSON file
+            # Delete the trash JSON file. ``missing_ok=True`` makes a
+            # double-cleanup (e.g. two workers racing on cleanup_expired) a
+            # safe no-op rather than an exception.
             filename = f"comic_{sku}.json"
             file_path = self.trash_path / filename
 
             if file_path.exists():
-                file_path.unlink()
+                try:
+                    file_path.unlink()
+                except FileNotFoundError:
+                    pass  # another worker beat us to it — still a success
                 return True
 
             return False
@@ -220,13 +227,31 @@ class TrashService:
         """
         Identify and remove trash items that have exceeded the retention period.
 
+        Cross-worker safe: holds a non-blocking ``fcntl`` lock on
+        ``<trash_path>/.cleanup.lock`` so that if two workers fire the same
+        scheduled cleanup, only one runs and the other returns 0 immediately
+        rather than racing on every JSON file and S3 delete.
+
         Args:
             retention_days (int): Maximum age in days. Defaults to 30.
 
         Returns:
-            int: The number of items permanently deleted.
+            int: The number of items permanently deleted (0 if another
+                worker is already running cleanup).
         """
+        # Acquire a non-blocking cross-process lock
+        self.trash_path.mkdir(parents=True, exist_ok=True)
+        lock_path = self.trash_path / '.cleanup.lock'
+        lock_fd = None
         try:
+            lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                # Another worker is already cleaning up — bail quietly
+                log_service_info("Trash cleanup skipped: another worker holds the lock")
+                return 0
+
             items = self.list_all()
             count = 0
 
@@ -240,6 +265,15 @@ class TrashService:
         except Exception as e:
             log_app_error(f"Error cleaning up trash: {e}")
             return 0
+        finally:
+            if lock_fd is not None:
+                try:
+                    fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                finally:
+                    try:
+                        os.close(lock_fd)
+                    except OSError:
+                        pass
 
     def get_stats(self):
         """
