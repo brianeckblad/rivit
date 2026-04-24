@@ -134,11 +134,11 @@
         }
 
         body.edit-mode {
-            background: #151613;  /* opaque blend of accent-subtle over color-bg */
+            background: var(--color-bg);
         }
 
         body.edit-mode .main-content {
-            background: #151613;
+            background: var(--color-bg);
         }
 
 
@@ -1010,7 +1010,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: var(--overlay-medium);
             z-index: 2000;
             align-items: flex-start;
             justify-content: center;
@@ -1374,120 +1374,6 @@
             border-color: var(--color-info-border);
         }
 
-        .ebay-action-status {
-            display: none;
-            margin-top: 8px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .ebay-action-status.loading {
-            display: flex;
-            background: var(--color-accent-subtle);
-            border: 1px solid var(--color-accent);
-            color: var(--color-accent);
-        }
-
-        .ebay-action-status.success {
-            display: flex;
-            background: var(--color-success-subtle);
-            border: 1px solid var(--color-success-border);
-            color: var(--color-success);
-        }
-
-        .ebay-action-status.error {
-            display: flex;
-            background: var(--color-danger-subtle);
-            border: 1px solid var(--color-danger-border);
-            color: var(--color-danger);
-        }
-
-        .ebay-action-status.warning {
-            display: flex;
-            background: var(--color-warning-subtle);
-            border: 1px solid var(--color-warning);
-            color: var(--color-warning);
-        }
-
-        /* eBay action status bar - fixed above footer */
-        #ebayStatusBar {
-            position: fixed;
-            bottom: 56px; /* sits just above the footer bar */
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            min-width: 320px;
-            max-width: 600px;
-            padding: 10px 16px;
-            border-radius: var(--radius-md);
-            font-size: var(--font-size-sm);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 1200;
-            box-shadow: var(--shadow-lg);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-        #ebayStatusBar.visible {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-            pointer-events: auto;
-        }
-        #ebayStatusBar.loading {
-            background: var(--color-elevated);
-            border: 1px solid var(--color-accent);
-            color: var(--color-accent);
-        }
-        #ebayStatusBar.success {
-            background: var(--color-elevated);
-            border: 1px solid var(--color-success);
-            color: var(--color-success);
-        }
-        #ebayStatusBar.error {
-            background: var(--color-elevated);
-            border: 1px solid var(--color-danger);
-            color: var(--color-danger);
-        }
-        #ebayStatusBar.warning {
-            background: var(--color-elevated);
-            border: 1px solid var(--color-warning);
-            color: var(--color-warning);
-        }
-        #ebayStatusBar .status-bar-spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid currentColor;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            flex-shrink: 0;
-        }
-        #ebayStatusBar .status-bar-icon {
-            flex-shrink: 0;
-            font-size: 15px;
-            line-height: 1;
-        }
-        #ebayStatusBar .status-bar-msg {
-            flex: 1;
-        }
-        #ebayStatusBar .status-bar-close {
-            background: none;
-            border: none;
-            color: currentColor;
-            opacity: 0.6;
-            cursor: pointer;
-            padding: 0 2px;
-            font-size: 16px;
-            line-height: 1;
-            flex-shrink: 0;
-        }
-        #ebayStatusBar .status-bar-close:hover { opacity: 1; }
 
         .loading-spinner {
             width: 14px;
@@ -2231,7 +2117,7 @@
                 <!-- Hidden elements for eBay status tracking -->
                 <div id="ebayStatusSection" style="display:none;"></div>
                 <div id="ebayInlineButtons" style="display:none;"></div>
-                <div id="ebayActionStatus" class="ebay-action-status" style="display:none;"></div>
+                <div id="ebayActionStatus" class="status-chip" style="display:none;"></div>
             </div>
 
             <div id="progressContainer" class="progress-container">
@@ -2526,7 +2412,7 @@
                                             </div>
                                         </div>
 
-                                        <div id="manualEbayItemIdStatus" class="ebay-action-status" style="margin-top:4px;"></div>
+                                        <div id="manualEbayItemIdStatus" class="status-chip" style="margin-top:4px;"></div>
                                     </div>
 
                                     <!-- eBay Settings visible per comic -->
@@ -2956,7 +2842,7 @@
     </div>
 
     <!-- eBay Action Status Bar -->
-    <div id="ebayStatusBar" role="status" aria-live="polite">
+    <div id="ebayStatusBar" class="status-bar status-bar-ebay" role="status" aria-live="polite">
         <span class="status-bar-spinner" id="ebayStatusSpinner" style="display:none;"></span>
         <span class="status-bar-icon" id="ebayStatusIcon" style="display:none;"></span>
         <span class="status-bar-msg" id="ebayStatusMsg"></span>
@@ -4720,7 +4606,7 @@
         function setManualEbayStatus(state, message) {
             const statusEl = document.getElementById('manualEbayItemIdStatus');
             if (!statusEl) return;
-            statusEl.className = `ebay-action-status ${state}`;
+            statusEl.className = `status-chip ${state}`;
             statusEl.textContent = message || '';
             statusEl.style.display = message ? 'flex' : 'none';
         }
@@ -4737,7 +4623,7 @@
             // Clear any pending auto-dismiss
             if (_ebayStatusDismissTimer) { clearTimeout(_ebayStatusDismissTimer); _ebayStatusDismissTimer = null; }
 
-            bar.className = `visible ${state}`;
+            bar.className = `status-bar status-bar-ebay visible ${state}`;
             spinner.style.display = state === 'loading' ? 'block' : 'none';
             icon.style.display = state !== 'loading' ? 'block' : 'none';
             if (state === 'success') icon.textContent = '✓';
@@ -4772,7 +4658,7 @@
             // Also keep the small inline element in sync (legacy)
             const statusEl = document.getElementById('ebayActionStatus');
             if (!statusEl) return;
-            statusEl.className = `ebay-action-status ${state || ''}`.trim();
+            statusEl.className = `status-chip ${state || ''}`.trim();
             if (state === 'loading') {
                 statusEl.innerHTML = `<span class="loading-spinner"></span>${message || ''}`;
             } else {
@@ -7229,6 +7115,23 @@
 
         let saveAndAddNewMode = false;
 
+        function saveAndAddNew() {
+            const form = document.getElementById('comicForm');
+            if (!form) return;
+
+            // In view mode (after a save), this acts as a quick "Add New" action.
+            if (viewMode) {
+                viewMode = false;
+                resetForm();
+                makeFormReadOnly(false);
+                return;
+            }
+
+            // In add/edit mode, submit and clear for the next item on success.
+            saveAndAddNewMode = true;
+            form.requestSubmit();
+        }
+
         document.getElementById('comicForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -9266,7 +9169,15 @@
             const submitBtn = document.getElementById('submitBtn');
             const addNewBtn = document.getElementById('addNewBtn');
             if (submitBtn) submitBtn.style.display = readonly ? 'none' : 'flex';
-            if (addNewBtn) addNewBtn.style.display = readonly ? 'none' : 'flex';
+            if (addNewBtn) {
+                addNewBtn.style.display = 'flex';
+                addNewBtn.disabled = false;
+                addNewBtn.style.opacity = '1';
+                const addNewText = addNewBtn.querySelector('.btn-text');
+                if (addNewText) {
+                    addNewText.textContent = readonly ? 'Add New' : 'Save & Add New';
+                }
+            }
         }
 
         function enableEditMode() {

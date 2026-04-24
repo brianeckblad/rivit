@@ -192,12 +192,13 @@ body {
 }
 
 .btn-secondary {
-  background: transparent;
+  background: var(--color-surface-subtle);
   color: var(--color-text);
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-border-hover);
 }
 
 .btn-secondary:hover:not(:disabled) {
+  background: var(--color-elevated);
   border-color: var(--color-border-hover);
   color: var(--color-text);
   transform: translateY(-1px);
@@ -208,9 +209,9 @@ body {
 }
 
 .btn-danger {
-  background: transparent;
+  background: var(--color-danger-subtle);
   color: var(--color-danger);
-  border: 2px solid var(--color-danger-subtle);
+  border: 2px solid var(--color-danger-border);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -224,9 +225,9 @@ body {
 }
 
 .btn-info {
-  background: transparent;
+  background: var(--color-info-subtle);
   color: var(--color-info);
-  border: 2px solid var(--color-info-subtle);
+  border: 2px solid var(--color-info-border);
 }
 
 .btn-info:hover:not(:disabled) {
@@ -236,9 +237,9 @@ body {
 }
 
 .btn-warning {
-  background: transparent;
+  background: var(--color-warning-subtle);
   color: var(--color-warning);
-  border: 2px solid var(--color-warning-subtle);
+  border: 2px solid var(--color-warning-border);
 }
 
 .btn-warning:hover:not(:disabled) {
@@ -261,7 +262,7 @@ body {
   top: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--overlay-heavy);
   align-items: center;
   justify-content: center;
 }
@@ -447,8 +448,8 @@ textarea[readonly] {
 
 /* Card variant — used by account, ebay-listings, etc. */
 .page-header-card {
-  background: var(--color-accent-subtle);
-  border: 1px solid var(--color-elevated);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   text-align: center;
@@ -473,12 +474,13 @@ textarea[readonly] {
 
 .page-header-card p {
   font-size: var(--font-size-base);
+  color: var(--color-text-muted);
   margin: 0;
 }
 
 /* ── Action Section ────────────────────────────────────────────────────── */
 .action-section {
-  background: rgba(46, 46, 42, 0.15);
+  background: var(--color-inset);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
@@ -487,7 +489,7 @@ textarea[readonly] {
 }
 
 .action-section:hover {
-  background: rgba(46, 46, 42, 0.25);
+  background: var(--color-surface-subtle);
   border-color: var(--color-border-hover);
 }
 
@@ -525,6 +527,104 @@ textarea[readonly] {
 .notification.info {
   border-color: var(--color-info);
 }
+
+/* ── Status Components ──────────────────────────────────────────────────── */
+.status-chip {
+  display: none;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-status-surface);
+  color: var(--color-status-text);
+  border: 1px solid var(--color-border);
+}
+
+.status-chip.loading,
+.status-chip.success,
+.status-chip.error,
+.status-chip.warning {
+  display: flex;
+}
+
+.status-chip.loading { border-color: var(--color-status-loading-border); }
+.status-chip.success { border-color: var(--color-status-success-border); }
+.status-chip.error { border-color: var(--color-status-error-border); }
+.status-chip.warning { border-color: var(--color-status-warning-border); }
+
+.status-bar {
+  position: fixed;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  min-width: 320px;
+  max-width: 600px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1200;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: var(--color-status-surface);
+  color: var(--color-status-text);
+  border: 1px solid var(--color-border);
+}
+
+.status-bar.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.status-bar.loading { border-color: var(--color-status-loading-border); }
+.status-bar.success { border-color: var(--color-status-success-border); }
+.status-bar.error { border-color: var(--color-status-error-border); }
+.status-bar.warning { border-color: var(--color-status-warning-border); }
+
+.status-bar .status-bar-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-status-loading-border);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.status-bar .status-bar-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.status-bar.success .status-bar-icon { color: var(--color-status-success-border); }
+.status-bar.error .status-bar-icon { color: var(--color-status-error-border); }
+.status-bar.warning .status-bar-icon { color: var(--color-status-warning-border); }
+
+.status-bar .status-bar-msg { flex: 1; }
+
+.status-bar .status-bar-close {
+  background: none;
+  border: none;
+  color: currentColor;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.status-bar .status-bar-close:hover { opacity: 1; }
 
 /* ── Export Option (base.html modals) ──────────────────────────────────── */
 .export-options {
@@ -646,13 +746,13 @@ textarea[readonly] {
 .empty-state h3 {
   font-size: 32px;
   font-weight: 300;
-  color: var(--color-text-dim);
+  color: var(--color-text-muted);
   margin-bottom: var(--space-md);
 }
 
 .empty-state p {
   font-size: 18px;
-  color: var(--color-text-dim);
+  color: var(--color-text-muted);
   margin-bottom: var(--space-lg);
 }
 

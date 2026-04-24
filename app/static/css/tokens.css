@@ -6,48 +6,55 @@
 
 :root {
   /* ── Backgrounds ──────────────────────────────────────────────────────── */
-  --color-bg:             #111210;   /* body background (warm near-black)   */
-  --color-surface:        #1B1B1B;   /* cards, header, footer               */
-  --color-elevated:       #242422;   /* modals, dropdowns, popovers         */
-  --color-inset:          #161615;   /* input fields, code blocks           */
+  --color-bg:             #1B1A1B;   /* global app background               */
+  --color-surface:        #242223;   /* top/bottom bars and core surfaces   */
+  --color-elevated:       #2D2B2C;   /* cards/modals                        */
+  --color-inset:          #171616;   /* input fields, code blocks           */
 
   /* ── Borders ──────────────────────────────────────────────────────────── */
-  --color-border:         #2E2E2A;
-  --color-border-hover:   #3A3A36;
-  --color-border-focus:   #595F39;   /* same as accent                      */
+  --color-border:         #5A5758;
+  --color-border-hover:   #7A7778;
+  --color-border-focus:   #5C9EB8;   /* secondary accent for focus          */
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
-  --color-text:           #E4E4DE;   /* Ethereal Ivory  — primary           */
-  --color-text-muted:     #C4C5BA;   /* Sophisticated Sage — secondary      */
-  --color-text-dim:       #7A7B72;   /* placeholders, disabled, captions    */
+  --color-text:           #E8E8E6;   /* primary text                        */
+  --color-text-muted:     #C5C2BE;   /* secondary text                      */
+  --color-text-dim:       #ADADAD;   /* placeholders, disabled, captions    */
 
   /* ── Accent ───────────────────────────────────────────────────────────── */
-  --color-accent:         #595F39;   /* Muted Moss — buttons, active nav    */
-  --color-accent-hover:   #6B7244;
-  --color-accent-subtle:  rgba(89, 95, 57, 0.12);  /* accent bg tint       */
-  --color-accent-text:    #E4E4DE;   /* text ON accent backgrounds          */
+  --color-accent:         #E2E800;   /* primary highlight accent            */
+  --color-accent-hover:   #D1D700;
+  --color-accent-subtle:  rgba(226, 232, 0, 0.16);
+  --color-accent-text:    #141414;   /* text ON primary accent              */
+
+  --color-accent-2:       #5C9EB8;   /* secondary accent                    */
+  --color-accent-2-hover: #6DB1CB;
+  --color-accent-2-subtle: rgba(92, 158, 184, 0.16);
+  --color-accent-2-text:  #E8E8E6;
+  --color-on-accent-subtle: rgba(232, 232, 230, 0.12);
+  --color-on-accent-subtle-hover: rgba(232, 232, 230, 0.18);
 
   /* ── Semantic ─────────────────────────────────────────────────────────── */
   --color-danger:         #C45C5C;
   --color-danger-hover:   #D46B6B;
-  --color-danger-subtle:  rgba(196, 92, 92, 0.12);
+  --color-danger-subtle:  rgba(196, 92, 92, 0.14);
 
   --color-success:        #5C8A5C;
-  --color-success-subtle: rgba(92, 138, 92, 0.12);
+  --color-success-subtle: rgba(92, 138, 92, 0.14);
 
   --color-info:           #5C9EB8;
   --color-info-hover:     #6DB1CB;
-  --color-info-subtle:    rgba(92, 158, 184, 0.12);
+  --color-info-subtle:    rgba(92, 158, 184, 0.14);
 
   --color-warning:        #B8A05C;
   --color-warning-hover:  #C8B06C;
-  --color-warning-subtle: rgba(184, 160, 92, 0.12);
+  --color-warning-subtle: rgba(184, 160, 92, 0.14);
 
   /* ── Platform Brand Colors ────────────────────────────────────────────── */
   --color-ebay:           #00BFFF;   /* eBay brand blue                     */
-  --color-ebay-subtle:    rgba(0, 191, 255, 0.12);
+  --color-ebay-subtle:    rgba(0, 191, 255, 0.14);
   --color-whatnot:        #FF00FF;   /* WhatNot brand magenta               */
-  --color-whatnot-subtle: rgba(255, 0, 255, 0.12);
+  --color-whatnot-subtle: rgba(255, 0, 255, 0.14);
 
   /* ── Typography ───────────────────────────────────────────────────────── */
   --font-family:          'Outfit', -apple-system, BlinkMacSystemFont,
@@ -76,25 +83,33 @@
   --overlay-heavy:    rgba(0, 0, 0, 0.8);   /* modal backdrops              */
   --overlay-medium:   rgba(0, 0, 0, 0.7);   /* image overlays               */
   --overlay-light:    rgba(0, 0, 0, 0.5);   /* dimmed backgrounds           */
-  --overlay-surface:  rgba(27, 27, 27, 0.8); /* surface-tinted overlay      */
-  --overlay-text:     rgba(228, 228, 222, 0.9); /* text-tinted overlay      */
-  --overlay-text-dim: rgba(228, 228, 222, 0.2); /* spinner borders etc.     */
+  --overlay-surface:  rgba(36, 34, 35, 0.84); /* surface-tinted overlay     */
+  --overlay-text:     rgba(232, 232, 230, 0.9); /* text-tinted overlay      */
+  --overlay-text-dim: rgba(232, 232, 230, 0.25); /* spinner borders etc.    */
 
   /* ── Elevated surfaces (transparent, for layering) ────────────────────── */
-  --color-surface-subtle:  rgba(42, 42, 42, 0.3);  /* action section bg     */
-  --color-surface-hover:   rgba(42, 42, 42, 0.5);  /* action section hover  */
+  --color-surface-subtle:  rgba(45, 42, 43, 0.64);  /* action section bg    */
+  --color-surface-hover:   rgba(58, 55, 57, 0.76);  /* action section hover */
 
   /* ── Semantic border variants ─────────────────────────────────────────── */
-  --color-danger-border:   rgba(196, 92, 92, 0.4);
-  --color-success-border:  rgba(92, 138, 92, 0.4);
-  --color-info-border:     rgba(92, 158, 184, 0.3);
-  --color-warning-border:  rgba(184, 160, 92, 0.4);
-  --color-neutral-bg:      rgba(107, 107, 107, 0.12);
-  --color-neutral-border:  rgba(107, 107, 107, 0.3);
+  --color-danger-border:   rgba(196, 92, 92, 0.6);
+  --color-success-border:  rgba(92, 138, 92, 0.6);
+  --color-info-border:     rgba(92, 158, 184, 0.55);
+  --color-warning-border:  rgba(184, 160, 92, 0.6);
+  --color-neutral-bg:      rgba(94, 90, 93, 0.2);
+  --color-neutral-border:  rgba(94, 90, 93, 0.42);
+
+  /* ── Status feedback surfaces (high-contrast) ─────────────────────────── */
+  --color-status-surface:         #312E2F;
+  --color-status-text:            #E8E8E6;
+  --color-status-loading-border:  #5C9EB8;
+  --color-status-success-border:  #7AA87A;
+  --color-status-error-border:    #CD7A7A;
+  --color-status-warning-border:  #C9AF6B;
 
   /* ── Shadows (neutral — no colored glows) ─────────────────────────────── */
-  --shadow-sm:  0 1px 2px   rgba(0, 0, 0, 0.3);
-  --shadow-md:  0 4px 12px  rgba(0, 0, 0, 0.4);
-  --shadow-lg:  0 8px 24px  rgba(0, 0, 0, 0.5);
+  --shadow-sm:  0 1px 2px   rgba(0, 0, 0, 0.36);
+  --shadow-md:  0 4px 12px  rgba(0, 0, 0, 0.5);
+  --shadow-lg:  0 8px 24px  rgba(0, 0, 0, 0.6);
 }
 

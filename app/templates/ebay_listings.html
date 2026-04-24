@@ -32,7 +32,7 @@
 
         .listing-card {
             background: var(--color-surface-subtle);
-            border: 1px solid var(--color-elevated);
+            border: 1px solid var(--color-border);
             border-radius: 12px;
             overflow: hidden;
             transition: all 0.3s ease;
@@ -44,7 +44,7 @@
         .listing-card:hover {
             border-color: var(--color-border-hover);
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px var(--color-accent-subtle);
+            box-shadow: var(--shadow-md);
         }
 
         .listing-image {
@@ -244,11 +244,11 @@
             font-size: 11px;
             padding: 1px 6px;
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.15);
+            background: var(--color-on-accent-subtle);
         }
 
         .filter-tab.active .tab-count {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--color-on-accent-subtle-hover);
         }
 
         .listing-scheduled {
@@ -342,10 +342,10 @@
         .listing-btn {
             flex: 1;
             padding: 10px 16px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 14px;
             font-weight: 600;
-            border: none;
+            border: 1px solid var(--color-border);
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
@@ -353,11 +353,14 @@
             align-items: center;
             justify-content: center;
             gap: 4px;
+            background: var(--color-inset);
+            color: var(--color-text);
         }
 
         .listing-btn-view {
             background: var(--color-accent);
-            color: var(--color-surface);
+            color: var(--color-accent-text);
+            border-color: var(--color-accent);
         }
 
         .listing-btn-view:hover {
@@ -365,30 +368,34 @@
         }
 
         .listing-btn-link {
-            background: var(--color-accent);
-            color: var(--color-surface);
-            border: none;
+            background: var(--color-surface);
+            color: var(--color-text);
+            border-color: var(--color-border-hover);
         }
 
         .listing-btn-link:hover {
-            background: var(--color-accent-hover);
-        }
-
-        .listing-btn-link.unlink {
-            background: var(--color-danger);
+            border-color: var(--color-accent-2);
             color: var(--color-text);
         }
 
+        .listing-btn-link.unlink {
+            background: var(--color-danger-subtle);
+            color: var(--color-danger);
+            border-color: var(--color-danger-border);
+        }
+
         .listing-btn-link.unlink:hover {
-            background: var(--color-danger-hover);
+            background: var(--color-danger-subtle);
+            border-color: var(--color-danger);
         }
 
         .listing-btn-link.disabled-link {
-            background: var(--color-text-dim);
-            color: var(--color-text-muted);
+            background: var(--color-inset);
+            color: var(--color-text-dim);
             cursor: not-allowed;
-            opacity: 0.6;
+            opacity: 0.7;
             pointer-events: none;
+            border-color: var(--color-border);
         }
 
         .listing-btn:disabled {
