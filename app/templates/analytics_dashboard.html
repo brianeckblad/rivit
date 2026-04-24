@@ -830,7 +830,7 @@ async function clearData() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
+md                'X-CSRF-Token': window.csrfToken || ''
             }
         });
 
@@ -849,10 +849,6 @@ async function clearData() {
     }
 }
 
-function getCsrfToken() {
-    const match = document.cookie.match(/csrf_token=([^;]+)/);
-    return match ? match[1] : '';
-}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {

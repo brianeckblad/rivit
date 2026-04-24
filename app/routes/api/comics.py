@@ -929,6 +929,8 @@ def export_selected() -> tuple:
 
         # Create CSV in memory
         output = StringIO()
+        # Import sanitizer once for both platform branches
+        from app.utils.csv_sanitizer import sanitize_row
 
         if platform == 'whatnot':
             # WhatNot export fields
@@ -965,7 +967,7 @@ def export_selected() -> tuple:
                     WHATNOT_FIELD_NAMES['IMAGE_URL_1']: comic_dict.get(WHATNOT_FIELD_NAMES['IMAGE_URL_1'], ''),
                 }
 
-                writer.writerow(row)
+                writer.writerow(sanitize_row(row))
 
         else:  # eBay export
             # eBay export fields - use constants
@@ -998,7 +1000,7 @@ def export_selected() -> tuple:
                     WHATNOT_FIELD_NAMES['IMAGE_URL_1']: comic_dict.get(WHATNOT_FIELD_NAMES['IMAGE_URL_1'], ''),
                 }
 
-                writer.writerow(row)
+                writer.writerow(sanitize_row(row))
 
         # Convert StringIO to bytes and send as download
         csv_data = output.getvalue()

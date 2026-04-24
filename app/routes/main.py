@@ -1,6 +1,6 @@
 """Page rendering routes for the web application."""
 from flask import Blueprint, render_template, send_file, current_app, jsonify, request
-from app.routes.auth import login_required
+from app.routes.auth import login_required, csrf_required
 from app.services.comic_service import comic_service
 from datetime import datetime
 import os
@@ -87,14 +87,28 @@ def download_csv():
         if not os.path.exists(csv_path):
             return jsonify({'success': False, 'message': 'No inventory file found'}), 404
 
-        # If no filter specified, return the complete inventory file
+        # If no filter specified, return the complete inventory with CSV-injection
+        # sanitization applied (cells starting with =+-@ are prefixed with ')
         if not listing_type:
+            from app.services.csv_service import CSVService as _CSVService
+            from app.utils.csv_sanitizer import sanitize_row as _sanitize_row
+
             # Create a backup copy in S3 with timestamp for historical tracking
             s3_service.backup_csv_to_s3(str(csv_path))
             current_app.logger.info(f"[User: {username}] Downloaded CSV export")
 
+            service = _CSVService(str(csv_path))
+            fieldnames = service._get_all_fieldnames()
+            comics = service.read_all()
+
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction='ignore', quoting=csv.QUOTE_ALL)
+            writer.writeheader()
+            for comic in comics:
+                writer.writerow(_sanitize_row(comic.to_dict()))
+            buf.seek(0)
             return send_file(
-                csv_path,
+                io.BytesIO(buf.getvalue().encode('utf-8')),
                 mimetype='text/csv',
                 as_attachment=True,
                 download_name='comics_export.csv'
@@ -128,7 +142,9 @@ def download_csv():
                     if field not in whatnot_data:
                         whatnot_data[field] = ''
 
-                writer.writerow(whatnot_data)
+                # Sanitize cells to neutralize spreadsheet formula injection
+                from app.utils.csv_sanitizer import sanitize_row
+                writer.writerow(sanitize_row(whatnot_data))
 
         # Convert to bytes and send as download
         output.seek(0)
@@ -192,7 +208,9 @@ def download_ebay_csv():
                 if field not in ebay_data:
                     ebay_data[field] = ''
 
-            writer.writerow(ebay_data)
+            # Sanitize cells against spreadsheet formula injection
+            from app.utils.csv_sanitizer import sanitize_row
+            writer.writerow(sanitize_row(ebay_data))
 
         # Prepare file for download
         output.seek(0)
@@ -323,10 +341,12 @@ def analytics_export():
     # Create CSV
     output = io.StringIO()
     if events:
+        from app.utils.csv_sanitizer import sanitize_row
         fieldnames = list(events[0].keys())
         writer = csv.DictWriter(output, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(events)
+        for ev in events:
+            writer.writerow(sanitize_row(ev))
 
     output.seek(0)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -341,6 +361,7 @@ def analytics_export():
 
 @main_bp.route('/admin/analytics/clear', methods=['POST'])
 @login_required
+@csrf_required
 def analytics_clear():
     """Clear all analytics data."""
     from app.models.analytics import AnalyticsStore

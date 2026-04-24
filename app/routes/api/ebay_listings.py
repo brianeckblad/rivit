@@ -9,7 +9,7 @@ All functions include type hints and comprehensive docstrings for better IDE sup
 """
 from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
-from app.routes.auth import login_required
+from app.routes.auth import login_required, csrf_required
 from app.services.ebay_service import ebay_service
 from app.services.comic_service import comic_service
 from app.utils.defaults_helpers import get_user_preferences
@@ -411,6 +411,7 @@ def get_ebay_listings() -> Response:
 
 @api_bp.route('/ebay/listings/clear-cache', methods=['POST'])
 @login_required
+@csrf_required
 def clear_ebay_listings_cache() -> Response:
     """Force clear the eBay listings cache to fetch fresh data.
 
