@@ -1192,6 +1192,21 @@
                 <h3 id="bulkConfirmTitle" style="color: var(--color-accent); font-size: var(--font-size-lg); font-weight: 600; margin: 0 0 var(--space-sm) 0;">Confirm Action</h3>
                 <p id="bulkConfirmMessage" style="color: var(--color-text); margin: 0; line-height: 1.6;"></p>
             </div>
+            <!-- Push scheduled listings day-picker (shown only for bulk eBay update) -->
+            <div id="bulkScheduleDayPicker" style="display: none; padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-inset);">
+                <div style="font-size: var(--font-size-sm); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-sm);">
+                    📅 Push scheduled listings by
+                </div>
+                <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap; margin-bottom: var(--space-sm);">
+                    <button type="button" class="bulk-schedule-day-btn btn btn-sm btn-secondary" onclick="setBulkScheduleDays(0)" data-days="0">No change</button>
+                    <button type="button" class="bulk-schedule-day-btn btn btn-sm btn-secondary" onclick="setBulkScheduleDays(1)" data-days="1">1 day</button>
+                    <button type="button" class="bulk-schedule-day-btn btn btn-sm btn-secondary" onclick="setBulkScheduleDays(3)" data-days="3">3 days</button>
+                    <button type="button" class="bulk-schedule-day-btn btn btn-sm btn-secondary" onclick="setBulkScheduleDays(7)" data-days="7">7 days</button>
+                    <button type="button" class="bulk-schedule-day-btn btn btn-sm btn-secondary" onclick="setBulkScheduleDays(12)" data-days="12">12 days</button>
+                    <button type="button" class="bulk-schedule-day-btn btn btn-sm btn-secondary" onclick="setBulkScheduleDays(17)" data-days="17">Max (17)</button>
+                </div>
+                <div id="bulkScheduleDaysLabel" style="font-size: var(--font-size-xs); color: var(--color-text-dim);"></div>
+            </div>
             <div style="padding: var(--space-md) var(--space-lg); display: flex; gap: var(--space-sm); justify-content: flex-end;">
                 <button onclick="closeBulkConfirmModal()" class="btn btn-secondary" style="padding: 10px 24px;">Cancel</button>
                 <button id="bulkConfirmButton" onclick="executeBulkAction()" class="btn btn-primary" style="padding: 10px 24px;">Confirm</button>
@@ -1946,6 +1961,7 @@
         let bulkCurrentAction = null;
         let bulkCurrentPlatform = null;
         let bulkSelectedItems = [];
+        let bulkScheduleDays = 0; // Days to push scheduled listings (0 = no change)
         let modalStack = []; // Track modal hierarchy for ESC key navigation
 
         // ------------------------------------------------------------------------
@@ -2954,6 +2970,12 @@
                     confirmBtn.textContent = 'Update Listings';
                     confirmBtn.style.background = 'var(--color-info)';
                     confirmBtn.style.color = 'var(--color-bg)';
+                    // Show day-picker for pushing scheduled listings
+                    const dayPicker = document.getElementById('bulkScheduleDayPicker');
+                    if (dayPicker) {
+                        dayPicker.style.display = 'block';
+                        setBulkScheduleDays(0); // Default: no change
+                    }
                 } else if (bulkCurrentAction === 'unlink') {
                     actionText = `Unlink ${bulkSelectedItems.length} eBay item ID(s)`;
                     warningText = 'This will remove eBay item IDs from your database. The listings will remain active on eBay.';
@@ -2977,6 +2999,13 @@
                 <span style="color: var(--color-text-muted); font-size: 13px;">This action cannot be undone. Are you sure you want to proceed?</span>
             `;
 
+            // Hide day-picker for non-update actions
+            if (!(bulkCurrentPlatform === 'ebay' && bulkCurrentAction === 'update')) {
+                const dayPicker = document.getElementById('bulkScheduleDayPicker');
+                if (dayPicker) dayPicker.style.display = 'none';
+                bulkScheduleDays = 0;
+            }
+
             document.getElementById('bulkConfirmModal').style.display = 'flex';
             pushModalToStack('bulkConfirmModal', closeBulkConfirmModal);
         }
@@ -2990,6 +3019,37 @@
                 document.getElementById('bulkWhatNotSelectionModal').style.display = 'flex';
             } else if (bulkCurrentPlatform === 'ebay') {
                 document.getElementById('bulkEbaySelectionModal').style.display = 'flex';
+            }
+        }
+
+        function setBulkScheduleDays(days) {
+            bulkScheduleDays = days;
+
+            // Highlight active button
+            document.querySelectorAll('.bulk-schedule-day-btn').forEach(btn => {
+                const btnDays = parseInt(btn.dataset.days);
+                if (btnDays === days) {
+                    btn.style.background = 'var(--color-accent-subtle)';
+                    btn.style.borderColor = 'var(--color-accent)';
+                    btn.style.color = 'var(--color-accent)';
+                } else {
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }
+            });
+
+            // Update label
+            const label = document.getElementById('bulkScheduleDaysLabel');
+            if (label) {
+                if (days === 0) {
+                    label.textContent = 'Scheduled listings will not be rescheduled.';
+                } else {
+                    const futureDate = new Date();
+                    futureDate.setDate(futureDate.getDate() + days);
+                    const formatted = futureDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                    label.textContent = `Scheduled listings will be pushed to ${formatted}.`;
+                }
             }
         }
 
@@ -3047,6 +3107,12 @@
                             endpoint = `/api/comic/${sku}/ebay/list`;
                         } else if (bulkCurrentAction === 'update') {
                             endpoint = `/api/comic/${sku}/ebay/update`;
+                            // Include schedule_time if user picked a day offset
+                            if (bulkScheduleDays > 0) {
+                                const futureDate = new Date();
+                                futureDate.setDate(futureDate.getDate() + bulkScheduleDays);
+                                body = { schedule_time: futureDate.toISOString() };
+                            }
                         } else if (bulkCurrentAction === 'remove') {
                             endpoint = `/api/comic/${sku}/ebay/end`;
                         } else if (bulkCurrentAction === 'unlink') {
