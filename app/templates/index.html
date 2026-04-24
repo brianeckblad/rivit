@@ -2117,7 +2117,6 @@
                 <!-- Hidden elements for eBay status tracking -->
                 <div id="ebayStatusSection" style="display:none;"></div>
                 <div id="ebayInlineButtons" style="display:none;"></div>
-                <div id="ebayActionStatus" class="status-chip" style="display:none;"></div>
             </div>
 
             <div id="progressContainer" class="progress-container">
@@ -4369,8 +4368,9 @@
                 if (data.success) {
                     setEbayActionStatus('success', `Successfully unlinked ${sku} from eBay.`);
 
-                    // Clear the currentComicEbayId
+                    // Clear the currentComicEbayId and cached listing status
                     currentComicEbayId = null;
+                    currentComicEbayListingStatus = '';
 
                     // Update the button state to show "Link to eBay" again
                     refreshEbayControls();
@@ -4720,12 +4720,15 @@
             if (_ebayStatusDismissTimer) { clearTimeout(_ebayStatusDismissTimer); _ebayStatusDismissTimer = null; }
 
             bar.className = `status-bar status-bar-ebay visible ${state}`;
-            spinner.style.display = state === 'loading' ? 'block' : 'none';
-            icon.style.display = state !== 'loading' ? 'block' : 'none';
-            if (state === 'success') icon.textContent = '✓';
-            else if (state === 'error') icon.textContent = '✕';
-            else if (state === 'warning') icon.textContent = '⚠';
-            msg.textContent = message || '';
+            if (spinner) spinner.style.display = state === 'loading' ? 'block' : 'none';
+            if (icon) {
+                icon.style.display = state !== 'loading' ? 'block' : 'none';
+                if (state === 'success') icon.textContent = '✓';
+                else if (state === 'error') icon.textContent = '✕';
+                else if (state === 'warning') icon.textContent = '⚠';
+                else icon.textContent = '';
+            }
+            if (msg) msg.textContent = message || '';
 
             if (state !== 'loading') {
                 // Auto-dismiss after 5 s for success/warning, stay on screen for error until dismissed
@@ -4750,12 +4753,6 @@
                 showEbayStatusBar(state, message);
             } else {
                 hideEbayStatusBar();
-            }
-            // Ensure the legacy inline element is hidden so only one status shows
-            const statusEl = document.getElementById('ebayActionStatus');
-            if (statusEl) {
-                statusEl.textContent = '';
-                statusEl.style.display = 'none';
             }
         }
 
