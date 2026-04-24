@@ -1,7 +1,11 @@
 """CSV file service for reading and writing inventory data."""
 import csv
+import fcntl
+import os
 import shutil
 import logging
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, METADATA_FIELDS, WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
 from app.utils.ebay_validators import EBAY_FIELD_NAMES
@@ -358,19 +362,20 @@ class CSVService:
             bool: True if the comic was added, False if SKU exists or write fails.
         """
         try:
-            # Check for duplicate SKU before adding
-            existing = self.find_by_sku(comic.sku)
-            if existing:
-                logger.error(f"Cannot add comic: SKU {comic.sku} already exists")
-                return False
+            with self._write_lock():
+                # Check for duplicate SKU before adding (under lock)
+                existing = self.find_by_sku(comic.sku)
+                if existing:
+                    logger.error(f"Cannot add comic: SKU {comic.sku} already exists")
+                    return False
 
-            with open(self.csv_file_path, 'a', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), quoting=csv.QUOTE_ALL)
-                csv_writer.writerow(comic.to_dict())
+                with open(self.csv_file_path, 'a', newline='', encoding='utf-8') as csv_file:
+                    csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), quoting=csv.QUOTE_ALL)
+                    csv_writer.writerow(comic.to_dict())
 
-            # Invalidate cache after write
-            self._invalidate_cache()
-            return True
+                # Invalidate cache after write
+                self._invalidate_cache()
+                return True
         except Exception as e:
             logger.error(f"Error adding comic to CSV: {e}")
             return False
@@ -387,28 +392,29 @@ class CSVService:
             bool: True if the update was successful, False otherwise.
         """
         try:
-            comics = self.read_all()
-            found = False
+            with self._write_lock():
+                comics = self.read_all()
+                found = False
 
-            for i, comic in enumerate(comics):
-                if comic.sku == str(sku):
-                    comics[i] = updated_comic
-                    found = True
-                    break
+                for i, comic in enumerate(comics):
+                    if comic.sku == str(sku):
+                        comics[i] = updated_comic
+                        found = True
+                        break
 
-            if not found:
-                logger.error(f"Comic with SKU {sku} not found")
-                return False
+                if not found:
+                    logger.error(f"Comic with SKU {sku} not found")
+                    return False
 
-            # Write back to CSV
-            with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), extrasaction='ignore', quoting=csv.QUOTE_ALL)
-                csv_writer.writeheader()
-                csv_writer.writerows([comic.to_dict() for comic in comics])
+                # Atomic write: temp file + os.replace
+                self._atomic_rewrite(
+                    [c.to_dict() for c in comics],
+                    self._get_all_fieldnames()
+                )
 
-            # Invalidate cache after write
-            self._invalidate_cache()
-            return True
+                # Invalidate cache after write
+                self._invalidate_cache()
+                return True
         except Exception as e:
             import traceback
             logger.error(f"Error updating comic in CSV: {e}")
@@ -427,28 +433,29 @@ class CSVService:
                    instance if found.
         """
         try:
-            comics = self.read_all()
-            deleted_comic = None
+            with self._write_lock():
+                comics = self.read_all()
+                deleted_comic = None
 
-            filtered_comics = []
-            for comic in comics:
-                if comic.sku == str(sku):
-                    deleted_comic = comic
-                else:
-                    filtered_comics.append(comic)
+                filtered_comics = []
+                for comic in comics:
+                    if comic.sku == str(sku):
+                        deleted_comic = comic
+                    else:
+                        filtered_comics.append(comic)
 
-            if deleted_comic is None:
-                return False, None
+                if deleted_comic is None:
+                    return False, None
 
-            # Write back to CSV
-            with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), extrasaction='ignore', quoting=csv.QUOTE_ALL)
-                csv_writer.writeheader()
-                csv_writer.writerows([comic.to_dict() for comic in filtered_comics])
+                # Atomic write
+                self._atomic_rewrite(
+                    [c.to_dict() for c in filtered_comics],
+                    self._get_all_fieldnames()
+                )
 
-            # Invalidate cache after write
-            self._invalidate_cache()
-            return True, deleted_comic
+                # Invalidate cache after write
+                self._invalidate_cache()
+                return True, deleted_comic
         except Exception as e:
             logger.error(f"Error deleting comic from CSV: {e}")
             return False, None
@@ -465,20 +472,78 @@ class CSVService:
             bool: True if the file was cleared successfully.
         """
         try:
-            # Reset cached fieldnames so we get a fresh schema
-            self._cached_fieldnames = None
-            fieldnames = self._get_all_fieldnames()
+            with self._write_lock():
+                # Reset cached fieldnames so we get a fresh schema
+                self._cached_fieldnames = None
+                fieldnames = self._get_all_fieldnames()
 
-            with open(self.csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-                csv_writer.writeheader()
+                # Atomic rewrite with only the header
+                self._atomic_rewrite([], fieldnames)
 
-            # Invalidate data cache after write
-            self._invalidate_cache()
-            return True
+                # Invalidate data cache after write
+                self._invalidate_cache()
+                return True
         except Exception as e:
             logger.error(f"Error clearing CSV: {e}")
             return False
+
+    # ------------------------------------------------------------------
+    # Write-safety helpers
+    # ------------------------------------------------------------------
+
+    @contextmanager
+    def _write_lock(self):
+        """Acquire an exclusive cross-process lock for CSV mutations.
+
+        Uses ``fcntl.flock`` on a sibling ``<csv>.lock`` file so multiple
+        gunicorn workers serialize their read-modify-rewrite operations.
+        """
+        self.csv_file_path.parent.mkdir(parents=True, exist_ok=True)
+        lock_path = self.csv_file_path.with_suffix(self.csv_file_path.suffix + '.lock')
+        lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            finally:
+                os.close(lock_fd)
+
+    def _atomic_rewrite(self, rows, fieldnames):
+        """Write ``rows`` to the CSV atomically via a temp file + ``os.replace``.
+
+        Guarantees that a crash mid-write leaves the original file intact
+        rather than truncated. Must be called while holding ``_write_lock``.
+        """
+        target_dir = self.csv_file_path.parent
+        fd, tmp_path = tempfile.mkstemp(
+            prefix='.' + self.csv_file_path.name + '.',
+            suffix='.tmp',
+            dir=str(target_dir),
+        )
+        try:
+            with os.fdopen(fd, 'w', newline='', encoding='utf-8') as tmp_file:
+                writer = csv.DictWriter(
+                    tmp_file,
+                    fieldnames=fieldnames,
+                    extrasaction='ignore',
+                    quoting=csv.QUOTE_ALL,
+                )
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(row)
+                tmp_file.flush()
+                os.fsync(tmp_file.fileno())
+            os.replace(tmp_path, str(self.csv_file_path))
+        except Exception:
+            # Clean up the temp file if the write/rename failed
+            try:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
     def _ensure_schema_columns(self):
         """Add missing required columns (metadata + eBay) without rewriting unchanged data."""

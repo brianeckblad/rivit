@@ -1,14 +1,38 @@
 """
 Sync state management for backup synchronization.
 Tracks the progress and status of S3 to local backup sync.
+
+Cross-worker safety: a ``fcntl`` file lock (LOCK_EX | LOCK_NB) on
+``instance/.sync.lock`` provides mutual exclusion across gunicorn workers
+(and across processes in general). The in-process ``threading.Lock``
+continues to protect state fields within a single worker.
 """
+import errno
+import fcntl
+import os
 import threading
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional, Dict
 
 
+def _resolve_lock_path() -> Path:
+    """Return the path to the cross-worker sync lock file.
+
+    Prefers the Flask ``instance`` directory when available; otherwise
+    falls back to the project root's ``instance`` subdirectory.
+    """
+    try:
+        from flask import current_app  # local import to avoid hard dependency at import time
+        base = Path(current_app.instance_path)
+    except Exception:
+        base = Path(__file__).resolve().parent.parent.parent / 'instance'
+    base.mkdir(parents=True, exist_ok=True)
+    return base / '.sync.lock'
+
+
 class SyncState:
-    """Thread-safe singleton for tracking backup sync state."""
+    """Process-local singleton for tracking backup sync state."""
 
     _instance = None
     _lock = threading.Lock()
@@ -35,6 +59,8 @@ class SyncState:
         self.is_app_locked = False  # Lock app operations during sync
         self.retry_count = 0  # Current retry attempt
         self.max_retries = 3  # Maximum retry attempts per backup
+        # Cross-worker file lock (held for the duration of an active sync)
+        self._cross_worker_fd = None
 
     def start_sync(self, total_backups: int):
         """Mark sync as started."""
@@ -63,6 +89,7 @@ class SyncState:
             self.completed_at = datetime.now(timezone.utc)
             self.current_backup = None
             self.is_app_locked = False  # Unlock app
+        self._release_cross_worker_lock()
 
     def fail_sync(self, error_message: str):
         """Mark sync as failed."""
@@ -71,6 +98,7 @@ class SyncState:
             self.error_message = error_message
             self.completed_at = datetime.now(timezone.utc)
             self.is_app_locked = False  # Unlock app even on failure
+        self._release_cross_worker_lock()
 
     def get_state(self) -> Dict:
         """Get current sync state as dictionary."""
@@ -94,16 +122,56 @@ class SyncState:
         with self._state_lock:
             return self.is_app_locked
 
-    def lock_sync(self):
-        """Acquire sync lock to prevent concurrent syncs across workers."""
-        with self._state_lock:
-            self.is_app_locked = True
+    def lock_sync(self) -> bool:
+        """Acquire the cross-worker sync lock.
+
+        Returns True if this worker now holds the exclusive lock and may
+        proceed with the sync; False if another worker/process already
+        holds it (the caller must skip its sync run).
+        """
+        try:
+            lock_path = _resolve_lock_path()
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as e:
+                os.close(fd)
+                if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
+                    return False  # another worker is syncing
+                raise
+            with self._state_lock:
+                self._cross_worker_fd = fd
+                self.is_app_locked = True
+            return True
+        except Exception:
+            # On any unexpected failure, fall back to in-process only
+            with self._state_lock:
+                self.is_app_locked = True
+            return True
 
     def unlock_sync(self):
-        """Release sync lock to allow other processes to sync."""
+        """Release the cross-worker sync lock."""
         with self._state_lock:
             self.is_app_locked = False
+        self._release_cross_worker_lock()
+
+    def _release_cross_worker_lock(self):
+        """Release the fcntl lock if we hold it (no-op otherwise)."""
+        fd = None
+        with self._state_lock:
+            fd = self._cross_worker_fd
+            self._cross_worker_fd = None
+        if fd is not None:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+            finally:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
 
 
 # Singleton instance
 sync_state = SyncState()
+
+

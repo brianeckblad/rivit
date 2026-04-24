@@ -64,14 +64,15 @@ class ComicService:
     def get_next_sku(self):
         """
         Generate the next available SKU and increment the counter.
-        
+
         Uses file locking (fcntl) to prevent race conditions during concurrent
-        requests. Automatically synchronizes with S3 to ensure the most 
-        recent SKU is used across redeployments.
-        
+        requests. S3 reconciliation happens INSIDE the lock and takes the
+        higher of (local, S3) to defend against clock skew and split-brain
+        between workers.
+
         Returns:
             str: The next unique SKU number.
-            
+
         Raises:
             IOError: If the SKU file cannot be accessed or locked.
         """
@@ -80,58 +81,48 @@ class ComicService:
         # Ensure parent directory exists
         sku_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Always check S3 to ensure we use the most recent SKU
-        sku_from_s3 = s3_service.restore_sku_from_s3()
-        local_sku = None
-        local_mtime = None
+        # Seed the local file if it doesn't exist so the r+ open below works.
+        # The actual value reconciliation happens under lock below.
+        if not sku_file.exists():
+            sku_file.write_text("1000\n")
 
-        # Check if local file exists and get its modification time
-        if sku_file.exists():
-            try:
-                local_mtime = sku_file.stat().st_mtime
-                with open(sku_file, 'r') as f:
-                    local_sku = int(f.read().strip())
-            except (IOError, ValueError) as e:
-                log_service_warning(f"Error reading local SKU file: {e}")
-                local_sku = None
-
-        # Determine which SKU to use based on modification time
-        if sku_from_s3 and local_sku:
-            # Convert S3 datetime to timestamp for comparison
-            from datetime import timezone
-            s3_mtime = sku_from_s3['last_modified'].replace(tzinfo=timezone.utc).timestamp()
-
-            # Use the most recently modified SKU
-            if s3_mtime > local_mtime:
-                log_service_info(f"Using S3 SKU ({sku_from_s3['sku']}) - more recent than local ({local_sku})")
-                with open(sku_file, 'w') as f:
-                    f.write(f"{sku_from_s3['sku']}\n")
-            else:
-                log_service_info(f"Using local SKU ({local_sku}) - more recent than S3 ({sku_from_s3['sku']})")
-        elif sku_from_s3:
-            # Only S3 has SKU, use it
-            log_service_info(f"Using S3 SKU: {sku_from_s3['sku']}")
-            with open(sku_file, 'w') as f:
-                f.write(f"{sku_from_s3['sku']}\n")
-        elif local_sku is None:
-            # Neither has SKU, start from default
-            with open(sku_file, 'w') as f:
-                f.write("1000\n")
-
-        # Use file locking to prevent race conditions
         max_retries = 5
         retry_delay = 0.1  # 100ms
 
         for attempt in range(max_retries):
             try:
                 with open(sku_file, 'r+') as f:
-                    # Acquire exclusive lock (blocks until available)
+                    # Acquire exclusive lock BEFORE any read/reconcile so two
+                    # workers can't both pre-seed the file to the same value.
                     fcntl.flock(f.fileno(), fcntl.LOCK_EX)
 
                     try:
-                        # Read current SKU
-                        last_sku = int(f.read().strip())
-                        next_sku = last_sku + 1
+                        # Read current local SKU (under lock)
+                        content = f.read().strip()
+                        try:
+                            local_sku = int(content) if content else 1000
+                        except ValueError:
+                            local_sku = 1000
+
+                        # Reconcile with S3 under lock. Use max() rather than
+                        # mtime — a rolled-back S3 value must not lower the
+                        # counter, and clock skew must not matter.
+                        try:
+                            sku_from_s3 = s3_service.restore_sku_from_s3()
+                        except Exception as s3_err:
+                            log_service_warning(f"S3 SKU restore failed, using local only: {s3_err}")
+                            sku_from_s3 = None
+
+                        if sku_from_s3 and isinstance(sku_from_s3.get('sku'), int):
+                            current_sku = max(local_sku, sku_from_s3['sku'])
+                            if current_sku != local_sku:
+                                log_service_info(
+                                    f"SKU reconciled with S3: local={local_sku} s3={sku_from_s3['sku']} -> {current_sku}"
+                                )
+                        else:
+                            current_sku = local_sku
+
+                        next_sku = current_sku + 1
 
                         # Write new SKU
                         f.seek(0)
@@ -141,7 +132,10 @@ class ComicService:
                         os.fsync(f.fileno())
 
                         # Backup to S3 immediately
-                        s3_service.backup_sku_to_s3(next_sku)
+                        try:
+                            s3_service.backup_sku_to_s3(next_sku)
+                        except Exception as s3_err:
+                            log_service_warning(f"S3 SKU backup failed (non-fatal): {s3_err}")
 
                         return str(next_sku)
                     finally:
@@ -205,34 +199,59 @@ class ComicService:
             # No SKU found anywhere, start from default
             return "1001"
 
-    def _rollback_sku(self):
+    def _rollback_sku(self, expected_sku=None):
         """
-        Roll back the SKU counter by 1.
-        
-        This is a safety mechanism used when a comic creation attempt fails 
-        after the SKU has already been incremented. It ensures SKU numbers
-        remain contiguous.
+        Conditionally roll back the SKU counter by 1.
+
+        Only decrements when the file still stores ``expected_sku``. If
+        another worker has already advanced the counter past that value
+        (a common race between concurrent add + failure), the rollback
+        is a safe no-op, preventing a future duplicate-SKU collision.
+
+        Args:
+            expected_sku: The SKU we allocated and want to give back.
+                Accepts int or str. If None, behavior falls back to the
+                legacy "decrement whatever is there" semantics (only safe
+                in single-worker deployments).
         """
         sku_file = self._get_sku_file()
 
         try:
             with open(sku_file, 'r+') as f:
-                # Lock file for writing
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
-                    current_sku = int(f.read().strip())
-                    # Decrement by 1, but don't go below 1000
+                    content = f.read().strip()
+                    current_sku = int(content) if content else 1000
+
+                    # Coerce expected_sku for the comparison
+                    exp = None
+                    if expected_sku is not None:
+                        try:
+                            exp = int(expected_sku)
+                        except (TypeError, ValueError):
+                            exp = None
+
+                    # If we know which SKU to give back, only decrement
+                    # when the counter still points at it (i.e. our +1).
+                    if exp is not None and current_sku != exp + 1:
+                        log_service_info(
+                            f"Skipping SKU rollback: counter={current_sku} but expected={exp}+1 "
+                            "(another worker has advanced past it)"
+                        )
+                        return
+
                     rolled_back_sku = max(1000, current_sku - 1)
 
-                    # Write back the decremented SKU
                     f.seek(0)
                     f.write(f"{rolled_back_sku}\n")
                     f.truncate()
                     f.flush()
                     os.fsync(f.fileno())
 
-                    # Backup to S3
-                    s3_service.backup_sku_to_s3(rolled_back_sku)
+                    try:
+                        s3_service.backup_sku_to_s3(rolled_back_sku)
+                    except Exception as s3_err:
+                        log_service_warning(f"S3 SKU backup failed during rollback: {s3_err}")
                     log_service_info(f"Rolled back SKU from {current_sku} to {rolled_back_sku}")
                 finally:
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
@@ -457,7 +476,7 @@ class ComicService:
             if not is_valid:
                 # Rollback SKU on validation failure
                 if sku:
-                    self._rollback_sku()
+                    self._rollback_sku(expected_sku=sku)
                 return False, error
 
             # 6. Save to CSV
@@ -471,14 +490,14 @@ class ComicService:
             else:
                 # Rollback SKU on save failure
                 if sku:
-                    self._rollback_sku()
+                    self._rollback_sku(expected_sku=sku)
                 return False, "Failed to save comic to CSV"
 
         except Exception as e:
             log_app_error(f"Error creating comic: {e}")
             # Rollback SKU on exception
             if sku:
-                self._rollback_sku()
+                self._rollback_sku(expected_sku=sku)
             return False, str(e)
     
     def update_comic(self, sku, comic_data, new_image_files=None, removed_image_urls=None, reordered_image_urls=None):

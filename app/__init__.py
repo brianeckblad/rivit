@@ -454,8 +454,11 @@ def create_app(config_name='development'):
                 if sync_state.is_locked():
                     return
 
-                # Acquire lock to prevent other workers from syncing
-                sync_state.lock_sync()
+                # Acquire cross-worker lock; if another worker is already
+                # syncing, skip this run entirely (returns False non-blocking).
+                if not sync_state.lock_sync():
+                    app.logger.info("Another worker is running the S3 sync; skipping.")
+                    return
 
                 # Sync images and exports for each registered user
                 for username in registered_usernames:
