@@ -209,6 +209,9 @@ def login():
 
     GET: Display the login form.
     POST: Authenticate user credentials and create session.
+
+    Brute-force defence: 10 failed attempts per IP per 15 minutes get a
+    429 response. Successful logins reset the counter for that IP.
     """
     if request.method == 'POST':
         # Validate CSRF token on form submission
@@ -216,6 +219,16 @@ def login():
         form_token = request.form.get('_csrf_token')
         if not token or token != form_token:
             flash('Invalid session. Please try again.', 'error')
+            return redirect(url_for('auth.login'))
+
+        # Throttle per-IP login attempts to slow brute-force password guessing
+        from app.security import rate_limiter, get_real_ip
+        client_ip = get_real_ip(request)
+        login_key = f"login_attempts_{client_ip}"
+        if rate_limiter and rate_limiter.is_rate_limited(
+            login_key, max_requests=10, window_seconds=900
+        ):
+            flash('Too many failed login attempts. Try again in 15 minutes.', 'error')
             return redirect(url_for('auth.login'))
 
         # Get username and password from form
@@ -226,12 +239,17 @@ def login():
         if user_manager.verify_password(username, password):
             import time
             user = user_manager.get_user(username)
-            # Create session for authenticated user
+            # Create session for authenticated user — normalize to lowercase
+            # so downstream path/S3 helpers see a single canonical value.
             session['logged_in'] = True
-            session['username'] = user['username']  # Store original case username
+            canonical = (user['username'] or '').lower()
+            session['username'] = canonical
             session['session_created'] = time.time()  # Track session creation time
             session.permanent = True
             session.pop('_csrf_token', None)  # Clear old CSRF token
+            # Reset the failed-attempts counter for this IP on success
+            if rate_limiter and login_key in rate_limiter.requests:
+                rate_limiter.requests.pop(login_key, None)
             flash('Login successful!', 'success')
 
             # Redirect to the page they were trying to access, or to landing page
@@ -240,7 +258,9 @@ def login():
                 return redirect(next_page)
             return redirect(url_for('main.landing'))
         else:
-            # Authentication failed
+            # Authentication failed — record this attempt against the IP
+            if rate_limiter:
+                rate_limiter.record_request(login_key)
             flash('Invalid username or password.', 'error')
             return redirect(url_for('auth.login'))
 

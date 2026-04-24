@@ -12,85 +12,51 @@ from app.routes.api import api_bp
 import json
 
 
+# Anonymous-tracking hardening limits (H3): defence against log/disk spam and
+# oversized payloads pushed from untrusted origins to this un-authed endpoint.
+_MAX_TRACK_PAYLOAD_BYTES = 16 * 1024   # 16 KB total
+_MAX_TRACK_BATCH_EVENTS = 20           # events per request
+_MAX_TRACK_REQS_PER_MIN = 60           # per IP
+
+
 @api_bp.route('/analytics/track', methods=['POST'])
 def track_analytics_event() -> Response:
     """Receive and store analytics events from frontend.
 
     Tracks user interactions including page views, button clicks, and other events.
     Supports both single events and batch processing for efficiency.
-    No authentication required to track anonymous visitors and logged-out sessions.
 
-    Request Body (JSON):
-        Single Event Format:
-            {
-                "event_type": str,         # e.g., "page_view", "button_click"
-                "page": str,               # Current page URL
-                "element_id": Optional[str],    # DOM element ID
-                "x": Optional[int],        # Mouse X coordinate
-                "y": Optional[int],        # Mouse Y coordinate
-                "viewport_width": Optional[int],   # Browser width
-                "viewport_height": Optional[int],  # Browser height
-                "timestamp": Optional[str]  # ISO format timestamp
-            }
-
-        Batch Event Format:
-            {
-                "events": [
-                    { ... event 1 ... },
-                    { ... event 2 ... }
-                ]
-            }
-
-    Returns:
-        Response: Flask JSON response containing:
-            - success (bool): Whether tracking succeeded
-            - events_saved (int): Number of events stored
-            - error (str, optional): Error message if failed
-
-    Status Codes:
-        200: Events successfully tracked
-        400: Invalid request data or no events provided
-        500: Server error occurred
-
-    Example Request (Single Event):
-        {
-            "event_type": "page_view",
-            "page": "/browse",
-            "viewport_width": 1920,
-            "viewport_height": 1080
-        }
-
-    Example Request (Batch Events):
-        {
-            "events": [
-                {"event_type": "page_view", "page": "/"},
-                {"event_type": "button_click", "element_id": "add-comic-btn"}
-            ]
-        }
-
-    Example Response:
-        {
-            "success": true,
-            "events_saved": 2
-        }
-
-    Note:
-        - Stores events in instance/analytics/ directory
-        - Batching reduces HTTP overhead
-        - Failed tracking doesn't interrupt user workflow
-        - Accepts events even without proper Content-Type header
+    Public (un-authed) endpoint — hardened with payload size caps, a 20-event
+    batch ceiling, and a 60 req/min per-IP rate limit to protect against
+    disk-exhaustion and log-flood abuse. Events from sessions without a
+    logged-in user are still accepted (they are filed under 'default').
     """
     import traceback
     from app.models.analytics import AnalyticsStore, AnalyticsEvent
+    from app.security import rate_limiter, get_real_ip
 
     try:
+        # Per-IP throttle: 60 requests/min
+        client_ip = get_real_ip(request)
+        track_key = f"analytics_track_{client_ip}"
+        if rate_limiter:
+            rate_limiter.record_request(track_key)
+            if rate_limiter.is_rate_limited(track_key, max_requests=_MAX_TRACK_REQS_PER_MIN, window_seconds=60):
+                return jsonify({'success': False, 'error': 'Rate limit exceeded'}), 429
+
+        # Bound total payload size so a bad actor can't push multi-MB bodies
+        content_length = request.content_length or 0
+        if content_length > _MAX_TRACK_PAYLOAD_BYTES:
+            return jsonify({'success': False, 'error': 'Payload too large'}), 413
+
         # Try to get JSON data, force=True allows parsing even without proper Content-Type
         data = request.get_json(force=True, silent=True)
 
         if not data:
-            # Fallback: try to parse request.data as JSON
+            # Fallback: try to parse request.data as JSON (bounded by Flask MAX_CONTENT_LENGTH)
             try:
-                data = json.loads(request.data.decode('utf-8'))
+                raw = request.data[:_MAX_TRACK_PAYLOAD_BYTES].decode('utf-8', errors='replace')
+                data = json.loads(raw)
             except Exception:
                 return jsonify({'success': False, 'error': 'No valid JSON data provided'}), 400
 
@@ -103,6 +69,10 @@ def track_analytics_event() -> Response:
         if not events_data:
             return jsonify({'success': False, 'error': 'No events provided'}), 400
 
+        # Cap the batch so one request can't file hundreds of events
+        if len(events_data) > _MAX_TRACK_BATCH_EVENTS:
+            events_data = events_data[:_MAX_TRACK_BATCH_EVENTS]
+
         # Initialize analytics store with user-specific directory
         from app.utils.user_context import get_user_analytics_dir, get_current_username
         username = get_current_username()
@@ -112,6 +82,8 @@ def track_analytics_event() -> Response:
         # Convert to AnalyticsEvent objects
         events = []
         for event_data in events_data:
+            if not isinstance(event_data, dict):
+                continue
             event = AnalyticsEvent(
                 event_type=event_data.get('event_type'),
                 page=event_data.get('page'),
@@ -133,4 +105,5 @@ def track_analytics_event() -> Response:
     except Exception as e:
         current_app.logger.error(f"Error tracking analytics: {e}")
         current_app.logger.error(traceback.format_exc())
-        return jsonify({'success': False, 'error': str(e)}), 500
+        # Do NOT leak exception text to anonymous callers
+        return jsonify({'success': False, 'error': 'Tracking error'}), 500

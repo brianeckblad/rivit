@@ -63,8 +63,18 @@ def get_secret(key, default=None):
     1. AWS Secrets Manager
     2. Environment variable
     3. Default value
+
+    Uses ``is not None`` checks so empty-string, ``"0"``, or ``"false"``
+    values intentionally set by an operator are preserved rather than
+    silently falling through to the next tier.
     """
-    return _secrets.get(key) or os.environ.get(key) or default
+    v = _secrets.get(key)
+    if v is not None:
+        return v
+    v = os.environ.get(key)
+    if v is not None:
+        return v
+    return default
 
 
 class Config:
@@ -105,7 +115,9 @@ class Config:
     SKU_FILE = basedir / 'instance' / 'sku.txt'
 
     # Upload settings
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    # Allow up to 8 images x 10 MB = 80 MB per request + overhead.
+    # Matches the per-file 10 MB cap enforced in app/routes/api/comics.py.
+    MAX_CONTENT_LENGTH = 96 * 1024 * 1024
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
     # AWS S3 Configuration
@@ -161,15 +173,18 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """
     Configuration for the production environment.
-    
-    Disables debug mode, enforces secure session cookies when HTTPS
-    is available, and requires the SECRET_KEY to be explicitly set
-    via Secrets Manager or environment variables.
+
+    Disables debug mode, enforces secure session cookies by default,
+    and requires the SECRET_KEY to be explicitly set via Secrets
+    Manager or environment variables.
+
+    Secure cookies can be explicitly disabled for local HTTPS-less
+    smoke tests by setting ``ALLOW_INSECURE_COOKIES=1``.
     """
     DEBUG = False
-    # Only enforce Secure cookies when HTTPS is active
-    # Set SSL_ENABLED=true in environment or Secrets Manager when HTTPS is configured
-    SESSION_COOKIE_SECURE = bool(os.environ.get('SSL_ENABLED'))
+    # Default to Secure=True in production. An operator running behind
+    # plain HTTP for a one-off test can opt out with ALLOW_INSECURE_COOKIES=1.
+    SESSION_COOKIE_SECURE = os.environ.get('ALLOW_INSECURE_COOKIES', '').lower() not in ('1', 'true', 'yes')
 
     @classmethod
     def init_app(cls, app):

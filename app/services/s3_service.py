@@ -116,7 +116,7 @@ class S3Service:
         Returns:
             str or None: The hex-encoded MD5 hash, or None if error occurs.
         """
-        hash_md5 = hashlib.md5()
+        hash_md5 = hashlib.md5(usedforsecurity=False)
         try:
             with open(file_path, "rb") as f:
                 # Process file in 4KB chunks for memory efficiency
@@ -185,7 +185,16 @@ class S3Service:
         """
         import urllib.parse
 
-        if not s3_url or 's3.amazonaws.com' not in s3_url:
+        if not s3_url:
+            return s3_url
+        # Recognize any S3-shaped host: bucket.s3.amazonaws.com,
+        # bucket.s3.<region>.amazonaws.com, bucket.s3-accelerate.amazonaws.com,
+        # bucket.s3.dualstack.<region>.amazonaws.com, etc.
+        try:
+            host = urllib.parse.urlparse(s3_url).hostname or ''
+        except Exception:
+            host = ''
+        if not (host.endswith('.amazonaws.com') and ('.s3' in host or host.startswith('s3'))):
             return s3_url
 
         try:

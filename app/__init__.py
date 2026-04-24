@@ -514,8 +514,11 @@ def create_app(config_name='development'):
     from app.utils.helpers import generate_csrf_token
     app.jinja_env.globals['csrf_token'] = generate_csrf_token
 
-    # Initialize cache for eBay listings
+    # Initialize cache for eBay listings (guarded by a lock because every
+    # worker thread mutates it via the before_request hook below).
+    import threading as _threading
     app.ebay_cache = {}
+    app.ebay_cache_lock = _threading.Lock()
     app.logger.info("✓ eBay listings cache initialized")
 
     # Initialize eBay category cache (must run within app context)
@@ -534,8 +537,14 @@ def create_app(config_name='development'):
         """Check and clear expired cache entries before each request."""
         from datetime import datetime, timedelta
 
+        # Snapshot under the lock so we can iterate safely even while other
+        # threads mutate app.ebay_cache; then remove expired keys under the
+        # lock to avoid RuntimeError: dictionary changed size during iteration.
+        with app.ebay_cache_lock:
+            items_snapshot = list(app.ebay_cache.items())
+
         expired_keys = []
-        for key, data in app.ebay_cache.items():
+        for key, data in items_snapshot:
             try:
                 fetched_at = datetime.fromisoformat(data['fetched_at'])
                 if datetime.now() - fetched_at > timedelta(hours=1):
@@ -543,9 +552,12 @@ def create_app(config_name='development'):
             except (KeyError, ValueError):
                 expired_keys.append(key)
 
-        for key in expired_keys:
-            app.logger.info(f"Clearing expired eBay cache: {key}")
-            del app.ebay_cache[key]
+        if expired_keys:
+            with app.ebay_cache_lock:
+                for key in expired_keys:
+                    if key in app.ebay_cache:
+                        app.logger.info(f"Clearing expired eBay cache: {key}")
+                        del app.ebay_cache[key]
 
     @app.context_processor
 
