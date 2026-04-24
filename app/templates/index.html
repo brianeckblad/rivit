@@ -4242,6 +4242,8 @@
 
                                 // CRITICAL: Update currentComicEbayId immediately
                                 currentComicEbayId = comicData.comic['eBay Item ID'] || '';
+                                // Reset listing status — will be updated after async verification
+                                currentComicEbayListingStatus = '';
 
                                 // CRITICAL: Refresh eBay controls to update button state (blue border)
                                 refreshEbayControls();
@@ -8502,6 +8504,8 @@
             removedImageUrls = [];
             // eBay integration - use the actual key from CSV/API: 'eBay Item ID'
             currentComicEbayId = comic['eBay Item ID'] || '';
+            // Reset listing status — will be updated after async verification completes
+            currentComicEbayListingStatus = '';
             // Keep the hidden form field in sync so saves don't blank the value
             const ebayHiddenField = document.getElementById('ebay-item-id');
             if (ebayHiddenField) ebayHiddenField.value = currentComicEbayId;
