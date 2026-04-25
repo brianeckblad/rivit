@@ -2,6 +2,8 @@
 from flask import Blueprint, render_template, send_file, current_app, jsonify, request
 from app.routes.auth import login_required, csrf_required
 from app.services.comic_service import comic_service
+from app.utils.logging_utils import safe_error_message
+from app.utils.user_context import get_current_username, get_user_csv_file, get_user_analytics_dir
 from datetime import datetime
 import os
 import csv
@@ -74,7 +76,6 @@ def download_csv():
     try:
         from app.services.s3_service import s3_service
         from app.services.csv_service import CSVService
-        from app.utils.user_context import get_user_csv_file, get_current_username
         import io
 
         # Get filter parameter from query string
@@ -264,6 +265,7 @@ def analytics_data():
     from app.services.analytics_service import HeatmapAnalyzer
     from app.utils.user_context import get_user_analytics_dir
 
+    data_type = 'summary'
     try:
         # Use user-specific analytics directory
         analytics_dir = str(get_user_analytics_dir())
@@ -312,13 +314,12 @@ def analytics_data():
             return jsonify({'error': 'Invalid data type'}), 400
 
     except Exception as e:
-        from app.utils.user_context import get_current_username
         username = get_current_username()
         current_app.logger.error(f"[User: {username}] Error in analytics_data for type={data_type}: {e}")
         import traceback
         current_app.logger.error(traceback.format_exc())
         return jsonify({
-            'error': str(e),
+            'error': safe_error_message(e),
             'type': data_type,
             'message': f'Failed to load {data_type} data'
         }), 500
@@ -389,9 +390,8 @@ def analytics_clear():
         })
 
     except Exception as e:
-        from app.utils.user_context import get_current_username
         current_app.logger.error(f"[User: {get_current_username()}] Error clearing analytics data: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': safe_error_message(e)
         }), 500

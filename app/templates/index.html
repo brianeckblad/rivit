@@ -2833,14 +2833,14 @@
                     </div>
                 </div>
             </div>
-            <button type="button" class="btn btn-cancel" id="cancelBtn" onclick="window.history.back()">
+            <button type="button" class="btn btn-cancel" id="cancelBtn" data-nav="true" onclick="window.history.back()">
                 <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
                 <span class="btn-text">Exit</span>
             </button>
-            <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display:none;" onclick="cancelEditMode()">
+            <button type="button" class="btn btn-secondary" id="cancelEditBtn" data-nav="true" style="display:none;" onclick="cancelEditMode()">
                 <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="1 4 1 10 7 10"></polyline>
                     <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
@@ -3843,30 +3843,10 @@
                 // Now trigger the eBay action with the CAPTURED mode and schedule
                 // Pass the captured values directly to avoid DOM re-reading issues
                 inlineBtnText.textContent = 'Listing...';
-                await triggerEbayAction(capturedEbayMode || 'list', inlineBtn, capturedEbaySchedule);
+                await triggerEbayAction(capturedEbayMode || 'list', inlineBtn, capturedEbaySchedule, { skipPreSave: true });
                 // Clear user-selected values after successful eBay listing
                 userSelectedEbayMode = null;
                 userSelectedEbaySchedule = null;
-                // After successful eBay listing, exit edit mode and go to view mode
-                // Fetch the updated comic data before reloading
-                setTimeout(async () => {
-                    try {
-                        const response = await fetch(`/api/comic/${currentSKU}`);
-                        if (!response.ok) {
-                            throw new Error(`Failed to fetch comic ${currentSKU}`);
-                        }
-                        const data = await response.json();
-                        if (data.success && data.comic) {
-                            loadComicForView(data.comic);
-                        } else {
-                            throw new Error('Invalid response data');
-                        }
-                    } catch (error) {
-                        console.error('[triggerEbayActionFromFooter] Failed to reload comic after listing:', error);
-                        // Fall back to browse page if we can't reload
-                        window.location.href = '/browse';
-                    }
-                }, 500);
 
             } catch (error) {
                 console.error('[triggerEbayActionFromFooter] Error:', error);
@@ -4769,10 +4749,11 @@
             }
         }
 
-        async function triggerEbayAction(explicitAction = null, sourceButton = null, explicitScheduleTime = null) {
+        async function triggerEbayAction(explicitAction = null, sourceButton = null, explicitScheduleTime = null, options = {}) {
             if (activeEbayRequest) {
                 return;
             }
+            const skipPreSave = !!options.skipPreSave;
             const footerBtn = document.getElementById('ebayActionButton');
             const action = explicitAction || footerBtn?.dataset.ebayAction || 'none';
             if (!editingSKU || action === 'none') {
@@ -4794,23 +4775,28 @@
                 }
             }
 
-            // If there are unsaved changes, save the comic first
-            if (editMode && formHasChanged) {
-                showEbayStatusBar('loading', 'Saving changes before eBay action…');
-                // Trigger form submission
+            const sourceLabel = capitalizeModeLabel(action);
+            const busyLock = window.BusyLock
+                ? window.BusyLock.acquire(`${sourceLabel}...`, 'Preparing action...')
+                : null;
+
+            // If there are unsaved changes, save the comic first.
+            // This is completion-driven: wait for explicit save completion event.
+            if (!skipPreSave && editMode && formHasChanged) {
+                showEbayStatusBar('loading', 'Saving changes before eBay action...');
+                if (busyLock) busyLock.setSubMessage('Saving local changes...');
                 const form = document.getElementById('comicForm');
                 if (form) {
-                    // Submit the form to save changes
                     form.requestSubmit();
-                    // Wait a bit for save to complete, then continue with eBay action
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-
-                    // Reload the comic to get fresh data
-                    const comic = allComics.find(c => String(c.SKU) === String(editingSKU));
-                    if (!comic) {
-                        showNotification('Failed to reload comic after save', 'error');
+                    const saveResult = await waitForNextComicSaveCompletion();
+                    if (!saveResult.success) {
+                        const msg = saveResult.message || 'Save failed before eBay action.';
+                        setManualEbayStatus('error', msg);
+                        setEbayActionStatus('error', msg);
+                        if (busyLock) busyLock.release();
                         return;
                     }
+                    if (busyLock) busyLock.setSubMessage('Save complete. Sending eBay request...');
                 }
             }
 
@@ -4824,6 +4810,7 @@
                 const scheduleDateInput = document.getElementById('ebayScheduleDate');
                 if (!scheduleDateInput || !scheduleDateInput.value) {
                     setEbayActionStatus('error', 'Please select a date and time for scheduled listing');
+                    if (busyLock) busyLock.release();
                     return;
                 }
                 scheduleTime = scheduleDateInput.value;
@@ -4831,6 +4818,7 @@
                 const now = new Date();
                 if (scheduleDate <= now) {
                     setEbayActionStatus('error', 'Scheduled date must be in the future');
+                    if (busyLock) busyLock.release();
                     return;
                 }
             } else if ((modeValue === 'future' || modeValue === 'custom') && !scheduleTime) {
@@ -4841,7 +4829,6 @@
                 }
             }
 
-            const sourceLabel = capitalizeModeLabel(modeValue);
             const activeButton = sourceButton || footerBtn;
             const restoreButtons = setEbayButtonsBusy(activeButton);
             setManualEbayStatus('loading', `${sourceLabel} in progress…`);
@@ -4936,6 +4923,7 @@
                 restoreButtons();
                 activeEbayRequest = null;
                 refreshEbayControls();
+                if (busyLock) busyLock.release();
             }
          }
 
@@ -6826,6 +6814,15 @@
             const modal = document.getElementById('imageModal');
             const isModalOpen = modal.classList.contains('show');
 
+            // While BusyLock is active, ignore navigation/editing shortcuts.
+            if (window.BusyLock?.isBusy()) {
+                if (['Escape', 'Esc', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                return;
+            }
+
             // Helper: check if the focused element is an editable field (input, textarea, select, or contenteditable)
             function isEditableField(el) {
                 if (!el) return false;
@@ -7221,7 +7218,39 @@
 
         let saveAndAddNewMode = false;
 
+        function emitComicSaveCompletedEvent(success, message = '', sku = '') {
+            window.dispatchEvent(new CustomEvent('comic-save-completed', {
+                detail: {
+                    success: !!success,
+                    message: message || '',
+                    sku: sku ? String(sku) : ''
+                }
+            }));
+        }
+
+        function waitForNextComicSaveCompletion(timeoutMs = 120000) {
+            return new Promise((resolve) => {
+                let timeoutId = null;
+                const onComplete = (event) => {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
+                    window.removeEventListener('comic-save-completed', onComplete);
+                    resolve(event?.detail || { success: false, message: 'Save failed.' });
+                };
+
+                window.addEventListener('comic-save-completed', onComplete, { once: true });
+                timeoutId = setTimeout(() => {
+                    window.removeEventListener('comic-save-completed', onComplete);
+                    resolve({ success: false, message: 'Timed out waiting for save to complete.' });
+                }, timeoutMs);
+            });
+        }
+
         function saveAndAddNew() {
+            if (window.BusyLock?.isBusy()) {
+                return;
+            }
             const form = document.getElementById('comicForm');
             if (!form) return;
 
@@ -7241,6 +7270,10 @@
         document.getElementById('comicForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            let saveSucceeded = false;
+            let saveMessage = '';
+            let savedSku = '';
+
             // Blur active element (closes keyboard on mobile)
             if (document.activeElement) {
                 document.activeElement.blur();
@@ -7255,6 +7288,7 @@
             // Don't allow submission in view mode
             if (viewMode) {
                 showNotification('Cannot save in view mode. Click "Edit" to make changes.', 'error');
+                emitComicSaveCompletedEvent(false, 'Cannot save in view mode.', editingSKU);
                 return;
             }
 
@@ -7303,6 +7337,7 @@
                 showNotification(`Please fill in required fields: ${emptyFields.join(', ')}`, 'error');
                 // Scroll to first error
                 document.querySelector('.error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                emitComicSaveCompletedEvent(false, 'Missing required fields.', editingSKU);
                 return;
             }
 
@@ -7314,6 +7349,7 @@
                 priceElement.classList.add('error');
                 showNotification('Price must be a valid number.', 'error');
                 priceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                emitComicSaveCompletedEvent(false, 'Price must be a valid number.', editingSKU);
                 return;
             }
 
@@ -7321,6 +7357,7 @@
                 priceElement.classList.add('error');
                 showNotification('Price cannot be negative.', 'error');
                 priceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                emitComicSaveCompletedEvent(false, 'Price cannot be negative.', editingSKU);
                 return;
             }
 
@@ -7328,6 +7365,7 @@
                 priceElement.classList.add('error');
                 showNotification('Price cannot be $0. Please set a valid price.', 'error');
                 priceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                emitComicSaveCompletedEvent(false, 'Price cannot be $0.', editingSKU);
                 return;
             }
 
@@ -7335,6 +7373,7 @@
                 priceElement.classList.add('error');
                 showNotification('Price must be a whole number (no cents).', 'error');
                 priceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                emitComicSaveCompletedEvent(false, 'Price must be a whole number.', editingSKU);
                 return;
             }
 
@@ -7347,6 +7386,13 @@
             submitBtnText.textContent = editMode ? 'Updating...' : 'Saving...';
             submitBtn.style.opacity = '0.7';
             addNewBtn.style.opacity = '0.7';
+
+            const busyLock = window.BusyLock
+                ? window.BusyLock.acquire(
+                    editMode ? 'Updating comic…' : 'Adding comic…',
+                    'Please do not navigate away while the save is in progress.'
+                )
+                : null;
 
             const formData = new FormData(e.target);
 
@@ -7503,6 +7549,7 @@
                 // Check if we got redirected to login (session expired)
                 if (response.redirected && response.url.includes('/login')) {
                     showNotification('Session expired. Please log in again.', 'error');
+                    saveMessage = 'Session expired. Please log in again.';
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 2000);
@@ -7514,6 +7561,7 @@
                     // Handle session expiration (401 Unauthorized)
                     if (response.status === 401) {
                         showNotification('Session expired. Please log in again.', 'error');
+                        saveMessage = 'Session expired. Please log in again.';
                         setTimeout(() => {
                             window.location.href = '/login';
                         }, 2000);
@@ -7538,12 +7586,15 @@
                         console.error('[Save] Error parsing error response:', e);
                     }
                     showNotification(errorMessage, 'error');
+                    saveMessage = errorMessage;
                     return;
                 }
 
                 const result = await response.json();
 
                 if (result.success) {
+                    saveSucceeded = true;
+                    savedSku = result.sku || editingSKU || '';
                     // Get title for success message
                     const comicTitle = document.getElementById('title').value || 'Comic';
                     const wasEditMode = editMode;
@@ -7655,6 +7706,7 @@
                         errorMsg = 'Network error. Please check your internet connection.';
                     }
                     showNotification(errorMsg, 'error');
+                    saveMessage = errorMsg;
                 }
             } catch (error) {
                 // Enhanced error handling
@@ -7672,7 +7724,11 @@
 
                 showNotification(errorMsg, 'error');
                 console.error('Upload error:', error);
+                saveMessage = errorMsg;
             } finally {
+                if (busyLock) {
+                    busyLock.release();
+                }
                 if (totalFiles > 0) {
                     hideProgressBar();
                 }
@@ -7681,6 +7737,7 @@
                 submitBtnText.textContent = originalText;
                 submitBtn.style.opacity = '1';
                 addNewBtn.style.opacity = '1';
+                emitComicSaveCompletedEvent(saveSucceeded, saveMessage, savedSku || editingSKU);
             }
         });
         async function loadComicsSummary(listingType = '', search = '') {
@@ -7783,6 +7840,9 @@
         // eBay List action with confirmation
         // Cancel edit mode — discard changes and return to view mode
         async function cancelEditMode() {
+            if (window.BusyLock?.isBusy()) {
+                return;
+            }
             if (!editingSKU) {
                 window.history.back();
                 return;
@@ -8262,16 +8322,24 @@
             if (modal) modal.remove();
             document.removeEventListener('keydown', handleComicModalKeydown);
 
-            if (pendingComicAction.type === 'delete') {
-                await executeDeleteComic(pendingComicAction.sku);
-            } else if (pendingComicAction.type === 'delist') {
-                await executeDelistFromEbay(pendingComicAction.sku);
-            } else if (pendingComicAction.type === 'ebay-list') {
-                await executeEbayListAction();
-            } else if (pendingComicAction.type === 'ebay-update') {
-                await executeEbayUpdateAction();
-            } else if (pendingComicAction.type === 'ebay-delist') {
-                await executeEbayDelistAction(pendingComicAction.sku);
+            const actionType = pendingComicAction.type;
+            const actionSku = pendingComicAction.sku;
+
+            try {
+                if (actionType === 'delete') {
+                    await executeDeleteComic(actionSku);
+                } else if (actionType === 'delist') {
+                    await executeDelistFromEbay(actionSku);
+                } else if (actionType === 'ebay-list') {
+                    await executeEbayListAction();
+                } else if (actionType === 'ebay-update') {
+                    await executeEbayUpdateAction();
+                } else if (actionType === 'ebay-delist') {
+                    await executeEbayDelistAction(actionSku);
+                }
+            } finally {
+                // Single cleanup point for confirmed actions.
+                pendingComicAction = { type: null, sku: null };
             }
         }
 
@@ -8304,7 +8372,6 @@
                 console.error('[deleteCurrentComic] Error:', error);
                 showNotification(`Failed to delete: ${error.message}`, 'error');
             }
-            pendingComicAction = { type: null, sku: null };
         }
 
         async function executeDelistFromEbay(sku) {
@@ -8341,7 +8408,6 @@
                 console.error('[delistFromEbay] Error:', error);
                 setEbayActionStatus('error', `Failed to delist: ${error.message}`);
             }
-            pendingComicAction = { type: null, sku: null };
         }
 
         // Execute eBay list action after confirmation
@@ -8353,15 +8419,16 @@
                 console.error('[executeEbayListAction] Error:', error);
                 setEbayActionStatus('error', `Failed to list: ${error.message}`);
             }
-            pendingComicAction = { type: null, sku: null };
         }
 
         // Execute eBay update action after confirmation
         async function executeEbayUpdateAction() {
+            const busyLock = window.BusyLock
+                ? window.BusyLock.acquire('Updating eBay listing...', 'Saving latest changes and pushing to eBay...')
+                : null;
             try {
                 if (!editingSKU || !currentComicEbayId) {
                     setEbayActionStatus('error', 'Comic is not linked to an eBay listing');
-                    pendingComicAction = { type: null, sku: null };
                     return;
                 }
 
@@ -8426,12 +8493,16 @@
             } catch (error) {
                 console.error('[executeEbayUpdateAction] Error:', error);
                 setEbayActionStatus('error', `Failed to update eBay: ${error.message}`);
+            } finally {
+                if (busyLock) busyLock.release();
             }
-            pendingComicAction = { type: null, sku: null };
         }
 
         // Execute eBay delist action after confirmation (from menu)
         async function executeEbayDelistAction(sku) {
+            const busyLock = window.BusyLock
+                ? window.BusyLock.acquire('Delisting on eBay...', 'Ending listing and refreshing comic state...')
+                : null;
             try {
                 setEbayActionStatus('loading', 'Delisting item from eBay...');
 
@@ -8481,8 +8552,9 @@
             } catch (error) {
                 console.error('[executeEbayDelistAction] Error:', error);
                 setEbayActionStatus('error', `Failed to delist: ${error.message}`);
+            } finally {
+                if (busyLock) busyLock.release();
             }
-            pendingComicAction = { type: null, sku: null };
         }
 
 

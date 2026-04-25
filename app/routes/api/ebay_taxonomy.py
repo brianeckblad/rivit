@@ -12,6 +12,7 @@ from flask import request, jsonify, current_app, Response
 from app.routes.api import api_bp
 from app.routes.auth import login_required
 from app.services.ebay_service import ebay_service
+from app.utils.logging_utils import safe_error_message
 
 
 @api_bp.route('/ebay/taxonomy/search', methods=['GET'])
@@ -88,7 +89,7 @@ def ebay_taxonomy_search() -> Response:
         current_app.logger.error(f"Error searching eBay categories: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': safe_error_message(e)
         }), 500
 
 
@@ -141,7 +142,7 @@ def ebay_taxonomy_root() -> Response:
         current_app.logger.error(f"Error fetching eBay root categories: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': safe_error_message(e)
         }), 500
 
 
@@ -195,7 +196,7 @@ def ebay_taxonomy_children(category_id: str) -> Response:
         current_app.logger.error(f"Error fetching category children: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': safe_error_message(e)
         }), 500
 
 
@@ -254,5 +255,5 @@ def ebay_taxonomy_tree() -> Response:
         current_app.logger.error(f"Error fetching eBay category tree: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': safe_error_message(e)
         }), 500

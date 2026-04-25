@@ -13,6 +13,7 @@ from app.routes.auth import login_required, csrf_required
 from app.services.ebay_service import ebay_service
 from app.services.comic_service import comic_service
 from app.utils.defaults_helpers import get_user_preferences
+from app.utils.logging_utils import safe_error_message
 from app.utils.ebay_helpers import (
     extract_ebay_description_section,
     extract_ebay_condition_section,
@@ -456,7 +457,7 @@ def clear_ebay_listings_cache() -> Response:
         current_app.logger.error(f"Error clearing eBay cache: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': safe_error_message(e)
         }), 500
 
 
@@ -558,6 +559,6 @@ def get_ebay_item_description(item_id: str) -> Response:
         current_app.logger.error(f"Error fetching description for item {item_id}: {e}")
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': safe_error_message(e),
             'description': ''
         }), 500

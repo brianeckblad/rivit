@@ -663,6 +663,143 @@
         })();
     </script>
 
+    <!-- Global BusyLock: blocks UI and navigation while a long-running op is in flight.
+         Usage:
+             const lock = BusyLock.acquire('Updating 12 items…');
+             lock.setMessage('5 of 12 items');
+             lock.release();
+         While a lock is active:
+           - A full-screen overlay blocks pointer input on the page.
+           - window.beforeunload prompts if the user tries to close/reload.
+           - Nav links (a[data-nav], .nav-link) are disabled.
+    -->
+    <script>
+        (function () {
+            if (window.BusyLock) return;
+
+            let _activeCount = 0;
+            let _overlay = null;
+            let _messageEl = null;
+            let _subEl = null;
+            const _handles = new Set();
+
+            function _ensureOverlay() {
+                if (_overlay) return;
+                _overlay = document.createElement('div');
+                _overlay.id = 'globalBusyOverlay';
+                _overlay.setAttribute('role', 'alertdialog');
+                _overlay.setAttribute('aria-live', 'assertive');
+                _overlay.style.cssText = [
+                    'position:fixed',
+                    'inset:0',
+                    'background:rgba(0,0,0,0.55)',
+                    'z-index:9999',
+                    'display:none',
+                    'align-items:center',
+                    'justify-content:center',
+                    'backdrop-filter:blur(2px)',
+                    '-webkit-backdrop-filter:blur(2px)'
+                ].join(';');
+                _overlay.innerHTML = `
+                    <div style="background:var(--color-elevated);border:1px solid var(--color-border-hover);border-radius:var(--radius-lg);padding:24px 32px;box-shadow:var(--shadow-lg);min-width:280px;max-width:420px;text-align:center;">
+                        <div style="display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:8px;">
+                            <div class="busy-spinner" style="width:22px;height:22px;border:2px solid var(--color-border-hover);border-top-color:var(--color-accent);border-radius:50%;animation:busyLockSpin 0.8s linear infinite;"></div>
+                            <div id="globalBusyMessage" style="color:var(--color-text);font-weight:600;font-size:15px;">Working…</div>
+                        </div>
+                        <div id="globalBusySubMessage" style="color:var(--color-text-muted);font-size:13px;"></div>
+                        <div style="color:var(--color-text-dim);font-size:11px;margin-top:10px;">Please do not navigate away.</div>
+                    </div>
+                `;
+                // Swallow clicks so nothing behind the overlay is interactable
+                _overlay.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); }, true);
+                _overlay.addEventListener('keydown', function (e) {
+                    // Block Enter/Space/Escape from triggering page handlers
+                    e.stopPropagation();
+                }, true);
+                document.body.appendChild(_overlay);
+                _messageEl = document.getElementById('globalBusyMessage');
+                _subEl = document.getElementById('globalBusySubMessage');
+
+                if (!document.getElementById('busyLockKeyframes')) {
+                    const style = document.createElement('style');
+                    style.id = 'busyLockKeyframes';
+                    style.textContent = '@keyframes busyLockSpin { to { transform: rotate(360deg); } }';
+                    document.head.appendChild(style);
+                }
+            }
+
+            function _beforeUnloadHandler(e) {
+                e.preventDefault();
+                e.returnValue = 'An update is still running. Leave anyway?';
+                return e.returnValue;
+            }
+
+            function _setNavDisabled(disabled) {
+                document.querySelectorAll('a[href], button[data-nav], .nav-link').forEach(el => {
+                    if (disabled) {
+                        if (el.dataset._busyPrevPointer === undefined) {
+                            el.dataset._busyPrevPointer = el.style.pointerEvents || '';
+                            el.dataset._busyPrevOpacity = el.style.opacity || '';
+                        }
+                        el.style.pointerEvents = 'none';
+                        el.style.opacity = '0.5';
+                        el.setAttribute('aria-disabled', 'true');
+                    } else {
+                        if (el.dataset._busyPrevPointer !== undefined) {
+                            el.style.pointerEvents = el.dataset._busyPrevPointer;
+                            el.style.opacity = el.dataset._busyPrevOpacity;
+                            delete el.dataset._busyPrevPointer;
+                            delete el.dataset._busyPrevOpacity;
+                        }
+                        el.removeAttribute('aria-disabled');
+                    }
+                });
+            }
+
+            function acquire(message, subMessage) {
+                _ensureOverlay();
+                _activeCount += 1;
+                if (_activeCount === 1) {
+                    window.addEventListener('beforeunload', _beforeUnloadHandler);
+                    _setNavDisabled(true);
+                    _overlay.style.display = 'flex';
+                }
+                if (message && _messageEl) _messageEl.textContent = message;
+                if (subMessage !== undefined && _subEl) _subEl.textContent = subMessage || '';
+
+                const handle = {
+                    _released: false,
+                    setMessage(msg, sub) {
+                        if (msg && _messageEl) _messageEl.textContent = msg;
+                        if (sub !== undefined && _subEl) _subEl.textContent = sub || '';
+                    },
+                    setSubMessage(sub) {
+                        if (_subEl) _subEl.textContent = sub || '';
+                    },
+                    release() {
+                        if (this._released) return;
+                        this._released = true;
+                        _handles.delete(this);
+                        _activeCount = Math.max(0, _activeCount - 1);
+                        if (_activeCount === 0) {
+                            if (_overlay) _overlay.style.display = 'none';
+                            window.removeEventListener('beforeunload', _beforeUnloadHandler);
+                            _setNavDisabled(false);
+                            if (_messageEl) _messageEl.textContent = 'Working…';
+                            if (_subEl) _subEl.textContent = '';
+                        }
+                    }
+                };
+                _handles.add(handle);
+                return handle;
+            }
+
+            function isBusy() { return _activeCount > 0; }
+
+            window.BusyLock = { acquire, isBusy };
+        })();
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
