@@ -3,7 +3,7 @@ from pathlib import Path
 from flask import current_app
 from app.services.csv_service import CSVService
 from app.services.s3_service import s3_service
-from app.utils.logging_utils import log_cleanup_info, log_cleanup_warning, log_app_error, get_cleanup_logger
+from app.utils.logging_utils import log_cleanup_info, log_cleanup_warning, log_app_error, get_cleanup_logger, safe_error_message
 import glob
 
 
@@ -83,7 +83,7 @@ class HealthCheckService:
         except Exception as e:
             log_app_error(f"Health check failed: {e}", exc_info=True)
             self.results['success'] = False
-            self.results['errors'].append(str(e))
+            self.results['errors'].append(safe_error_message(e))
             return self.results
 
     def _collect_all_csv_image_urls(self):
@@ -119,14 +119,14 @@ class HealthCheckService:
                         log_cleanup_info(f"Checked user '{username}' CSV: {len(urls)} images")
                     except Exception as e:
                         log_cleanup_warning(f"Error checking CSV for user '{username}': {e}")
-                        self.results['errors'].append(f"User '{username}': {str(e)}")
+                        self.results['errors'].append(f"User '{username}': {safe_error_message(e)}")
 
             self.results['users_checked'] = users_checked
             log_cleanup_info(f"Total users checked: {users_checked}, Total unique images: {len(image_urls)}")
 
         except Exception as e:
             log_app_error(f"Error collecting CSV image URLs: {e}")
-            self.results['errors'].append(f"CSV collection error: {str(e)}")
+            self.results['errors'].append(f"CSV collection error: {safe_error_message(e)}")
 
         return image_urls
 
@@ -200,6 +200,7 @@ class HealthCheckService:
         s3_files = set()
         try:
             # Get list of all files in S3 under the user's images folder
+            # Deferred import: see HealthCheckService.__init__ for rationale.
             from app.utils.user_context import get_user_s3_images_prefix
             prefix = get_user_s3_images_prefix()
 
@@ -261,6 +262,7 @@ class HealthCheckService:
                     else:
                         # It's just a filename, construct the proper HTTPS S3 URL
                         s3_bucket = current_app.config.get('S3_BUCKET')
+                        # Deferred import: see above.
                         from app.utils.user_context import get_user_s3_images_prefix
                         user_images_prefix = get_user_s3_images_prefix()
                         # Construct HTTPS URL: https://bucket.s3.amazonaws.com/users/{user}/images/filename

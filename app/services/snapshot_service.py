@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from flask import current_app
 import shutil
 from app.models.snapshot import Snapshot
-from app.utils.logging_utils import log_service_info, log_service_warning, log_app_error
+from app.utils.logging_utils import log_service_info, log_service_warning, log_app_error, safe_error_message
 
 
 class SnapshotService:
@@ -28,14 +28,15 @@ class SnapshotService:
         if snapshots_path:
             self.snapshots_path = Path(snapshots_path)
         else:
-            # Use user-specific snapshots directory
+            # Deferred import: this service is instantiated at module level before
+            # the Flask app context is ready; user_context requires app context.
             from app.utils.user_context import get_user_snapshots_dir
             self.snapshots_path = get_user_snapshots_dir()
 
         if csv_file:
             self.csv_file = Path(csv_file)
         else:
-            # Use user-specific CSV file
+            # Deferred import: see above.
             from app.utils.user_context import get_user_csv_file
             self.csv_file = get_user_csv_file()
 
@@ -58,7 +59,7 @@ class SnapshotService:
             Snapshot: The created Snapshot object, or None if failed.
         """
         try:
-            from app.services.csv_service import CSVService
+            from app.services.csv_service import CSVService  # Deferred: avoids circular import
 
             # Generate snapshot ID (timestamp)
             snapshot_id = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -79,7 +80,7 @@ class SnapshotService:
                 images_dir = snapshot_dir / 'images'
                 images_dir.mkdir(exist_ok=True)
 
-                from app.services.s3_service import s3_service
+                from app.services.s3_service import s3_service  # Deferred: avoids circular import
 
                 # Get all unique image URLs from comics
                 image_urls = set()
@@ -88,11 +89,12 @@ class SnapshotService:
 
                 # Copy images from S3 to snapshot
                 images_copied = 0
-                from app.utils.user_context import get_user_s3_images_prefix
+                from app.utils.user_context import get_user_s3_images_prefix  # Deferred: see __init__
                 images_prefix = get_user_s3_images_prefix()
                 images_prefix_in_url = f'/{images_prefix}'
                 for img_url in image_urls:
                     if img_url:
+                        filename = ''
                         try:
                             # Extract filename
                             if images_prefix_in_url in img_url:
@@ -247,8 +249,8 @@ class SnapshotService:
             # Copy images back to production if they exist in snapshot
             images_dir = snapshot_dir / 'images'
             if images_dir.exists():
-                from app.services.s3_service import s3_service
-                from app.utils.user_context import get_user_s3_images_prefix
+                from app.services.s3_service import s3_service  # Deferred: avoids circular import
+                from app.utils.user_context import get_user_s3_images_prefix  # Deferred: see __init__
                 images_restored = 0
                 images_prefix = get_user_s3_images_prefix()
 
@@ -270,7 +272,7 @@ class SnapshotService:
 
 
             # Sync CSV to S3
-            from app.services.s3_service import s3_service
+            from app.services.s3_service import s3_service  # Deferred: avoids circular import
             s3_service.backup_main_csv_to_s3(str(self.csv_file))
 
             mode_text = "replaced with" if mode == 'replace' else "merged from"
@@ -285,7 +287,7 @@ class SnapshotService:
             return {
                 'success': False,
                 'comics_restored': 0,
-                'message': str(e)
+                'message': safe_error_message(e)
             }
 
     def delete(self, snapshot_id):

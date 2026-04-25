@@ -2,6 +2,10 @@
 from datetime import datetime, timedelta, timezone
 import json
 import os
+# Deferred import: avoids initialization-order issues when this module is
+# imported before the Flask app context is ready (e.g., at startup sync).
+# Use get_user_analytics_dir() only inside methods, not at module-level code.
+from app.utils.user_context import get_user_analytics_dir
 
 
 class AnalyticsEvent:
@@ -39,7 +43,6 @@ class AnalyticsStore:
             self.data_dir = data_dir
         else:
             # Use user-specific analytics directory
-            from app.utils.user_context import get_user_analytics_dir
             self.data_dir = str(get_user_analytics_dir())
 
         self.events_file = os.path.join(self.data_dir, 'analytics_events.jsonl')

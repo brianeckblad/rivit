@@ -137,7 +137,7 @@ Lessons from the April 2026 hardening pass. See [AGENTS.md](../AGENTS.md#general
 ### Python rules
 
 - **Never `str(e)` in JSON responses** — use `safe_error_message(e)` from `app/utils/logging_utils.py`. Full detail goes to the logger only.
-- **All imports at module level** — never inside functions, route handlers, or `except` blocks. Imports in handlers cause unresolved-reference warnings and hide circular deps.
+- **All imports at module level** — never inside functions, route handlers, or `except` blocks. Imports in handlers cause unresolved-reference warnings and hide circular deps. **Two allowed exceptions, both requiring a comment:** (1) `# Deferred: avoids circular import` and (2) `# Deferred: requires Flask app context` (service singletons constructed before app starts).
 - **Initialize before `try`** — any variable referenced in `except`/`finally` must be assigned before the `try` block, not inside it.
 
 ### JavaScript rules

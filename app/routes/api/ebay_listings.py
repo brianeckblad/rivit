@@ -405,7 +405,7 @@ def get_ebay_listings() -> Response:
         current_app.logger.error(f"Error in get_ebay_listings: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': f'Failed to fetch eBay listings: {str(e)}',
+            'error': safe_error_message(e),
             'listings': []
         }), 500
 

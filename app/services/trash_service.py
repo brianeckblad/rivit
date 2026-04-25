@@ -6,6 +6,7 @@ from datetime import datetime
 from flask import current_app
 from app.models.trash_item import TrashItem
 from app.utils.logging_utils import log_service_info, log_service_warning, log_app_error
+from app.utils.user_context import get_current_username
 
 
 class TrashService:
@@ -40,7 +41,8 @@ class TrashService:
             if self._trash_path:
                 self._cached_path = Path(self._trash_path)
             else:
-                # Use user-specific trash directory
+                # Deferred import: this service is instantiated at module level before
+                # the Flask app context is ready; user_context requires app context.
                 from app.utils.user_context import get_user_trash_dir
                 user_trash = get_user_trash_dir()
                 self._cached_path = user_trash / 'recent'
@@ -172,7 +174,7 @@ class TrashService:
             # Delete images from S3 if they exist
             if item and item.image_urls:
                 try:
-                    from app.services.s3_service import s3_service
+                    from app.services.s3_service import s3_service  # Deferred: avoids circular import
                     for image_url in item.image_urls:
                         if image_url and image_url.strip():
                             # Pass the full S3 URL to delete_file
@@ -305,7 +307,6 @@ class TrashService:
             }
 
         except Exception as e:
-            from app.utils.user_context import get_current_username
             username = get_current_username()
             current_app.logger.error(f"[User: {username}] Error getting trash stats: {e}")
             return {'total': 0, 'today': 0, 'this_week': 0, 'this_month': 0}

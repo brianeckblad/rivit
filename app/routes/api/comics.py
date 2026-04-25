@@ -19,6 +19,7 @@ from app.routes.auth import login_required, csrf_required, sync_not_locked, disk
 from app.services.comic_service import comic_service
 from app.services.ebay_service import ebay_service
 from app.utils.defaults_helpers import apply_defaults_to_comic_data
+from app.utils.logging_utils import safe_error_message
 from app.utils.upload_security import validate_uploaded_image, UploadValidationError
 from app.utils.whatnot_validators import WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
 from io import StringIO, BytesIO
@@ -1002,7 +1003,7 @@ def export_selected() -> tuple:
 
     except Exception as e:
         current_app.logger.error(f"Error exporting selected comics: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': safe_error_message(e)}), 500
 
 
 @api_bp.route('/comics/for-linking', methods=['GET'])

@@ -6,7 +6,7 @@ from app.services.csv_service import CSVService
 from app.services.s3_service import s3_service
 from app.utils.helpers import generate_unique_filename
 from app.utils.whatnot_validators import allowed_file
-from app.utils.logging_utils import log_service_info, log_service_warning, log_app_error
+from app.utils.logging_utils import log_service_info, log_service_warning, log_app_error, safe_error_message
 from app.utils.user_context import get_user_csv_file, get_user_sku_file, get_current_username
 import os
 import fcntl
@@ -498,7 +498,7 @@ class ComicService:
             # Rollback SKU on exception
             if sku:
                 self._rollback_sku(expected_sku=sku)
-            return False, str(e)
+            return False, safe_error_message(e)
     
     def update_comic(self, sku, comic_data, new_image_files=None, removed_image_urls=None, reordered_image_urls=None):
         """
@@ -597,16 +597,15 @@ class ComicService:
             # Save to CSV
             if csv_service.update(sku, updated_comic):
                 # Backup CSV to S3 for state sync (use user-specific CSV)
-                from app.utils.user_context import get_user_csv_file
                 user_csv = get_user_csv_file()
                 s3_service.backup_main_csv_to_s3(str(user_csv))
                 return True, updated_comic
             else:
                 return False, "Failed to update comic in CSV"
-        
+
         except Exception as e:
             log_app_error(f"Error updating comic: {e}")
-            return False, str(e)
+            return False, safe_error_message(e)
     
     def delete_comic(self, sku):
         """
@@ -647,7 +646,6 @@ class ComicService:
                 return False, f"Failed to delete comic from inventory"
 
             # Backup CSV to S3 for state sync (use user-specific CSV)
-            from app.utils.user_context import get_user_csv_file
             s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
 
             # Images stay in production folder (not deleted)
@@ -657,7 +655,7 @@ class ComicService:
 
         except Exception as e:
             log_app_error(f"Error moving comic to trash: {e}")
-            return False, str(e)
+            return False, safe_error_message(e)
 
     def delete_all_comics(self):
         """

@@ -9,12 +9,15 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Any, Tuple
 from flask import request, jsonify, current_app, session, Response
 from app.utils.logging_utils import safe_error_message
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required, admin_required
-from app.models.user import user_manager
+from app.models.user import user_manager, force_reload_global_user_manager
+from app.config import get_secret
+# Deferred import: user_secrets_service depends on AWS SDK which may not be
+# available at startup; import lazily where used to avoid startup-time errors.
+# from app.services.user_secrets_service import user_secrets_service
 
 
 @api_bp.route('/account/change-password', methods=['POST'])
@@ -62,6 +65,7 @@ def change_password() -> Response:
         - Password must be at least 8 characters
         - Current password must match for security
     """
+    username = None
     try:
         data = request.get_json()
         current_password = data.get('currentPassword')
@@ -136,6 +140,7 @@ def change_username() -> Response:
         - Session automatically updated with new username
         - Minimum 3 characters for username
     """
+    current_username = None
     try:
         data = request.get_json()
         new_username = data.get('newUsername')
@@ -664,8 +669,6 @@ def clear_user_cache() -> Response:
         - Useful after manual users.json edits
     """
     try:
-        # Import the force reload function
-        from app.models.user import force_reload_global_user_manager
 
         # Force reload the global instance
         force_reload_global_user_manager()
@@ -728,7 +731,7 @@ def get_ebay_credentials() -> Response:
         - Does not expose full credential values
     """
     try:
-        from app.services.user_secrets_service import user_secrets_service
+        from app.services.user_secrets_service import user_secrets_service  # Deferred: avoids AWS SDK startup error
 
         username = session.get('username')
         if not username:
@@ -746,7 +749,6 @@ def get_ebay_credentials() -> Response:
             source = 'user'
         else:
             # Fall back to app-level credentials (from main secret)
-            from app.config import get_secret
             app_creds = {
                 'EBAY_PRODUCTION_APP_ID': get_secret('EBAY_PRODUCTION_APP_ID'),
                 'EBAY_PRODUCTION_CERT_ID': get_secret('EBAY_PRODUCTION_CERT_ID'),

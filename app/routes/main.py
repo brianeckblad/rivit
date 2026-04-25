@@ -1,13 +1,21 @@
 """Page rendering routes for the web application."""
-from flask import Blueprint, render_template, send_file, current_app, jsonify, request
+from flask import Blueprint, render_template, send_file, current_app, jsonify, request, session
 from app.routes.auth import login_required, csrf_required
 from app.services.comic_service import comic_service
+from app.services.s3_service import s3_service
+from app.services.csv_service import CSVService
+from app.services.analytics_service import HeatmapAnalyzer
+from app.models.analytics import AnalyticsStore
 from app.utils.logging_utils import safe_error_message
 from app.utils.user_context import get_current_username, get_user_csv_file, get_user_analytics_dir
+from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, populate_whatnot_fields_from_item
+from app.utils.ebay_validators import EBAY_FIELD_VALIDATION, populate_ebay_fields_from_item
+from app.utils.csv_sanitizer import sanitize_row
 from datetime import datetime
 import os
 import csv
 import io
+import traceback
 
 main_bp = Blueprint('main', __name__)
 
@@ -35,7 +43,6 @@ def add_comic():
     Pre-populates the next available SKU and validation rules for
     client-side validation in the web form.
     """
-    from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION
 
     # Get the next available SKU to suggest to the user
     next_sku = comic_service.get_current_sku()
@@ -74,9 +81,6 @@ def download_csv():
                                       ('For Sale' or 'Giveaway').
     """
     try:
-        from app.services.s3_service import s3_service
-        from app.services.csv_service import CSVService
-        import io
 
         # Get filter parameter from query string
         listing_type = request.args.get('listing_type', '', type=str).strip()
@@ -91,14 +95,12 @@ def download_csv():
         # If no filter specified, return the complete inventory with CSV-injection
         # sanitization applied (cells starting with =+-@ are prefixed with ')
         if not listing_type:
-            from app.services.csv_service import CSVService as _CSVService
-            from app.utils.csv_sanitizer import sanitize_row as _sanitize_row
 
             # Create a backup copy in S3 with timestamp for historical tracking
             s3_service.backup_csv_to_s3(str(csv_path))
             current_app.logger.info(f"[User: {username}] Downloaded CSV export")
 
-            service = _CSVService(str(csv_path))
+            service = CSVService(str(csv_path))
             fieldnames = service._get_all_fieldnames()
             comics = service.read_all()
 
@@ -106,7 +108,7 @@ def download_csv():
             writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction='ignore', quoting=csv.QUOTE_ALL)
             writer.writeheader()
             for comic in comics:
-                writer.writerow(_sanitize_row(comic.to_dict()))
+                writer.writerow(sanitize_row(comic.to_dict()))
             buf.seek(0)
             return send_file(
                 io.BytesIO(buf.getvalue().encode('utf-8')),
@@ -121,7 +123,6 @@ def download_csv():
 
         # Build CSV in memory with filtered comics
         output = io.StringIO()
-        from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, populate_whatnot_fields_from_item
         # Get column order from validator
         fieldnames = list(WHATNOT_FIELD_VALIDATION.keys())
 
@@ -144,7 +145,6 @@ def download_csv():
                         whatnot_data[field] = ''
 
                 # Sanitize cells to neutralize spreadsheet formula injection
-                from app.utils.csv_sanitizer import sanitize_row
                 writer.writerow(sanitize_row(whatnot_data))
 
         # Convert to bytes and send as download
@@ -173,12 +173,10 @@ def download_ebay_csv():
     Only includes items marked as 'For Sale' (excludes Giveaways).
     """
     try:
-        from app.utils.ebay_validators import EBAY_FIELD_VALIDATION, populate_ebay_fields_from_item
-
         # Retrieve all comics from inventory
         all_comics = comic_service.get_all_comics()
 
-        # Filter out giveaways - eBay listings are only for items for sale
+        # Filter out giveaways — eBay listings are only for items for sale
         comics = [comic for comic in all_comics if comic.listing_type != 'Giveaway']
 
         if not comics:
@@ -210,7 +208,6 @@ def download_ebay_csv():
                     ebay_data[field] = ''
 
             # Sanitize cells against spreadsheet formula injection
-            from app.utils.csv_sanitizer import sanitize_row
             writer.writerow(sanitize_row(ebay_data))
 
         # Prepare file for download
@@ -238,7 +235,6 @@ def price_lookup():
 @login_required
 def account():
     """Account settings page."""
-    from flask import session
     username = session.get('username', 'Unknown')
     return render_template('account.html', username=username, active_page='account')
 
@@ -261,9 +257,6 @@ def analytics_dashboard():
 @login_required
 def analytics_data():
     """Get analytics data as JSON."""
-    from app.models.analytics import AnalyticsStore
-    from app.services.analytics_service import HeatmapAnalyzer
-    from app.utils.user_context import get_user_analytics_dir
 
     data_type = 'summary'
     try:
@@ -316,7 +309,6 @@ def analytics_data():
     except Exception as e:
         username = get_current_username()
         current_app.logger.error(f"[User: {username}] Error in analytics_data for type={data_type}: {e}")
-        import traceback
         current_app.logger.error(traceback.format_exc())
         return jsonify({
             'error': safe_error_message(e),
@@ -329,9 +321,6 @@ def analytics_data():
 @login_required
 def analytics_export():
     """Export analytics data as CSV."""
-    from app.models.analytics import AnalyticsStore
-    from app.utils.user_context import get_user_analytics_dir
-    import csv
 
     # Use user-specific analytics directory
     analytics_dir = str(get_user_analytics_dir())
@@ -342,7 +331,6 @@ def analytics_export():
     # Create CSV
     output = io.StringIO()
     if events:
-        from app.utils.csv_sanitizer import sanitize_row
         fieldnames = list(events[0].keys())
         writer = csv.DictWriter(output, fieldnames=fieldnames)
         writer.writeheader()
@@ -365,8 +353,6 @@ def analytics_export():
 @csrf_required
 def analytics_clear():
     """Clear all analytics data."""
-    from app.models.analytics import AnalyticsStore
-    from app.utils.user_context import get_user_analytics_dir, get_current_username
 
     try:
         # Use user-specific analytics directory

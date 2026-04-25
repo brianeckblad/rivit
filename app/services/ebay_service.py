@@ -5,11 +5,14 @@ import re
 import time
 import base64
 import hashlib
+import traceback
+import urllib.parse
 import requests
 from datetime import datetime
 from difflib import SequenceMatcher
 from flask import current_app
 from app.utils.ebay_validators import build_trading_item
+from app.utils.logging_utils import safe_error_message
 from ebaysdk.trading import Connection as Trading
 from ebaysdk.exception import ConnectionError as TradingError
 
@@ -210,6 +213,8 @@ class EbayService:
 
     def _get_app_id(self, username=None):
         """Get eBay App ID from config based on environment and current user."""
+        # Deferred import: user_context requires Flask app context; ebay_service
+        # is a module-level singleton instantiated before app context is ready.
         from app.utils.user_context import get_current_username, get_ebay_credentials
 
         if username is None:
@@ -230,6 +235,7 @@ class EbayService:
 
     def _get_cert_id(self, username=None):
         """Get eBay Cert ID (Client Secret) from config based on environment and current user."""
+        # Deferred import: see _get_app_id for rationale.
         from app.utils.user_context import get_current_username, get_ebay_credentials
 
         if username is None:
@@ -248,6 +254,7 @@ class EbayService:
 
     def _get_oauth_token(self, username=None):
         """Get OAuth 2.0 access token for the current user, refreshing if needed."""
+        # Deferred import: see _get_app_id for rationale.
         from app.utils.user_context import get_current_username
 
         if username is None:
@@ -325,6 +332,7 @@ class EbayService:
 
     def _get_cache_key(self, title, condition, limit, username=None):
         """Generate cache key from search parameters, including username for multi-user isolation."""
+        # Deferred import: see _get_app_id for rationale.
         from app.utils.user_context import get_current_username
 
         if username is None:
@@ -591,10 +599,10 @@ class EbayService:
 
         except requests.RequestException as e:
             current_app.logger.error(f"eBay API request error: {e}")
-            return {'success': False, 'error': f'API request failed: {str(e)}'}
+            return {'success': False, 'error': f'API request failed: {safe_error_message(e)}'}
         except Exception as e:
             current_app.logger.error(f"eBay service error: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': safe_error_message(e)}
 
     def get_sold_prices_url(self, title, condition=None):
         """
@@ -788,10 +796,10 @@ class EbayService:
 
         except requests.RequestException as e:
             current_app.logger.error(f"eBay API request error: {e}")
-            return {'success': False, 'error': f'API request failed: {str(e)}'}
+            return {'success': False, 'error': f'API request failed: {safe_error_message(e)}'}
         except Exception as e:
             current_app.logger.error(f"eBay service error: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': safe_error_message(e)}
 
     def search_by_image(self, image_data, limit=20, sort_by_title=None):
         """
@@ -938,10 +946,10 @@ class EbayService:
 
         except requests.RequestException as e:
             current_app.logger.error(f"eBay image search request error: {e}")
-            return {'success': False, 'error': f'API request failed: {str(e)}'}
+            return {'success': False, 'error': f'API request failed: {safe_error_message(e)}'}
         except Exception as e:
             current_app.logger.error(f"eBay image search error: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': safe_error_message(e)}
 
     def search_marketplace(self, query, limit=12):
         """
@@ -1031,10 +1039,10 @@ class EbayService:
 
         except requests.RequestException as e:
             current_app.logger.error(f"eBay Browse search request error: {e}")
-            return {'success': False, 'error': f'API request failed: {str(e)}'}
+            return {'success': False, 'error': f'API request failed: {safe_error_message(e)}'}
         except Exception as e:
             current_app.logger.error(f"eBay Browse search error: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': safe_error_message(e)}
 
     def _get_trading_credentials(self, environment=None):
         env = (environment or self.environment or 'production').lower()
@@ -1381,8 +1389,7 @@ class EbayService:
         Returns:
             str: eBay-hosted image URL, or None on failure.
         """
-        from app.services.s3_service import s3_service
-        import urllib.parse
+        from app.services.s3_service import s3_service  # Deferred: avoids circular import at module load
 
         try:
             # ── 1. Download image bytes from S3 ────────────────────────
@@ -1754,7 +1761,7 @@ class EbayService:
 
         except Exception as e:
             current_app.logger.error(f"Error fetching category tree: {e}")
-            return {'error': str(e)}
+            return {'error': safe_error_message(e)}
 
     def _load_category_cache(self):
         """Load category tree cache from file."""
@@ -1873,9 +1880,8 @@ class EbayService:
 
         except Exception as e:
             current_app.logger.error(f"Error fetching full category tree: {e}")
-            import traceback
             current_app.logger.error(traceback.format_exc())
-            return {'error': str(e)}
+            return {'error': safe_error_message(e)}
 
     def _lookup_category_name(self, category_id):
         """
@@ -2085,9 +2091,8 @@ class EbayService:
 
         except Exception as e:
             current_app.logger.error(f"Error in get_root_categories: {e}")
-            import traceback
             current_app.logger.error(traceback.format_exc())
-            return {'error': str(e)}
+            return {'error': safe_error_message(e)}
 
     def get_category_children(self, category_id, marketplace_id='EBAY_US'):
         """
@@ -2182,9 +2187,8 @@ class EbayService:
 
         except Exception as e:
             current_app.logger.error(f"Error fetching category children: {e}")
-            import traceback
             current_app.logger.error(traceback.format_exc())
-            return {'error': str(e)}
+            return {'error': safe_error_message(e)}
 
     def search_categories(self, query, marketplace_id='EBAY_US'):
         """
@@ -2227,7 +2231,7 @@ class EbayService:
 
         except Exception as e:
             current_app.logger.error(f"Error searching categories: {e}")
-            return {'error': str(e)}
+            return {'error': safe_error_message(e)}
 
 
 # Singleton instance

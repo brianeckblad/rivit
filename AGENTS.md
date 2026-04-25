@@ -804,7 +804,21 @@ def download_csv():
     ...
 ```
 
-**Exception:** circular-import workarounds that are explicitly documented with a comment.
+**Exceptions — when a deferred import is required:**
+
+1. **Circular imports** — module A imports module B which imports module A. Document with:
+   ```python
+   from app.services.s3_service import s3_service  # Deferred: avoids circular import
+   ```
+2. **Initialization-order / app-context** — service singletons are constructed at module
+   load time (before the Flask app context exists). Helpers that call `current_app` or
+   `session` must be deferred until a request is in flight.
+   ```python
+   from app.utils.user_context import get_user_csv_file  # Deferred: requires app context
+   ```
+
+In both cases, add the comment so reviewers know the deferral is intentional, not an
+oversight, and do **not** silently re-import a symbol that is already at module level.
 
 ### Python — Initialize Variables Before `try` Blocks
 
