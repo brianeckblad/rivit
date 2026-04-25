@@ -916,11 +916,11 @@ def export_selected() -> tuple:
         from app.utils.csv_sanitizer import sanitize_row
 
         if platform == 'whatnot':
-            # WhatNot export: only include comics tagged for WhatNot (have a WhatNot Item ID)
-            whatnot_tagged = [c for c in selected_comics if c.to_dict().get('WhatNot Item ID') and str(c.to_dict().get('WhatNot Item ID')).strip()]
+            # WhatNot export: only include comics tagged for WhatNot (WhatNot Item ID == 'TRUE')
+            whatnot_tagged = [c for c in selected_comics if c.to_dict().get('WhatNot Item ID') == 'TRUE']
 
             if not whatnot_tagged:
-                return jsonify({'success': False, 'message': 'No selected comics are tagged for WhatNot listing (missing WhatNot Item ID)'}), 400
+                return jsonify({'success': False, 'message': 'No selected comics are tagged for WhatNot listing (WhatNot Item ID must be TRUE)'}), 400
 
             # WhatNot export fields
             fieldnames = [

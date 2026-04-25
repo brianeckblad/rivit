@@ -121,8 +121,8 @@ def download_csv():
         result = comic_service.get_comics_paginated(page=1, per_page=1000000, listing_type=listing_type)
         filtered_comics = result['comics']
 
-        # Further filter: only include comics tagged for WhatNot (have a WhatNot Item ID)
-        whatnot_tagged = [c for c in filtered_comics if c.get('WhatNot Item ID') and str(c.get('WhatNot Item ID')).strip()]
+        # Further filter: only include comics tagged for WhatNot (WhatNot Item ID == 'TRUE')
+        whatnot_tagged = [c for c in filtered_comics if c.get('WhatNot Item ID') == 'TRUE']
 
         # Build CSV in memory with filtered comics
         output = io.StringIO()
