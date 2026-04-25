@@ -139,6 +139,13 @@ Lessons from the April 2026 hardening pass. See [AGENTS.md](../AGENTS.md#general
 - **Never `str(e)` in JSON responses** — use `safe_error_message(e)` from `app/utils/logging_utils.py`. Full detail goes to the logger only.
 - **All imports at module level** — never inside functions, route handlers, or `except` blocks. Imports in handlers cause unresolved-reference warnings and hide circular deps. **Two allowed exceptions, both requiring a comment:** (1) `# Deferred: avoids circular import` and (2) `# Deferred: requires Flask app context` (service singletons constructed before app starts).
 - **Initialize before `try`** — any variable referenced in `except`/`finally` must be assigned before the `try` block, not inside it.
+- **Use Pythonic style and docs** — follow PEP 8 and PEP 257 (`snake_case` names, clear docstrings for public modules/classes/functions, line lengths compatible with `black`).
+- **Prefer named callables over inline `lambda`** — use `def` for any non-trivial logic so stack traces, typing, and reuse stay clear. Tiny sort keys are acceptable.
+- **Use type hints where applicable** — annotate public functions/methods and complex return types; keep type aliases near the top of the module.
+- **Format with `black` and sort imports with `isort`** — keep import order stable and avoid style churn in reviews.
+- **Meaningful naming, readability, DRY** — use descriptive names, extract repeated logic into helpers, and keep functions small/single-purpose.
+- **Catch specific exceptions first** — avoid broad `except Exception` unless you log and re-raise or sanitize at a boundary.
+- **No side effects at import time** — module import should define symbols only; defer network/file/session-dependent work to runtime paths.
 
 ### JavaScript rules
 
@@ -152,6 +159,11 @@ Lessons from the April 2026 hardening pass. See [AGENTS.md](../AGENTS.md#general
 - [ ] No `str(e)` in jsonify responses — use `safe_error_message(e)`
 - [ ] All imports at module top — not inside handlers or except blocks
 - [ ] Variables used in except/finally initialized before the try
+- [ ] PEP 8 + PEP 257 followed for modified Python modules
+- [ ] Public functions/methods have type hints where practical
+- [ ] Non-trivial lambdas replaced with named functions
+- [ ] Files are formatted with `black`; imports are sorted with `isort`
+- [ ] Naming is descriptive; duplicated logic extracted into shared helpers
 - [ ] JS confirm: snapshot → try → finally cleanup; executors take args, never reset state
 - [ ] Related JS state vars declared in one block; registry used for grouped modal teardown
 
@@ -238,4 +250,3 @@ Before finishing any change, verify:
 - **Ansible variables:** All configuration in encrypted `deployment/group_vars/vault.yml`
 - **Vault secrets:** Access with `ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass`
 - **S3 bucket name:** Comes from `s3_bucket_name` in vault (not derived from `app_name`)
-

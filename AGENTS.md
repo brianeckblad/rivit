@@ -843,6 +843,73 @@ except Exception as e:
     logger.error("failed to load %s", data_type)   # always defined
 ```
 
+### Python — Use Pythonic Style and Documentation
+
+Follow PEP 8 for code style and PEP 257 for docstrings.
+
+- Use `snake_case` for functions/variables and `PascalCase` for classes.
+- Add clear docstrings for public modules, classes, and functions.
+- Keep style compatible with `black` output (line wrapping and spacing).
+
+```python
+# GOOD
+class UserExportService:
+    """Builds CSV exports for the current user."""
+
+    def build_export_rows(self) -> list[dict]:
+        ...
+```
+
+### Python — Prefer Named Functions Over Non-Trivial `lambda`
+
+Use named `def` functions for non-trivial logic. This improves stack traces, typing,
+reuse, and debugging. Tiny sort keys are acceptable as inline `lambda`.
+
+```python
+# BAD
+records.sort(key=lambda r: normalize_title(r.get('title', '').strip()))
+
+# GOOD
+def _sort_key(record: dict) -> str:
+    return normalize_title(record.get('title', '').strip())
+
+records.sort(key=_sort_key)
+```
+
+### Python — Type Hints on Public and Boundary APIs
+
+Use type hints where they provide real value, especially on route handlers, service public
+methods, and helper utilities shared across modules.
+
+- Prefer explicit return types on public methods.
+- Use `typing` aliases for repeated complex structures.
+- Keep runtime behavior unchanged; hints should clarify intent, not add noise.
+
+### Python — Formatting and Import Order
+
+- Run `black` on edited Python files.
+- Run `isort` for stable import grouping/order.
+- Do not manually micro-format around these tools.
+
+### Python — Naming, Readability, and DRY
+
+- Prefer meaningful names (`listing_status`, `analytics_dir`) over cryptic abbreviations.
+- Keep functions focused and short; extract repeated logic to shared helpers.
+- Avoid copy-paste branches when a small helper or registry can express the pattern once.
+
+### Python — Exception Specificity and Boundaries
+
+Catch specific exceptions first. Use broad `except Exception` only at clear boundaries
+(route handlers, task boundaries, service top-level operations), where errors are logged
+and sanitized for clients.
+
+### Python — No Import-Time Side Effects
+
+Module import should define symbols, not execute network/file/session-dependent work.
+
+- No API calls, filesystem mutations, or session access at module import time.
+- Defer runtime-dependent initialization to request handlers, service methods, or app startup hooks.
+
 ### JavaScript — Modal / Pending-State Lifecycle
 
 Confirm flows that mutate pending state must follow a strict single-owner pattern.
@@ -940,6 +1007,13 @@ Add these to your pre-commit review alongside the security checklist:
 - [ ] No `str(e)` in `jsonify` error responses — use `safe_error_message(e)`
 - [ ] All imports are at module level, not inside functions or except blocks
 - [ ] Variables referenced in `except`/`finally` are initialized before the `try`
+- [ ] PEP 8 + PEP 257 followed for modified Python modules
+- [ ] Public functions/methods include useful type hints where practical
+- [ ] Non-trivial `lambda` logic moved to named functions
+- [ ] Edited Python files are formatted with `black` and imports sorted with `isort`
+- [ ] Names are descriptive and repeated logic is extracted into helpers (DRY)
+- [ ] Broad exception handlers are only used at boundaries with logging + sanitization
+- [ ] No import-time side effects (network/file/session-dependent work)
 - [ ] JS confirm functions snapshot state, execute in `try`, reset in `finally`
 - [ ] JS executor functions accept values as arguments — no reads of `pending*` state
 - [ ] Related JS state variables declared together in one block, no re-declarations
@@ -1063,5 +1137,4 @@ Before finalizing any documentation change:
 
 ---
 
-**Last Updated:** April 24, 2026 (added General Coding Standards)
-
+**Last Updated:** April 24, 2026 (expanded General Coding Standards: Pythonic style, typing, formatting, DRY/readability)
