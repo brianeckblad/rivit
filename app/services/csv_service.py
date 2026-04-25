@@ -28,6 +28,7 @@ EBAY_ITEM_FIELDS = [
     'eBay Category Name',     # Human-readable category name
     'eBay Format',            # 'FixedPrice' or 'Auction'
     'eBay Duration',          # 'GTC', 'Days_7', 'Days_10', etc.
+    'eBay Condition ID',      # Numeric eBay condition (e.g., 2750 = Like New)
     'eBay Weight (lbs)',      # Item weight in pounds
     'eBay Weight (oz)',       # Item weight in ounces
     'eBay Package Length',    # Package length in inches

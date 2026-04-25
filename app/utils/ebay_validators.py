@@ -1164,7 +1164,16 @@ def build_trading_item(comic, overrides=None, mode='list', include_item_id=False
         'ListingType': listing_type,  # REQUIRED for scheduled listings
         'ListingDuration': ebay_fields.get('Duration', 'GTC'),
         'Quantity': _coerce_int(getattr(comic, 'quantity', 1), 1),  # Required field
-        'ConditionID': 2750,  # '2750' = Like New for comics category - Required field
+        # ConditionID — eBay requires a numeric condition code. Comics almost never
+        # ship as "Brand New" (1000), so we default to Like New (2750) and let the
+        # user override per-comic via the "eBay Condition ID" field on the comic's
+        # eBay Settings tab. Valid comic-category values: 2750, 3000, 4000, 5000, 6000.
+        'ConditionID': _coerce_int(
+            (getattr(comic, 'extra_fields', None) or {}).get('eBay Condition ID')
+            or ebay_fields.get('eBay Condition ID')
+            or 2750,
+            2750
+        ),
         'Country': 'US',
         'Currency': 'USD',
         'DispatchTimeMax': _coerce_int(ebay_fields.get('Max dispatch time', 3), 3),

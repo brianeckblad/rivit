@@ -2417,6 +2417,19 @@
 
                                     <!-- eBay Settings visible per comic -->
                                     <div class="admin-form-group">
+                                        <label for="ebayConditionId">Condition</label>
+                                        <select id="ebayConditionId" name="eBay Condition ID" class="admin-input">
+                                            <option value="2750" selected>Like New (default)</option>
+                                            <option value="2750">Graded</option>
+                                            <option value="4000">Very Good</option>
+                                            <option value="4000">Ungraded</option>
+                                            <option value="5000">Good</option>
+                                            <option value="6000">Acceptable</option>
+                                            <option value="3000">Used</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="admin-form-group">
                                         <label for="ebayImmediatePay">Immediate Pay Required</label>
                                         <select id="ebayImmediatePay" name="eBay Immediate Pay" class="admin-input">
                                             <option value="TRUE">TRUE</option>
@@ -5182,12 +5195,16 @@
             // Populate eBay settings visible on the form
             const ebayImmediatePay = document.getElementById('ebayImmediatePay');
             const ebayDuration = document.getElementById('ebayDuration');
+            const ebayConditionId = document.getElementById('ebayConditionId');
 
             if (ebayImmediatePay) {
                 ebayImmediatePay.value = adminDefaults.EbayImmediatePay || 'TRUE';
             }
             if (ebayDuration) {
                 ebayDuration.value = adminDefaults.EbayDuration || 'GTC';
+            }
+            if (ebayConditionId) {
+                ebayConditionId.value = adminDefaults.EbayConditionId || '2750';
             }
 
             // Populate Weight and Package Dimension defaults
@@ -7344,6 +7361,7 @@
             const ebayScheduleInput = document.getElementById('ebayScheduleDate');
             const ebayImmediatePaySelect = document.getElementById('ebayImmediatePay');
             const ebayDurationSelect = document.getElementById('ebayDuration');
+            const ebayConditionIdSelect = document.getElementById('ebayConditionId');
 
             if (ebayModeSelect) {
                 const ebayMode = ebayModeSelect.value || 'future';
@@ -7357,6 +7375,9 @@
             }
             if (ebayDurationSelect) {
                 formData.set('eBay Duration', ebayDurationSelect.value);
+            }
+            if (ebayConditionIdSelect) {
+                formData.set('eBay Condition ID', ebayConditionIdSelect.value);
             }
 
             // Add eBay Weight and Package Dimension settings
@@ -8784,6 +8805,7 @@
             // Load eBay Immediate Pay and Duration settings
             const ebayImmediatePay = document.getElementById('ebayImmediatePay');
             const ebayDuration = document.getElementById('ebayDuration');
+            const ebayConditionId = document.getElementById('ebayConditionId');
 
             if (ebayImmediatePay) {
                 // Use comic's saved value, or fall back to admin defaults
@@ -8792,6 +8814,10 @@
             if (ebayDuration) {
                 // Use comic's saved value, or fall back to admin defaults
                 ebayDuration.value = comic['eBay Duration'] || adminDefaults?.EbayDuration || 'GTC';
+            }
+            if (ebayConditionId) {
+                // Use comic's saved value, or fall back to Like New (2750)
+                ebayConditionId.value = comic['eBay Condition ID'] || adminDefaults?.EbayConditionId || '2750';
             }
 
             // Load eBay Weight and Package Dimension settings
