@@ -130,6 +130,33 @@ All colors, spacing, and component classes live in two shared CSS files. See [AG
 
 ---
 
+## General Coding Standards
+
+Lessons from the April 2026 hardening pass. See [AGENTS.md](../AGENTS.md#general-coding-standards) for full details and examples.
+
+### Python rules
+
+- **Never `str(e)` in JSON responses** — use `safe_error_message(e)` from `app/utils/logging_utils.py`. Full detail goes to the logger only.
+- **All imports at module level** — never inside functions, route handlers, or `except` blocks. Imports in handlers cause unresolved-reference warnings and hide circular deps.
+- **Initialize before `try`** — any variable referenced in `except`/`finally` must be assigned before the `try` block, not inside it.
+
+### JavaScript rules
+
+- **Confirm = snapshot → try → finally** — the confirm function owns the full lifecycle. Snapshot state into locals, execute in `try`, reset `pending*` state in `finally`. Cancel resets immediately with no try/finally.
+- **Executors take arguments** — executor functions receive values as parameters; they never read or reset global `pending*` / `bulk*` state.
+- **Declare state together** — all variables in a logical state group go in one contiguous block. No re-declarations in nested scopes.
+- **Registry for grouped DOM ops** — define a constant array of IDs and one shared helper instead of duplicating `hide`/`pop` calls across branches.
+
+### Checklist additions
+
+- [ ] No `str(e)` in jsonify responses — use `safe_error_message(e)`
+- [ ] All imports at module top — not inside handlers or except blocks
+- [ ] Variables used in except/finally initialized before the try
+- [ ] JS confirm: snapshot → try → finally cleanup; executors take args, never reset state
+- [ ] Related JS state vars declared in one block; registry used for grouped modal teardown
+
+---
+
 ## Secure Coding Standards - CRITICAL
 
 **Read the full rules in [AGENTS.md → Secure Coding Standards](../AGENTS.md#secure-coding-standards---critical) before writing any code that touches user input, files, secrets, or external data.**

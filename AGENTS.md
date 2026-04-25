@@ -754,6 +754,185 @@ Before finalizing any code change, walk this list:
 
 ---
 
+## General Coding Standards
+
+These rules cover recurring bugs and lint warnings found during the April 2026 hardening
+pass. Apply them on every change — they are not security-specific but prevent the same
+class of defect repeatedly.
+
+### Python — Never Use `str(e)` in JSON Responses
+
+`str(e)` leaks internal paths, class names, and stack details to the client. Use
+`safe_error_message(exc)` from `app/utils/logging_utils.py` for every `jsonify` error
+response. Full detail goes to the logger only.
+
+```python
+# BAD — leaks internal error detail to the client
+except Exception as e:
+    return jsonify({'error': str(e)}), 500
+
+# GOOD — sanitized client message, full detail in logs
+from app.utils.logging_utils import safe_error_message
+except Exception as e:
+    logger.exception("operation failed")
+    return jsonify({'error': safe_error_message(e)}), 500
+```
+
+This is the enforcement companion to Rule 5 in the Secure Coding Standards section.
+
+### Python — All Imports at Module Level
+
+Never place `import` or `from … import` statements inside functions, route handlers, or
+`except` blocks. Imports inside handlers create "unresolved reference" warnings, confuse
+static analysis, and hide circular-dependency problems.
+
+```python
+# BAD — import inside a route handler / except block
+@main_bp.route('/download')
+def download_csv():
+    try:
+        ...
+    except Exception:
+        from app.utils.user_context import get_current_username  # ← wrong
+        ...
+
+# GOOD — import once at the top of the file
+from app.utils.user_context import get_current_username, get_user_csv_file
+
+@main_bp.route('/download')
+def download_csv():
+    ...
+```
+
+**Exception:** circular-import workarounds that are explicitly documented with a comment.
+
+### Python — Initialize Variables Before `try` Blocks
+
+Any variable referenced in an `except` or `finally` block must be initialized before the
+`try` — not inside it. Assigning inside `try` leaves the variable unbound if an exception
+fires before that line.
+
+```python
+# BAD — data_type referenced in except, but only set inside try
+try:
+    data_type = request.args.get('type', 'summary')
+    ...
+except Exception as e:
+    logger.error("failed to load %s", data_type)   # ← may be unbound
+
+# GOOD — initialize before try
+data_type = 'summary'
+try:
+    data_type = request.args.get('type', data_type)
+    ...
+except Exception as e:
+    logger.error("failed to load %s", data_type)   # always defined
+```
+
+### JavaScript — Modal / Pending-State Lifecycle
+
+Confirm flows that mutate pending state must follow a strict single-owner pattern.
+
+**Rule:** The confirm function owns the full lifecycle — snapshot, execute, and clean up.
+Executors never read or reset `pending*` / `bulk*` state directly.
+
+```javascript
+// BAD — cleanup scattered across confirm, cancel, and multiple executors
+async function confirmDelete() {
+    await executeDelete();
+    pendingAction = null;   // ← duplicated in execute too
+}
+async function executeDelete() {
+    ...
+    pendingAction = null;   // ← wrong place
+}
+
+// GOOD — single owner, try/finally guarantees cleanup even on error
+async function confirmDelete() {
+    // 1. Snapshot state before any async work
+    const sku = pendingAction.sku;
+    const type = pendingAction.type;
+
+    try {
+        await executeDelete(sku);   // executor takes values as args
+    } finally {
+        pendingAction = { type: null, sku: null };   // always runs
+    }
+}
+
+// Cancel path clears immediately (no try/finally needed — no async work)
+function cancelDelete() {
+    pendingAction = { type: null, sku: null };
+    closeModal();
+}
+
+// Executor accepts values as parameters — never reads/resets global state
+async function executeDelete(sku) {
+    const resp = await fetch(`/api/comic/${sku}`, { method: 'DELETE', ... });
+    ...
+}
+```
+
+### JavaScript — Declare Related State Variables Together
+
+All variables that form a single logical state group must be declared in one contiguous
+block at the top of their scope. Do not scatter declarations or redeclare a variable in
+a nested scope.
+
+```javascript
+// BAD — bulkGoScheduledDays declared again later, shadowing the first
+let bulkCurrentAction = null;
+let bulkCurrentPlatform = null;
+...
+// 200 lines later:
+let bulkGoScheduledDays = 0;   // ← duplicate declaration
+
+// GOOD — all bulk state in one place
+let bulkCurrentAction    = null;
+let bulkCurrentPlatform  = null;
+let bulkSelectedItems    = [];
+let bulkScheduleDays     = 0;
+let bulkGoScheduledDays  = 0;
+window.bulkActionComics  = null;
+```
+
+### JavaScript — Use Registry Arrays for Grouped DOM Operations
+
+When multiple modals (or other elements) must be hidden / reset together, define a
+constant array of their IDs and iterate — do not duplicate `hide` / `pop` calls.
+
+```javascript
+// BAD — duplicated teardown in every branch
+modal1.style.display = 'none'; popModalFromStack('modal1');
+modal2.style.display = 'none'; popModalFromStack('modal2');
+// ... repeated in 4 other functions
+
+// GOOD — single registry, one helper
+const BULK_MODAL_IDS = ['bulkConfirmModal', 'bulkEbaySelectionModal', 'bulkEbayModal'];
+
+function closeAllBulkModals() {
+    BULK_MODAL_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+        popModalFromStack(id);
+    });
+}
+```
+
+### General Coding Checklist
+
+Add these to your pre-commit review alongside the security checklist:
+
+- [ ] No `str(e)` in `jsonify` error responses — use `safe_error_message(e)`
+- [ ] All imports are at module level, not inside functions or except blocks
+- [ ] Variables referenced in `except`/`finally` are initialized before the `try`
+- [ ] JS confirm functions snapshot state, execute in `try`, reset in `finally`
+- [ ] JS executor functions accept values as arguments — no reads of `pending*` state
+- [ ] Related JS state variables declared together in one block, no re-declarations
+- [ ] Groups of modal/element operations use a registry constant + shared helper
+
+---
+
 ## Documentation Standards
 
 All documentation in `deployment/docs/` follows a consistent style modeled after
@@ -870,5 +1049,5 @@ Before finalizing any documentation change:
 
 ---
 
-**Last Updated:** April 24, 2026
+**Last Updated:** April 24, 2026 (added General Coding Standards)
 
