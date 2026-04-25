@@ -926,19 +926,7 @@ class EbayService:
 
             # Sort by title similarity if requested
             if sort_by_title and items:
-                def similarity_score(item_title, query_title):
-                    """Calculate similarity between titles (0-1, higher is more similar)."""
-                    return SequenceMatcher(None, item_title.lower(), query_title.lower()).ratio()
-
-                # Score and sort by title similarity
-                scored_items = []
-                for item in items:
-                    score = similarity_score(item['title'], sort_by_title)
-                    scored_items.append((score, item))
-
-                # Sort by score (highest first)
-                scored_items.sort(key=lambda x: x[0], reverse=True)
-                result['items'] = [item for score, item in scored_items]
+                result['items'] = self._score_items_by_title_similarity(items, sort_by_title)
                 result['count'] = len(result['items'])
 
             current_app.logger.info(f"Found {len(result['items'])} comic items via image search")
@@ -951,7 +939,29 @@ class EbayService:
             current_app.logger.error(f"eBay image search error: {e}")
             return {'success': False, 'error': safe_error_message(e)}
 
-    def search_marketplace(self, query, limit=12):
+    @staticmethod
+    def _score_items_by_title_similarity(items, reference_title):
+        """Sort a list of item dicts by title similarity to ``reference_title``.
+
+        Args:
+            items: List of dicts with a ``title`` key.
+            reference_title: Title string to compare against.
+
+        Returns:
+            New list ordered from most-similar to least-similar.
+        """
+        reference = (reference_title or "").lower()
+        if not reference or not items:
+            return list(items)
+
+        def score(item):
+            return SequenceMatcher(
+                None, (item.get("title") or "").lower(), reference
+            ).ratio()
+
+        return sorted(items, key=score, reverse=True)
+
+    def search_marketplace(self, query, limit=12, sort_by_title=None):
         """
         Search all of eBay marketplace using the Browse API (text-based).
 
@@ -961,6 +971,9 @@ class EbayService:
         Args:
             query (str): Search keywords.
             limit (int): Maximum number of results (1-50, default 12).
+            sort_by_title (str, optional): If provided, results are re-sorted by
+                title similarity to this string (highest similarity first). This
+                mirrors the behavior of ``search_by_image``.
 
         Returns:
             dict: Search results with items list, or error info.
@@ -1035,6 +1048,10 @@ class EbayService:
                     continue
 
             current_app.logger.info(f"Browse API search found {len(items)} items for '{query}'")
+
+            if sort_by_title:
+                items = self._score_items_by_title_similarity(items, sort_by_title)
+
             return {'success': True, 'count': len(items), 'items': items}
 
         except requests.RequestException as e:

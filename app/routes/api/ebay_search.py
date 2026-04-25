@@ -197,8 +197,12 @@ def search_marketplace() -> Response:
 
     Request Body (JSON):
         {
-            "title": str,               # Search keywords
-            "limit": Optional[int]      # Max results (1-50, default 12)
+            "title": str,                    # Search keywords
+            "limit": Optional[int],          # Max results (1-50, default 12)
+            "sort_by_title": Optional[str],  # If set, results re-ranked by title
+                                             # similarity to this string. Defaults
+                                             # to ``title`` so the closest comic
+                                             # listings surface first.
         }
 
     Returns:
@@ -208,6 +212,7 @@ def search_marketplace() -> Response:
         data = request.get_json()
         title = data.get('title')
         limit = data.get('limit', 12)
+        sort_by_title = data.get('sort_by_title', title)
 
         if not title:
             return jsonify({'success': False, 'error': 'Search query is required'}), 400
@@ -217,7 +222,9 @@ def search_marketplace() -> Response:
         except (ValueError, TypeError):
             limit = 12
 
-        result = ebay_service.search_marketplace(title, limit=limit)
+        result = ebay_service.search_marketplace(
+            title, limit=limit, sort_by_title=sort_by_title
+        )
         return jsonify(result)
 
     except Exception as e:

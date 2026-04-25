@@ -701,7 +701,7 @@
                     <div class="comic-card-actions">
                         <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)" style="padding: 10px; font-size: 14px;">Load Image</button>
                         <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Search eBay</button>
-                        <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Search Sold</button>
+                        <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Current Market</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -819,15 +819,19 @@
             }
         }
 
-        function renderImageSearchResults(result, page = 1) {
+        function renderImageSearchResults(result, page = 1, modalTitleText = 'eBay Search Results') {
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
 
             // Scroll to top of modal when changing pages
             modalBody.scrollTop = 0;
 
-            modalTitle.textContent = 'eBay Search Results';
+            modalTitle.textContent = modalTitleText;
             currentPage = page;
+
+            // Encode the modal title once for safe inclusion in inline onclick handlers
+            // (used by pagination buttons below so the title persists across pages).
+            const titleArg = JSON.stringify(modalTitleText);
 
             let html = '';
 
@@ -915,9 +919,9 @@
                     <div class="stat-label">Showing ${startIndex + 1}-${Math.min(endIndex, result.items.length)} of ${result.items.length} items</div>
                     ${totalPages > 1 ? `
                         <div style="display: flex; gap: 8px;">
-                            ${page > 1 ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1})">← Previous</button>` : ''}
+                            ${page > 1 ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1}, ${titleArg})">← Previous</button>` : ''}
                             <span style="color: var(--color-text-muted); padding: 8px 16px;">Page ${page} of ${totalPages}</span>
-                            ${page < totalPages ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1})">Next →</button>` : ''}
+                            ${page < totalPages ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1}, ${titleArg})">Next →</button>` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -959,9 +963,9 @@
                     <div class="stat-label">Showing ${startIndex + 1}-${Math.min(endIndex, result.items.length)} of ${result.items.length} items</div>
                     ${totalPages > 1 ? `
                         <div style="display: flex; gap: 8px;">
-                            ${page > 1 ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1})">← Previous</button>` : ''}
+                            ${page > 1 ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page - 1}, ${titleArg})">← Previous</button>` : ''}
                             <span style="color: var(--color-text-muted); padding: 8px 16px;">Page ${page} of ${totalPages}</span>
-                            ${page < totalPages ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1})">Next →</button>` : ''}
+                            ${page < totalPages ? `<button class="btn btn-sm btn-secondary" onclick="renderImageSearchResults(lastImageSearchResults, ${page + 1}, ${titleArg})">Next →</button>` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -1364,7 +1368,7 @@
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
-                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Search Sold</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Current Market</button>
                         </div>
                     </td>
                 `;
@@ -1423,7 +1427,7 @@
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
-                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Search Sold</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Current Market</button>
                         </div>
                     </td>
                 `;
@@ -1449,14 +1453,72 @@
             }, 300);
         });
 
-        function searchEbayByTitle(title, event) {
+        async function searchEbayByTitle(title, event) {
             event.stopPropagation();
 
-            // Generate eBay search URL with sold items filter, Comics category, Buy It Now only
-            const searchUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(title)}&_sacat=259104&LH_Sold=1&LH_Complete=1&LH_BIN=1`;
+            // Open the eBay results modal with a loading state
+            const modal = document.getElementById('ebayModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
 
-            // Just open in browser - simple and clean
-            window.open(searchUrl, '_blank');
+            const headerTitle = 'Current Market';
+            modalTitle.textContent = headerTitle;
+            modalBody.innerHTML = '<div class="loading">Searching eBay current listings...</div>';
+            modal.style.display = 'block';
+
+            // Manual fallback URL — sold listings on eBay (Comics category, BIN)
+            const soldFallbackUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(title)}&_sacat=259104&LH_Sold=1&LH_Complete=1&LH_BIN=1`;
+
+            try {
+                const response = await fetch('/api/ebay/search-marketplace', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        limit: 50,
+                        sort_by_title: title
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    modalBody.innerHTML = `
+                        <div class="error-message">Error: ${result.error || 'Unknown error occurred'}</div>
+                        <div style="margin-top: 16px; text-align: center;">
+                            <a href="${soldFallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (result.count === 0) {
+                    modalBody.innerHTML = `
+                        <div class="no-results">No active listings found for this title.</div>
+                        <div style="margin-top: 16px; text-align: center;">
+                            <a href="${soldFallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Reuse the image-search renderer (it already produces the
+                // avg / median / min / max stat block + paginated grid).
+                lastImageSearchResults = result;
+                renderImageSearchResults(result, 1, headerTitle);
+
+            } catch (error) {
+                console.error('Error:', error);
+                modalBody.innerHTML = `
+                    <div class="error-message">Failed to load current eBay listings. Please try again.</div>
+                    <div style="margin-top: 16px; text-align: center;">
+                        <a href="${soldFallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
+                    </div>
+                `;
+            }
         }
 
         function searchEbayActive(title, event) {
