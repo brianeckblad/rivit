@@ -208,17 +208,51 @@ def update_comic_on_ebay(sku: str) -> Response:
         return jsonify({'success': False, 'error': 'Comic is not listed on eBay'}), 400
     try:
         payload = request.get_json(silent=True) or {}
-        environment, _, overrides, schedule_time = resolve_ebay_context(payload)
+
+        # Mirror list_comic_on_ebay: read the comic's saved eBay listing mode
+        # and schedule date from the CSV so an "Update" action pushes ALL of the
+        # listing's data to eBay — including the scheduled go-live date — not
+        # just price/description/images. The request payload still wins if the
+        # caller explicitly supplies `mode` or `schedule_time` (e.g. the
+        # Reschedule-only button).
+        comic_listing_mode = comic.extra_fields.get('eBay Listing Mode', None)
+        comic_schedule_date = comic.extra_fields.get('eBay Schedule Date', None)
+
+        # Normalize the frontend's generic "update" mode — the eBay payload
+        # builder only understands 'list' / 'future' / 'schedule'. For a plain
+        # update, fall through to whatever the comic has saved.
+        incoming_mode = payload.get('mode')
+        if incoming_mode in (None, '', 'update'):
+            payload.pop('mode', None)
+            if comic_listing_mode:
+                payload['mode'] = comic_listing_mode
+
+        if 'schedule_time' not in payload or not payload.get('schedule_time'):
+            if comic_schedule_date:
+                payload['schedule_time'] = comic_schedule_date
+
+        environment, listing_mode, overrides, schedule_time = resolve_ebay_context(payload)
+        current_app.logger.info(
+            f"[update_comic_on_ebay] SKU {sku}: mode={listing_mode}, "
+            f"schedule_time={schedule_time or '(none)'}"
+        )
+
         item_id = ebay_service.update_listing(
             comic,
             environment=environment,
             overrides=overrides,
-            mode=payload.get('mode', 'list'),
+            mode=listing_mode,
             schedule_time=schedule_time
         )
         comic.ebay_item_id = item_id or comic.ebay_item_id
         comic_service.save_comic(comic)
-        return jsonify({'success': True, 'item_id': comic.ebay_item_id, 'environment': environment})
+        return jsonify({
+            'success': True,
+            'item_id': comic.ebay_item_id,
+            'environment': environment,
+            'mode': listing_mode,
+            'schedule_time': schedule_time
+        })
     except EbayDuplicateListingError as exc:
         # Handle duplicate listing error with user-friendly message
         error_detail = {
