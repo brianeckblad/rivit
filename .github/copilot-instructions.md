@@ -23,12 +23,17 @@ and appends to on request.
 
 ### Trigger phrases the user can say
 
+Short forms are the primary triggers. Longer natural-language forms still work.
+
 | User says | Agent does |
 |-----------|------------|
-| `checkpoint` / `save context` / `remember this` | Append a new dated entry to the **Sessions** section using the template in the file. |
-| `show context` / `recall` / `what were we doing` | Read the file and summarize recent entries. |
-| `clear memory` / `start fresh` / `forget everything` | Truncate the file's **Sessions** section (keep the header), confirm what was cleared. |
-| `archive memory` | Move all session entries to `.copilot/SESSION_NOTES.archive.md`, then clear. |
+| `ck` / `checkpoint` / `save context` / `remember this` | Append a new dated entry to the **Sessions** section using the template in the file. |
+| `ctx` / `show context` / `recall` / `what were we doing` | Read the file and summarize recent entries. |
+| `wipe` / `clear memory` / `start fresh` / `forget everything` | Truncate the file's **Sessions** section (keep the header), confirm what was cleared. |
+| `arc` / `archive memory` | Move all session entries to `.copilot/SESSION_NOTES.archive.md`, then clear. |
+
+A short trigger (`ck`, `ctx`, `wipe`, `arc`) is a command only when it is the
+entire user message. Inside a longer sentence, treat it as normal text.
 
 ### Proactively offer to checkpoint when
 

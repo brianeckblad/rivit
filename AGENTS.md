@@ -157,14 +157,16 @@ the user uses an explicit trigger phrase below.
 
 ### Trigger phrases (developer → agent)
 
-These phrases are commands. Recognize them in any reasonable wording.
+Short forms are the primary triggers and only count as commands when they are
+the entire user message (so `ck` inside a sentence is just text). The longer
+natural-language forms also work and can appear in any reasonable wording.
 
 | Phrase | Action |
 |--------|--------|
-| `checkpoint`, `save context`, `remember this` | Append a new dated entry using the file's entry template. Set the date to current local time, set `<branch>` to `git branch --show-current`, summarize the active goal, decisions, files touched, open questions, and a one-line "next step". |
-| `show context`, `recall`, `what were we doing` | Read the file and summarize recent entries (1–3 most recent depending on density). Confirm understanding before proceeding with new work. |
-| `clear memory`, `start fresh`, `forget everything` | Truncate the **Sessions** section of the file. Keep the header (table, template, headings). Reply in chat with one line stating how many entries were cleared. |
-| `archive memory` | Append all current session entries to `.copilot/SESSION_NOTES.archive.md` (creating it if needed), then clear as above. |
+| `ck`, `checkpoint`, `save context`, `remember this` | Append a new dated entry using the file's entry template. Set the date to current local time, set `<branch>` to `git branch --show-current`, summarize the active goal, decisions, files touched, open questions, and a one-line "next step". |
+| `ctx`, `show context`, `recall`, `what were we doing` | Read the file and summarize recent entries (1–3 most recent depending on density). Confirm understanding before proceeding with new work. |
+| `wipe`, `clear memory`, `start fresh`, `forget everything` | Truncate the **Sessions** section of the file. Keep the header (table, template, headings). Reply in chat with one line stating how many entries were cleared. |
+| `arc`, `archive memory` | Append all current session entries to `.copilot/SESSION_NOTES.archive.md` (creating it if needed), then clear as above. |
 
 ### Entry template
 
