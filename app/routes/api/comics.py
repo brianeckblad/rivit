@@ -916,6 +916,12 @@ def export_selected() -> tuple:
         from app.utils.csv_sanitizer import sanitize_row
 
         if platform == 'whatnot':
+            # WhatNot export: only include comics tagged for WhatNot (have a WhatNot Item ID)
+            whatnot_tagged = [c for c in selected_comics if c.to_dict().get('WhatNot Item ID') and str(c.to_dict().get('WhatNot Item ID')).strip()]
+
+            if not whatnot_tagged:
+                return jsonify({'success': False, 'message': 'No selected comics are tagged for WhatNot listing (missing WhatNot Item ID)'}), 400
+
             # WhatNot export fields
             fieldnames = [
                 WHATNOT_FIELD_NAMES['SKU'],
@@ -933,7 +939,7 @@ def export_selected() -> tuple:
             writer = csv.DictWriter(output, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
             writer.writeheader()
 
-            for comic in selected_comics:
+            for comic in whatnot_tagged:
                 comic_dict = comic.to_dict()
 
                 # Build row with only essential WhatNot fields - use constants for both keys and lookups

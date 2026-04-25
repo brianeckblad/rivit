@@ -121,6 +121,9 @@ def download_csv():
         result = comic_service.get_comics_paginated(page=1, per_page=1000000, listing_type=listing_type)
         filtered_comics = result['comics']
 
+        # Further filter: only include comics tagged for WhatNot (have a WhatNot Item ID)
+        whatnot_tagged = [c for c in filtered_comics if c.get('WhatNot Item ID') and str(c.get('WhatNot Item ID')).strip()]
+
         # Build CSV in memory with filtered comics
         output = io.StringIO()
         # Get column order from validator
@@ -129,9 +132,9 @@ def download_csv():
         writer = csv.DictWriter(output, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
 
-        if filtered_comics:
-            # Write each filtered comic as a row with auto-populated Whatnot fields
-            for comic in filtered_comics:
+        if whatnot_tagged:
+            # Write each WhatNot-tagged comic as a row with auto-populated Whatnot fields
+            for comic in whatnot_tagged:
                 whatnot_data = populate_whatnot_fields_from_item(comic)
 
                 # Add missing default values from validation rules
