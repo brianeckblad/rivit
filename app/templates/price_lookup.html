@@ -701,7 +701,7 @@
                     <div class="comic-card-actions">
                         <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)" style="padding: 10px; font-size: 14px;">Load Image</button>
                         <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Search eBay</button>
-                        <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Current Market</button>
+                        <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Sold Listings</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -833,6 +833,16 @@
             // (used by pagination buttons below so the title persists across pages).
             const titleArg = JSON.stringify(modalTitleText);
 
+            // Optional labels supplied by the API endpoint. Defaults preserve
+            // the original "active market" presentation used by image search.
+            const marketLabel = result.market_label || 'ACTIVE MARKET';
+            const statsLabel  = result.stats_label  || 'Current Listing Price Statistics';
+            const isSoldView  = result.data_source === 'marketplace_insights'
+                              || result.data_source === 'finding_api';
+            const itemBadgeClass = isSoldView ? 'ebay-item-badge-sold' : 'ebay-item-badge-active';
+            const itemBadgeText  = isSoldView ? 'SOLD' : 'ACTIVE';
+            const priceLabelText = isSoldView ? 'Sold Price' : 'Current Price';
+
             let html = '';
 
             // Search stats summary (simulated since we don't have real-time active stats yet)
@@ -844,7 +854,7 @@
                         <p style="margin: 4px 0 0; font-size: 13px; color: var(--color-accent);">Note: If eBay matches are unsuccessful, try adding additional relevant images.</p>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <span class="status-badge" style="color: var(--color-info);">ACTIVE MARKET</span>
+                        <span class="status-badge" style="color: var(--color-info);">${marketLabel}</span>
                     </div>
                 </div>
             `;
@@ -881,7 +891,7 @@
                     <div style="background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-elevated) 100%); border: 2px solid var(--color-accent); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
                         <div style="color: var(--color-accent); font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                             <span>📊</span>
-                            <span>Current Listing Price Statistics (${stats.total_items} items)</span>
+                            <span>${statsLabel} (${stats.total_items} items)</span>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px;">
                             <div style="background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); text-align: center;">
@@ -934,11 +944,11 @@
                     <div class="ebay-item">
                         <img src="${item.image_url || ''}" alt="${item.title}" class="ebay-item-image" style="${!item.image_url ? 'background: var(--color-elevated);' : ''}" onerror="this.style.background='var(--color-elevated)'">
                         <div class="ebay-item-details">
-                            <span class="ebay-item-badge ebay-item-badge-active">ACTIVE</span>
+                            <span class="ebay-item-badge ${itemBadgeClass}">${itemBadgeText}</span>
                             <div class="ebay-item-title">${item.title}</div>
                             <div class="ebay-item-info">
                                 <div>
-                                    <div style="color: var(--color-text-muted); font-size: 12px;">Current Price</div>
+                                    <div style="color: var(--color-text-muted); font-size: 12px;">${priceLabelText}</div>
                                     <div class="ebay-item-price">$${item.price.toFixed(2)}</div>
                                 </div>
                                 <div>
@@ -1368,7 +1378,7 @@
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
-                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Current Market</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Sold Listings</button>
                         </div>
                     </td>
                 `;
@@ -1427,7 +1437,7 @@
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
-                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Current Market</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Sold Listings</button>
                         </div>
                     </td>
                 `;
@@ -1461,16 +1471,16 @@
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
 
-            const headerTitle = 'Current Market';
+            const headerTitle = 'Sold Listings (last 90d)';
             modalTitle.textContent = headerTitle;
-            modalBody.innerHTML = '<div class="loading">Searching eBay current listings...</div>';
+            modalBody.innerHTML = '<div class="loading">Searching eBay sold listings...</div>';
             modal.style.display = 'block';
 
             // Manual fallback URL — sold listings on eBay (Comics category, BIN)
             const soldFallbackUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(title)}&_sacat=259104&LH_Sold=1&LH_Complete=1&LH_BIN=1`;
 
             try {
-                const response = await fetch('/api/ebay/search-marketplace', {
+                const response = await fetch('/api/ebay/search-sold', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1484,12 +1494,17 @@
                 });
 
                 const result = await response.json();
+                const fallbackUrl = result.fallback_url || soldFallbackUrl;
 
                 if (!result.success) {
+                    const rateLimitNote = result.rate_limit
+                        ? '<div style="margin-top: 8px; color: var(--color-warning); font-size: 13px;">eBay daily API limit reached for sold-price lookups. Use the link below for now.</div>'
+                        : '';
                     modalBody.innerHTML = `
                         <div class="error-message">Error: ${result.error || 'Unknown error occurred'}</div>
+                        ${rateLimitNote}
                         <div style="margin-top: 16px; text-align: center;">
-                            <a href="${soldFallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
+                            <a href="${fallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
                         </div>
                     `;
                     return;
@@ -1497,23 +1512,24 @@
 
                 if (result.count === 0) {
                     modalBody.innerHTML = `
-                        <div class="no-results">No active listings found for this title.</div>
+                        <div class="no-results">No sold listings returned by the eBay API for this title.</div>
                         <div style="margin-top: 16px; text-align: center;">
-                            <a href="${soldFallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
+                            <a href="${fallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
                         </div>
                     `;
                     return;
                 }
 
-                // Reuse the image-search renderer (it already produces the
-                // avg / median / min / max stat block + paginated grid).
+                // Reuse the same renderer as image search. The renderer reads
+                // optional ``market_label`` and ``stats_label`` off ``result``
+                // so the badge and stats heading reflect the data source.
                 lastImageSearchResults = result;
                 renderImageSearchResults(result, 1, headerTitle);
 
             } catch (error) {
                 console.error('Error:', error);
                 modalBody.innerHTML = `
-                    <div class="error-message">Failed to load current eBay listings. Please try again.</div>
+                    <div class="error-message">Failed to load sold listings. Please try again.</div>
                     <div style="margin-top: 16px; text-align: center;">
                         <a href="${soldFallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
                     </div>

@@ -57,11 +57,13 @@ class EbayService:
     FINDING_API_URL_PROD = "https://svcs.ebay.com/services/search/FindingService/v1"
     BROWSE_API_URL_PROD = "https://api.ebay.com/buy/browse/v1"
     OAUTH_URL_PROD = "https://api.ebay.com/identity/v1/oauth2/token"
+    MARKETPLACE_INSIGHTS_URL_PROD = "https://api.ebay.com/buy/marketplace_insights/v1_beta"
 
     # Sandbox URLs
     FINDING_API_URL_SANDBOX = "https://svcs.sandbox.ebay.com/services/search/FindingService/v1"
     BROWSE_API_URL_SANDBOX = "https://api.sandbox.ebay.com/buy/browse/v1"
     OAUTH_URL_SANDBOX = "https://api.sandbox.ebay.com/identity/v1/oauth2/token"
+    MARKETPLACE_INSIGHTS_URL_SANDBOX = "https://api.sandbox.ebay.com/buy/marketplace_insights/v1_beta"
 
     def __init__(self):
         """Initialize the eBay service and determine the environment (production/sandbox)."""
@@ -95,10 +97,12 @@ class EbayService:
             self.finding_api_url = self.FINDING_API_URL_SANDBOX
             self.browse_api_url = self.BROWSE_API_URL_SANDBOX
             self.oauth_url = self.OAUTH_URL_SANDBOX
+            self.marketplace_insights_url = self.MARKETPLACE_INSIGHTS_URL_SANDBOX
         else:
             self.finding_api_url = self.FINDING_API_URL_PROD
             self.browse_api_url = self.BROWSE_API_URL_PROD
             self.oauth_url = self.OAUTH_URL_PROD
+            self.marketplace_insights_url = self.MARKETPLACE_INSIGHTS_URL_PROD
 
     def _log_init(self):
         """
@@ -603,6 +607,195 @@ class EbayService:
         except Exception as e:
             current_app.logger.error(f"eBay service error: {e}")
             return {'success': False, 'error': safe_error_message(e)}
+
+    def search_sold_items(self, title, condition=None, limit=20, sort_by_title=None):
+        """Return recently-sold listings for ``title``.
+
+        Strategy:
+
+        1. If ``EBAY_MARKETPLACE_INSIGHTS_ENABLED`` is truthy in the config /
+           environment, try the Marketplace Insights API
+           (``/buy/marketplace_insights/v1_beta/item_sales/search``). This is
+           the official, supported, last-90-days sold-items endpoint. It is
+           in Limited Release — eBay must approve the application.
+        2. Otherwise (or on failure), fall back to the legacy Finding API
+           path via :py:meth:`search_completed_items` (``findItemsAdvanced``
+           with ``SoldItemsOnly=true``). The Finding API was deprecated in
+           Feb 2025 — coverage is degraded but not yet zero.
+
+        Both paths return the same normalized shape so the front-end can
+        render either with the existing ``renderImageSearchResults`` JS:
+
+        ``{success, count, items: [{title, itemId, price, condition,
+            listing_url, image_url, end_time?, sold_date?}],
+            data_source: 'marketplace_insights' | 'finding_api',
+            market_label: 'SOLD (LAST 90D)',
+            stats_label: 'Sold Price Statistics'}``
+
+        Args:
+            title: Search keywords (typically the comic's stored title).
+            condition: Optional condition filter (e.g. ``'Near Mint'``).
+                Only used by the Finding API fallback today.
+            limit: Maximum results (1-50, default 20).
+            sort_by_title: Optional title to re-rank results by similarity
+                (mirrors :py:meth:`search_marketplace`).
+
+        Returns:
+            Normalized dict described above, or ``{'success': False, ...}``.
+        """
+        self._log_init()
+
+        try:
+            limit = max(1, min(50, int(limit)))
+        except (ValueError, TypeError):
+            limit = 20
+
+        # UI-facing labels — both branches set these so the renderer doesn't
+        # have to special-case the data source.
+        labels = {
+            'market_label': 'SOLD (LAST 90D)',
+            'stats_label': 'Sold Price Statistics',
+        }
+
+        insights_enabled = self._marketplace_insights_enabled()
+        if insights_enabled:
+            insights_result = self._search_sold_via_marketplace_insights(
+                title, limit=limit
+            )
+            if insights_result.get('success'):
+                items = insights_result.get('items', [])
+                if sort_by_title and items:
+                    items = self._score_items_by_title_similarity(
+                        items, sort_by_title
+                    )
+                return {
+                    'success': True,
+                    'count': len(items),
+                    'items': items,
+                    'data_source': 'marketplace_insights',
+                    **labels,
+                }
+            current_app.logger.warning(
+                "Marketplace Insights call failed, falling back to Finding API: "
+                f"{insights_result.get('error')}"
+            )
+
+        # Finding API fallback (or primary, when Insights is not enabled).
+        finding_result = self.search_completed_items(
+            title, condition=condition, limit=limit
+        )
+        if not finding_result.get('success'):
+            # Preserve rate_limit / fallback URL info for the route to surface.
+            return {
+                **finding_result,
+                'data_source': 'finding_api',
+                **labels,
+            }
+
+        items = finding_result.get('items', [])
+        if sort_by_title and items:
+            items = self._score_items_by_title_similarity(items, sort_by_title)
+
+        return {
+            'success': True,
+            'count': len(items),
+            'items': items,
+            'data_source': 'finding_api',
+            'cached': finding_result.get('cached', False),
+            **labels,
+        }
+
+    def _marketplace_insights_enabled(self):
+        """Return True if Marketplace Insights should be tried."""
+        try:
+            cfg_flag = current_app.config.get('EBAY_MARKETPLACE_INSIGHTS_ENABLED')
+        except RuntimeError:
+            cfg_flag = None
+        env_flag = os.getenv('EBAY_MARKETPLACE_INSIGHTS_ENABLED')
+        flag = cfg_flag if cfg_flag is not None else env_flag
+        if flag is None:
+            return False
+        return str(flag).strip().lower() in ('1', 'true', 'yes', 'on')
+
+    def _search_sold_via_marketplace_insights(self, query, limit=20):
+        """Call eBay Marketplace Insights ``item_sales/search``.
+
+        Returns the same normalized item shape as
+        :py:meth:`search_completed_items`. This method is a no-op until the
+        feature flag is on AND the OAuth client-credentials token has the
+        ``buy.marketplace.insights`` scope (granted after eBay approves the
+        Limited Release application).
+        """
+        token = self._get_oauth_token()
+        if not token:
+            return {
+                'success': False,
+                'error': 'Failed to obtain OAuth token for Marketplace Insights.',
+            }
+
+        url = f"{self.marketplace_insights_url}/item_sales/search"
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',
+            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+        }
+        params = {
+            'q': query,
+            'category_ids': '63',  # Comic Books
+            'limit': str(limit),
+        }
+
+        current_app.logger.info(
+            f"Marketplace Insights item_sales/search: '{query}' (limit: {limit})"
+        )
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+
+        rl_remaining = response.headers.get('X-EBAY-C-CALL-LIMIT-REMAINING')
+        if rl_remaining:
+            current_app.logger.info(
+                f"Marketplace Insights calls remaining: {rl_remaining}"
+            )
+
+        if response.status_code != 200:
+            current_app.logger.error(
+                f"Marketplace Insights HTTP {response.status_code}: {response.text[:500]}"
+            )
+            return {
+                'success': False,
+                'error': f'Marketplace Insights returned HTTP {response.status_code}',
+            }
+
+        data = response.json()
+        sales = data.get('itemSales', [])
+        items = []
+        for sale in sales:
+            try:
+                price_info = sale.get('lastSoldPrice') or sale.get('price') or {}
+                price_value = price_info.get('value', '0')
+                image_obj = sale.get('image', {}) or {}
+                browse_item_id = sale.get('itemId', '') or ''
+                legacy_item_id = browse_item_id
+                if '|' in browse_item_id:
+                    parts = browse_item_id.split('|')
+                    if len(parts) >= 2:
+                        legacy_item_id = parts[1]
+
+                items.append({
+                    'title': sale.get('title', 'No title'),
+                    'itemId': legacy_item_id,
+                    'price': float(price_value),
+                    'condition': sale.get('condition', 'Unknown'),
+                    'listing_url': sale.get('itemWebUrl', ''),
+                    'image_url': image_obj.get('imageUrl', ''),
+                    'sold_date': sale.get('lastSoldDate', ''),
+                })
+            except (KeyError, ValueError) as e:
+                current_app.logger.warning(
+                    f"Error parsing Marketplace Insights sale: {e}"
+                )
+                continue
+
+        return {'success': True, 'count': len(items), 'items': items}
 
     def get_sold_prices_url(self, title, condition=None):
         """

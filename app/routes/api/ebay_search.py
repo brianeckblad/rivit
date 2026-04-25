@@ -186,6 +186,70 @@ def search_active_items() -> Response:
         return jsonify({'success': False, 'error': 'Failed to search active eBay listings'}), 500
 
 
+@api_bp.route('/ebay/search-sold', methods=['POST'])
+@login_required
+@csrf_required
+def search_sold() -> Response:
+    """Return recently-sold listings for a comic title.
+
+    Tries the eBay Marketplace Insights API (last-90-days sold items, official
+    supported endpoint) when the ``EBAY_MARKETPLACE_INSIGHTS_ENABLED`` feature
+    flag is set, and falls back to the legacy Finding API
+    (``findItemsAdvanced`` + ``SoldItemsOnly=true``) otherwise. Both branches
+    return the same normalized JSON shape — the front-end uses one renderer.
+
+    Request Body (JSON):
+        {
+            "title": str,                    # Comic title to search
+            "condition": Optional[str],      # Condition filter
+            "limit": Optional[int],          # Max results (1-50, default 20)
+            "sort_by_title": Optional[str],  # If set, results re-ranked by
+                                             # title similarity. Defaults to
+                                             # ``title``.
+        }
+
+    Returns:
+        Flask JSON response with ``success``, ``count``, ``items``,
+        ``data_source`` (``"marketplace_insights"`` or ``"finding_api"``),
+        ``market_label``, ``stats_label``, and a ``fallback_url`` for the
+        manual eBay sold-listings page when the API hits a rate limit.
+    """
+    try:
+        data = request.get_json() or {}
+        title = data.get('title')
+        condition = data.get('condition')
+        limit = data.get('limit', 20)
+        sort_by_title = data.get('sort_by_title', title)
+
+        if not title:
+            return jsonify({'success': False, 'error': 'Comic title is required'}), 400
+
+        try:
+            limit = max(1, min(50, int(limit)))
+        except (ValueError, TypeError):
+            limit = 20
+
+        result = ebay_service.search_sold_items(
+            title,
+            condition=condition,
+            limit=limit,
+            sort_by_title=sort_by_title,
+        )
+
+        # Always include a manual eBay sold-listings URL the UI can show as a
+        # secondary call-to-action — useful both on rate-limit and on success.
+        fallback = ebay_service.get_sold_prices_url(title, condition)
+        result['fallback_url'] = fallback.get('url')
+        if not result.get('success') and result.get('rate_limit'):
+            result['fallback_message'] = fallback.get('message')
+
+        return jsonify(result)
+
+    except Exception as e:
+        current_app.logger.error(f"Error searching sold eBay listings: {e}")
+        return jsonify({'success': False, 'error': 'Failed to search sold listings'}), 500
+
+
 @api_bp.route('/ebay/search-marketplace', methods=['POST'])
 @login_required
 @csrf_required
