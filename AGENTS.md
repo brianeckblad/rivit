@@ -161,12 +161,12 @@ Short forms are the primary triggers and only count as commands when they are
 the entire user message (so `ck` inside a sentence is just text). The longer
 natural-language forms also work and can appear in any reasonable wording.
 
-| Phrase | Action |
-|--------|--------|
-| `ck`, `checkpoint`, `save context`, `remember this` | Append a new dated entry using the file's entry template. Set the date to current local time, set `<branch>` to `git branch --show-current`, summarize the active goal, decisions, files touched, open questions, and a one-line "next step". |
-| `ctx`, `show context`, `recall`, `what were we doing` | Read the file and summarize recent entries (1–3 most recent depending on density). Confirm understanding before proceeding with new work. |
+| Phrase                                                     | Action |
+|------------------------------------------------------------|--------|
+| `ck`, ` you`, `save context`, `remember this`              | Append a new dated entry using the file's entry template. Set the date to current local time, set `<branch>` to `git branch --show-current`, summarize the active goal, decisions, files touched, open questions, and a one-line "next step". |
+| `ctx`, `show context`, `recall`, `what were we doing`      | Read the file and summarize recent entries (1–3 most recent depending on density). Confirm understanding before proceeding with new work. |
 | `wipe`, `clear memory`, `start fresh`, `forget everything` | Truncate the **Sessions** section of the file. Keep the header (table, template, headings). Reply in chat with one line stating how many entries were cleared. |
-| `arc`, `archive memory` | Append all current session entries to `.copilot/SESSION_NOTES.archive.md` (creating it if needed), then clear as above. |
+| `arc`, `archive memory`                                    | Append all current session entries to `.copilot/SESSION_NOTES.archive.md` (creating it if needed), then clear as above. |
 
 ### Entry template
 
@@ -267,6 +267,48 @@ If the terminal produces no output or you suspect it is stuck:
 2. **Run a new terminal command** - the tool starts a fresh session
 3. **Switch to a non-terminal tool** (read_file, grep_search, insert_edit_into_file)
 4. **Re-validate** using the appropriate tool after recovering
+
+---
+
+## Git Branching Workflow
+
+### Default: do NOT create feature branches
+
+Commit changes directly to whatever branch the user is currently on
+(typically `main`). The user owns branching strategy. The agent should
+**only** create a feature branch when the user explicitly asks for one with
+unambiguous wording such as:
+
+- *"create a branch for this"*
+- *"new feature branch for X"*
+- *"work on this in a branch"*
+- *"branch this"*
+
+Words like *"try"*, *"experiment"*, *"see if"*, or any planning-style language
+do **not** authorize a new branch. When in doubt, work on the current branch.
+
+### When the agent thinks a branch is warranted
+
+If the change is large, risky, multi-step, or exploratory enough that the
+agent honestly believes a branch is the right call (large refactor, schema
+migration, parallel approach exploration), **ask the user first** — do not
+create the branch preemptively. One short question:
+
+> *"This is a sizeable change — want me to do it on a feature branch, or stay on `main`?"*
+
+### Never auto-merge or auto-push
+
+- Never merge a branch into `main` without an explicit instruction.
+- Never push to `origin` without an explicit instruction.
+- Never delete a branch (local or remote) without an explicit instruction.
+
+### Why this rule exists
+
+Past sessions defaulted to creating a feature branch for every non-trivial
+change. That added rebase / merge / push / delete steps the user did not
+ask for, fragmented commit history, and made the workflow heavier than the
+user wanted. The user prefers small, direct commits on the current branch
+unless they explicitly request branching.
 
 ---
 

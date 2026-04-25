@@ -101,6 +101,20 @@ EOF
 
 ---
 
+- Error: The eBay service for looking up sold prices is currently unavailable due to daily API limits. However, you can still use the image search results (which show current prices) as a guide.
+## Git Branching Rules
+
+**Default: do not create feature branches.** Commit directly to whatever branch
+the user is currently on (typically `main`). The user controls branching
+strategy — only create a branch when the user explicitly asks for one
+(e.g. *"branch this"*, *"new feature branch for X"*, *"work on this in a branch"*).
+
+If you genuinely believe a branch is warranted (large refactor, risky
+multi-step change, parallel exploration), **ask before creating it** — do not
+create one preemptively.
+
+---
+
 ## Git Commit Rules
 
 ```bash
