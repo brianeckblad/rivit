@@ -6,6 +6,40 @@ For full details see [AGENTS.md](../AGENTS.md) in the project root.
 
 ---
 
+## Session Memory - READ FIRST EVERY SESSION
+
+AI agents have **no memory between conversations**. To bridge that, this repo
+keeps a local session-notes file the agent reads at the start of every session
+and appends to on request.
+
+**File:** `.copilot/SESSION_NOTES.md` (gitignored, local working memory only)
+
+### At the start of every session
+
+1. Use the `read_file` tool to read `.copilot/SESSION_NOTES.md` if it exists.
+2. If it has session entries, briefly summarize the most recent 1–2 entries to
+   the user before starting new work, so they can confirm the context is right.
+3. If it does not exist or is empty, proceed normally.
+
+### Trigger phrases the user can say
+
+| User says | Agent does |
+|-----------|------------|
+| `checkpoint` / `save context` / `remember this` | Append a new dated entry to the **Sessions** section using the template in the file. |
+| `show context` / `recall` / `what were we doing` | Read the file and summarize recent entries. |
+| `clear memory` / `start fresh` / `forget everything` | Truncate the file's **Sessions** section (keep the header), confirm what was cleared. |
+| `archive memory` | Move all session entries to `.copilot/SESSION_NOTES.archive.md`, then clear. |
+
+### Proactively offer to checkpoint when
+
+- A non-trivial decision was just made (architecture, library choice, abandoned approach).
+- The user is about to switch tasks or branches.
+- A long debugging session just resolved.
+
+The full convention, entry template, and rules live in `.copilot/SESSION_NOTES.md` itself.
+
+---
+
 ## Shell Command Safety - CRITICAL
 
 ### Never Output Jinja2 Braces Through the Terminal

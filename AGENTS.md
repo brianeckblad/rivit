@@ -110,6 +110,99 @@ ansible-playbook playbooks/update.yml --vault-password-file ~/.vault_pass
 
 ---
 
+## Session Memory — Cross-Conversation Continuity
+
+### Why this exists
+
+AI coding agents (Copilot, Claude, Cursor, etc.) have **no memory between
+chat sessions**. Every new conversation starts blank — the agent has no idea
+what was decided yesterday, which approach was already tried and abandoned, or
+what branch the work was on.
+
+To bridge that gap without bloating git history, this repo uses a single local
+session-notes file the agent reads at session start and appends to on request.
+
+### The file
+
+| Path | `.copilot/SESSION_NOTES.md` |
+|------|------------------------------|
+| Tracked? | **No** — gitignored. Local to each developer's checkout. |
+| Purpose | Cross-session working memory for AI agents. Not a project log. |
+| Lifecycle | The developer controls it via trigger phrases (below). |
+| Archive | On `archive memory`, contents move to `.copilot/SESSION_NOTES.archive.md` (also gitignored). |
+
+The file itself contains the full convention and entry template. Read it.
+
+### Agent rules
+
+**At session start:**
+
+1. Use the `read_file` tool to read `.copilot/SESSION_NOTES.md` if it exists.
+2. If it has entries, summarize the most recent 1–2 to the user in 2–3 lines
+   before starting new work, so they can confirm the context.
+3. If the file is empty or missing, proceed normally — do not create it
+   unsolicited.
+
+**During the session, proactively offer to checkpoint when:**
+
+- A non-trivial architectural / library / approach decision was just made.
+- An approach was tried and abandoned (record *why* so the next session
+  doesn't redo it).
+- The user is about to switch branches or tasks.
+- A long debugging session just resolved.
+
+A proactive offer is one short sentence: *"Want me to checkpoint this before
+we move on?"* — never write to the file without permission **except** when
+the user uses an explicit trigger phrase below.
+
+### Trigger phrases (developer → agent)
+
+These phrases are commands. Recognize them in any reasonable wording.
+
+| Phrase | Action |
+|--------|--------|
+| `checkpoint`, `save context`, `remember this` | Append a new dated entry using the file's entry template. Set the date to current local time, set `<branch>` to `git branch --show-current`, summarize the active goal, decisions, files touched, open questions, and a one-line "next step". |
+| `show context`, `recall`, `what were we doing` | Read the file and summarize recent entries (1–3 most recent depending on density). Confirm understanding before proceeding with new work. |
+| `clear memory`, `start fresh`, `forget everything` | Truncate the **Sessions** section of the file. Keep the header (table, template, headings). Reply in chat with one line stating how many entries were cleared. |
+| `archive memory` | Append all current session entries to `.copilot/SESSION_NOTES.archive.md` (creating it if needed), then clear as above. |
+
+### Entry template
+
+```markdown
+## YYYY-MM-DD HH:MM — <branch> — <topic>
+
+**Goal:** one line.
+
+**Decisions:**
+- bullet
+- bullet
+
+**Files touched:**
+- path/to/file — one-line reason
+
+**Open questions / TODOs:**
+- bullet (or "none")
+
+**Next step:** one sentence the next session can act on.
+```
+
+Density rule: another instance of you, three days from now, with no memory,
+must be able to resume from a single entry. Optimize for *resumability*, not
+narrative.
+
+### Anti-patterns
+
+- ❌ Writing to the file without an explicit trigger phrase or proactive
+  permission. The user's working memory is theirs to control.
+- ❌ Treating session notes as project documentation. Real decisions that
+  matter to the project belong in `deployment/docs/` or commit messages.
+- ❌ Logging secrets, tokens, or full file contents into entries. The file
+  is gitignored but still lives on disk — apply the same hygiene as logs.
+- ❌ Reading the file in the middle of a session "just in case" — read it
+  once at session start.
+
+---
+
 ## Shell Command Safety - CRITICAL
 
 ### Problem
