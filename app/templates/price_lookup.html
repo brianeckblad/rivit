@@ -701,7 +701,7 @@
                     <div class="comic-card-actions">
                         <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)" style="padding: 10px; font-size: 14px;">Load Image</button>
                         <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Search eBay</button>
-                        <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Sold Listings</button>
+                        <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)" style="padding: 10px; font-size: 14px;">Search Sold</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -1378,7 +1378,7 @@
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
-                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Sold Listings</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Search Sold</button>
                         </div>
                     </td>
                 `;
@@ -1437,7 +1437,7 @@
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="lookupPrice('${comic.SKU}', event)">Load Image</button>
                             <button class="btn btn-sm btn-primary lookup-btn" onclick="searchEbayActive('${comic.Title.replace(/'/g, "\\'")}', event)">Search eBay</button>
-                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Sold Listings</button>
+                            <button class="btn btn-sm btn-info lookup-btn" onclick="searchEbayByTitle('${comic.Title.replace(/'/g, "\\'")}', event)">Search Sold</button>
                         </div>
                     </td>
                 `;
@@ -1463,78 +1463,19 @@
             }, 300);
         });
 
-        async function searchEbayByTitle(title, event) {
+        function searchEbayByTitle(title, event) {
             event.stopPropagation();
 
-            // Open the eBay results modal with a loading state
-            const modal = document.getElementById('ebayModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-
-            const headerTitle = 'Sold Listings (last 90d)';
-            modalTitle.textContent = headerTitle;
-            modalBody.innerHTML = '<div class="loading">Searching eBay sold listings...</div>';
-            modal.style.display = 'block';
-
-            // Manual fallback URL — sold listings on eBay (Comics category, BIN)
-            const soldFallbackUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(title)}&_sacat=259104&LH_Sold=1&LH_Complete=1&LH_BIN=1`;
-
-            try {
-                const response = await fetch('/api/ebay/search-sold', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': window.csrfToken
-                    },
-                    body: JSON.stringify({
-                        title: title,
-                        limit: 50,
-                        sort_by_title: title
-                    })
-                });
-
-                const result = await response.json();
-                const fallbackUrl = result.fallback_url || soldFallbackUrl;
-
-                if (!result.success) {
-                    const rateLimitNote = result.rate_limit
-                        ? '<div style="margin-top: 8px; color: var(--color-warning); font-size: 13px;">eBay daily API limit reached for sold-price lookups. Use the link below for now.</div>'
-                        : '';
-                    modalBody.innerHTML = `
-                        <div class="error-message">Error: ${result.error || 'Unknown error occurred'}</div>
-                        ${rateLimitNote}
-                        <div style="margin-top: 16px; text-align: center;">
-                            <a href="${fallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
-                        </div>
-                    `;
-                    return;
-                }
-
-                if (result.count === 0) {
-                    modalBody.innerHTML = `
-                        <div class="no-results">No sold listings returned by the eBay API for this title.</div>
-                        <div style="margin-top: 16px; text-align: center;">
-                            <a href="${fallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Reuse the same renderer as image search. The renderer reads
-                // optional ``market_label`` and ``stats_label`` off ``result``
-                // so the badge and stats heading reflect the data source.
-                lastImageSearchResults = result;
-                renderImageSearchResults(result, 1, headerTitle);
-
-            } catch (error) {
-                console.error('Error:', error);
-                modalBody.innerHTML = `
-                    <div class="error-message">Failed to load sold listings. Please try again.</div>
-                    <div style="margin-top: 16px; text-align: center;">
-                        <a href="${soldFallbackUrl}" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration: none;">Open Sold Listings on eBay →</a>
-                    </div>
-                `;
-            }
+            // Open eBay sold listings in a new tab — Comics category, sold + completed,
+            // Buy It Now only, sorted by recently sold. The in-app sold-listings modal
+            // was rolled back because the Finding API is degraded and the Marketplace
+            // Insights API requires a Limited Release approval that has not been
+            // granted yet. The backend service methods (``EbayService.search_sold_items``
+            // and the ``/api/ebay/search-sold`` route) are intentionally retained so
+            // the in-app modal can be re-enabled by changing only this function once
+            // a working sold-data source is wired up.
+            const searchUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(title)}&_sacat=259104&LH_Sold=1&LH_Complete=1&LH_BIN=1&_sop=13`;
+            window.open(searchUrl, '_blank');
         }
 
         function searchEbayActive(title, event) {
