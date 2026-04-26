@@ -1234,6 +1234,19 @@
             color: var(--color-text-muted);
         }
 
+        .ebay-result-link {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--color-ebay);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .ebay-result-link:hover {
+            text-decoration: underline;
+        }
+
         .ebay-image-search-panel {
             display: none;
             margin-bottom: 18px;
@@ -1325,6 +1338,44 @@
             margin-top: 10px;
             font-size: 12px;
             color: var(--color-text-dim);
+        }
+
+        .ebay-image-view-toggle {
+            margin-top: 10px;
+            display: none;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .ebay-image-view-toggle.show {
+            display: flex;
+        }
+
+        .ebay-image-view-btn.active {
+            border-color: var(--color-ebay);
+            color: var(--color-ebay);
+            background: var(--color-ebay-subtle);
+        }
+
+        .ebay-search-results.view-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ebay-search-results.view-list .ebay-result-card {
+            display: grid;
+            grid-template-columns: 88px 1fr;
+            gap: 12px;
+            align-items: start;
+            padding: 10px;
+        }
+
+        .ebay-search-results.view-list .ebay-result-card img {
+            width: 88px;
+            height: 88px;
+            aspect-ratio: auto;
+            margin-bottom: 0;
         }
 
         .ebay-search-footer {
@@ -3273,6 +3324,10 @@
                         </div>
                     </div>
                     <div class="ebay-image-search-note">The uploaded image is only used to search eBay. It is not added to your comic’s media automatically.</div>
+                    <div id="ebayImageViewToggle" class="ebay-image-view-toggle">
+                        <button type="button" class="btn btn-secondary btn-sm ebay-image-view-btn active" id="ebayImageGridViewBtn" onclick="setEbayImageResultsView('grid')">Grid</button>
+                        <button type="button" class="btn btn-secondary btn-sm ebay-image-view-btn" id="ebayImageListViewBtn" onclick="setEbayImageResultsView('list')">List</button>
+                    </div>
                 </div>
                 <div id="ebaySearchStatus" class="ebay-search-status" style="display:none;"></div>
                 <div id="ebaySearchResults" class="ebay-search-results"></div>
@@ -6463,7 +6518,7 @@
         let ebayModalStatusFilter = 'All'; // Current status filter
         let ebayModalSourceMode = 'listings';
         let ebayImageSearchFile = null;
-        let ebayImageSearchPreviewUrl = null;
+        let ebayImageResultsViewMode = 'grid';
 
         const EBAY_IMAGE_SEARCH_ALLOWED_TYPES = new Set([
             'image/jpeg',
@@ -6541,6 +6596,44 @@
             }
         }
 
+        function setEbayImageResultsView(viewMode) {
+            ebayImageResultsViewMode = viewMode === 'list' ? 'list' : 'grid';
+
+            const container = document.getElementById('ebaySearchResults');
+            const gridBtn = document.getElementById('ebayImageGridViewBtn');
+            const listBtn = document.getElementById('ebayImageListViewBtn');
+
+            if (container) {
+                container.classList.toggle('view-list', ebayImageResultsViewMode === 'list');
+            }
+            if (gridBtn) {
+                gridBtn.classList.toggle('active', ebayImageResultsViewMode === 'grid');
+            }
+            if (listBtn) {
+                listBtn.classList.toggle('active', ebayImageResultsViewMode === 'list');
+            }
+        }
+
+        function toggleEbayImageViewControls(show) {
+            const controls = document.getElementById('ebayImageViewToggle');
+            if (!controls) return;
+            controls.classList.toggle('show', !!show);
+            if (!show) {
+                setEbayImageResultsView('grid');
+            }
+        }
+
+        function formatEbayPrice(value) {
+            if (value === null || value === undefined || value === '') {
+                return '';
+            }
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) {
+                return '';
+            }
+            return `$${parsed.toFixed(2)}`;
+        }
+
         function setEbaySearchMode(mode, status, btn) {
             ebayModalSourceMode = mode;
             if (mode === 'listings' && status) {
@@ -6558,6 +6651,8 @@
                 setEbaySearchStatus('Upload a comic image, then click Search eBay by image.');
                 return;
             }
+
+            toggleEbayImageViewControls(false);
 
             renderFilteredEbayListings();
         }
@@ -6579,10 +6674,6 @@
             const searchBtn = document.getElementById('ebayImageSearchBtn');
             const dropzone = document.getElementById('ebayImageDropzone');
 
-            if (ebayImageSearchPreviewUrl) {
-                URL.revokeObjectURL(ebayImageSearchPreviewUrl);
-                ebayImageSearchPreviewUrl = null;
-            }
 
             ebayImageSearchFile = null;
 
@@ -6592,6 +6683,7 @@
             if (fileName) fileName.textContent = 'No image selected yet.';
             if (searchBtn) searchBtn.disabled = true;
             if (dropzone) dropzone.classList.remove('dragover', 'has-image');
+            toggleEbayImageViewControls(false);
         }
 
         function triggerEbayImageUpload() {
@@ -6630,15 +6722,22 @@
 
             resetEbaySearchSelection();
             document.getElementById('ebaySearchResults').innerHTML = '';
-
-            if (ebayImageSearchPreviewUrl) {
-                URL.revokeObjectURL(ebayImageSearchPreviewUrl);
-            }
+            toggleEbayImageViewControls(false);
 
             ebayImageSearchFile = file;
-            ebayImageSearchPreviewUrl = URL.createObjectURL(file);
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (previewImg) {
+                    previewImg.src = String(reader.result || '');
+                }
+            };
+            reader.onerror = () => {
+                if (previewImg) {
+                    previewImg.src = '/static/placeholder.png';
+                }
+            };
+            reader.readAsDataURL(file);
 
-            if (previewImg) previewImg.src = ebayImageSearchPreviewUrl;
             if (fileName) fileName.textContent = file.name || 'Selected image';
             if (preview) preview.classList.add('show');
             if (searchBtn) searchBtn.disabled = false;
@@ -6704,6 +6803,7 @@
 
             resetEbaySearchSelection();
             resultsContainer.innerHTML = '';
+            toggleEbayImageViewControls(false);
             setEbaySearchStatus('Searching eBay for visually similar comics...');
             searchBtn.disabled = true;
             searchBtn.textContent = 'Searching...';
@@ -6740,10 +6840,13 @@
 
             if (items.length === 0) {
                 setEbaySearchStatus('No similar eBay listings were found for that image.');
+                toggleEbayImageViewControls(false);
                 return;
             }
 
             setEbaySearchStatus('Select the closest match to import its details into the add-comic form.');
+            toggleEbayImageViewControls(true);
+            setEbayImageResultsView(ebayImageResultsViewMode);
 
             items.forEach(item => {
                 const card = document.createElement('div');
@@ -6751,17 +6854,21 @@
                 card.dataset.itemId = item.itemId;
 
                 const imgSrc = item.image_url || '/static/placeholder.png';
-                const price = item.price ? `$${parseFloat(item.price).toFixed(2)}` : '';
+                const price = formatEbayPrice(item.price);
                 const condition = escapeHtml(item.condition || '');
+                const listingUrl = item.listing_url || (item.itemId ? `https://www.ebay.com/itm/${encodeURIComponent(item.itemId)}` : '');
 
                 card.innerHTML = `
                     <img src="${imgSrc}" alt="" loading="lazy" onerror="this.src='/static/placeholder.png'">
-                    <div class="ebay-result-title">${escapeHtml(item.title || '')}</div>
-                    <div class="ebay-result-meta">
-                        <span class="ebay-status-badge active">Image Match</span>
-                        <span class="ebay-result-price">${price}</span>
+                    <div>
+                        <div class="ebay-result-title">${escapeHtml(item.title || '')}</div>
+                        <div class="ebay-result-meta">
+                            <span class="ebay-status-badge active">Image Match</span>
+                            <span class="ebay-result-price">${price}</span>
+                        </div>
+                        ${condition ? `<div class="ebay-result-submeta">${condition}</div>` : ''}
+                        ${listingUrl ? `<a class="ebay-result-link" href="${listingUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">View item on eBay</a>` : ''}
                     </div>
-                    ${condition ? `<div class="ebay-result-submeta">${condition}</div>` : ''}
                 `;
 
                 card.addEventListener('click', () => selectEbayResult(card, {
@@ -6770,11 +6877,24 @@
                     price: item.price,
                     image_url: item.image_url,
                     condition: item.condition,
+                    listing_url: item.listing_url,
                     status: 'ImageMatch',
                     sourceMode: 'image'
                 }));
                 container.appendChild(card);
             });
+        }
+
+        function normalizeEbayItemIdForDetails(itemId) {
+            const raw = String(itemId || '').trim();
+            if (!raw) return '';
+            if (!raw.includes('|')) return raw;
+
+            const parts = raw.split('|');
+            if (parts.length >= 2 && parts[1]) {
+                return parts[1];
+            }
+            return raw;
         }
 
         async function fetchEbayListingsForModal() {
@@ -6882,20 +7002,24 @@
                 card.dataset.itemId = item.ItemID;
 
                 const imgSrc = item.image_url || '/static/placeholder.png';
-                const price = item.CurrentPrice ? '$' + parseFloat(item.CurrentPrice).toFixed(2) : '';
+                const price = formatEbayPrice(item.CurrentPrice);
                 const statusClass = (item.ListingStatus || '').toLowerCase();
                 const statusLabel = item.ListingStatus === 'Pending' ? 'Draft' : (item.ListingStatus || '');
                 const linkedHtml = item.linked_sku
                     ? `<span class="ebay-linked-badge">SKU ${escapeHtml(item.linked_sku)}</span>`
                     : '';
+                const listingUrl = item.ViewItemURL || (item.ItemID ? `https://www.ebay.com/itm/${encodeURIComponent(item.ItemID)}` : '');
 
                 card.innerHTML = `
                     <img src="${imgSrc}" alt="" loading="lazy" onerror="this.src='/static/placeholder.png'">
-                    <div class="ebay-result-title">${escapeHtml(item.Title || '')}</div>
-                    <div class="ebay-result-meta">
-                        <span class="ebay-status-badge ${statusClass}">${statusLabel}</span>
-                        ${linkedHtml}
-                        <span class="ebay-result-price">${price}</span>
+                    <div>
+                        <div class="ebay-result-title">${escapeHtml(item.Title || '')}</div>
+                        <div class="ebay-result-meta">
+                            <span class="ebay-status-badge ${statusClass}">${statusLabel}</span>
+                            ${linkedHtml}
+                            <span class="ebay-result-price">${price}</span>
+                        </div>
+                        ${listingUrl ? `<a class="ebay-result-link" href="${listingUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">View item on eBay</a>` : ''}
                     </div>
                 `;
 
@@ -6929,29 +7053,38 @@
             const selectedItem = ebaySearchSelectedItem;
             const selectedItemId = ebaySearchSelectedItemId;
             const sourceMode = ebayModalSourceMode;
+            const detailsItemId = normalizeEbayItemIdForDetails(selectedItemId);
             const originalLabel = cloneBtn.textContent;
             cloneBtn.disabled = true;
             cloneBtn.textContent = sourceMode === 'image' ? 'Importing...' : 'Loading...';
 
             try {
-                const response = await fetch(`/api/ebay/item/${selectedItemId}/details`);
+                if (!detailsItemId) {
+                    populateFormFromEbayClone(selectedItem, null);
+                    applyEbayCloneSourceState();
+                    closeEbaySearchModal();
+                    showEbayPreFillNotification({ sourceMode });
+                    return;
+                }
+
+                const response = await fetch(`/api/ebay/item/${encodeURIComponent(detailsItemId)}/details`);
                 const data = await response.json();
 
                 if (!data.success) {
-                    populateFormFromEbayClone(selectedItem, null, { sourceMode });
+                    populateFormFromEbayClone(selectedItem, null);
                 } else {
-                    populateFormFromEbayClone(selectedItem, data, { sourceMode });
+                    populateFormFromEbayClone(selectedItem, data);
                 }
 
-                applyEbayCloneSourceState(selectedItem, selectedItemId, sourceMode);
+                applyEbayCloneSourceState();
 
                 closeEbaySearchModal();
                 showEbayPreFillNotification({ sourceMode });
             } catch (error) {
                 console.error('Failed to fetch eBay item details:', error);
                 // Use basic search data as fallback
-                populateFormFromEbayClone(selectedItem, null, { sourceMode });
-                applyEbayCloneSourceState(selectedItem, selectedItemId, sourceMode);
+                populateFormFromEbayClone(selectedItem, null);
+                applyEbayCloneSourceState();
                 closeEbaySearchModal();
                 showEbayPreFillNotification({ sourceMode });
             } finally {
@@ -6960,29 +7093,44 @@
             }
         }
 
-        function applyEbayCloneSourceState(selectedItem, selectedItemId, sourceMode) {
+        function applyEbayCloneSourceState() {
             const ebayHiddenField = document.getElementById('ebay-item-id');
 
-            if (sourceMode === 'image') {
-                window._sourceEbayDraftId = null;
-                if (ebayHiddenField) {
-                    ebayHiddenField.value = '';
-                }
-                currentComicEbayId = '';
+            // Add-from-eBay in the add form is metadata-only import.
+            // Do not persist eBay/WhatNot linkage automatically.
+            window._sourceEbayDraftId = null;
+            if (ebayHiddenField) {
+                ebayHiddenField.value = '';
+            }
+            currentComicEbayId = '';
+            currentComicWhatNotId = '';
+            updateEbayMenuState();
+            updateWhatNotMenuState();
+        }
+
+        function syncEbayCloneSpecificsFields(specifics) {
+            const form = document.getElementById('comicForm');
+            if (!form) return;
+
+            form.querySelectorAll('input[data-ebay-clone-specific="true"]').forEach(el => el.remove());
+
+            if (!specifics || typeof specifics !== 'object') {
                 return;
             }
 
-            const itemStatus = selectedItem.status || '';
-            if (itemStatus === 'Pending' || itemStatus === 'Unsold') {
-                window._sourceEbayDraftId = selectedItemId;
-            } else {
-                window._sourceEbayDraftId = null;
-            }
+            for (const [name, value] of Object.entries(specifics)) {
+                const csvFieldName = `C:${name}`;
+                if (form.elements.namedItem(csvFieldName)) {
+                    continue;
+                }
 
-            if (ebayHiddenField) {
-                ebayHiddenField.value = selectedItemId;
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = csvFieldName;
+                hidden.value = Array.isArray(value) ? value.join(', ') : String(value ?? '');
+                hidden.setAttribute('data-ebay-clone-specific', 'true');
+                form.appendChild(hidden);
             }
-            currentComicEbayId = selectedItemId;
         }
 
         function setField(id, value) {
@@ -7003,9 +7151,7 @@
          * @param {object} searchItem - Basic data from the search result
          * @param {object|null} details - Full details from GetItem (may be null)
          */
-        function populateFormFromEbayClone(searchItem, details, options = {}) {
-            const sourceMode = options.sourceMode || 'listings';
-            const shouldLinkEbayItem = sourceMode === 'listings';
+        function populateFormFromEbayClone(searchItem, details) {
 
             // Title
             const title = (details && details.Title) || searchItem.title || '';
@@ -7013,8 +7159,11 @@
 
             // Price
             const price = (details && details.CurrentPrice) || searchItem.price || '';
-            if (price) {
-                setField('price', parseFloat(price).toFixed(2));
+            if (price !== '' && price !== null && price !== undefined) {
+                const numericPrice = Number(price);
+                if (Number.isFinite(numericPrice)) {
+                    setField('price', numericPrice.toFixed(2));
+                }
             }
 
             // Quantity
@@ -7045,12 +7194,9 @@
 
                 // Fallback: if structured parsing found no description, use HTML-aware extraction
                 if (!sections.description) {
-                    const descField = document.getElementById('description');
-                    if (descField && !descField.value.trim()) {
-                        const descText = extractDescriptionSection(details.Description);
-                        if (descText) {
-                            setField('description', descText);
-                        }
+                    const descText = extractDescriptionSection(details.Description);
+                    if (descText) {
+                        setField('description', descText);
                     }
                 }
             }
@@ -7075,35 +7221,6 @@
             if (details && details.ItemSpecifics) {
                 const specifics = details.ItemSpecifics;
 
-                // Map common eBay item specifics to form fields
-                // These are "C:" prefixed fields in the eBay export
-                const specificMappings = {
-                    'Publisher': null,       // Will be stored as extra field
-                    'Era': null,
-                    'Series Title': null,
-                    'Character': null,
-                    'Genre': null,
-                    'Artist/Writer': null,
-                    'Cover Artist': null,
-                    'Publication Year': null,
-                    'Format': null,
-                    'Grade': null,
-                    'Type': null,
-                    'Features': null,
-                    'Variant Type': null,
-                    'Issue Number': null,
-                    'Tradition': null,
-                    'Language': null,
-                    'Country of Origin': null,
-                };
-
-                // Store specifics info for display
-                let specificsSummary = [];
-                for (const [name, value] of Object.entries(specifics)) {
-                    const displayValue = Array.isArray(value) ? value.join(', ') : value;
-                    specificsSummary.push(`${name}: ${displayValue}`);
-                }
-
 
                 // Also populate the metadata form fields from the cloned specifics
                 for (const [ebayName, value] of Object.entries(specifics)) {
@@ -7119,16 +7236,16 @@
                         field.value = displayVal;
                     }
                 }
+
+                // Preserve all cloned Item Specifics, including unmapped ones.
+                syncEbayCloneSpecificsFields(specifics);
+            } else {
+                syncEbayCloneSpecificsFields(null);
             }
 
-            // Store the eBay item ID for reference — link to the draft
-            // This persists the connection when the comic is saved
+            // Keep cloned add-form entries unlinked from marketplace IDs.
             const ebayHiddenField = document.getElementById('ebay-item-id');
-            if (shouldLinkEbayItem && searchItem && searchItem.itemId) {
-                if (ebayHiddenField) {
-                    ebayHiddenField.value = searchItem.itemId;
-                }
-            } else if (ebayHiddenField) {
+            if (ebayHiddenField) {
                 ebayHiddenField.value = '';
             }
         }
@@ -9465,6 +9582,7 @@
 
         function clearForm() {
             document.getElementById('comicForm').reset();
+            syncEbayCloneSpecificsFields(null);
             document.getElementById('title').value = '';
             document.getElementById('description').value = '';
             if (window.setDescriptionEditor) setDescriptionEditor('');
@@ -9531,6 +9649,7 @@
         function resetForm() {
             // Clear form fields
             document.getElementById('comicForm').reset();
+            syncEbayCloneSpecificsFields(null);
 
             // Reset page title
             const pageTitle = document.getElementById('pageTitle');

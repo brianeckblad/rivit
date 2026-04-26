@@ -1090,9 +1090,19 @@ class EbayService:
                     image_obj = item.get('image', {})
                     image_url = image_obj.get('imageUrl', '')
 
+                    # Browse API returns item IDs like "v1|123456789012|0"; extract
+                    # the legacy Trading item ID so downstream GetItem calls succeed.
+                    browse_item_id = item.get('itemId', '')
+                    legacy_item_id = browse_item_id
+                    if '|' in browse_item_id:
+                        parts = browse_item_id.split('|')
+                        if len(parts) >= 2:
+                            legacy_item_id = parts[1]
+
                     item_data = {
                         'title': item.get('title', 'No title'),
-                        'itemId': item.get('itemId', ''),
+                        'itemId': legacy_item_id,
+                        'browse_item_id': browse_item_id,
                         'price': float(price_value),
                         'condition': item.get('condition', 'Unknown'),
                         'listing_url': item.get('itemWebUrl', ''),
