@@ -1064,6 +1064,18 @@
             flex-wrap: wrap;
         }
 
+        .ebay-listings-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex: 1;
+            flex-wrap: wrap;
+        }
+
+        .ebay-listings-controls.is-hidden {
+            display: none;
+        }
+
         .ebay-filter-pills {
             display: flex;
             gap: 6px;
@@ -1214,6 +1226,105 @@
             padding: 24px;
             color: var(--color-text-muted);
             font-size: 14px;
+        }
+
+        .ebay-result-submeta {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+
+        .ebay-image-search-panel {
+            display: none;
+            margin-bottom: 18px;
+        }
+
+        .ebay-image-search-panel.active {
+            display: block;
+        }
+
+        .ebay-image-dropzone {
+            border: 1px dashed var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-surface);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+        }
+
+        .ebay-image-dropzone:hover,
+        .ebay-image-dropzone:focus-visible,
+        .ebay-image-dropzone.dragover,
+        .ebay-image-dropzone.has-image {
+            border-color: var(--color-ebay);
+            background: var(--color-ebay-subtle);
+            outline: none;
+        }
+
+        .ebay-image-dropzone.dragover {
+            transform: translateY(-1px);
+        }
+
+        .ebay-image-dropzone-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 4px;
+        }
+
+        .ebay-image-dropzone-subtitle {
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+
+        .ebay-image-preview {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-surface);
+        }
+
+        .ebay-image-preview.show {
+            display: flex;
+        }
+
+        .ebay-image-preview img {
+            width: 92px;
+            height: 92px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            background: var(--color-inset);
+            flex-shrink: 0;
+        }
+
+        .ebay-image-preview-details {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .ebay-image-file-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-text);
+            word-break: break-word;
+            margin-bottom: 10px;
+        }
+
+        .ebay-image-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ebay-image-search-note {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--color-text-dim);
         }
 
         .ebay-search-footer {
@@ -3129,18 +3240,39 @@
                 <button onclick="closeEbaySearchModal()" style="background:none;border:none;color:var(--color-text-muted);font-size:24px;cursor:pointer;padding:4px;">&times;</button>
             </div>
             <div class="ebay-search-body">
-                <p style="color:var(--color-text-muted);font-size:13px;margin:0 0 12px;">Select one of your eBay drafts or listings to clone its metadata into a new item. Find an item on eBay → Sell One Like This → Save as Draft → select it here.</p>
+                <p id="ebaySearchHelperText" style="color:var(--color-text-muted);font-size:13px;margin:0 0 12px;">Select one of your eBay drafts or listings to clone its metadata into a new item. Find an item on eBay → Sell One Like This → Save as Draft → select it here.</p>
                 <div class="ebay-search-input-row">
                     <div class="ebay-filter-pills">
-                        <button class="ebay-filter-pill active" onclick="setEbayStatusFilter('All', this)">All</button>
-                        <button class="ebay-filter-pill" onclick="setEbayStatusFilter('Pending', this)">Scheduled</button>
-                        <button class="ebay-filter-pill" onclick="setEbayStatusFilter('Active', this)">Active</button>
+                        <button class="ebay-filter-pill active" data-ebay-mode="listings" data-ebay-status="All" onclick="setEbaySearchMode('listings', 'All', this)">All</button>
+                        <button class="ebay-filter-pill" data-ebay-mode="listings" data-ebay-status="Pending" onclick="setEbaySearchMode('listings', 'Pending', this)">Scheduled</button>
+                        <button class="ebay-filter-pill" data-ebay-mode="listings" data-ebay-status="Active" onclick="setEbaySearchMode('listings', 'Active', this)">Active</button>
+                        <button class="ebay-filter-pill" data-ebay-mode="image" onclick="setEbaySearchMode('image', null, this)">Image</button>
                     </div>
-                    <input type="text" class="ebay-filter-text" id="ebayFilterInput" placeholder="Filter by title..." oninput="renderFilteredEbayListings()">
-                    <button class="ebay-refresh-btn" onclick="refreshEbayListings()" id="ebayRefreshBtn" title="Clear cache and reload from eBay">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                        Refresh
-                    </button>
+                    <div class="ebay-listings-controls" id="ebayListingsControls">
+                        <input type="text" class="ebay-filter-text" id="ebayFilterInput" placeholder="Filter by title..." oninput="renderFilteredEbayListings()">
+                        <button class="ebay-refresh-btn" onclick="refreshEbayListings()" id="ebayRefreshBtn" title="Clear cache and reload from eBay">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="ebayImageSearchPanel" class="ebay-image-search-panel">
+                    <input type="file" id="ebayImageSearchInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" onchange="handleEbayImageSelection(event)">
+                    <div id="ebayImageDropzone" class="ebay-image-dropzone" role="button" tabindex="0" onclick="triggerEbayImageUpload()" onkeydown="handleEbayImageDropzoneKeydown(event)">
+                        <div class="ebay-image-dropzone-title">Drop a comic image here or click to upload</div>
+                        <div class="ebay-image-dropzone-subtitle">We’ll search eBay for visually similar listings and let you import the metadata into this form.</div>
+                    </div>
+                    <div id="ebayImagePreview" class="ebay-image-preview">
+                        <img id="ebayImagePreviewImg" src="" alt="Selected image preview">
+                        <div class="ebay-image-preview-details">
+                            <div id="ebayImageFileName" class="ebay-image-file-name">No image selected yet.</div>
+                            <div class="ebay-image-actions">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="triggerEbayImageUpload()">Choose different image</button>
+                                <button type="button" id="ebayImageSearchBtn" class="btn btn-sm" style="background:var(--color-ebay);color:var(--color-bg);font-weight:600;" onclick="searchEbayByImageForModal()" disabled>Search eBay by image</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ebay-image-search-note">The uploaded image is only used to search eBay. It is not added to your comic’s media automatically.</div>
                 </div>
                 <div id="ebaySearchStatus" class="ebay-search-status" style="display:none;"></div>
                 <div id="ebaySearchResults" class="ebay-search-results"></div>
@@ -3232,7 +3364,6 @@
             // Determine the actual listing status
             const listingStatus = (result.status === 'active') ? (result.listing_status || 'Active') : '';
             const isScheduled = listingStatus === 'Scheduled';
-            const isActivelyListed = result.status === 'active' && !isScheduled;
 
             // Store globally so menu state can show correct toggle buttons
             currentComicEbayListingStatus = listingStatus;
@@ -3480,16 +3611,13 @@
             if (!editMode && !viewMode && !userSelectedEbayMode && modeSelect && modeSelect !== document.activeElement) {
                 // Check if adminDefaults is initialized and has the property
                 let mode = 'future'; // Default fallback
-                let source = 'hardcoded fallback';
                 // Try to get from adminDefaults first
                 if (typeof adminDefaults !== 'undefined' && adminDefaults && adminDefaults.EbayListingMode) {
                     mode = adminDefaults.EbayListingMode;
-                    source = 'adminDefaults.EbayListingMode';
                 }
                 // Otherwise try defaultListingMode
                 else if (typeof defaultListingMode !== 'undefined' && defaultListingMode) {
                     mode = defaultListingMode;
-                    source = 'defaultListingMode variable';
                 }
                 modeSelect.value = mode;
                 // Trigger the schedule date visibility update
@@ -4057,7 +4185,7 @@
                 }
 
                 // Render listings
-                renderEbayListingsInDialog(allListings, sku);
+                renderEbayListingsInDialog(allListings);
 
             } catch (error) {
                 console.error('Error loading eBay listings:', error);
@@ -4074,7 +4202,7 @@
         }
 
         // Render eBay listings in dialog
-        function renderEbayListingsInDialog(listings, sku) {
+        function renderEbayListingsInDialog(listings) {
             const content = document.getElementById('ebayLinkingDialogContent');
             if (!content) return;
 
@@ -6016,7 +6144,7 @@
         }
 
         // Function to show notification about eBay pre-fill
-        function showEbayPreFillNotification() {
+        function showEbayPreFillNotification(options = {}) {
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
@@ -6025,17 +6153,21 @@
                 background: var(--color-info);
                 color: var(--color-text);
                 padding: 16px 24px;
-                border-radius: 8px;
+                border-radius: var(--radius-md);
                 box-shadow: var(--shadow-md);
                 z-index: 1000;
                 font-weight: 600;
                 animation: slideIn 0.3s ease-out;
                 max-width: 400px;
             `;
-            const isDraft = window._sourceEbayDraftId;
+            const sourceMode = options.sourceMode || 'listings';
+            const isDraft = sourceMode === 'listings' && window._sourceEbayDraftId;
+            const sourceLabel = sourceMode === 'image'
+                ? ' image search result'
+                : (isDraft ? ' draft — linked for listing' : ' listing');
             notification.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <span>✓ Form pre-filled from eBay${isDraft ? ' draft — linked for listing' : ' listing'}</span>
+                    <span>✓ Form pre-filled from eBay${sourceLabel}</span>
                     <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: var(--color-text); font-size: 20px; cursor: pointer; padding: 0; margin-left: 8px;">×</button>
                 </div>
             `;
@@ -6323,41 +6455,326 @@
         }
 
         // =====================================================================
-        // Add from eBay — browse own listings and clone
+        // Add from eBay — browse own listings or search by image, then import
         // =====================================================================
         let ebaySearchSelectedItem = null;
         let ebaySearchSelectedItemId = null;
         let ebayModalListings = [];        // All listings fetched from API
         let ebayModalStatusFilter = 'All'; // Current status filter
+        let ebayModalSourceMode = 'listings';
+        let ebayImageSearchFile = null;
+        let ebayImageSearchPreviewUrl = null;
+
+        const EBAY_IMAGE_SEARCH_ALLOWED_TYPES = new Set([
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/gif',
+            'image/webp'
+        ]);
+        const EBAY_IMAGE_SEARCH_MAX_BYTES = 10 * 1024 * 1024;
 
         function openEbaySearchModal() {
             const modal = document.getElementById('ebaySearchModal');
             modal.classList.add('show');
             document.getElementById('ebaySearchResults').innerHTML = '';
-            document.getElementById('ebayCloneBtn').disabled = true;
             document.getElementById('ebayFilterInput').value = '';
-            ebaySearchSelectedItem = null;
-            ebaySearchSelectedItemId = null;
+            resetEbaySearchSelection();
+            resetEbayImageSearchState();
             ebayModalStatusFilter = 'All';
+            ebayModalSourceMode = 'listings';
 
-            // Reset filter pills
-            document.querySelectorAll('.ebay-filter-pill').forEach(p => p.classList.remove('active'));
-            document.querySelector('.ebay-filter-pill')?.classList.add('active');
+            document.querySelectorAll('#ebaySearchModal .ebay-filter-pill').forEach(p => p.classList.remove('active'));
+            document.querySelector('#ebaySearchModal .ebay-filter-pill[data-ebay-mode="listings"][data-ebay-status="All"]')?.classList.add('active');
 
+            updateEbaySearchModeUi();
+            setEbaySearchStatus('');
             fetchEbayListingsForModal();
         }
 
         function closeEbaySearchModal() {
             document.getElementById('ebaySearchModal').classList.remove('show');
-            ebaySearchSelectedItem = null;
-            ebaySearchSelectedItemId = null;
+            document.getElementById('ebaySearchResults').innerHTML = '';
+            resetEbaySearchSelection();
+            resetEbayImageSearchState();
+            setEbaySearchStatus('');
         }
 
-        function setEbayStatusFilter(status, btn) {
-            ebayModalStatusFilter = status;
-            document.querySelectorAll('.ebay-filter-pill').forEach(p => p.classList.remove('active'));
+        function resetEbaySearchSelection() {
+            ebaySearchSelectedItem = null;
+            ebaySearchSelectedItemId = null;
+            document.querySelectorAll('#ebaySearchModal .ebay-result-card.selected').forEach(card => card.classList.remove('selected'));
+
+            const cloneBtn = document.getElementById('ebayCloneBtn');
+            if (cloneBtn) {
+                cloneBtn.disabled = true;
+            }
+        }
+
+        function setEbaySearchStatus(message) {
+            const status = document.getElementById('ebaySearchStatus');
+            if (!status) return;
+
+            if (!message) {
+                status.style.display = 'none';
+                status.textContent = '';
+                return;
+            }
+
+            status.style.display = 'block';
+            status.textContent = message;
+        }
+
+        function updateEbaySearchModeUi() {
+            const helperText = document.getElementById('ebaySearchHelperText');
+            const listingsControls = document.getElementById('ebayListingsControls');
+            const imagePanel = document.getElementById('ebayImageSearchPanel');
+
+            if (ebayModalSourceMode === 'image') {
+                helperText.textContent = 'Upload a comic image to search eBay by image, then import a matching listing’s details into this form.';
+                listingsControls.classList.add('is-hidden');
+                imagePanel.classList.add('active');
+            } else {
+                helperText.textContent = 'Select one of your eBay drafts or listings to clone its metadata into a new item. Find an item on eBay → Sell One Like This → Save as Draft → select it here.';
+                listingsControls.classList.remove('is-hidden');
+                imagePanel.classList.remove('active');
+            }
+        }
+
+        function setEbaySearchMode(mode, status, btn) {
+            ebayModalSourceMode = mode;
+            if (mode === 'listings' && status) {
+                ebayModalStatusFilter = status;
+            }
+
+            document.querySelectorAll('#ebaySearchModal .ebay-filter-pill').forEach(p => p.classList.remove('active'));
             if (btn) btn.classList.add('active');
+
+            resetEbaySearchSelection();
+            updateEbaySearchModeUi();
+
+            if (mode === 'image') {
+                document.getElementById('ebaySearchResults').innerHTML = '';
+                setEbaySearchStatus('Upload a comic image, then click Search eBay by image.');
+                return;
+            }
+
             renderFilteredEbayListings();
+        }
+
+        function isAllowedEbayImageFile(file) {
+            const fileType = (file?.type || '').toLowerCase();
+            if (EBAY_IMAGE_SEARCH_ALLOWED_TYPES.has(fileType)) {
+                return true;
+            }
+
+            return /\.(jpe?g|png|gif|webp)$/i.test(file?.name || '');
+        }
+
+        function resetEbayImageSearchState() {
+            const input = document.getElementById('ebayImageSearchInput');
+            const preview = document.getElementById('ebayImagePreview');
+            const previewImg = document.getElementById('ebayImagePreviewImg');
+            const fileName = document.getElementById('ebayImageFileName');
+            const searchBtn = document.getElementById('ebayImageSearchBtn');
+            const dropzone = document.getElementById('ebayImageDropzone');
+
+            if (ebayImageSearchPreviewUrl) {
+                URL.revokeObjectURL(ebayImageSearchPreviewUrl);
+                ebayImageSearchPreviewUrl = null;
+            }
+
+            ebayImageSearchFile = null;
+
+            if (input) input.value = '';
+            if (preview) preview.classList.remove('show');
+            if (previewImg) previewImg.src = '';
+            if (fileName) fileName.textContent = 'No image selected yet.';
+            if (searchBtn) searchBtn.disabled = true;
+            if (dropzone) dropzone.classList.remove('dragover', 'has-image');
+        }
+
+        function triggerEbayImageUpload() {
+            document.getElementById('ebayImageSearchInput')?.click();
+        }
+
+        function handleEbayImageDropzoneKeydown(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                triggerEbayImageUpload();
+            }
+        }
+
+        function applyEbayImageSearchFile(file) {
+            if (!file) return;
+
+            if (!isAllowedEbayImageFile(file)) {
+                resetEbayImageSearchState();
+                document.getElementById('ebaySearchResults').innerHTML = '';
+                setEbaySearchStatus('Please upload a JPG, PNG, GIF, or WebP image.');
+                return;
+            }
+
+            if (file.size > EBAY_IMAGE_SEARCH_MAX_BYTES) {
+                resetEbayImageSearchState();
+                document.getElementById('ebaySearchResults').innerHTML = '';
+                setEbaySearchStatus('Please upload an image smaller than 10 MB.');
+                return;
+            }
+
+            const preview = document.getElementById('ebayImagePreview');
+            const previewImg = document.getElementById('ebayImagePreviewImg');
+            const fileName = document.getElementById('ebayImageFileName');
+            const searchBtn = document.getElementById('ebayImageSearchBtn');
+            const dropzone = document.getElementById('ebayImageDropzone');
+
+            resetEbaySearchSelection();
+            document.getElementById('ebaySearchResults').innerHTML = '';
+
+            if (ebayImageSearchPreviewUrl) {
+                URL.revokeObjectURL(ebayImageSearchPreviewUrl);
+            }
+
+            ebayImageSearchFile = file;
+            ebayImageSearchPreviewUrl = URL.createObjectURL(file);
+
+            if (previewImg) previewImg.src = ebayImageSearchPreviewUrl;
+            if (fileName) fileName.textContent = file.name || 'Selected image';
+            if (preview) preview.classList.add('show');
+            if (searchBtn) searchBtn.disabled = false;
+            if (dropzone) dropzone.classList.add('has-image');
+
+            setEbaySearchStatus('Image ready. Click Search eBay by image to find similar listings.');
+        }
+
+        function handleEbayImageSelection(event) {
+            const [file] = event.target.files || [];
+            applyEbayImageSearchFile(file);
+        }
+
+        function setupEbayImageDropzone() {
+            const dropzone = document.getElementById('ebayImageDropzone');
+            if (!dropzone || dropzone.dataset.bound === 'true') {
+                return;
+            }
+
+            dropzone.dataset.bound = 'true';
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropzone.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (eventName === 'dragleave' && event.target !== dropzone) {
+                        return;
+                    }
+                    dropzone.classList.remove('dragover');
+                });
+            });
+
+            dropzone.addEventListener('drop', (event) => {
+                const [file] = event.dataTransfer?.files || [];
+                applyEbayImageSearchFile(file);
+            });
+        }
+
+        async function searchEbayByImageForModal() {
+            if (!ebayImageSearchFile) {
+                setEbaySearchStatus('Choose an image first.');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('ebaySearchResults');
+            const searchBtn = document.getElementById('ebayImageSearchBtn');
+            const titleHint = document.getElementById('title')?.value?.trim() || '';
+            const originalLabel = searchBtn.textContent;
+            const formData = new FormData();
+            formData.append('image_file', ebayImageSearchFile);
+            formData.append('limit', '24');
+            if (titleHint) {
+                formData.append('title', titleHint);
+            }
+
+            resetEbaySearchSelection();
+            resultsContainer.innerHTML = '';
+            setEbaySearchStatus('Searching eBay for visually similar comics...');
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+
+            try {
+                const response = await fetch('/api/ebay/search-by-image', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': window.csrfToken || ''
+                    },
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Failed to search eBay by image.');
+                }
+
+                renderEbayImageSearchResults(result);
+            } catch (error) {
+                console.error('Failed to search eBay by image:', error);
+                resultsContainer.innerHTML = '';
+                setEbaySearchStatus(error.message || 'Failed to search eBay by image.');
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = originalLabel;
+            }
+        }
+
+        function renderEbayImageSearchResults(result) {
+            const container = document.getElementById('ebaySearchResults');
+            const items = Array.isArray(result?.items) ? result.items : [];
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                setEbaySearchStatus('No similar eBay listings were found for that image.');
+                return;
+            }
+
+            setEbaySearchStatus('Select the closest match to import its details into the add-comic form.');
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'ebay-result-card';
+                card.dataset.itemId = item.itemId;
+
+                const imgSrc = item.image_url || '/static/placeholder.png';
+                const price = item.price ? `$${parseFloat(item.price).toFixed(2)}` : '';
+                const condition = escapeHtml(item.condition || '');
+
+                card.innerHTML = `
+                    <img src="${imgSrc}" alt="" loading="lazy" onerror="this.src='/static/placeholder.png'">
+                    <div class="ebay-result-title">${escapeHtml(item.title || '')}</div>
+                    <div class="ebay-result-meta">
+                        <span class="ebay-status-badge active">Image Match</span>
+                        <span class="ebay-result-price">${price}</span>
+                    </div>
+                    ${condition ? `<div class="ebay-result-submeta">${condition}</div>` : ''}
+                `;
+
+                card.addEventListener('click', () => selectEbayResult(card, {
+                    itemId: item.itemId,
+                    title: item.title,
+                    price: item.price,
+                    image_url: item.image_url,
+                    condition: item.condition,
+                    status: 'ImageMatch',
+                    sourceMode: 'image'
+                }));
+                container.appendChild(card);
+            });
         }
 
         async function fetchEbayListingsForModal() {
@@ -6382,16 +6799,28 @@
                 const data = await response.json();
 
                 if (!data.success || !data.listings || data.listings.length === 0) {
-                    status.innerHTML = '<div>No eBay listings found.</div><div style="margin-top:8px;font-size:12px;color:var(--color-text-dim);">To use this feature: find an item on eBay → click <strong>Sell One Like This</strong> → save as a <strong>Draft</strong> → then refresh here.</div>';
+                    if (ebayModalSourceMode === 'listings') {
+                        status.innerHTML = '<div>No eBay listings found.</div><div style="margin-top:8px;font-size:12px;color:var(--color-text-dim);">To use this feature: find an item on eBay → click <strong>Sell One Like This</strong> → save as a <strong>Draft</strong> → then refresh here.</div>';
+                    } else {
+                        setEbaySearchStatus('Upload a comic image, then click Search eBay by image.');
+                    }
                     return;
                 }
 
                 ebayModalListings = data.listings;
-                status.style.display = 'none';
-                renderFilteredEbayListings();
+                if (ebayModalSourceMode === 'listings') {
+                    status.style.display = 'none';
+                    renderFilteredEbayListings();
+                } else {
+                    setEbaySearchStatus('Upload a comic image, then click Search eBay by image.');
+                }
             } catch (error) {
                 console.error('Failed to fetch eBay listings:', error);
-                status.textContent = 'Failed to load listings. Please try again.';
+                if (ebayModalSourceMode === 'listings') {
+                    status.textContent = 'Failed to load listings. Please try again.';
+                } else {
+                    setEbaySearchStatus('Upload a comic image, then click Search eBay by image.');
+                }
             }
         }
 
@@ -6415,6 +6844,10 @@
         }
 
         function renderFilteredEbayListings() {
+            if (ebayModalSourceMode !== 'listings') {
+                return;
+            }
+
             const container = document.getElementById('ebaySearchResults');
             const textFilter = (document.getElementById('ebayFilterInput')?.value || '').toLowerCase();
             container.innerHTML = '';
@@ -6490,48 +6923,66 @@
 
         // Clone selected eBay item: fetch full details, then populate form
         async function cloneSelectedEbayItem() {
-            if (!ebaySearchSelectedItemId) return;
+            if (!ebaySearchSelectedItemId || !ebaySearchSelectedItem) return;
 
             const cloneBtn = document.getElementById('ebayCloneBtn');
+            const selectedItem = ebaySearchSelectedItem;
+            const selectedItemId = ebaySearchSelectedItemId;
+            const sourceMode = ebayModalSourceMode;
+            const originalLabel = cloneBtn.textContent;
             cloneBtn.disabled = true;
-            cloneBtn.textContent = 'Loading...';
+            cloneBtn.textContent = sourceMode === 'image' ? 'Importing...' : 'Loading...';
 
             try {
-                const response = await fetch(`/api/ebay/item/${ebaySearchSelectedItemId}/details`);
+                const response = await fetch(`/api/ebay/item/${selectedItemId}/details`);
                 const data = await response.json();
 
                 if (!data.success) {
-                    populateFormFromEbayClone(ebaySearchSelectedItem, null);
+                    populateFormFromEbayClone(selectedItem, null, { sourceMode });
                 } else {
-                    populateFormFromEbayClone(ebaySearchSelectedItem, data);
+                    populateFormFromEbayClone(selectedItem, data, { sourceMode });
                 }
 
-                // Track source draft for auto-deletion after listing
-                const itemStatus = ebaySearchSelectedItem.status || '';
-                if (itemStatus === 'Pending' || itemStatus === 'Unsold') {
-                    window._sourceEbayDraftId = ebaySearchSelectedItemId;
-                }
-
-                // Link the eBay Item ID so the comic is connected to the draft
-                // When later listed, the backend will end this draft and create a new listing
-                const ebayHiddenField = document.getElementById('ebay-item-id');
-                if (ebayHiddenField) {
-                    ebayHiddenField.value = ebaySearchSelectedItemId;
-                }
-                currentComicEbayId = ebaySearchSelectedItemId;
+                applyEbayCloneSourceState(selectedItem, selectedItemId, sourceMode);
 
                 closeEbaySearchModal();
-                showEbayPreFillNotification();
+                showEbayPreFillNotification({ sourceMode });
             } catch (error) {
                 console.error('Failed to fetch eBay item details:', error);
                 // Use basic search data as fallback
-                populateFormFromEbayClone(ebaySearchSelectedItem, null);
+                populateFormFromEbayClone(selectedItem, null, { sourceMode });
+                applyEbayCloneSourceState(selectedItem, selectedItemId, sourceMode);
                 closeEbaySearchModal();
-                showEbayPreFillNotification();
+                showEbayPreFillNotification({ sourceMode });
+            } finally {
+                cloneBtn.disabled = false;
+                cloneBtn.textContent = originalLabel;
+            }
+        }
+
+        function applyEbayCloneSourceState(selectedItem, selectedItemId, sourceMode) {
+            const ebayHiddenField = document.getElementById('ebay-item-id');
+
+            if (sourceMode === 'image') {
+                window._sourceEbayDraftId = null;
+                if (ebayHiddenField) {
+                    ebayHiddenField.value = '';
+                }
+                currentComicEbayId = '';
+                return;
             }
 
-            cloneBtn.disabled = false;
-            cloneBtn.textContent = 'Add';
+            const itemStatus = selectedItem.status || '';
+            if (itemStatus === 'Pending' || itemStatus === 'Unsold') {
+                window._sourceEbayDraftId = selectedItemId;
+            } else {
+                window._sourceEbayDraftId = null;
+            }
+
+            if (ebayHiddenField) {
+                ebayHiddenField.value = selectedItemId;
+            }
+            currentComicEbayId = selectedItemId;
         }
 
         function setField(id, value) {
@@ -6552,7 +7003,10 @@
          * @param {object} searchItem - Basic data from the search result
          * @param {object|null} details - Full details from GetItem (may be null)
          */
-        function populateFormFromEbayClone(searchItem, details) {
+        function populateFormFromEbayClone(searchItem, details, options = {}) {
+            const sourceMode = options.sourceMode || 'listings';
+            const shouldLinkEbayItem = sourceMode === 'listings';
+
             // Title
             const title = (details && details.Title) || searchItem.title || '';
             setField('title', title);
@@ -6561,6 +7015,11 @@
             const price = (details && details.CurrentPrice) || searchItem.price || '';
             if (price) {
                 setField('price', parseFloat(price).toFixed(2));
+            }
+
+            // Quantity
+            if (details && details.Quantity) {
+                setField('quantity', String(details.Quantity));
             }
 
             // Parse structured description from eBay listing HTML template
@@ -6602,6 +7061,14 @@
                 if (condField && !condField.value.trim()) {
                     setField('conditionDetails', details.ConditionDisplayName);
                 }
+            }
+
+            // eBay category
+            if (details && details.CategoryID) {
+                const catIdField = document.getElementById('ebayCategoryId');
+                const catNameField = document.getElementById('ebayCategoryName');
+                if (catIdField) catIdField.value = details.CategoryID;
+                if (catNameField) catNameField.value = details.CategoryName || '';
             }
 
             // Item specifics → extra fields or known fields
@@ -6656,11 +7123,13 @@
 
             // Store the eBay item ID for reference — link to the draft
             // This persists the connection when the comic is saved
-            if (searchItem && searchItem.itemId) {
-                const ebayHiddenField = document.getElementById('ebay-item-id');
+            const ebayHiddenField = document.getElementById('ebay-item-id');
+            if (shouldLinkEbayItem && searchItem && searchItem.itemId) {
                 if (ebayHiddenField) {
                     ebayHiddenField.value = searchItem.itemId;
                 }
+            } else if (ebayHiddenField) {
+                ebayHiddenField.value = '';
             }
         }
 
@@ -6806,6 +7275,8 @@
                     }
                 });
             }
+
+            setupEbayImageDropzone();
         });
 
 
