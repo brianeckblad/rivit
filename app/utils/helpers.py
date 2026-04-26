@@ -85,19 +85,23 @@ def generate_csrf_token():
     return session['_csrf_token']
 
 
-def is_giveaway(title):
-    """
-    Check if a comic title indicates a giveaway item.
+def is_giveaway(title, listing_type=None):
+    """Return True when an item should be treated as a giveaway.
 
-    Giveaway items are identified by a title prefix: 'G-' or 'G - '.
-    The check is case-insensitive.
+    Canonical detection uses ``Listing Type == 'Giveaway'``. For backwards
+    compatibility with older rows, the legacy title-prefix convention
+    (``'G-'`` or ``'G - '``) is still honored as a fallback.
 
     Args:
-        title (str): The comic title to check.
+        title (str): Comic title.
+        listing_type (str, optional): Canonical listing type value.
 
     Returns:
-        bool: True if the title matches a giveaway prefix.
+        bool: True if the item is a giveaway.
     """
+    if str(listing_type or '').strip().lower() == 'giveaway':
+        return True
+
     upper = (title or '').upper()
     return upper.startswith('G-') or upper.startswith('G - ')
 

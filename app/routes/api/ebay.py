@@ -676,7 +676,7 @@ def update_comic_ebay_item_id(sku: str) -> Response:
         if item_id:
             # Prevent linking giveaway items to eBay
             from app.utils.helpers import is_giveaway
-            if is_giveaway(comic.title):
+            if is_giveaway(comic.title, comic.listing_type):
                 return jsonify({'success': False, 'error': 'Cannot link giveaway items to eBay. Please remove the "G-" or "G " prefix from the title if this should be a for-sale item.'}), 400
 
             # Only validate if we're setting a value (not unlinking)
@@ -731,10 +731,6 @@ def update_comic_whatnot_status(sku: str) -> Response:
         if not comic:
             return jsonify({'success': False, 'error': 'Comic not found'}), 404
 
-        # Prevent listing giveaway items to WhatNot
-        from app.utils.helpers import is_giveaway
-        if is_listed and is_giveaway(comic.title):
-            return jsonify({'success': False, 'error': 'Cannot list giveaway items to WhatNot. Please remove the "G-" or "G " prefix from the title if this should be a for-sale item.'}), 400
 
         # Set to "TRUE" or "FALSE"
         comic.whatnot_item_id = 'TRUE' if is_listed else 'FALSE'

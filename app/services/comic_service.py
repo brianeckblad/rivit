@@ -4,7 +4,7 @@ from flask import current_app
 from app.models.comic import Comic
 from app.services.csv_service import CSVService
 from app.services.s3_service import s3_service
-from app.utils.helpers import generate_unique_filename
+from app.utils.helpers import generate_unique_filename, is_giveaway
 from app.utils.whatnot_validators import allowed_file
 from app.utils.logging_utils import log_service_info, log_service_warning, log_app_error, safe_error_message
 from app.utils.user_context import get_user_csv_file, get_user_sku_file, get_current_username
@@ -299,6 +299,9 @@ class ComicService:
 
         filtered_comics = all_comics
 
+        def is_giveaway_comic(comic):
+            return is_giveaway(comic.title, comic.listing_type)
+
         # 1. Apply search filter
         if search_term:
             search_lower = search_term.lower()
@@ -313,19 +316,16 @@ class ComicService:
         # 2. Apply listing type filter
         if listing_type:
             if listing_type == 'Giveaway':
-                # Filter for giveaway items (titles starting with G- or G - )
-                from app.utils.helpers import is_giveaway
                 filtered_comics = [
                     comic for comic in filtered_comics
-                    if is_giveaway(comic.title)
+                    if is_giveaway_comic(comic)
                 ]
             elif listing_type == 'Not Listed':
                 # Filter for items NOT listed on platforms (excluding giveaways)
                 # First exclude giveaways
-                from app.utils.helpers import is_giveaway
                 non_giveaway_comics = [
                     comic for comic in filtered_comics
-                    if not is_giveaway(comic.title)
+                    if not is_giveaway_comic(comic)
                 ]
 
                 # Then apply sub-filter based on platform listings
@@ -357,10 +357,9 @@ class ComicService:
                     ]
             elif listing_type == 'For Sale eBay':
                 # Filter for items that have an eBay Item ID
-                from app.utils.helpers import is_giveaway
                 filtered_comics = [
                     comic for comic in filtered_comics
-                    if (comic.ebay_item_id or '').strip() and not is_giveaway(comic.title)
+                    if (comic.ebay_item_id or '').strip() and not is_giveaway_comic(comic)
                 ]
             elif listing_type == 'WhatNot':
                 # Filter for items that are listed on WhatNot
@@ -378,9 +377,8 @@ class ComicService:
         # 3. Calculate stats for the filtered set
         total_value = 0
         giveaway_count = 0
-        from app.utils.helpers import is_giveaway
         for comic in filtered_comics:
-            if is_giveaway(comic.title):
+            if is_giveaway_comic(comic):
                 giveaway_count += 1
             else:
                 try:
@@ -830,10 +828,9 @@ class ComicService:
             
             total_value = 0
             giveaway_count = 0
-            from app.utils.helpers import is_giveaway
-            
+
             for comic in all_comics:
-                if is_giveaway(comic.title):
+                if is_giveaway(comic.title, comic.listing_type):
                     giveaway_count += 1
                 else:
                     try:

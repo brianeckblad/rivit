@@ -35,6 +35,36 @@ import time
 import math
 
 
+def _normalize_giveaway_fields(comic_data: dict) -> None:
+    """Persist canonical giveaway / WhatNot flags in ``comic_data``.
+
+    The add/edit form currently drives giveaway selection via ``Type``. This
+    helper derives the canonical fields the rest of the app expects:
+
+    - ``Listing Type`` becomes ``'Giveaway'`` (or ``'For Sale'`` otherwise)
+    - giveaway items are automatically tagged as listed on WhatNot by setting
+      ``WhatNot Item ID`` to ``'TRUE'``
+
+    The helper mutates ``comic_data`` in place.
+    """
+    type_value = str(
+        comic_data.get(WHATNOT_FIELD_NAMES['TYPE'])
+        or comic_data.get('type')
+        or comic_data.get('Type')
+        or ''
+    ).strip()
+
+    if not type_value:
+        return
+
+    comic_data[WHATNOT_FIELD_NAMES['LISTING_TYPE']] = (
+        'Giveaway' if type_value == 'Giveaway' else 'For Sale'
+    )
+
+    if type_value == 'Giveaway':
+        comic_data[METADATA_FIELD_NAMES['WHATNOT_ITEM_ID']] = 'TRUE'
+
+
 @api_bp.route('/comics', methods=['GET'])
 @login_required
 def get_comics() -> Response:
@@ -269,6 +299,9 @@ def add_comic() -> Response:
 
         # Apply admin defaults to ensure all required fields have values
         data = apply_defaults_to_comic_data(data, is_new_comic=True)
+
+        # Persist canonical giveaway / WhatNot flags based on the selected Type.
+        _normalize_giveaway_fields(data)
 
         # Safety: prevent generated eBay listing template HTML from being saved
         # into the Description field (the full template has <strong>Title</strong>
@@ -558,6 +591,9 @@ def update_comic(sku: str) -> Response:
         # This ensures fields not in the form (like eBay Category ID, Format, etc.) are not lost
         merged_data = existing_data.copy()
         merged_data.update(cleaned_data)
+
+        # Persist canonical giveaway / WhatNot flags based on the selected Type.
+        _normalize_giveaway_fields(merged_data)
 
         # NOTE: Do NOT apply defaults here - we're editing an existing comic.
         # The merge above already preserves existing values from the CSV.

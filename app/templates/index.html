@@ -7396,6 +7396,18 @@
 
             const formData = new FormData(e.target);
 
+            // Persist canonical giveaway / WhatNot fields from the Type toggle.
+            // The backend also normalizes these fields, but setting them here
+            // keeps the submitted payload self-describing and avoids relying on
+            // legacy title-prefix inference.
+            const selectedType = (formData.get('Type') || document.getElementById('type')?.value || '').trim();
+            if (selectedType) {
+                formData.set('Listing Type', selectedType === 'Giveaway' ? 'Giveaway' : 'For Sale');
+                if (selectedType === 'Giveaway') {
+                    formData.set('WhatNot Item ID', 'TRUE');
+                }
+            }
+
             // Round price to nearest dollar, remove any formatting before submitting
             const priceStr = document.getElementById('price').value.replace(/\$/g, '').trim();
             const priceNum = Math.ceil(parseFloat(priceStr) || 0);
@@ -8769,11 +8781,15 @@
             if (skuEl) skuEl.value = comic.SKU || '';
             if (skuDisplayEl) skuDisplayEl.textContent = comic.SKU || '—';
 
-            // Detect if this is a Giveaway by checking title prefix
+            // Detect if this is a Giveaway using the canonical Listing Type first,
+            // then fall back to the legacy title-prefix convention for older rows.
             const priceStr = (comic.Price || '0').replace(/\$/g, '').trim();
             const priceNum = Math.ceil(parseFloat(priceStr) || 0);
             const titleUpper = (comic.Title || '').toUpperCase();
-            const isGiveaway = titleUpper.startsWith('G-') || titleUpper.startsWith('G -');
+            const listingTypeValue = (comic['Listing Type'] || comic.listing_type || '').trim();
+            const isGiveaway = listingTypeValue === 'Giveaway'
+                || titleUpper.startsWith('G-')
+                || titleUpper.startsWith('G -');
 
             let typeValue = comic.Type || 'Auction';
 
