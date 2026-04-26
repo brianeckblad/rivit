@@ -1,5 +1,7 @@
 """Whatnot data validation utilities."""
 
+from typing import Any
+
 # ============================================================================
 # METADATA FIELD NAMES (stored in CSV but not exported)
 # ============================================================================
@@ -369,6 +371,53 @@ def populate_whatnot_fields_from_item(item):
             whatnot_data[whatnot_field] = rules['default']
 
     return whatnot_data
+
+
+def is_whatnot_listed(item: Any) -> bool:
+    """Return True when an item is tagged as listed on WhatNot.
+
+    The canonical stored flag is the metadata field ``WhatNot Item ID`` with
+    string value ``'TRUE'``. Some call sites work with raw dictionaries while
+    others work with ``Comic`` objects, so this helper normalizes both.
+    """
+    raw_value = ''
+
+    if isinstance(item, dict):
+        raw_value = (
+            item.get(METADATA_FIELD_NAMES['WHATNOT_ITEM_ID'])
+            or item.get('whatnot_item_id')
+            or ''
+        )
+    else:
+        raw_value = getattr(item, 'whatnot_item_id', '') or ''
+
+    return str(raw_value).strip().upper() == 'TRUE'
+
+
+def get_whatnot_export_fieldnames() -> list[str]:
+    """Return the canonical WhatNot CSV column order."""
+    return list(WHATNOT_FIELD_VALIDATION.keys())
+
+
+def build_whatnot_export_row(item: Any) -> dict[str, str]:
+    """Build one full-schema WhatNot export row for ``item``.
+
+    This matches the existing proper WhatNot export format used by the main
+    download flow: auto-populated values, validator defaults, and all columns
+    present in the exact validator-defined order.
+    """
+    whatnot_data = populate_whatnot_fields_from_item(item)
+    fieldnames = get_whatnot_export_fieldnames()
+
+    for field, rules in WHATNOT_FIELD_VALIDATION.items():
+        if field not in whatnot_data and 'default' in rules:
+            whatnot_data[field] = rules['default']
+
+    for field in fieldnames:
+        if field not in whatnot_data:
+            whatnot_data[field] = ''
+
+    return {field: whatnot_data[field] for field in fieldnames}
 
 
 def get_whatnot_auto_populate_fields():

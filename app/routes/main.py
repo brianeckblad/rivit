@@ -8,7 +8,12 @@ from app.services.analytics_service import HeatmapAnalyzer
 from app.models.analytics import AnalyticsStore
 from app.utils.logging_utils import safe_error_message
 from app.utils.user_context import get_current_username, get_user_csv_file, get_user_analytics_dir
-from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, populate_whatnot_fields_from_item
+from app.utils.whatnot_validators import (
+    WHATNOT_FIELD_VALIDATION,
+    build_whatnot_export_row,
+    get_whatnot_export_fieldnames,
+    is_whatnot_listed,
+)
 from app.utils.ebay_validators import EBAY_FIELD_VALIDATION, populate_ebay_fields_from_item
 from app.utils.csv_sanitizer import sanitize_row
 from datetime import datetime
@@ -79,11 +84,15 @@ def download_csv():
     Query Parameters:
         listing_type (str, optional): Filter by listing type
                                       ('For Sale' or 'Giveaway').
+        platform (str, optional): When ``whatnot``, export in full WhatNot CSV
+                                  format and only include items tagged as listed
+                                  on WhatNot.
     """
     try:
 
         # Get filter parameter from query string
         listing_type = request.args.get('listing_type', '', type=str).strip()
+        platform = request.args.get('platform', '', type=str).strip().lower()
 
         # Use user-specific CSV file
         username = get_current_username()
@@ -92,9 +101,9 @@ def download_csv():
         if not os.path.exists(csv_path):
             return jsonify({'success': False, 'message': 'No inventory file found'}), 404
 
-        # If no filter specified, return the complete inventory with CSV-injection
-        # sanitization applied (cells starting with =+-@ are prefixed with ')
-        if not listing_type:
+        # Generic full inventory export (used outside the WhatNot management UI).
+        # Keep this behavior only when no WhatNot-specific export context was requested.
+        if not listing_type and platform != 'whatnot':
 
             # Create a backup copy in S3 with timestamp for historical tracking
             s3_service.backup_csv_to_s3(str(csv_path))
@@ -117,42 +126,37 @@ def download_csv():
                 download_name='comics_export.csv'
             )
 
-        # Retrieve filtered items based on listing type
-        result = comic_service.get_comics_paginated(page=1, per_page=1000000, listing_type=listing_type)
-        filtered_comics = result['comics']
+        if listing_type:
+            result = comic_service.get_comics_paginated(
+                page=1,
+                per_page=1000000,
+                listing_type=listing_type,
+            )
+            candidate_comics = result['comics']
+        else:
+            candidate_comics = comic_service.get_all_comics()
 
-        # Further filter: only include comics tagged for WhatNot (WhatNot Item ID == 'TRUE')
-        whatnot_tagged = [c for c in filtered_comics if c.get('WhatNot Item ID') == 'TRUE']
+        # WhatNot exports should only include items explicitly tagged as listed.
+        whatnot_tagged = [comic for comic in candidate_comics if is_whatnot_listed(comic)]
 
         # Build CSV in memory with filtered comics
         output = io.StringIO()
-        # Get column order from validator
-        fieldnames = list(WHATNOT_FIELD_VALIDATION.keys())
+        fieldnames = get_whatnot_export_fieldnames()
 
         writer = csv.DictWriter(output, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
         writer.writeheader()
 
         if whatnot_tagged:
-            # Write each WhatNot-tagged comic as a row with auto-populated Whatnot fields
+            # Write each WhatNot-tagged comic in the full validator-defined WhatNot format
             for comic in whatnot_tagged:
-                whatnot_data = populate_whatnot_fields_from_item(comic)
-
-                # Add missing default values from validation rules
-                for field, rules in WHATNOT_FIELD_VALIDATION.items():
-                    if field not in whatnot_data and 'default' in rules:
-                        whatnot_data[field] = rules['default']
-
-                # Fill any remaining empty fields
-                for field in fieldnames:
-                    if field not in whatnot_data:
-                        whatnot_data[field] = ''
-
-                # Sanitize cells to neutralize spreadsheet formula injection
-                writer.writerow(sanitize_row(whatnot_data))
+                writer.writerow(sanitize_row(build_whatnot_export_row(comic)))
 
         # Convert to bytes and send as download
         output.seek(0)
-        filename = f'comics_export_{listing_type.lower().replace(" ", "_")}.csv'
+        if listing_type:
+            filename = f'whatnot_export_{listing_type.lower().replace(" ", "_")}.csv'
+        else:
+            filename = 'whatnot_export_all_listed.csv'
 
         return send_file(
             io.BytesIO(output.getvalue().encode('utf-8')),

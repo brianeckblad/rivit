@@ -20,8 +20,15 @@ from app.services.comic_service import comic_service
 from app.services.ebay_service import ebay_service
 from app.utils.defaults_helpers import apply_defaults_to_comic_data
 from app.utils.logging_utils import safe_error_message
+from app.utils.csv_sanitizer import sanitize_row
 from app.utils.upload_security import validate_uploaded_image, UploadValidationError
-from app.utils.whatnot_validators import WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
+from app.utils.whatnot_validators import (
+    WHATNOT_FIELD_NAMES,
+    METADATA_FIELD_NAMES,
+    build_whatnot_export_row,
+    get_whatnot_export_fieldnames,
+    is_whatnot_listed,
+)
 from io import StringIO, BytesIO
 import csv
 import time
@@ -912,51 +919,22 @@ def export_selected() -> tuple:
 
         # Create CSV in memory
         output = StringIO()
-        # Import sanitizer once for both platform branches
-        from app.utils.csv_sanitizer import sanitize_row
 
         if platform == 'whatnot':
             # WhatNot export: only include comics tagged for WhatNot (WhatNot Item ID == 'TRUE')
-            whatnot_tagged = [c for c in selected_comics if c.to_dict().get('WhatNot Item ID') == 'TRUE']
+            whatnot_tagged = [comic for comic in selected_comics if is_whatnot_listed(comic)]
 
             if not whatnot_tagged:
                 return jsonify({'success': False, 'message': 'No selected comics are tagged for WhatNot listing (WhatNot Item ID must be TRUE)'}), 400
 
-            # WhatNot export fields
-            fieldnames = [
-                WHATNOT_FIELD_NAMES['SKU'],
-                WHATNOT_FIELD_NAMES['TITLE'],
-                WHATNOT_FIELD_NAMES['TYPE'],
-                WHATNOT_FIELD_NAMES['PRICE'],
-                WHATNOT_FIELD_NAMES['CATEGORY'],
-                WHATNOT_FIELD_NAMES['SUB_CATEGORY'],
-                WHATNOT_FIELD_NAMES['CONDITION'],
-                WHATNOT_FIELD_NAMES['OFFERABLE'],
-                WHATNOT_FIELD_NAMES['DESCRIPTION'],
-                WHATNOT_FIELD_NAMES['IMAGE_URL_1'],
-            ]
+            # Use the full proper WhatNot CSV schema and defaulting rules.
+            fieldnames = get_whatnot_export_fieldnames()
 
             writer = csv.DictWriter(output, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
             writer.writeheader()
 
             for comic in whatnot_tagged:
-                comic_dict = comic.to_dict()
-
-                # Build row with only essential WhatNot fields - use constants for both keys and lookups
-                row = {
-                    WHATNOT_FIELD_NAMES['SKU']: comic_dict.get(WHATNOT_FIELD_NAMES['SKU'], ''),
-                    WHATNOT_FIELD_NAMES['TITLE']: comic_dict.get(WHATNOT_FIELD_NAMES['TITLE'], ''),
-                    WHATNOT_FIELD_NAMES['TYPE']: comic_dict.get(WHATNOT_FIELD_NAMES['TYPE'], 'Buy it Now'),
-                    WHATNOT_FIELD_NAMES['PRICE']: comic_dict.get(WHATNOT_FIELD_NAMES['PRICE'], ''),
-                    WHATNOT_FIELD_NAMES['CATEGORY']: comic_dict.get(WHATNOT_FIELD_NAMES['CATEGORY'], 'Comics & Manga'),
-                    WHATNOT_FIELD_NAMES['SUB_CATEGORY']: comic_dict.get(WHATNOT_FIELD_NAMES['SUB_CATEGORY'], ''),
-                    WHATNOT_FIELD_NAMES['CONDITION']: comic_dict.get(WHATNOT_FIELD_NAMES['CONDITION'], ''),
-                    WHATNOT_FIELD_NAMES['OFFERABLE']: comic_dict.get(WHATNOT_FIELD_NAMES['OFFERABLE'], 'TRUE'),
-                    WHATNOT_FIELD_NAMES['DESCRIPTION']: comic_dict.get(WHATNOT_FIELD_NAMES['DESCRIPTION'], ''),
-                    WHATNOT_FIELD_NAMES['IMAGE_URL_1']: comic_dict.get(WHATNOT_FIELD_NAMES['IMAGE_URL_1'], ''),
-                }
-
-                writer.writerow(sanitize_row(row))
+                writer.writerow(sanitize_row(build_whatnot_export_row(comic)))
 
         else:  # eBay export
             # eBay export fields - use constants
@@ -998,7 +976,8 @@ def export_selected() -> tuple:
         bytes_output = BytesIO(csv_data.encode('utf-8'))
         bytes_output.seek(0)
 
-        filename = f"{platform}_export_{len(selected_comics)}_items_{time.strftime('%Y-%m-%d')}.csv"
+        export_count = len(whatnot_tagged) if platform == 'whatnot' else len(selected_comics)
+        filename = f"{platform}_export_{export_count}_items_{time.strftime('%Y-%m-%d')}.csv"
 
         return send_file(
             bytes_output,

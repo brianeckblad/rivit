@@ -809,8 +809,8 @@
                                 <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                             </svg>
                             <div style="flex: 1; text-align: left;">
-                                <div style="font-weight: 600;">Export All Listings in CSV</div>
-                                <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Download all items in WhatNot CSV format</div>
+                                <div style="font-weight: 600;">Export All Listed on WhatNot</div>
+                                <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Download all comics tagged as listed on WhatNot in full WhatNot CSV format</div>
                             </div>
                         </button>
 
@@ -819,8 +819,8 @@
                                 <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                             </svg>
                             <div style="flex: 1; text-align: left;">
-                                <div style="font-weight: 600;">Export For Sale Listings in CSV</div>
-                                <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Download For Sale listings only</div>
+                                <div style="font-weight: 600;">Export For Sale Listed on WhatNot</div>
+                                <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Download For Sale comics that are tagged as listed on WhatNot</div>
                             </div>
                         </button>
 
@@ -829,8 +829,8 @@
                                 <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                             </svg>
                             <div style="flex: 1; text-align: left;">
-                                <div style="font-weight: 600;">Export Giveaways in CSV</div>
-                                <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Download Giveaway listings only</div>
+                                <div style="font-weight: 600;">Export Giveaways Listed on WhatNot</div>
+                                <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Download Giveaway comics that are tagged as listed on WhatNot</div>
                             </div>
                         </button>
 
@@ -1445,14 +1445,14 @@
 
             fullBtn.onclick = function() {
                 if (platform === 'whatnot') {
-                    window.location.href = '/download';
+                    window.location.href = '/download?platform=whatnot';
                 } else {
                     window.location.href = '/download/ebay';
                 }
             };
 
             selectiveBtn.onclick = function() {
-                window.location.href = '/browse?mode=export';
+                window.location.href = `/browse?mode=export&platform=${encodeURIComponent(platform)}`;
             };
 
             document.getElementById('exportTypeModal').style.display = 'flex';
