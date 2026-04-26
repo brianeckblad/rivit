@@ -82,6 +82,7 @@
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
         virtualenv: "{{ venv_dir }}"
+        extra_args: "--upgrade"
       when: root_requirements.stat.exists
 
     - name: Ensure log directory exists

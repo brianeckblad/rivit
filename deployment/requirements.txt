@@ -1,22 +1,36 @@
-# Deployment Requirements
+# Deployment Requirements (control node only)
 # Install on LOCAL/deployment machine:
 #   pip install -r deployment/requirements.txt
 #   ansible-galaxy collection install -r deployment/requirements.yml --upgrade
-# These are NOT needed on the production server
+# These are NOT needed on the production app server.
 
-# Ansible for configuration management and deployment
-# 13.x bundles ansible-core 2.20 and collections (amazon.aws, community.aws)
-ansible>=13.0.0
+# -----------------------------------------------------------------------------
+# Deployment tools
+# -----------------------------------------------------------------------------
+ansible
+ansible-core
+awscli
+boto3
+botocore[crt]
+Jinja2
+PyYAML
 
-# AWS SDK for infrastructure provisioning (EC2, S3, CloudFront, WAF, Secrets Manager)
-boto3>=1.28.0
-botocore[crt]>=1.31.0
-
-# AWS CLI (if not installed system-wide)
-awscli>=1.29.0
-
-# Jinja2 for template rendering (Ansible dependency, but explicit for version control)
-Jinja2>=3.1.0
-
-# YAML parsing (Ansible dependency)
-PyYAML>=6.0
+# -----------------------------------------------------------------------------
+# Common transitive packages (listed explicitly to ensure they are present)
+# -----------------------------------------------------------------------------
+awscrt
+cffi
+colorama
+cryptography
+docutils
+jmespath
+MarkupSafe
+packaging
+pyasn1
+pycparser
+python-dateutil
+resolvelib
+rsa
+s3transfer
+six
+urllib3

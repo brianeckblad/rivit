@@ -3,19 +3,12 @@
 # Install: ansible-galaxy collection install -r requirements.yml --upgrade
 #
 # These are the Ansible collections needed for AWS infrastructure playbooks.
-# Pin to minimum versions that avoid known deprecation issues.
 
 collections:
   # Core AWS modules (EC2, S3, IAM, CloudWatch, etc.)
-  # 11.1.0+ removes create/delete_instance_profile deprecations on iam_role
   - name: amazon.aws
-    version: ">=11.1.0"
 
   # Additional AWS modules (Secrets Manager, WAF, CloudFront, etc.)
   - name: community.aws
-    version: ">=10.0.0"
 
-  # POSIX modules (used by server setup playbooks)
-  - name: ansible.posix
-    version: ">=2.0.0"
 
