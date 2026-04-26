@@ -8,18 +8,78 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from typing import Dict, Tuple
-from flask import request, jsonify, current_app, Response
-from app.routes.api import api_bp
-from app.routes.auth import login_required, csrf_required
-from app.services.ebay_service import ebay_service
+import base64
+import binascii
+import io
 import os
+from urllib.parse import unquote, urlparse
+
+from flask import Response, current_app, jsonify, request
+from flask.typing import ResponseReturnValue
+from werkzeug.datastructures import FileStorage
+
+from app.routes.api import api_bp
+from app.routes.auth import csrf_required, login_required
+from app.services.ebay_service import ebay_service
+from app.services.s3_service import s3_service
+from app.utils.upload_security import UploadValidationError, validate_uploaded_image
+
+
+ALLOWED_IMAGE_MIME_TO_EXTENSIONS = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+}
+
+
+def _encode_validated_uploaded_image(file_storage: FileStorage) -> str:
+    """Validate an uploaded image file and return a base64 payload for eBay."""
+    validate_uploaded_image(file_storage)
+    image_bytes = file_storage.stream.read()
+    file_storage.stream.seek(0)
+    return base64.b64encode(image_bytes).decode('ascii')
+
+
+def _encode_validated_base64_image(image_data: str) -> str:
+    """Validate a base64 image payload and normalize it for eBay search."""
+    if not isinstance(image_data, str) or not image_data.strip():
+        raise UploadValidationError('Image data is required')
+
+    normalized_data = image_data.strip()
+    mime_type = ''
+
+    if normalized_data.startswith('data:'):
+        header, separator, payload = normalized_data.partition(',')
+        if not separator or not payload:
+            raise UploadValidationError('Invalid image payload')
+        mime_type = header[5:].split(';', 1)[0].lower()
+        normalized_data = payload
+
+    if mime_type and mime_type not in ALLOWED_IMAGE_MIME_TO_EXTENSIONS:
+        raise UploadValidationError(
+            'Unsupported image type. Allowed: jpg, jpeg, png, gif, webp'
+        )
+
+    try:
+        image_bytes = base64.b64decode(normalized_data, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise UploadValidationError('Invalid image payload') from exc
+
+    filename_extension = ALLOWED_IMAGE_MIME_TO_EXTENSIONS.get(mime_type, 'png')
+    file_storage = FileStorage(
+        stream=io.BytesIO(image_bytes),
+        filename=f'image-search.{filename_extension}',
+    )
+    validate_uploaded_image(file_storage)
+    return base64.b64encode(image_bytes).decode('ascii')
 
 
 @api_bp.route('/ebay/lookup-price', methods=['POST'])
 @login_required
 @csrf_required
-def lookup_ebay_price() -> Response:
+def lookup_ebay_price() -> ResponseReturnValue:
     """Search eBay completed items for price research.
 
     Searches recently sold items on eBay to help determine appropriate pricing.
@@ -108,14 +168,14 @@ def lookup_ebay_price() -> Response:
         return jsonify(result)
 
     except Exception as e:
-        current_app.logger.error(f"Error looking up eBay price: {e}")
+        current_app.logger.exception("Error looking up eBay price")
         return jsonify({'success': False, 'error': 'Failed to lookup eBay prices'}), 500
 
 
 @api_bp.route('/ebay/search-active', methods=['POST'])
 @login_required
 @csrf_required
-def search_active_items() -> Response:
+def search_active_items() -> ResponseReturnValue:
     """Search active (currently listed) items on eBay.
 
     Searches current eBay listings to see what's currently available and at what prices.
@@ -182,14 +242,14 @@ def search_active_items() -> Response:
         return jsonify(result)
 
     except Exception as e:
-        current_app.logger.error(f"Error searching active eBay listings: {e}")
+        current_app.logger.exception("Error searching active eBay listings")
         return jsonify({'success': False, 'error': 'Failed to search active eBay listings'}), 500
 
 
 @api_bp.route('/ebay/search-sold', methods=['POST'])
 @login_required
 @csrf_required
-def search_sold() -> Response:
+def search_sold() -> ResponseReturnValue:
     """Return recently-sold listings for a comic title.
 
     Tries the eBay Marketplace Insights API (last-90-days sold items, official
@@ -246,14 +306,14 @@ def search_sold() -> Response:
         return jsonify(result)
 
     except Exception as e:
-        current_app.logger.error(f"Error searching sold eBay listings: {e}")
+        current_app.logger.exception("Error searching sold eBay listings")
         return jsonify({'success': False, 'error': 'Failed to search sold listings'}), 500
 
 
 @api_bp.route('/ebay/search-marketplace', methods=['POST'])
 @login_required
 @csrf_required
-def search_marketplace() -> Response:
+def search_marketplace() -> ResponseReturnValue:
     """Search all of eBay marketplace using the Browse API.
 
     Uses the Browse API text search which has separate rate limits
@@ -292,25 +352,31 @@ def search_marketplace() -> Response:
         return jsonify(result)
 
     except Exception as e:
-        current_app.logger.error(f"Error searching eBay marketplace: {e}")
+        current_app.logger.exception("Error searching eBay marketplace")
         return jsonify({'success': False, 'error': 'Failed to search eBay marketplace'}), 500
 
 
 @api_bp.route('/ebay/search-by-image', methods=['POST'])
 @login_required
 @csrf_required
-def search_by_image() -> Response:
+def search_by_image() -> ResponseReturnValue:
     """Search eBay using visual/image recognition to find similar items.
 
     Upload an image and find visually similar items on eBay. Uses eBay's
     Browse API for image-based search capabilities.
 
-    Request Body (JSON):
-        {
-            "image": str,               # Base64 encoded image data
-            "title": Optional[str],     # Optional title for filtering results
-            "limit": Optional[int]      # Max results (5-100, default 20)
-        }
+    Request Body:
+        JSON:
+            {
+                "image": str,               # Base64 encoded image data / data URL
+                "title": Optional[str],     # Optional title for filtering results
+                "limit": Optional[int]      # Max results (5-100, default 20)
+            }
+
+        multipart/form-data:
+            - image_file: uploaded image file
+            - title: optional title hint
+            - limit: optional max results
 
     Returns:
         Response: Flask JSON response containing:
@@ -353,13 +419,21 @@ def search_by_image() -> Response:
         - Maximum image size: 10MB
     """
     try:
-        data = request.get_json()
-        image_data = data.get('image')
-        title = data.get('title', '')
-        limit = data.get('limit', 20)
+        request_data = request.get_json(silent=True) or {}
+        uploaded_image = request.files.get('image_file')
+        image_payload = ''
 
-        if not image_data:
-            return jsonify({'success': False, 'error': 'Image data is required'}), 400
+        if uploaded_image:
+            title = request.form.get('title', '')
+            limit = request.form.get('limit', 20)
+            image_payload = _encode_validated_uploaded_image(uploaded_image)
+        else:
+            title = request_data.get('title', '')
+            limit = request_data.get('limit', 20)
+            image_data = request_data.get('image')
+            if not isinstance(image_data, str) or not image_data:
+                return jsonify({'success': False, 'error': 'Image data is required'}), 400
+            image_payload = _encode_validated_base64_image(image_data)
 
         # Validate limit
         try:
@@ -367,23 +441,24 @@ def search_by_image() -> Response:
         except (ValueError, TypeError):
             limit = 20
 
-        # Remove data URL prefix if present
-        if ',' in image_data:
-            image_data = image_data.split(',', 1)[1]
-
         # Search eBay by image with configurable limit and optional similarity sorting
-        result = ebay_service.search_by_image(image_data, limit=limit, sort_by_title=title)
+        result = ebay_service.search_by_image(image_payload, limit=limit, sort_by_title=title)
 
         return jsonify(result)
 
+    except UploadValidationError as exc:
+        current_app.logger.warning("Rejected image search upload: %s", exc)
+        message = exc.args[0] if exc.args else 'Invalid image upload'
+        return jsonify({'success': False, 'error': message}), exc.status_code
+
     except Exception as e:
-        current_app.logger.error(f"Error searching eBay by image route: {e}")
+        current_app.logger.exception("Error searching eBay by image route")
         return jsonify({'success': False, 'error': 'Failed to search eBay by image'}), 500
 
 
 @api_bp.route('/proxy-image', methods=['GET'])
 @login_required
-def proxy_image() -> Tuple[bytes, int, Dict[str, str]]:
+def proxy_image() -> ResponseReturnValue:
     """Proxy S3 images through the server using IAM credentials.
 
     The S3 bucket blocks all public access, so the browser cannot load images
@@ -419,7 +494,6 @@ def proxy_image() -> Tuple[bytes, int, Dict[str, str]]:
         - Browser caches images for 7 days (604800 seconds)
         - Content type inferred from S3 metadata or file extension
     """
-    import urllib.parse
 
     image_url = request.args.get('url')
     if not image_url:
@@ -432,12 +506,11 @@ def proxy_image() -> Tuple[bytes, int, Dict[str, str]]:
 
     try:
         # Extract S3 key from the URL
-        parsed = urllib.parse.urlparse(image_url)
         # URL format: https://{bucket}.s3.amazonaws.com/{key}
-        s3_key = urllib.parse.unquote(parsed.path.lstrip('/'))
+        parsed = urlparse(image_url)
+        s3_key = unquote(parsed.path.lstrip('/'))
 
         # Fetch image from S3 using IAM-authenticated boto3 client
-        from app.services.s3_service import s3_service
         response = s3_service.client().get_object(Bucket=s3_bucket, Key=s3_key)
         body = response['Body'].read()
 
@@ -461,5 +534,5 @@ def proxy_image() -> Tuple[bytes, int, Dict[str, str]]:
         error_code = getattr(e, 'response', {}).get('Error', {}).get('Code', '')
         if error_code in ('NoSuchKey', '404'):
             return jsonify({'error': 'Image not found'}), 404
-        current_app.logger.error(f"Error proxying image {image_url}: {e}")
+        current_app.logger.exception("Error proxying image %s", image_url)
         return jsonify({'error': 'Failed to fetch image'}), 500
