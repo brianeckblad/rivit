@@ -45,6 +45,36 @@ The full convention, entry template, and rules live in `.copilot/SESSION_NOTES.m
 
 ---
 
+## IDE Diagnostic False Positives — Known Noise
+
+This project generates **hundreds of IDE warnings** across `.html` and Python route files.
+The vast majority are **false positives**. Before acting on any diagnostic, identify its category.
+
+### Authoritative validators
+
+| Context | Real validator | IDE diagnostics |
+|---------|---------------|-----------------|
+| Python | `python3 -m py_compile file.py` | Mostly trustworthy, except Flask note below |
+| JS inside `.html` | `node --check extracted-js.js` | **High noise — do not chase** |
+
+### False positive categories (do NOT fix these)
+
+| Category | IDE message | Why it's false |
+|----------|-------------|----------------|
+| **JS template literals** | `Unused constant x` / `Expression expected` / `Closing '}' expected` | Variables used inside `${x}` are invisible to the HTML parser |
+| **Flask route returns** | `Expected type 'Response', got 'tuple[Response, int]'` | `(jsonify(...), 400)` IS correct Flask — JetBrains can't infer the union type |
+| **SVG self-closing tags** | `Empty tag doesn't work in some browsers` | `<path/>`, `<circle/>`, `<rect/>` are valid HTML5/SVG |
+| **onclick-wired params** | `Unused parameter sku` | Functions called by HTML `onclick` — IDE can't see the caller |
+| **Missing label** | `Missing associated label` | Hidden inputs and internal state fields don't need visible labels |
+| **throw in try/catch** | `'throw' of exception caught locally` | Intentional re-throw pattern for error propagation |
+
+**Key rule:** `node --check` passing clean means JS is correct. IDE template errors in `.html`
+files are noise from the HTML parser misreading JS — ignore them.
+
+For full documentation see [AGENTS.md → IDE Diagnostic False Positives](../AGENTS.md).
+
+---
+
 ## Shell Command Safety - CRITICAL
 
 ### Never Output Jinja2 Braces Through the Terminal

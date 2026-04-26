@@ -205,6 +205,101 @@ narrative.
 
 ---
 
+## IDE Diagnostic False Positives — Known Noise
+
+JetBrains (and some other IDEs) report hundreds of `WARNING(300)` and `ERROR(400)` entries
+in this project that are **not real problems**. Before acting on any IDE diagnostic, confirm
+whether it falls into one of the known false-positive categories below. Only consult the
+authoritative validators.
+
+### Authoritative validators (what actually matters)
+
+| Language / context | Authoritative check | IDE diagnostics? |
+|--------------------|---------------------|-----------------|
+| Python | `python3 -m py_compile <file>` + `black --check` + `isort --check` | Mostly trustworthy, but see Flask note below |
+| JavaScript inside `.html` templates | `node --check <extracted-js-file>` | **High noise — see below. Do not chase.** |
+| Jinja2 / HTML structure | Manual review | Mostly trustworthy |
+
+### Category 1 — JS template literals in HTML files (highest volume)
+
+JetBrains' HTML parser does not understand JavaScript template literals (`` `...${expr}...` ``).
+It reports every variable used *only* inside a `${}` expression as **"Unused constant"** /
+**"Local variable is redundant"**, and reports the `${}` expressions themselves as
+**"Expression expected"** / **"Closing '}' expected"** / **"Newline or semicolon expected"**.
+
+These warnings are **always false positives** in `.html` template files. The real test is
+`node --check` — if that passes, the JS is syntactically correct.
+
+**Never delete or rename a variable just because the IDE flags it as unused inside an HTML
+template. Check whether it is used inside a template literal first.**
+
+Examples of false positives (all pre-existing in `index.html`, `comics_list.html`, etc.):
+- `WARNING(300): Unused constant title` when `title` is used as `${title}` in a template literal
+- `ERROR(400): Expression expected` on a line like `` ${condition ? `<div>…</div>` : ''} ``
+- `WARNING(300): Local variable data is redundant` when `data` is used inside a `.then()` or template literal
+
+### Category 2 — Flask route return type warnings
+
+Every Flask route that returns `(jsonify({...}), 400)` gets:
+
+```
+WARNING(300): Expected type 'Response', got 'tuple[Response, int]' instead
+```
+
+This is a **JetBrains false positive**. `(jsonify(...), status_code)` IS the correct Flask
+pattern. JetBrains does not model Flask's response coercion correctly. These warnings appear
+in every one of the 11 API route files and are harmless. **Do not add `make_response()` wrappers
+just to silence them** — it adds boilerplate and visual noise with no benefit.
+
+### Category 3 — SVG self-closing tags
+
+```
+WARNING(300): Empty tag doesn't work in some browsers
+```
+
+Raised on every `<path/>`, `<circle/>`, `<rect/>`, `<line/>`, `<polyline/>` etc. in inline SVG.
+Self-closing SVG elements **are** valid HTML5. These are standard SVG icons used throughout
+the app. Ignore entirely.
+
+### Category 4 — `throw` of exception caught locally
+
+```
+WARNING(300): 'throw' of exception caught locally
+```
+
+JetBrains warns when a `throw` is inside a `try` whose own `catch` will catch it. This pattern
+is intentional in several places (e.g., re-throwing after logging, or surfacing errors through
+a promise chain). Evaluate each instance in context — most are deliberate, not bugs.
+
+### Category 5 — Missing associated label
+
+```
+WARNING(300): Missing associated label
+```
+
+Reported for hidden inputs (`type="hidden"`), `datetime-local` pickers inside modals, and
+`<textarea>` elements used as internal editor state. These do not need visible labels.
+Only add `<label>` where the element is a user-visible form field without one.
+
+### Category 6 — Unused parameters in onclick-wired functions
+
+```
+WARNING(300): Unused parameter sku
+```
+
+Functions called from HTML `onclick="fn(sku)"` receive parameters that may not be referenced
+in the function body (the function reads state from a global or `sessionStorage` instead).
+The IDE can't see the caller is HTML, so it flags the parameter as unused. These are not bugs.
+
+### Pre-commit validation — the correct process
+
+1. **Python files:** `python3 -m py_compile app/path/to/file.py` — zero output = clean
+2. **JS inside HTML:** Extract the `<script>` block to `/tmp/check.js`, run `node --check /tmp/check.js`
+3. **After confirming clean syntax**, run `black` and `isort` on Python files
+4. **IDE warnings** are informational only in HTML files — do not block a change on them
+
+---
+
 ## Shell Command Safety - CRITICAL
 
 ### Problem
