@@ -267,6 +267,14 @@
         group: root
         mode: '0644'
 
+    - name: Mark deployment maintenance window active for log monitor
+      copy:
+        content: "{{ ansible_date_time.iso8601 }}\n"
+        dest: "/run/{{ app_name }}-monitor.maintenance"
+        owner: root
+        group: root
+        mode: '0644'
+
     - name: Test nginx configuration
       command: nginx -t
       register: nginx_test
@@ -303,6 +311,11 @@
       register: app_status
       changed_when: false
       failed_when: false
+
+    - name: Clear deployment maintenance window for log monitor
+      file:
+        path: "/run/{{ app_name }}-monitor.maintenance"
+        state: absent
 
     - name: Display application status
       debug:

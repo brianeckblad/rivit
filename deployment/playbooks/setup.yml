@@ -186,6 +186,14 @@
         minute: "*/5"
         user: root
 
+    - name: Mark deployment maintenance window active for log monitor
+      copy:
+        content: "{{ ansible_date_time.iso8601 }}\n"
+        dest: "/run/{{ app_name }}-monitor.maintenance"
+        owner: root
+        group: root
+        mode: '0644'
+
     - name: Apply security permissions
       import_tasks: harden-permissions-tasks.yml
 
@@ -241,6 +249,11 @@
         name: "{{ service_name }}"
         state: started
       when: supervisor_status.rc != 0 and supervisor_status.rc != 3
+
+    - name: Clear deployment maintenance window for log monitor
+      file:
+        path: "/run/{{ app_name }}-monitor.maintenance"
+        state: absent
 
     # =========================================================================
     # SSL CERTIFICATE (required for all production deployments)
