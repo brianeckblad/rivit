@@ -97,7 +97,7 @@
           when: root_requirements.stat.exists
 
         - name: Migrate inventory CSV schema to latest format
-          become_user: "{{ admin_user }}"
+          become_user: "{{ app_user }}"
           command: "{{ venv_dir }}/bin/python {{ app_dir }}/app/scripts/util_migrate_csv_schema.py"
           args:
             chdir: "{{ app_dir }}"
