@@ -122,6 +122,8 @@ ExecStart={{ venv_dir }}/bin/gunicorn \
     --threads 4 \
     --worker-class gthread \
     --timeout 120 \
+    --worker-tmp-dir /tmp \
+    --control-socket /tmp/gunicorn.ctl \
     --access-logfile {{ log_dir }}/access.log \
     --error-logfile {{ log_dir }}/error.log \
     --log-level warning \

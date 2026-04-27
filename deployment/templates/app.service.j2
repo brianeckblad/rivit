@@ -95,6 +95,7 @@ ExecStart={{ venv_dir }}/bin/gunicorn \
     --threads 2 \
     --timeout {{ gunicorn_timeout }} \
     --worker-tmp-dir /tmp \
+    --control-socket /tmp/gunicorn.ctl \
     --access-logfile {{ log_dir }}/access.log \
     --error-logfile {{ log_dir }}/error.log \
     --log-level warning \

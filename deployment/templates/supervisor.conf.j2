@@ -37,7 +37,7 @@
 #         via RotatingFileHandler. --capture-output would duplicate INFO into
 #         Gunicorn's error.log.
 # ============================================================================
-command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers }} -b 127.0.0.1:8000 --timeout {{ gunicorn_timeout }} --worker-tmp-dir /tmp --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level warning "app:create_app('production')"
+command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers }} -b 127.0.0.1:8000 --timeout {{ gunicorn_timeout }} --worker-tmp-dir /tmp --control-socket /tmp/gunicorn.ctl --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level warning "app:create_app('production')"
 
 # Working directory for the process
 directory={{ app_dir }}
