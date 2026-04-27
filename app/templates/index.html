@@ -2790,6 +2790,10 @@
                                             <input type="text" id="metaIssueNumber" name="C:Issue Number" class="admin-input" placeholder="e.g. 300">
                                         </div>
                                         <div class="admin-form-group">
+                                            <label for="metaUpc">UPC</label>
+                                            <input type="text" id="metaUpc" name="C:UPC" class="admin-input" placeholder="e.g. 75960620534900111">
+                                        </div>
+                                        <div class="admin-form-group">
                                             <label for="metaPublicationYear">Publication Year</label>
                                             <input type="text" id="metaPublicationYear" name="C:Publication Year" class="admin-input" placeholder="e.g. 2022">
                                         </div>
@@ -6245,6 +6249,7 @@
             'Publisher': 'metaPublisher',
             'Series Title': 'metaSeriesTitle',
             'Issue Number': 'metaIssueNumber',
+            'UPC': 'metaUpc',
             'Publication Year': 'metaPublicationYear',
             'Character': 'metaCharacter',
             'Artist/Writer': 'metaArtistWriter',
@@ -7120,16 +7125,16 @@
 
             for (const [name, value] of Object.entries(specifics)) {
                 const csvFieldName = `C:${name}`;
-                if (form.elements.namedItem(csvFieldName)) {
+                const field = form.elements.namedItem(csvFieldName);
+                if (!field) {
+                    // Ignore unsupported specifics so we never submit unknown CSV columns.
                     continue;
                 }
 
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = csvFieldName;
-                hidden.value = Array.isArray(value) ? value.join(', ') : String(value ?? '');
-                hidden.setAttribute('data-ebay-clone-specific', 'true');
-                form.appendChild(hidden);
+                const displayValue = Array.isArray(value) ? value.join(', ') : String(value ?? '');
+                if (typeof field.value !== 'undefined') {
+                    field.value = displayValue;
+                }
             }
         }
 

@@ -371,8 +371,18 @@ class CSVService:
                     return False
 
                 with open(self.csv_file_path, 'a', newline='', encoding='utf-8') as csv_file:
-                    csv_writer = csv.DictWriter(csv_file, fieldnames=self._get_all_fieldnames(), quoting=csv.QUOTE_ALL)
-                    csv_writer.writerow(comic.to_dict())
+                    fieldnames = self._get_all_fieldnames()
+                    row_data = comic.to_dict()
+                    unknown_fields = sorted(set(row_data.keys()) - set(fieldnames))
+                    if unknown_fields:
+                        logger.warning("Ignoring unknown CSV fields on add: %s", unknown_fields)
+                    csv_writer = csv.DictWriter(
+                        csv_file,
+                        fieldnames=fieldnames,
+                        extrasaction='ignore',
+                        quoting=csv.QUOTE_ALL,
+                    )
+                    csv_writer.writerow(row_data)
 
                 # Invalidate cache after write
                 self._invalidate_cache()

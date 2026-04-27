@@ -85,6 +85,14 @@
         extra_args: "--upgrade"
       when: root_requirements.stat.exists
 
+    - name: Migrate inventory CSV schema to latest format
+      become_user: "{{ admin_user }}"
+      command: "{{ venv_dir }}/bin/python {{ app_dir }}/app/scripts/util_migrate_csv_schema.py"
+      args:
+        chdir: "{{ app_dir }}"
+      register: csv_migration
+      changed_when: "'[migrated]' in csv_migration.stdout or '[created]' in csv_migration.stdout"
+
     - name: Ensure log directory exists
       file:
         path: "{{ log_dir }}"

@@ -83,6 +83,7 @@ EBAY_FIELD_NAMES = {
     'C_AUTOGRAPH_AUTHENTICATION_NUMBER': 'C:Autograph Authentication Number',
     'C_CALIFORNIA_PROP_65_WARNING': 'C:California Prop 65 Warning',
     'C_ISSUE_NUMBER': 'C:Issue Number',
+    'C_UPC': 'C:UPC',
     'C_UNIT_QUANTITY': 'C:Unit Quantity',
     'C_UNIT_TYPE': 'C:Unit Type',
 }
@@ -482,6 +483,9 @@ EBAY_FIELD_VALIDATION = {
         'required': False
     },
     EBAY_FIELD_NAMES['C_ISSUE_NUMBER']: {
+        'required': False
+    },
+    EBAY_FIELD_NAMES['C_UPC']: {
         'required': False
     },
     EBAY_FIELD_NAMES['C_UNIT_QUANTITY']: {

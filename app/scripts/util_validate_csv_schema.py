@@ -33,7 +33,8 @@ from app.utils.whatnot_validators import (
 from app.services.csv_service import (
     EBAY_METADATA_FIELDS,
     WHATNOT_LISTING_FIELDS,
-    EBAY_ITEM_FIELDS
+    EBAY_ITEM_FIELDS,
+    EBAY_ITEM_SPECIFICS_FIELDS,
 )
 
 
@@ -52,6 +53,9 @@ def get_expected_fields():
 
     # Add eBay item fields
     expected_fields.update(EBAY_ITEM_FIELDS)
+
+    # Add eBay item specifics fields (C:*)
+    expected_fields.update(EBAY_ITEM_SPECIFICS_FIELDS)
 
     # Add all WhatNot validated fields
     expected_fields.update(WHATNOT_FIELD_VALIDATION.keys())
@@ -158,7 +162,13 @@ def validate_field_registration():
 
         # Check 2: All validation fields should have proper names
         field_names_set = set(WHATNOT_FIELD_NAMES.values())
-        non_whatnot_fields = set(METADATA_FIELDS) | set(EBAY_METADATA_FIELDS) | set(WHATNOT_LISTING_FIELDS) | set(EBAY_ITEM_FIELDS)
+        non_whatnot_fields = (
+            set(METADATA_FIELDS)
+            | set(EBAY_METADATA_FIELDS)
+            | set(WHATNOT_LISTING_FIELDS)
+            | set(EBAY_ITEM_FIELDS)
+            | set(EBAY_ITEM_SPECIFICS_FIELDS)
+        )
         validation_not_in_names = validation_fields - field_names_set - non_whatnot_fields
 
         if validation_not_in_names:
