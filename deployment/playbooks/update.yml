@@ -90,6 +90,8 @@
       command: "{{ venv_dir }}/bin/python {{ app_dir }}/app/scripts/util_migrate_csv_schema.py"
       args:
         chdir: "{{ app_dir }}"
+      vars:
+        ansible_remote_tmp: /tmp
       register: csv_migration
       changed_when: "'[migrated]' in csv_migration.stdout or '[created]' in csv_migration.stdout"
 
