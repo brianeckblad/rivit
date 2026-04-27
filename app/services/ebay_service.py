@@ -1295,7 +1295,8 @@ class EbayService:
             devid=creds['dev_id'],
             certid=creds['cert_id'],
             token=creds['token'],
-            warnings=True
+            warnings=True,
+            timeout=15,  # Fail fast before Gunicorn worker timeout fires; DNS/network errors raise cleanly
         )
 
     # ------------------------------------------------------------------
