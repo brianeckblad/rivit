@@ -264,6 +264,35 @@
             font-weight: 600;
         }
 
+        .listing-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--color-elevated);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .listing-filter-tab {
+            padding: 10px 16px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--color-text-muted);
+            font-size: clamp(12px, 2vw, 15px);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .listing-filter-tab.active {
+            border-bottom-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
         /* Page-specific width override for form-input */
         .search-box {
             width: 300px;
@@ -732,6 +761,14 @@
             </div>
         </div>
 
+        <div class="listing-filter-bar">
+            <button id="priceFilterAll" class="listing-filter-tab active" onclick="setPriceLookupListingFilter('all')">All Comics</button>
+            <button id="priceFilterNotListed" class="listing-filter-tab" onclick="setPriceLookupListingFilter('Not Listed')">Not Listed</button>
+            <button id="priceFilterForSaleEbay" class="listing-filter-tab" onclick="setPriceLookupListingFilter('For Sale eBay')">eBay</button>
+            <button id="priceFilterWhatNot" class="listing-filter-tab" onclick="setPriceLookupListingFilter('WhatNot')">WhatNot</button>
+            <button id="priceFilterGiveaway" class="listing-filter-tab" onclick="setPriceLookupListingFilter('Giveaway')">WN Givys</button>
+        </div>
+
         <div id="tableView">
             <table class="comics-table">
                 <thead>
@@ -842,8 +879,42 @@
         let searchDebounceTimer = null;
         const itemsPerPage = 20; // For eBay image search results pagination
         let maxLoadedPage = 1; // Track the highest page we've loaded
+        let currentListingTypeFilter = localStorage.getItem('pricingListingTypeFilter') || 'all';
 
         let currentView = 'table';
+
+        function updatePriceLookupFilterTabUI() {
+            const activeTabId = currentListingTypeFilter === 'all'
+                ? 'priceFilterAll'
+                : currentListingTypeFilter === 'Not Listed'
+                    ? 'priceFilterNotListed'
+                    : currentListingTypeFilter === 'For Sale eBay'
+                        ? 'priceFilterForSaleEbay'
+                        : currentListingTypeFilter === 'WhatNot'
+                            ? 'priceFilterWhatNot'
+                            : 'priceFilterGiveaway';
+
+            document.querySelectorAll('.listing-filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            const activeTab = document.getElementById(activeTabId);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+        }
+
+        function setPriceLookupListingFilter(type) {
+            currentListingTypeFilter = type;
+            localStorage.setItem('pricingListingTypeFilter', type);
+            sessionStorage.removeItem('pricing_maxLoadedPage');
+            maxLoadedPage = 1;
+            currentPage = 1;
+            allComics = [];
+            updatePriceLookupFilterTabUI();
+            loadComics(1, false);
+        }
+        window.setPriceLookupListingFilter = setPriceLookupListingFilter;
 
         function switchView(view) {
             currentView = view;
@@ -1489,6 +1560,9 @@
 
                 // Build API URL with optional search parameter and sort order
                 let url = `/api/comics?page=${page}&per_page=${perPage}&sort_by=${sortBy}`;
+                if (currentListingTypeFilter && currentListingTypeFilter !== 'all') {
+                    url += `&listing_type=${encodeURIComponent(currentListingTypeFilter)}`;
+                }
                 if (currentSearchTerm) {
                     url += `&search=${encodeURIComponent(currentSearchTerm)}`;
                 }
@@ -2305,6 +2379,7 @@
             }
             currentLoadedComic = null;
             uploadedImageData = null;
+            updatePriceLookupFilterTabUI();
 
             // Load comics - restore previous state if available
             const savedMaxPage = sessionStorage.getItem('pricing_maxLoadedPage');
