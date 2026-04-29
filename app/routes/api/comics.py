@@ -22,6 +22,7 @@ from app.utils.defaults_helpers import apply_defaults_to_comic_data
 from app.utils.logging_utils import safe_error_message
 from app.utils.csv_sanitizer import sanitize_row
 from app.utils.upload_security import validate_uploaded_image, UploadValidationError
+from app.utils.helpers import is_giveaway
 from app.utils.whatnot_validators import (
     WHATNOT_FIELD_NAMES,
     METADATA_FIELD_NAMES,
@@ -594,6 +595,48 @@ def update_comic(sku: str) -> Response:
 
         # Persist canonical giveaway / WhatNot flags based on the selected Type.
         _normalize_giveaway_fields(merged_data)
+
+        was_giveaway = is_giveaway(
+            existing_data.get('Title', ''),
+            existing_data.get(WHATNOT_FIELD_NAMES['LISTING_TYPE'])
+        )
+        is_now_giveaway = is_giveaway(
+            merged_data.get('Title', ''),
+            merged_data.get(WHATNOT_FIELD_NAMES['LISTING_TYPE'])
+        )
+
+        # If a listed comic is moved to Giveaway, end the live/scheduled eBay
+        # listing first and clear the local linkage in the same save.
+        if not was_giveaway and is_now_giveaway and existing_comic.ebay_item_id:
+            try:
+                listing_status = 'Unknown'
+                item_info = ebay_service.get_item(existing_comic.ebay_item_id, environment='production')
+                if item_info:
+                    listing_status = item_info.get('ListingStatus', 'Unknown')
+
+                if listing_status in ['Active', 'Scheduled']:
+                    ebay_service.end_listing(existing_comic, reason='NotAvailable', environment='production')
+                    current_app.logger.info(
+                        "[update_comic] SKU %s: Auto-delisted eBay item %s while switching to Giveaway",
+                        sku,
+                        existing_comic.ebay_item_id,
+                    )
+
+                merged_data[METADATA_FIELD_NAMES['EBAY_ITEM_ID']] = ''
+            except Exception as exc:
+                current_app.logger.error(
+                    "[update_comic] SKU %s: Failed to auto-delist eBay item %s during Giveaway transition: %s",
+                    sku,
+                    existing_comic.ebay_item_id,
+                    exc,
+                )
+                return jsonify({
+                    'success': False,
+                    'message': (
+                        'Could not move item to Giveaway because ending the eBay listing failed. '
+                        f"{safe_error_message(exc)}"
+                    )
+                }), 500
 
         # NOTE: Do NOT apply defaults here - we're editing an existing comic.
         # The merge above already preserves existing values from the CSV.
