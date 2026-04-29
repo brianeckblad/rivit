@@ -5341,7 +5341,7 @@
 
             // Set default type
             const typeValue = adminDefaults.Type || validationData['Type']?.default || 'Buy it Now';
-            updateTypeUI(typeValue);
+            updateTypeUI(typeValue, { userInitiated: false });
 
             // Initialize eBay settings with admin defaults (only if elements exist)
             const ebayActionMode = document.getElementById('ebayActionMode');
@@ -9395,7 +9395,7 @@
             if (priceEl) priceEl.value = priceNum;
 
             // Update the UI based on type
-            updateTypeUI(typeValue);
+            updateTypeUI(typeValue, { userInitiated: false });
 
             existingImageUrls = [];
             for (let i = 1; i <= 8; i++) {
@@ -10142,11 +10142,19 @@
             updateImageNumbers();
         }
 
-        function updateTypeUI(typeValue) {
+        function updateTypeUI(typeValue, options = {}) {
+            const { userInitiated = true } = options;
             const typeButtons = document.querySelectorAll('.type-btn[data-type]');
             const typeInput = document.getElementById('type');
             const priceInput = document.getElementById('price');
             const priceLabel = priceInput?.parentElement?.parentElement?.querySelector('label');
+            const previousType = typeInput?.value || '';
+
+            // When user clicks a type tab while viewing an existing comic,
+            // switch to edit mode so Save becomes available.
+            if (userInitiated && viewMode && editingSKU) {
+                enableEditMode();
+            }
 
             // Update button states
             typeButtons.forEach(btn => {
@@ -10193,6 +10201,11 @@
             }
             // Disable/Enable eBay settings section based on type
             toggleEbaySettingsForGiveaway(typeValue === 'Giveaway');
+
+            if (userInitiated && previousType !== typeValue) {
+                formHasChanged = true;
+            }
+
             // Refresh eBay controls to hide/show buttons based on listing type
             refreshEbayControls();
         }
