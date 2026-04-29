@@ -2923,6 +2923,15 @@
                     <span>Add from eBay</span>
                 </button>
 
+                <a href="/add-from-image" id="addFromImageBtn" title="Drop a cover photo and auto-fill from an eBay image match" class="footer-icon-btn-idx" style="color: var(--color-accent); border-color: var(--color-accent); text-decoration: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                    <span>Add from Image</span>
+                </a>
+
                 <!-- WhatNot Menu Pill -->
                 <div id="whatnotMenuPill" class="menu-pill" style="display:none; position: relative;">
                     <button type="button" class="menu-pill-btn" id="whatnotMenuBtn" onclick="toggleWhatNotMenu(event)">
@@ -9189,6 +9198,8 @@
             // Hide Add from eBay button in edit mode
             const addFromEbayBtn = document.getElementById('addFromEbayBtn');
             if (addFromEbayBtn) addFromEbayBtn.style.display = 'none';
+            const addFromImageBtn = document.getElementById('addFromImageBtn');
+            if (addFromImageBtn) addFromImageBtn.style.display = 'none';
 
             editMode = true;
             editingSKU = comic.SKU;
@@ -9663,6 +9674,8 @@
             // Show Add from eBay button (only visible in add mode)
             const addFromEbayBtn = document.getElementById('addFromEbayBtn');
             if (addFromEbayBtn) addFromEbayBtn.style.display = '';
+            const addFromImageBtn = document.getElementById('addFromImageBtn');
+            if (addFromImageBtn) addFromImageBtn.style.display = '';
 
             // Reload defaults (this now handles Condition Details, Photos Details, Shipping Details, and Signoff)
             populateForm();
@@ -10281,12 +10294,101 @@
         // Initialize the application when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
             loadValidationData();
+            // Pull in any handoff payload from /add-from-image (image + eBay match)
+            applyAddFromImageHandoff();
         });
 
         // Also try immediate initialization in case DOM is already loaded
         if (document.readyState === 'loading') {
         } else {
             loadValidationData();
+        }
+
+        /**
+         * If the user came from /add-from-image, the matched eBay metadata and
+         * their cover photo are stashed in sessionStorage. Pull them in, attach
+         * the photo to the file input, and pre-fill the form via the existing
+         * populateFormFromEbayClone() routine.
+         */
+        async function applyAddFromImageHandoff() {
+            const STORAGE_KEY = 'pendingImageAddPayload';
+            let raw;
+            try {
+                raw = sessionStorage.getItem(STORAGE_KEY);
+            } catch (e) {
+                return;
+            }
+            if (!raw) return;
+
+            // Always clear, even on failure, so a stale payload can't loop.
+            try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+
+            let payload;
+            try {
+                payload = JSON.parse(raw);
+            } catch (e) {
+                console.warn('add-from-image: bad payload JSON', e);
+                return;
+            }
+            if (!payload || typeof payload !== 'object') return;
+
+            // 1. Attach the user's photo to the file input so it submits with the form.
+            try {
+                if (payload.userImageDataUrl) {
+                    const blob = dataUrlToBlob(payload.userImageDataUrl);
+                    if (blob) {
+                        const fname = payload.userImageName || 'cover.jpg';
+                        const ftype = payload.userImageType || blob.type || 'image/jpeg';
+                        const file = new File([blob], fname, { type: ftype });
+                        const input = document.getElementById('fileInput');
+                        if (input) {
+                            const dt = new DataTransfer();
+                            dt.items.add(file);
+                            input.files = dt.files;
+                            // Trigger the existing handler so the preview renders.
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('add-from-image: failed to attach user photo', e);
+            }
+
+            // 2. If the user picked an eBay match, pre-fill the form with it.
+            if (payload.selectedItem && typeof populateFormFromEbayClone === 'function') {
+                try {
+                    populateFormFromEbayClone(payload.selectedItem, payload.details || null);
+                    if (typeof applyEbayCloneSourceState === 'function') {
+                        applyEbayCloneSourceState();
+                    }
+                    if (typeof showNotification === 'function') {
+                        showNotification('Pre-filled from image match — review and save.', 'success', 4000);
+                    }
+                } catch (e) {
+                    console.warn('add-from-image: pre-fill failed', e);
+                }
+            } else if (payload.userImageDataUrl && typeof showNotification === 'function') {
+                showNotification('Photo attached — fill in the details and save.', 'success', 4000);
+            }
+        }
+
+        function dataUrlToBlob(dataUrl) {
+            try {
+                const parts = String(dataUrl).split(',');
+                if (parts.length !== 2) return null;
+                const meta = parts[0];
+                const b64 = parts[1];
+                const mimeMatch = meta.match(/data:([^;]+);base64/);
+                const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+                const binary = atob(b64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return new Blob([bytes], { type: mime });
+            } catch (e) {
+                return null;
+            }
         }
 
         // Grading Modal Functions

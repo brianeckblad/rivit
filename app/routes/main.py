@@ -57,6 +57,19 @@ def add_comic():
                          active_page='add')
 
 
+@main_bp.route('/add-from-image')
+@login_required
+def add_from_image():
+    """Display the streamlined "Add Comic From Image" intake page.
+
+    The user uploads or photographs a single cover image. The page searches
+    eBay for visually similar comics, lets the user pick the closest match,
+    then hands off to the standard ``/add`` form with the user's photo and
+    the matched listing's metadata pre-filled.
+    """
+    return render_template('add_from_image.html', active_page='add')
+
+
 @main_bp.route('/browse')
 @login_required
 def browse_comics():
