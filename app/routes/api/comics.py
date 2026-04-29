@@ -36,6 +36,27 @@ import time
 import math
 
 
+def _get_active_platforms(comic) -> list[str]:
+    """Return platform names the comic is currently listed on.
+
+    Checks eBay (non-empty ``ebay_item_id``) and WhatNot (``whatnot_item_id``
+    equals ``'TRUE'``).  Returns an empty list when the item is not actively
+    listed on any external platform.
+
+    Args:
+        comic: A ``Comic`` instance returned by ``comic_service.get_comic``.
+
+    Returns:
+        list[str]: Platform names, e.g. ``['eBay', 'WhatNot']``.
+    """
+    platforms: list[str] = []
+    if getattr(comic, 'ebay_item_id', '').strip():
+        platforms.append('eBay')
+    if str(getattr(comic, 'whatnot_item_id', '') or '').strip().upper() == 'TRUE':
+        platforms.append('WhatNot')
+    return platforms
+
+
 def _normalize_giveaway_fields(comic_data: dict) -> None:
     """Persist canonical giveaway / WhatNot flags in ``comic_data``.
 
@@ -765,6 +786,23 @@ def delete_comic(sku: str) -> Response:
         - CSV backed up to S3 after deletion
     """
     try:
+        # Block deletion if the item is still listed on an external platform.
+        comic = comic_service.get_comic(sku)
+        if comic is None:
+            return jsonify({'success': False, 'message': f'Comic with SKU {sku} not found'}), 404
+
+        platforms = _get_active_platforms(comic)
+        if platforms:
+            platform_str = ' and '.join(platforms)
+            return jsonify({
+                'success': False,
+                'message': (
+                    f'This item is still listed on {platform_str}. '
+                    f'Please remove it from {platform_str} before deleting.'
+                ),
+                'listed_on': platforms,
+            }), 409
+
         success, message = comic_service.delete_comic(sku)
 
         if success:
@@ -824,6 +862,27 @@ def delete_all_comics() -> Response:
                 'success': False,
                 'error': 'Confirmation required. Send {"confirmation": "DELETE_ALL_COMICS"} to confirm deletion.'
             }), 400
+
+        # Block if any items are still listed on external platforms.
+        all_comics = comic_service.get_comics_paginated(per_page=10000).get('comics', [])
+        listed_platforms: set[str] = set()
+        listed_count = 0
+        for comic in all_comics:
+            platforms = _get_active_platforms(comic)
+            if platforms:
+                listed_count += 1
+                listed_platforms.update(platforms)
+
+        if listed_count:
+            platform_str = ' and '.join(sorted(listed_platforms))
+            return jsonify({
+                'success': False,
+                'error': (
+                    f'{listed_count} item(s) are still listed on {platform_str}. '
+                    f'Please remove all items from {platform_str} before using Delete All.'
+                ),
+                'listed_count': listed_count,
+            }), 409
 
         result = comic_service.delete_all_comics()
         return jsonify({
@@ -933,6 +992,29 @@ def delete_selected_comics() -> Response:
 
         if not skus:
             return jsonify({'success': False, 'error': 'No SKUs provided'}), 400
+
+        # Block deletion for any item still listed on an external platform.
+        blocked: list[dict] = []
+        for sku in skus:
+            comic = comic_service.get_comic(sku)
+            if comic is None:
+                continue
+            platforms = _get_active_platforms(comic)
+            if platforms:
+                blocked.append({'sku': sku, 'platforms': platforms})
+
+        if blocked:
+            items_str = ', '.join(
+                f"SKU {b['sku']} ({' and '.join(b['platforms'])})" for b in blocked
+            )
+            return jsonify({
+                'success': False,
+                'error': (
+                    f'The following items are still listed on external platforms and must be '
+                    f'removed before deletion: {items_str}.'
+                ),
+                'blocked': blocked,
+            }), 409
 
         deleted_count, message = comic_service.delete_selected_comics(skus)
         return jsonify({
