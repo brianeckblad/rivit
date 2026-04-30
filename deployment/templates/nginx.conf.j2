@@ -245,7 +245,7 @@ server {
     }
 
     # Main application pages (require authentication at Flask level)
-    location ~ ^/(add|browse|download(/ebay)?|price-lookup|account|trash|ebay-listings)$ {
+    location ~ ^/(add|add-from-image|browse|download(/ebay)?|price-lookup|account|trash|ebay-listings)$ {
         # Rate limiting for authenticated pages
         limit_req zone=general_limit burst=100 nodelay;
         limit_req_status 429;
