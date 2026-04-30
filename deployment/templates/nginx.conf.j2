@@ -245,11 +245,7 @@ server {
     }
 
     # Main application pages (require authentication at Flask level)
-    # NOTE: This is an explicit allow-list. New top-level page routes added in
-    # app/routes/main.py MUST be added here, otherwise nginx will fall through
-    # to the catch-all `location /` below and `return 444` (abrupt close),
-    # which Chrome surfaces as ERR_HTTP2_PROTOCOL_ERROR.
-    location ~ ^/(add|add-from-image|browse|download(/ebay)?|price-lookup|account|trash|ebay-listings)$ {
+    location ~ ^/(add|browse|download(/ebay)?|price-lookup|account|trash|ebay-listings)$ {
         # Rate limiting for authenticated pages
         limit_req zone=general_limit burst=100 nodelay;
         limit_req_status 429;
