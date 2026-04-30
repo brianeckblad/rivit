@@ -58,7 +58,7 @@
 
     - name: Pull latest code from git
       become_user: "{{ admin_user }}"
-      command: git pull origin {{ git_branch }}
+      command: git pull --rebase origin {{ git_branch }}
       args:
         chdir: "{{ app_dir }}"
       register: git_pull
