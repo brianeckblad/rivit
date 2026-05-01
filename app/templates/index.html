@@ -7528,13 +7528,18 @@
 
             // ESC - Close modal or cancel edit/view
             if (e.key === 'Escape' || e.key === 'Esc') {
+                // base.html's listener fires first and calls closeAllModals().
+                // If it detected the image viewer was open, it sets this flag so
+                // we skip all edit-mode logic (the modal is already closed).
+                if (e._closedImageModal) return;
+
                 // Close eBay search modal first if open
                 const ebayModal = document.getElementById('ebaySearchModal');
                 if (ebayModal && ebayModal.classList.contains('show')) {
                     closeEbaySearchModal();
                     return;
                 }
-                // Close image modal if open — always return so edit-mode logic never fires
+                // Close image modal if still open (fallback — in case base.html didn't catch it)
                 if (isModalOpen) {
                     closeImageModal();
                     return;
