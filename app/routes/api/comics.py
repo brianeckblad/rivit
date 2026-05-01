@@ -155,7 +155,8 @@ def get_comics() -> Response:
             page = 1
 
         # Validate sort_by
-        if sort_by not in ['sku_asc', 'sku_desc']:
+        valid_sorts = {'sku_asc', 'sku_desc', 'title_asc', 'title_desc', 'price_asc', 'price_desc'}
+        if sort_by not in valid_sorts:
             sort_by = 'sku_asc'
 
         # Validate not_listed_subfilter

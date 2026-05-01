@@ -264,33 +264,11 @@
             font-weight: 600;
         }
 
+        /* .filter-tabs / .filter-tab defined in components.css */
+
         .listing-filter-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            border-bottom: 2px solid var(--color-elevated);
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .listing-filter-tab {
-            padding: 10px 16px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            color: var(--color-text-muted);
-            font-size: clamp(12px, 2vw, 15px);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .listing-filter-tab.active {
-            border-bottom-color: var(--color-accent);
-            color: var(--color-accent);
+            /* override: allow search+sort on same row */
+            flex-wrap: nowrap;
         }
 
         /* Page-specific width override for form-input */
@@ -761,12 +739,21 @@
             </div>
         </div>
 
-        <div class="listing-filter-bar">
-            <button id="priceFilterAll" class="listing-filter-tab active" onclick="setPriceLookupListingFilter('all')">All Comics</button>
-            <button id="priceFilterNotListed" class="listing-filter-tab" onclick="setPriceLookupListingFilter('Not Listed')">Not Listed</button>
-            <button id="priceFilterForSaleEbay" class="listing-filter-tab" onclick="setPriceLookupListingFilter('For Sale eBay')">eBay</button>
-            <button id="priceFilterWhatNot" class="listing-filter-tab" onclick="setPriceLookupListingFilter('WhatNot')">WhatNot</button>
-            <button id="priceFilterGiveaway" class="listing-filter-tab" onclick="setPriceLookupListingFilter('Giveaway')">WN Givys</button>
+        <div class="filter-tabs listing-filter-bar">
+            <button id="priceFilterAll" class="filter-tab active" onclick="setPriceLookupListingFilter('all')">All Comics</button>
+            <button id="priceFilterNotListed" class="filter-tab" onclick="setPriceLookupListingFilter('Not Listed')">Not Listed</button>
+            <button id="priceFilterForSaleEbay" class="filter-tab" onclick="setPriceLookupListingFilter('For Sale eBay')">eBay</button>
+            <button id="priceFilterWhatNot" class="filter-tab" onclick="setPriceLookupListingFilter('WhatNot')">WhatNot</button>
+            <button id="priceFilterGiveaway" class="filter-tab" onclick="setPriceLookupListingFilter('Giveaway')">Giveaway</button>
+            <div style="flex: 1;"></div>
+            <select id="priceSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 36px; padding: 6px 10px; font-size: 13px; cursor: pointer; flex-shrink: 0; margin-bottom: -2px;" onchange="setPriceSort(this.value)">
+                <option value="sku_asc">SKU: Low → High</option>
+                <option value="sku_desc">SKU: High → Low</option>
+                <option value="title_asc">Title: A → Z</option>
+                <option value="title_desc">Title: Z → A</option>
+                <option value="price_asc">Price: Low → High</option>
+                <option value="price_desc">Price: High → Low</option>
+            </select>
         </div>
 
         <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
@@ -902,6 +889,8 @@
             pricingNotListedSubFilter = 'both';
             localStorage.setItem('pricingNotListedSubFilter', 'both');
         }
+        // Inline sort order for the pricing page
+        let priceSortOrder = localStorage.getItem('priceSortOrder') || 'sku_asc';
 
         let currentView = 'table';
 
@@ -916,7 +905,7 @@
                             ? 'priceFilterWhatNot'
                             : 'priceFilterGiveaway';
 
-            document.querySelectorAll('.listing-filter-tab').forEach(tab => {
+            document.querySelectorAll('.filter-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
 
@@ -987,6 +976,16 @@
             loadComics(1, false);
         }
         window.setPriceNotListedSubFilter = setPriceNotListedSubFilter;
+
+        // Inline sort dropdown handler
+        function setPriceSort(value) {
+            priceSortOrder = value;
+            localStorage.setItem('priceSortOrder', value);
+            currentPage = 1;
+            maxLoadedPage = 1;
+            loadComics(1, false);
+        }
+        window.setPriceSort = setPriceSort;
 
         function switchView(view) {
             currentView = view;
@@ -1623,12 +1622,13 @@
             isLoading = true;
 
             try {
-                // Use user preferences for perPage and sort order
+                // Use user preferences for perPage; sort controlled by inline dropdown
                 const isMobile = window.innerWidth <= 768;
                 const perPage = isMobile
                     ? (window.userPreferences?.mobile_per_page || 8)
                     : (window.userPreferences?.desktop_per_page || 24);
-                const sortBy = window.userPreferences?.default_sort || 'sku_asc';
+                // priceSortOrder is controlled by the inline sort dropdown (persisted in localStorage)
+                const sortBy = priceSortOrder;
 
                 // Build API URL with optional search parameter and sort order
                 let url = `/api/comics?page=${page}&per_page=${perPage}&sort_by=${sortBy}`;
@@ -2456,6 +2456,10 @@
             currentLoadedComic = null;
             uploadedImageData = null;
             updatePriceLookupFilterTabUI();
+
+            // Sync inline sort dropdown to stored value
+            const sortSel = document.getElementById('priceSortSelect');
+            if (sortSel) sortSel.value = priceSortOrder;
 
             // Load comics - restore previous state if available
             const savedMaxPage = sessionStorage.getItem('pricing_maxLoadedPage');

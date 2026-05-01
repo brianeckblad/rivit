@@ -208,48 +208,9 @@
             text-decoration: underline;
         }
 
-        .filter-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
+        /* .filter-tabs / .filter-tab / .tab-count defined in components.css */
 
-        .filter-tab {
-            padding: 8px 20px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--color-border);
-            background: transparent;
-            color: var(--color-text-muted);
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .filter-tab:hover {
-            border-color: var(--color-border-hover);
-            color: var(--color-text);
-        }
-
-        .filter-tab.active {
-            background: var(--color-accent);
-            border-color: var(--color-accent);
-            color: var(--color-accent-text);
-        }
-
-        .filter-tab .tab-count {
-            font-size: 11px;
-            padding: 1px 6px;
-            border-radius: 10px;
-            background: var(--color-on-accent-subtle);
-        }
-
-        .filter-tab.active .tab-count {
-            background: var(--color-on-accent-subtle-hover);
-        }
+        .filter-tabs { margin-bottom: 20px; }
 
         .listing-scheduled {
             font-size: 11px;

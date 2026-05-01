@@ -380,7 +380,25 @@ class ComicService:
         # 2.5. Apply sorting
         if sort_by == 'sku_desc':
             filtered_comics = sorted(filtered_comics, key=lambda c: int(c.sku) if (c.sku and c.sku.isdigit()) else 0, reverse=True)
-        else:  # default to sku_asc
+        elif sort_by == 'title_asc':
+            filtered_comics = sorted(filtered_comics, key=lambda c: (c.title or '').strip().lower())
+        elif sort_by == 'title_desc':
+            filtered_comics = sorted(filtered_comics, key=lambda c: (c.title or '').strip().lower(), reverse=True)
+        elif sort_by == 'price_asc':
+            def _price_key(c):
+                try:
+                    return float(str(c.price or '0').replace('$', '').replace(',', ''))
+                except (ValueError, TypeError):
+                    return 0.0
+            filtered_comics = sorted(filtered_comics, key=_price_key)
+        elif sort_by == 'price_desc':
+            def _price_key_desc(c):
+                try:
+                    return float(str(c.price or '0').replace('$', '').replace(',', ''))
+                except (ValueError, TypeError):
+                    return 0.0
+            filtered_comics = sorted(filtered_comics, key=_price_key_desc, reverse=True)
+        else:  # default: sku_asc
             filtered_comics = sorted(filtered_comics, key=lambda c: int(c.sku) if (c.sku and c.sku.isdigit()) else 0)
 
         # 3. Calculate stats for the filtered set

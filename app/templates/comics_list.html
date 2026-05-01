@@ -175,49 +175,7 @@
             gap: 6px;
         }
 
-        .status-light {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            box-shadow: 0 0 4px currentColor;
-            flex-shrink: 0;
-            transition: all 0.2s;
-        }
-
-        .status-light.ebay {
-            color: var(--color-ebay);
-        }
-
-        .status-light.whatnot {
-            color: var(--color-whatnot);
-        }
-
-        .status-light.inactive {
-            color: var(--color-border-hover); /* Greyed out */
-            box-shadow: none;
-            opacity: 0.5;
-        }
-
-        .status-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            transition: all 0.2s;
-        }
-
-        .status-label.ebay {
-            color: var(--color-ebay);
-        }
-
-        .status-label.whatnot {
-            color: var(--color-whatnot);
-        }
-
-        .status-label.inactive {
-            color: var(--color-text-dim); /* Greyed out text */
-            opacity: 0.5;
-        }
+        /* .status-light / .status-label defined in components.css */
 
 
         /* Skeleton loading styles */
@@ -715,29 +673,24 @@
             </div>
 
             <!-- Listing Type Filter Tabs with Search on the right -->
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid var(--color-elevated);">
-                <div style="display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex: 1;">
-                    <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid var(--color-accent); color: var(--color-accent); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
-                        All Comics
-                    </button>
-                    <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
-                        Not Listed
-                    </button>
-                    <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
-                        eBay
-                    </button>
-                    <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
-                        WhatNot
-                    </button>
-                    <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')" style="padding: 10px 16px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--color-text-muted); font-size: clamp(12px, 2vw, 15px); font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
-                        WN Givys
-                    </button>
-                </div>
-                <!-- Search box on the right -->
-                <div style="display: flex; align-items: center; flex-shrink: 0; padding-bottom: 8px;">
-                    <label for="searchBox" class="sr-only">Search comics</label>
-                    <input type="text" id="searchBox" placeholder="🔍 Search..." style="width: 220px; padding: 10px 14px; border: 1px solid var(--color-border-hover); border-radius: 8px; font-size: 14px; background: var(--color-bg); color: var(--color-text); transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--color-accent)'" onblur="this.style.borderColor='var(--color-border-hover)'">
-                </div>
+            <div class="filter-tabs">
+                <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')">All Comics</button>
+                <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')">Not Listed</button>
+                <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')">eBay</button>
+                <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')">WhatNot</button>
+                <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')">Giveaway</button>
+                <!-- Search + Sort pushed to the right -->
+                <div style="flex: 1;"></div>
+                <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 36px; padding: 6px 10px; font-size: 13px; cursor: pointer; flex-shrink: 0;" onchange="setBrowseSort(this.value)">
+                    <option value="sku_asc">SKU: Low → High</option>
+                    <option value="sku_desc">SKU: High → Low</option>
+                    <option value="title_asc">Title: A → Z</option>
+                    <option value="title_desc">Title: Z → A</option>
+                    <option value="price_asc">Price: Low → High</option>
+                    <option value="price_desc">Price: High → Low</option>
+                </select>
+                <label for="searchBox" class="sr-only">Search comics</label>
+                <input type="text" id="searchBox" class="form-input" placeholder="🔍 Search..." style="width: 200px; flex-shrink: 0;">
             </div>
 
             <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
@@ -1431,6 +1384,8 @@
         // Load filter from localStorage or default to 'all'
         let currentListingTypeFilter = localStorage.getItem('listingTypeFilter') || 'all';
         let notListedSubFilter = 'both'; // Sub-filter for "Not Listed": 'both', 'ebay', 'whatnot'
+        // Browse sort — persist in localStorage; used by loadComics()
+        let browseSortOrder = localStorage.getItem('browseSortOrder') || 'sku_asc';
 
         // Pagination state persistence - save and restore from sessionStorage
         // sessionStorage persists within a single browser session and clears on logout
@@ -1514,12 +1469,13 @@
             isLoading = true;
 
             try {
-                // Use user preferences for perPage and sort order
+                // Use user preferences for perPage; sort controlled by inline dropdown
                 const isMobile = window.innerWidth <= 768;
                 const perPage = isMobile
                     ? (window.userPreferences?.mobile_per_page || 8)
                     : (window.userPreferences?.desktop_per_page || 24);
-                const sortBy = window.userPreferences?.default_sort || 'sku_asc';
+                // browseSortOrder is controlled by the inline sort dropdown (persisted in localStorage)
+                const sortBy = browseSortOrder;
 
                 // Build API URL with optional search, listing type filter, sort order, and sub-filter
                 let url = `/api/comics?page=${page}&per_page=${perPage}&sort_by=${sortBy}`;
@@ -1871,6 +1827,10 @@
 
             // Restore filter tab state
             filterByListingType(currentListingTypeFilter);
+
+            // Sync inline sort dropdown to stored value
+            const sortSelect = document.getElementById('browseSortSelect');
+            if (sortSelect) sortSelect.value = browseSortOrder;
 
             // If we're on "Not Listed" filter, make sure sub-filter UI is correct
             if (currentListingTypeFilter === 'Not Listed') {
@@ -3610,12 +3570,8 @@
             // Save filter to localStorage for persistence
             localStorage.setItem('listingTypeFilter', type);
 
-            // Update active tab
-            document.querySelectorAll('.filter-tab').forEach(tab => {
-                tab.style.borderBottomColor = 'transparent';
-                tab.style.color = 'var(--color-text-muted)';
-                tab.classList.remove('active');
-            });
+            // Update active tab (CSS class only — no inline style manipulation)
+            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
 
             const activeTab = type === 'all' ? document.getElementById('filterAll') :
                              type === 'Not Listed' ? document.getElementById('filterNotListed') :
@@ -3623,11 +3579,7 @@
                              type === 'WhatNot' ? document.getElementById('filterWhatNot') :
                              document.getElementById('filterGiveaway');
 
-            if (activeTab) {
-                activeTab.style.borderBottomColor = 'var(--color-accent)';
-                activeTab.style.color = 'var(--color-accent)';
-                activeTab.classList.add('active');
-            }
+            if (activeTab) activeTab.classList.add('active');
 
             // Show/hide "Not Listed" sub-filters
             const subFiltersContainer = document.getElementById('notListedSubFilters');
@@ -3657,6 +3609,18 @@
             loadComics(1, false);
         }
         window.filterByListingType = filterByListingType;
+
+        // Inline sort dropdown handler
+        function setBrowseSort(value) {
+            browseSortOrder = value;
+            localStorage.setItem('browseSortOrder', value);
+            currentPage = 1;
+            maxLoadedPage = 1;
+            allComics = [];
+            document.getElementById('loadMoreContainer').innerHTML = '';
+            loadComics(1, false);
+        }
+        window.setBrowseSort = setBrowseSort;
 
         // Sub-filter function for "Not Listed"
         function setNotListedSubFilter(subFilter) {

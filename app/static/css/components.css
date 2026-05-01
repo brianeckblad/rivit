@@ -9,6 +9,99 @@
    selectors or layout-only properties.
    ========================================================================== */
 
+/* ── Filter Tabs ────────────────────────────────────────────────────────── */
+/* Underline-style navigation tabs used on Browse, Pricing, and eBay Listings */
+.filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--color-elevated);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-tab {
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--color-text-muted);
+  font-size: clamp(12px, 2vw, 15px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, border-bottom-color 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* pull the 3px border flush against the container's 2px bottom border */
+  margin-bottom: -2px;
+}
+
+.filter-tab:hover {
+  color: var(--color-text);
+  border-bottom-color: var(--color-border-hover);
+}
+
+.filter-tab.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* Count badge inside a tab (e.g. eBay listings: "Active 3") */
+.tab-count {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--color-elevated);
+  color: var(--color-text-muted);
+  transition: background 0.2s, color 0.2s;
+}
+
+.filter-tab.active .tab-count {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+}
+
+/* ── Listing Status Indicators ─────────────────────────────────────────── */
+/* Coloured dot + label used on comic cards (Browse page) */
+.status-light {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 4px currentColor;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.status-light.ebay   { color: var(--color-ebay); }
+.status-light.whatnot { color: var(--color-whatnot); }
+
+.status-light.inactive {
+  color: var(--color-border-hover);
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+.status-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: all 0.2s;
+}
+
+.status-label.ebay    { color: var(--color-ebay); }
+.status-label.whatnot { color: var(--color-whatnot); }
+
+.status-label.inactive {
+  color: var(--color-text-dim);
+  opacity: 0.5;
+}
+
 /* ── Reset & Base ──────────────────────────────────────────────────────── */
 *,
 *::before,
