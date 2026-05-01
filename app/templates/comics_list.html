@@ -755,8 +755,8 @@
 
             <!-- Controls row: View toggle + Sort + Search (separate from filter tabs) -->
             <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px;">
-                <!-- View toggle -->
-                <div class="view-toggle">
+                <!-- View toggle with border box -->
+                <div class="view-toggle" style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px; background: var(--color-surface);">
                     <button class="view-btn active" id="browseGridViewBtn" onclick="switchBrowseView('grid')">Grid</button>
                     <button class="view-btn" id="browseListViewBtn" onclick="switchBrowseView('list')">List</button>
                 </div>
