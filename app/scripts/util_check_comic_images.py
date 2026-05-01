@@ -5,8 +5,9 @@ Diagnostic script to check image URLs for a specific SKU in the CSV file.
 import sys
 from pathlib import Path
 
-# Add the parent directory to sys.path to import app modules
-sys.path.insert(0, str(Path(__file__).parent))
+# Add the project root directory to sys.path so app.* imports resolve.
+# __file__ = app/scripts/util_check_comic_images.py → .parent.parent.parent = project root
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 def check_comic_images(sku):
     """Check what images are stored for a given SKU."""

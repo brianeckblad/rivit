@@ -34,7 +34,8 @@ load_dotenv()
 
 # Configuration
 RETENTION_DAYS = int(os.getenv('BACKUP_RETENTION_DAYS', 30))
-INSTANCE_DIR = Path(__file__).parent.parent / 'instance'
+# __file__ = app/scripts/cleanup_old_backups.py; .parent.parent.parent = project root
+INSTANCE_DIR = Path(__file__).parent.parent.parent / 'instance'
 BACKUP_TYPES = ['all_comic_delete', 'single_comic_delete']
 
 

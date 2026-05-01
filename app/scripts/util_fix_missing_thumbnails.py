@@ -23,7 +23,8 @@ from PIL import Image, ImageCms
 
 
 # Configuration
-IMAGES_DIR = Path(__file__).parent / 'instance' / 'images'
+# __file__ = app/scripts/util_fix_missing_thumbnails.py; .parent.parent.parent = project root
+IMAGES_DIR = Path(__file__).parent.parent.parent / 'instance' / 'images'
 THUMBNAIL_SIZE = (300, 300)
 THUMBNAIL_QUALITY = 85
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}

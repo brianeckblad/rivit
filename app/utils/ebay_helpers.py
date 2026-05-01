@@ -1,5 +1,6 @@
 """Helper functions for eBay-specific operations."""
 import re
+from app.utils.ebay_validators import EBAY_FIELD_VALIDATION
 
 
 def extract_all_sections_from_ebay_description(full_description):
@@ -169,7 +170,6 @@ def validate_ebay_item_id(item_id):
 
     return True, ""
 
-    return True, ""
 
 
 def get_ebay_validation_data():
@@ -185,5 +185,4 @@ def get_ebay_validation_data():
     Returns:
         dict: eBay validation configuration
     """
-    from app.utils.ebay_validators import EBAY_FIELD_VALIDATION
     return EBAY_FIELD_VALIDATION

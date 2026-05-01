@@ -150,7 +150,7 @@ def get_ebay_credentials(username=None):
     Returns:
         dict: eBay credentials or None if not found
     """
-    from app.config import get_secret
+    from app.config import get_secret  # Deferred: avoids circular import (config ← utils ← services)
 
     if username is None:
         username = get_current_username()
@@ -158,7 +158,7 @@ def get_ebay_credentials(username=None):
     # Try user-specific secret first using the new service
     if username != 'default':
         try:
-            from app.services.user_secrets_service import user_secrets_service
+            from app.services.user_secrets_service import user_secrets_service  # Deferred: avoids circular import
             user_creds = user_secrets_service.get_user_ebay_credentials(username)
             if user_creds:
                 return user_creds

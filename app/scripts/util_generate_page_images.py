@@ -2,15 +2,21 @@
 """
 Generate page mockup images for analytics heatmap visualization.
 Creates PNG images representing each page of the app with accurate layouts.
+
+Run from the project root:
+    python app/scripts/util_generate_page_images.py
 """
 
 from PIL import Image, ImageDraw, ImageFont
 import os
 import glob
+from pathlib import Path
 
-# Create directory for page images
-#output_dir = 'app/static/analytics'
-output_dir = 'static/analytics'
+# Output path: project root / app/static/analytics
+# __file__ = app/scripts/util_generate_page_images.py
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
+output_dir = str(PROJECT_ROOT / 'app' / 'static' / 'analytics')
 os.makedirs(output_dir, exist_ok=True)
 
 # Clean up old page images before regenerating
@@ -19,26 +25,26 @@ old_images = glob.glob(os.path.join(output_dir, '*.png'))
 for old_img in old_images:
     try:
         os.remove(old_img)
-        print(f"🗑️  Removed {os.path.basename(old_img)}")
+        print(f"Removed {os.path.basename(old_img)}")
     except Exception as e:
-        print(f"⚠️  Could not remove {os.path.basename(old_img)}: {e}")
+        print(f"Could not remove {os.path.basename(old_img)}: {e}")
 print()
 
 # Canvas size (matches typical viewport)
 WIDTH = 1200
 HEIGHT = 800
 
-# Colors (matching design system tokens in tokens.css)
-BG_DARK = '#111210'         # --color-bg
-BG_MEDIUM = '#1B1B1B'       # --color-surface
-BG_LIGHT = '#242422'        # --color-elevated
-BORDER = '#2E2E2A'          # --color-border
-BORDER_HOVER = '#3A3A36'    # --color-border-hover
-ACCENT = '#595F39'          # --color-accent (Muted Moss)
-ACCENT_HOVER = '#6B7244'    # --color-accent-hover
-TEXT = '#E4E4DE'             # --color-text
-TEXT_MUTED = '#C4C5BA'       # --color-text-muted
-TEXT_DIM = '#7A7B72'         # --color-text-dim
+# Colors (matching current design system tokens from app/static/css/tokens.css)
+BG_DARK = '#1B1A1B'         # --color-bg
+BG_MEDIUM = '#242223'       # --color-surface
+BG_LIGHT = '#2D2B2C'        # --color-elevated
+BORDER = '#5A5758'          # --color-border
+BORDER_HOVER = '#7A7778'    # --color-border-hover
+ACCENT = '#E2E800'          # --color-accent (bright yellow)
+ACCENT_HOVER = '#D1D700'    # --color-accent-hover
+TEXT = '#E8E8E6'             # --color-text
+TEXT_MUTED = '#C5C2BE'       # --color-text-muted
+TEXT_DIM = '#ADADAD'         # --color-text-dim
 EBAY_BLUE = '#00BFFF'       # --color-ebay
 WHATNOT_MAGENTA = '#FF00FF'  # --color-whatnot
 GREEN = '#5C8A5C'           # --color-success
@@ -484,13 +490,13 @@ for page_name, create_func in pages.items():
         output_path = os.path.join(output_dir, f'{page_name}.png')
         img.save(output_path, 'PNG')
         file_size = os.path.getsize(output_path) / 1024
-        print(f"✅ Created {page_name}.png ({file_size:.1f} KB)")
+        print(f"Created {page_name}.png ({file_size:.1f} KB)")
     except Exception as e:
-        print(f"❌ Error creating {page_name}.png: {e}")
+        print(f"Error creating {page_name}.png: {e}")
 
 print()
-print("✅ All page mockups generated!")
-print(f"📁 Images saved to: {output_dir}")
+print("All page mockups generated!")
+print(f"Images saved to: {output_dir}")
 print()
 print("These images will be used in the analytics heatmap visualization")
 print("to show click patterns overlaid on page layouts.")
