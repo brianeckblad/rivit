@@ -1,5 +1,6 @@
 """eBay data validation utilities."""
 from datetime import datetime, timedelta, timezone
+import os
 import re
 
 # ============================================================================
@@ -759,13 +760,11 @@ def populate_ebay_fields_from_item(item):
 
                 # Load description template from external file (customizable without editing Python)
                 # File: app/templates/ebay_description_template.html
-                import os
                 template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'ebay_description_template.html')
                 try:
                     with open(template_path, 'r') as f:
                         html_template = f.read()
                     # Strip HTML comments (<!-- ... -->) so they don't appear in the eBay listing
-                    import re
                     html_template = re.sub(r'<!--.*?-->', '', html_template, flags=re.DOTALL).strip()
                 except FileNotFoundError:
                     # Fallback: inline template if file is missing
