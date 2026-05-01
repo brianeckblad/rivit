@@ -1,8 +1,15 @@
 """Authentication routes and decorators."""
 import re
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, g
+import shutil
+import time
+from pathlib import Path
 from functools import wraps
 from urllib.parse import urlparse, urljoin
+
+from flask import (
+    Blueprint, render_template, request, redirect, url_for,
+    flash, session, g, jsonify, current_app,
+)
 from app.models.user import user_manager
 
 auth_bp = Blueprint('auth', __name__)
@@ -42,13 +49,12 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         """Inner function that handles the login check logic."""
-        from app import APP_START_TIME
+        from app import APP_START_TIME  # Deferred: avoids circular import
 
         # Check if user is logged in via session cookie
         if not session.get('logged_in'):
             if request.path.startswith('/api/'):
                 # For API requests, return JSON error instead of redirect
-                from flask import jsonify
                 return jsonify({'success': False, 'error': 'Session expired. Please log in again.'}), 401
             # For web pages, show login page
             flash('Please log in to access this page.', 'warning')
@@ -60,7 +66,6 @@ def login_required(f):
         if session_created < APP_START_TIME:
             session.clear()
             if request.path.startswith('/api/'):
-                from flask import jsonify
                 return jsonify({'success': False, 'error': 'Session expired after server restart. Please log in again.'}), 401
             flash('Your session expired after server restart. Please log in again.', 'warning')
             return redirect(url_for('auth.login'))
@@ -115,7 +120,6 @@ def csrf_required(f):
             
             # Reject if token is missing or doesn't match
             if not token or token != provided_token:
-                from flask import jsonify
                 return jsonify({'success': False, 'error': 'Invalid or missing CSRF token'}), 403
                 
         return f(*args, **kwargs)
@@ -132,7 +136,6 @@ def admin_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        from flask import jsonify, current_app
         username = session.get('username')
         if not username or not user_manager.is_admin(username):
             current_app.logger.warning(
@@ -155,8 +158,7 @@ def sync_not_locked(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        from app.utils.sync_state import sync_state
-        from flask import jsonify
+        from app.utils.sync_state import sync_state  # Deferred: avoids circular import
         # If a sync is currently running, reject the request
         if sync_state.is_locked():
             return jsonify({
@@ -181,10 +183,6 @@ def disk_space_required(min_percent=15):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            import shutil
-            from pathlib import Path
-            from flask import jsonify, current_app
-            
             # Get disk usage statistics
             instance_path = Path(current_app.instance_path)
             disk_usage = shutil.disk_usage(instance_path)
@@ -222,7 +220,7 @@ def login():
             return redirect(url_for('auth.login'))
 
         # Throttle per-IP login attempts to slow brute-force password guessing
-        from app.security import rate_limiter, get_real_ip
+        from app.security import rate_limiter, get_real_ip  # Deferred: avoids circular import
         client_ip = get_real_ip(request)
         login_key = f"login_attempts_{client_ip}"
         if rate_limiter and rate_limiter.is_rate_limited(
@@ -237,7 +235,6 @@ def login():
 
         # Verify credentials using user manager (case-insensitive username)
         if user_manager.verify_password(username, password):
-            import time
             user = user_manager.get_user(username)
             # Create session for authenticated user — normalize to lowercase
             # so downstream path/S3 helpers see a single canonical value.

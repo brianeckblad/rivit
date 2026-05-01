@@ -13,7 +13,8 @@ from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required, admin_required
 from app.services.s3_service import s3_service
 from app.utils.defaults_helpers import get_app_defaults
-from app.utils.logging_utils import safe_error_message
+from app.utils.logging_utils import safe_error_message, get_log_prefix
+from app.utils.user_context import get_user_sku_file, get_current_username
 from pathlib import Path
 from datetime import datetime
 import json
@@ -185,7 +186,7 @@ def get_blocked_ips() -> Response:
         500: Server error occurred
     """
     try:
-        from app.security import ip_blocklist
+        from app.security import ip_blocklist  # Deferred: avoids circular import
 
         if not ip_blocklist:
             return jsonify({'success': False, 'error': 'Security module not initialized'}), 500
@@ -234,7 +235,7 @@ def unblock_ip() -> Response:
         500: Server error occurred
     """
     try:
-        from app.security import ip_blocklist
+        from app.security import ip_blocklist  # Deferred: avoids circular import
 
         if not ip_blocklist:
             return jsonify({'success': False, 'error': 'Security module not initialized'}), 500
@@ -278,7 +279,7 @@ def check_rate_limit(ip: str) -> Response:
         500: Server error occurred
     """
     try:
-        from app.security import rate_limiter
+        from app.security import rate_limiter  # Deferred: avoids circular import
 
         if not rate_limiter:
             return jsonify({'success': False, 'error': 'Security module not initialized'}), 500
@@ -319,7 +320,7 @@ def get_security_stats() -> Response:
         500: Server error occurred
     """
     try:
-        from app.security import ip_blocklist, rate_limiter, ATTACK_PATTERNS
+        from app.security import ip_blocklist, rate_limiter, ATTACK_PATTERNS  # Deferred: avoids circular import
 
         stats = {}
 
@@ -354,7 +355,6 @@ def get_current_sku() -> Response:
         Response: JSON with current SKU value
     """
     try:
-        from app.utils.user_context import get_user_sku_file, get_current_username
 
         username = get_current_username()
         sku_file = get_user_sku_file()
@@ -390,9 +390,6 @@ def update_sku() -> Response:
         Response: JSON with success status
     """
     try:
-        from app.utils.user_context import get_user_sku_file, get_current_username
-        from app.utils.logging_utils import get_log_prefix, safe_error_message
-
         username = get_current_username()
         data = request.get_json()
 
@@ -425,7 +422,6 @@ def update_sku() -> Response:
             f.write(f'{new_sku}\n')
 
         # Backup to S3
-        from app.services.s3_service import s3_service
         s3_service.backup_sku_to_s3(sku_file)
 
         current_app.logger.info(f"{get_log_prefix()}Updated SKU from {old_sku} to {new_sku}")
@@ -440,6 +436,4 @@ def update_sku() -> Response:
     except Exception as e:
         current_app.logger.error(f"{get_log_prefix()}Error updating SKU: {e}")
         return jsonify({'success': False, 'error': 'Failed to update SKU'}), 500
-
-
 

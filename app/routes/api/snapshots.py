@@ -61,7 +61,7 @@ def create_snapshot() -> Response:
         - Each snapshot is ~100KB to 10MB depending on inventory size
     """
     try:
-        from app.services.snapshot_service import snapshot_service
+        from app.services.snapshot_service import snapshot_service  # Deferred: requires app context
 
         data = request.get_json()
         name = data.get('name', '').strip()
@@ -126,7 +126,7 @@ def list_snapshots() -> Response:
         }
     """
     try:
-        from app.services.snapshot_service import snapshot_service
+        from app.services.snapshot_service import snapshot_service  # Deferred: requires app context
 
         snapshots = snapshot_service.list_all()
 
@@ -191,7 +191,7 @@ def restore_snapshot(snapshot_id: str) -> Response:
         - SKU counter is also restored from snapshot
     """
     try:
-        from app.services.snapshot_service import snapshot_service
+        from app.services.snapshot_service import snapshot_service  # Deferred: requires app context
 
         data = request.get_json() or {}
         mode = data.get('mode', 'replace')
@@ -243,7 +243,7 @@ def delete_snapshot(snapshot_id: str) -> Response:
         - Does not affect current inventory
     """
     try:
-        from app.services.snapshot_service import snapshot_service
+        from app.services.snapshot_service import snapshot_service  # Deferred: requires app context
 
         snapshot_service.delete(snapshot_id)
 

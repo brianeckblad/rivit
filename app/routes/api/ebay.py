@@ -20,8 +20,11 @@ from app.routes.auth import login_required, csrf_required
 from app.services.comic_service import comic_service
 from app.services.ebay_service import ebay_service, EbayDuplicateListingError
 from app.utils.ebay_helpers import resolve_ebay_context, validate_ebay_item_id
+from app.utils.helpers import is_giveaway
+from app.config import get_secret
 from datetime import datetime
 
+import hashlib
 import time
 import os
 
@@ -675,7 +678,6 @@ def update_comic_ebay_item_id(sku: str) -> Response:
         # If item_id is empty, we're unlinking - allow it
         if item_id:
             # Prevent linking giveaway items to eBay
-            from app.utils.helpers import is_giveaway
             if is_giveaway(comic.title, comic.listing_type):
                 return jsonify({'success': False, 'error': 'Cannot link giveaway items to eBay. Please remove the "G-" or "G " prefix from the title if this should be a for-sale item.'}), 400
 
@@ -947,8 +949,6 @@ def ebay_marketplace_deletion() -> Response:
         if challenge_code:
             # According to eBay docs, the response should be:
             # hash = SHA256(challengeCode + verificationToken + endpointUrl)
-            import hashlib
-            from app.config import get_secret
             verification_token = get_secret('EBAY_VERIFICATION_TOKEN', 'your-verification-token-here')
             endpoint_url = request.base_url
 

@@ -7,9 +7,15 @@ This module handles:
 
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
-from flask import request, jsonify, current_app, Response
-from app.routes.api import api_bp
+import traceback
 import json
+
+from flask import request, jsonify, current_app, Response
+
+from app.routes.api import api_bp
+from app.models.analytics import AnalyticsStore, AnalyticsEvent
+from app.security import rate_limiter, get_real_ip
+from app.utils.user_context import get_user_analytics_dir, get_current_username
 
 
 # Anonymous-tracking hardening limits (H3): defence against log/disk spam and
@@ -31,10 +37,6 @@ def track_analytics_event() -> Response:
     disk-exhaustion and log-flood abuse. Events from sessions without a
     logged-in user are still accepted (they are filed under 'default').
     """
-    import traceback
-    from app.models.analytics import AnalyticsStore, AnalyticsEvent
-    from app.security import rate_limiter, get_real_ip
-
     try:
         # Per-IP throttle: 60 requests/min
         client_ip = get_real_ip(request)
@@ -74,7 +76,6 @@ def track_analytics_event() -> Response:
             events_data = events_data[:_MAX_TRACK_BATCH_EVENTS]
 
         # Initialize analytics store with user-specific directory
-        from app.utils.user_context import get_user_analytics_dir, get_current_username
         username = get_current_username()
         analytics_dir = str(get_user_analytics_dir())
         store = AnalyticsStore(analytics_dir)

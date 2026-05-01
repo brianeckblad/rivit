@@ -32,6 +32,7 @@ from app.utils.whatnot_validators import (
 )
 from io import StringIO, BytesIO
 import csv
+import re
 import time
 import math
 
@@ -335,7 +336,6 @@ def add_comic() -> Response:
                     label in desc_val for label in
                     ['<strong>Title</strong>', '<strong>Description</strong>',
                      '<strong>Condition</strong>', '<strong>Shipping</strong>']):
-                import re
                 # This looks like a full eBay listing template — strip it all
                 data['Description'] = re.sub(r'</?(div|p|br|li|ul|ol)[^>]*/??>', '\n', desc_val, flags=re.IGNORECASE)
                 data['Description'] = re.sub(r'<[^>]+>', '', data['Description'])
@@ -530,7 +530,6 @@ def update_comic(sku: str) -> Response:
                     label in desc_val for label in
                     ['<strong>Title</strong>', '<strong>Description</strong>',
                      '<strong>Condition</strong>', '<strong>Shipping</strong>']):
-                import re
                 cleaned_data['Description'] = re.sub(r'</?(div|p|br|li|ul|ol)[^>]*/??>', '\n', desc_val, flags=re.IGNORECASE)
                 cleaned_data['Description'] = re.sub(r'<[^>]+>', '', cleaned_data['Description'])
                 cleaned_data['Description'] = '\n'.join(l.strip() for l in cleaned_data['Description'].split('\n'))
@@ -1230,7 +1229,6 @@ def get_comics_for_linking() -> Response:
 
             # Skip if is a Giveaway item (check both Listing Type field and title prefix for backward compatibility)
             listing_type = comic_dict.get('Listing Type', '').strip()
-            from app.utils.helpers import is_giveaway
             is_giveaway_item = (listing_type == 'Giveaway') or is_giveaway(comic_dict.get('Title', ''))
 
             if is_giveaway_item:

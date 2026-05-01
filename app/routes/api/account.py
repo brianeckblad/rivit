@@ -10,6 +10,7 @@ This module handles:
 All functions include type hints and comprehensive docstrings for better IDE support.
 """
 from flask import request, jsonify, current_app, session, Response
+import traceback
 from app.utils.logging_utils import safe_error_message
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required, admin_required
@@ -731,7 +732,7 @@ def get_ebay_credentials() -> Response:
         - Does not expose full credential values
     """
     try:
-        from app.services.user_secrets_service import user_secrets_service  # Deferred: avoids AWS SDK startup error
+        from app.services.user_secrets_service import user_secrets_service  # Deferred: requires app context (AWS SDK)
 
         username = session.get('username')
         if not username:
@@ -863,7 +864,7 @@ def save_ebay_credentials() -> Response:
         - Invalidates eBay service credential cache for this user
     """
     try:
-        from app.services.user_secrets_service import user_secrets_service
+        from app.services.user_secrets_service import user_secrets_service  # Deferred: requires app context (AWS SDK)
 
         data = request.get_json()
         username = session.get('username')
@@ -898,7 +899,7 @@ def save_ebay_credentials() -> Response:
         if success:
             # Invalidate eBay service cache for this user
             try:
-                from app.services.ebay_service import ebay_service
+                from app.services.ebay_service import ebay_service  # Deferred: requires app context (AWS SDK)
                 with ebay_service._cache_lock:
                     ebay_service._user_credentials_cache.pop(username, None)
                     ebay_service._user_tokens_cache.pop(username, None)
@@ -913,7 +914,6 @@ def save_ebay_credentials() -> Response:
     except Exception as e:
         username = session.get('username', 'unknown')
         current_app.logger.error(f"[User: {username}] Error saving eBay credentials: {e}")
-        import traceback
         current_app.logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': 'An error occurred while saving eBay credentials'}), 500
 
@@ -950,7 +950,7 @@ def delete_ebay_credentials() -> Response:
         - User will need to re-enter credentials to use eBay features
     """
     try:
-        from app.services.user_secrets_service import user_secrets_service
+        from app.services.user_secrets_service import user_secrets_service  # Deferred: requires app context (AWS SDK)
 
         username = session.get('username')
 
@@ -963,7 +963,7 @@ def delete_ebay_credentials() -> Response:
         if success:
             # Invalidate eBay service cache for this user
             try:
-                from app.services.ebay_service import ebay_service
+                from app.services.ebay_service import ebay_service  # Deferred: requires app context (AWS SDK)
                 with ebay_service._cache_lock:
                     ebay_service._user_credentials_cache.pop(username, None)
                     ebay_service._user_tokens_cache.pop(username, None)

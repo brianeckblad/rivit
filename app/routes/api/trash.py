@@ -12,6 +12,8 @@ from app.utils.logging_utils import safe_error_message
 from app.routes.api import api_bp
 from app.routes.auth import login_required, csrf_required
 from app.services.s3_service import s3_service
+from app.services.csv_service import CSVService
+from app.utils.user_context import get_user_csv_file, get_current_username
 from datetime import datetime, timezone, timedelta
 
 
@@ -69,7 +71,7 @@ def list_trash() -> Response:
         - Images are not deleted when items are trashed
     """
     try:
-        from app.services.trash_service import trash_service
+        from app.services.trash_service import trash_service  # Deferred: requires app context
 
         items = trash_service.list_all()
 
@@ -158,8 +160,7 @@ def restore_from_trash(sku: str) -> Response:
         - Removes item from trash after successful restore
     """
     try:
-        from app.services.trash_service import trash_service
-        from app.services.csv_service import CSVService
+        from app.services.trash_service import trash_service  # Deferred: requires app context
 
         # Get item from trash
         trash_item = trash_service.get(sku)
@@ -168,7 +169,6 @@ def restore_from_trash(sku: str) -> Response:
 
         # Convert to comic and add back to inventory
         # Use user-specific CSV file
-        from app.utils.user_context import get_user_csv_file, get_current_username
         user_csv_file = get_user_csv_file()
         username = get_current_username()
 
@@ -236,7 +236,7 @@ def empty_trash() -> Response:
         - Returns success with count 0 if trash is already empty
     """
     try:
-        from app.services.trash_service import trash_service
+        from app.services.trash_service import trash_service  # Deferred: requires app context
 
         items = trash_service.list_all()
         count = len(items)

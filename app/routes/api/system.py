@@ -19,6 +19,7 @@ from app.services.csv_service import CSVService
 from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, WHATNOT_FIELD_NAMES as WFN, METADATA_FIELD_NAMES as MFN
 from app.utils.ebay_helpers import get_ebay_validation_data
 from app.utils.helpers import get_directory_size, is_giveaway as _is_giveaway
+from app.utils.user_context import get_user_trash_dir, get_user_snapshots_dir, get_user_csv_file, get_user_s3_images_prefix, get_current_username
 from pathlib import Path
 import io
 import shutil
@@ -216,7 +217,6 @@ def system_stats() -> Response:
         total_image_size = s3_stats['total_image_size']
 
         # Get backup folder sizes (user-specific trash + snapshots)
-        from app.utils.user_context import get_user_trash_dir, get_user_snapshots_dir
         trash_size = get_directory_size(get_user_trash_dir())
         snapshots_size = get_directory_size(get_user_snapshots_dir())
         total_backup_size = trash_size + snapshots_size
@@ -246,7 +246,6 @@ def system_stats() -> Response:
 
         # Calculate values from inventory by reading user-specific CSV
         try:
-            from app.utils.user_context import get_user_csv_file
             user_csv_file = get_user_csv_file()
             csv_service = CSVService(str(user_csv_file))
             comics = csv_service.read_all()
@@ -356,8 +355,9 @@ def cleanup_orphaned_images() -> Response:
         - Won't delete images referenced in CSV
     """
     try:
-        # Import fresh to ensure we get the latest class definition
-        from app.services.comic_service import ComicService
+        # Import a fresh ComicService instance (not the module-level singleton)
+        # so this cleanup run uses the current user context.
+        from app.services.comic_service import ComicService  # Deferred: requires app context
         fresh_service = ComicService()
         result = fresh_service.cleanup_orphaned_images()
         return jsonify(result)
@@ -389,7 +389,6 @@ def backup_download() -> Response:
         - images/ (all comic images from S3)
     """
     try:
-        from app.utils.user_context import get_user_csv_file, get_user_s3_images_prefix, get_current_username
 
         username = get_current_username()
         current_app.logger.info(f"[User: {username}] Starting backup and download...")
