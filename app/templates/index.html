@@ -605,6 +605,21 @@
         .desc-toolbar-spacer {
             flex: 1;
         }
+        .desc-font-size {
+            height: 24px;
+            padding: 0 4px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-inset);
+            color: var(--color-text-muted);
+            font-size: var(--font-size-xs);
+            cursor: pointer;
+            outline: none;
+        }
+        .desc-font-size:focus {
+            border-color: var(--color-border-focus);
+            color: var(--color-text);
+        }
         .desc-html-toggle {
             display: inline-flex;
             align-items: center;
@@ -2380,6 +2395,17 @@
                                         <button type="button" data-cmd="removeFormat" title="Remove Formatting">
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 2.5h13M5.5 2.5V14" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line x1="3" y1="13.5" x2="12.5" y2="3" stroke="var(--color-danger)" stroke-width="1.8" stroke-linecap="round"/></svg>
                                         </button>
+                                        <button type="button" id="descStripHtmlBtn" title="Strip all HTML — convert to plain text">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l2 4-2 4"/><path d="M7 12h6"/><line x1="12" y1="2" x2="4" y2="14" stroke="var(--color-danger)" stroke-width="1.6"/></svg>
+                                        </button>
+                                        <div class="desc-toolbar-sep"></div>
+                                        <select id="descFontSize" class="desc-font-size" title="Font size">
+                                            <option value="">Size</option>
+                                            <option value="1">Small</option>
+                                            <option value="3">Normal</option>
+                                            <option value="4">Large</option>
+                                            <option value="5">Huge</option>
+                                        </select>
                                         <div class="desc-toolbar-sep"></div>
                                         <button type="button" data-cmd="justifyLeft" title="Align Left">
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.5" rx="0.5"/><rect x="2" y="6.5" width="8" height="1.5" rx="0.5"/><rect x="2" y="10" width="11" height="1.5" rx="0.5"/></svg>
@@ -5971,6 +5997,8 @@
             const hidden     = document.getElementById('description');   // form field
             const toolbar    = document.getElementById('descToolbar');
             const editor     = document.getElementById('descEditor');
+            const fontSizeEl = document.getElementById('descFontSize');
+            const stripHtmlBtn = document.getElementById('descStripHtmlBtn');
             if (!editable || !hidden) return;
 
             /* — Sync helpers — */
@@ -6018,6 +6046,38 @@
                 updateToolbarState();
                 syncToHidden();
             });
+
+            /* — Font size — */
+            if (fontSizeEl) {
+                fontSizeEl.addEventListener('change', function() {
+                    const val = this.value;
+                    if (!val) return;
+                    editable.focus();
+                    document.execCommand('fontSize', false, val);
+                    syncToHidden();
+                    // Reset select back to blank so it shows as "Size"
+                    this.value = '';
+                });
+            }
+
+            /* — Strip all HTML: convert to plain text — */
+            if (stripHtmlBtn) {
+                stripHtmlBtn.addEventListener('click', function() {
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = editable.innerHTML;
+                    // Replace <br> and block elements with newlines, then get text
+                    tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+                    tmp.querySelectorAll('p, div, li, h1, h2, h3, h4').forEach(el => {
+                        el.insertAdjacentText('afterend', '\n');
+                    });
+                    const plain = tmp.textContent
+                        .replace(/\n{3,}/g, '\n\n')  // collapse excess blank lines
+                        .trim();
+                    editable.innerHTML = plain.replace(/\n/g, '<br>');
+                    syncToHidden();
+                    formHasChanged = true;
+                });
+            }
 
             /* — Update active state on toolbar buttons — */
             function updateToolbarState() {
@@ -10361,6 +10421,20 @@
             if (payload.selectedItem && typeof populateFormFromEbayClone === 'function') {
                 try {
                     populateFormFromEbayClone(payload.selectedItem, payload.details || null);
+                    // Strip HTML from description — plain text only when adding from image
+                    const descHidden = document.getElementById('description');
+                    if (descHidden && descHidden.value) {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = descHidden.value;
+                        tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+                        tmp.querySelectorAll('p, div, li, h1, h2, h3, h4').forEach(el => {
+                            el.insertAdjacentText('afterend', '\n');
+                        });
+                        const plain = tmp.textContent.replace(/\n{3,}/g, '\n\n').trim();
+                        if (typeof window.setDescriptionEditor === 'function') {
+                            window.setDescriptionEditor(plain);
+                        }
+                    }
                     if (typeof applyEbayCloneSourceState === 'function') {
                         applyEbayCloneSourceState();
                     }
