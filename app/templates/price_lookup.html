@@ -266,10 +266,6 @@
 
         /* .filter-tabs / .filter-tab defined in components.css */
 
-        .listing-filter-bar {
-            /* override: allow search+sort on same row */
-            flex-wrap: nowrap;
-        }
 
         /* Page-specific width override for form-input */
         .search-box {
@@ -739,21 +735,27 @@
             </div>
         </div>
 
-        <div class="filter-tabs listing-filter-bar">
-            <button id="priceFilterAll" class="filter-tab active" onclick="setPriceLookupListingFilter('all')">All Comics</button>
-            <button id="priceFilterNotListed" class="filter-tab" onclick="setPriceLookupListingFilter('Not Listed')">Not Listed</button>
-            <button id="priceFilterForSaleEbay" class="filter-tab" onclick="setPriceLookupListingFilter('For Sale eBay')">eBay</button>
-            <button id="priceFilterWhatNot" class="filter-tab" onclick="setPriceLookupListingFilter('WhatNot')">WhatNot</button>
-            <button id="priceFilterGiveaway" class="filter-tab" onclick="setPriceLookupListingFilter('Giveaway')">Giveaway</button>
-            <div style="flex: 1;"></div>
-            <select id="priceSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 36px; padding: 6px 10px; font-size: 13px; cursor: pointer; flex-shrink: 0; margin-bottom: -2px;" onchange="setPriceSort(this.value)">
-                <option value="sku_asc">SKU: Low → High</option>
-                <option value="sku_desc">SKU: High → Low</option>
-                <option value="title_asc">Title: A → Z</option>
-                <option value="title_desc">Title: Z → A</option>
-                <option value="price_asc">Price: Low → High</option>
-                <option value="price_desc">Price: High → Low</option>
-            </select>
+        <!-- Filter tabs + sort (sort sits beside tabs, outside the scrollable area) -->
+        <div style="display: flex; align-items: flex-end; gap: 8px; border-bottom: 2px solid var(--color-elevated); margin-bottom: 16px;">
+            <!-- Scrollable filter tabs -->
+            <div style="display: flex; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                <button id="priceFilterAll" class="filter-tab active" onclick="setPriceLookupListingFilter('all')">All Comics</button>
+                <button id="priceFilterNotListed" class="filter-tab" onclick="setPriceLookupListingFilter('Not Listed')">Not Listed</button>
+                <button id="priceFilterForSaleEbay" class="filter-tab" onclick="setPriceLookupListingFilter('For Sale eBay')">eBay</button>
+                <button id="priceFilterWhatNot" class="filter-tab" onclick="setPriceLookupListingFilter('WhatNot')">WhatNot</button>
+                <button id="priceFilterGiveaway" class="filter-tab" onclick="setPriceLookupListingFilter('Giveaway')">Giveaway</button>
+            </div>
+            <!-- Sort dropdown: outside tabs, aligned to bottom of the bar -->
+            <div style="padding-bottom: 6px; flex-shrink: 0;">
+                <select id="priceSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 34px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setPriceSort(this.value)">
+                    <option value="sku_asc">SKU: Low → High</option>
+                    <option value="sku_desc">SKU: High → Low</option>
+                    <option value="title_asc">Title: A → Z</option>
+                    <option value="title_desc">Title: Z → A</option>
+                    <option value="price_asc">Price: Low → High</option>
+                    <option value="price_desc">Price: High → Low</option>
+                </select>
+            </div>
         </div>
 
         <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->

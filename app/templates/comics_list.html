@@ -672,25 +672,29 @@
                 </div>
             </div>
 
-            <!-- Listing Type Filter Tabs with Search on the right -->
-            <div class="filter-tabs">
-                <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')">All Comics</button>
-                <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')">Not Listed</button>
-                <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')">eBay</button>
-                <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')">WhatNot</button>
-                <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')">Giveaway</button>
-                <!-- Search + Sort pushed to the right -->
-                <div style="flex: 1;"></div>
-                <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 36px; padding: 6px 10px; font-size: 13px; cursor: pointer; flex-shrink: 0;" onchange="setBrowseSort(this.value)">
-                    <option value="sku_asc">SKU: Low → High</option>
-                    <option value="sku_desc">SKU: High → Low</option>
-                    <option value="title_asc">Title: A → Z</option>
-                    <option value="title_desc">Title: Z → A</option>
-                    <option value="price_asc">Price: Low → High</option>
-                    <option value="price_desc">Price: High → Low</option>
-                </select>
-                <label for="searchBox" class="sr-only">Search comics</label>
-                <input type="text" id="searchBox" class="form-input" placeholder="🔍 Search..." style="width: 200px; flex-shrink: 0;">
+            <!-- Listing Type Filter Tabs with Sort + Search on the right -->
+            <div style="display: flex; align-items: flex-end; gap: 8px; border-bottom: 2px solid var(--color-elevated); margin-bottom: 16px;">
+                <!-- Scrollable filter tabs (no sort/search inside) -->
+                <div style="display: flex; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')">All Comics</button>
+                    <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')">Not Listed</button>
+                    <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')">eBay</button>
+                    <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')">WhatNot</button>
+                    <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')">Giveaway</button>
+                </div>
+                <!-- Sort + Search: outside tabs so they don't break the scroll context -->
+                <div style="display: flex; gap: 8px; align-items: center; padding-bottom: 6px; flex-shrink: 0;">
+                    <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 34px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setBrowseSort(this.value)">
+                        <option value="sku_asc">SKU: Low → High</option>
+                        <option value="sku_desc">SKU: High → Low</option>
+                        <option value="title_asc">Title: A → Z</option>
+                        <option value="title_desc">Title: Z → A</option>
+                        <option value="price_asc">Price: Low → High</option>
+                        <option value="price_desc">Price: High → Low</option>
+                    </select>
+                    <label for="searchBox" class="sr-only">Search comics</label>
+                    <input type="text" id="searchBox" class="form-input" placeholder="🔍 Search..." style="width: 200px; height: 34px;">
+                </div>
             </div>
 
             <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
