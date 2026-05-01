@@ -654,6 +654,55 @@
         .view-btn:hover { color: var(--color-text); }
         .view-btn.active { color: var(--color-accent); font-weight: 600; }
 
+        /* Inline price editor in list view */
+        .list-price {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-accent);
+            cursor: pointer;
+            padding: 3px 7px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            transition: border-color 0.15s, background 0.15s;
+            white-space: nowrap;
+            min-width: 44px;
+            text-align: right;
+        }
+        .list-price:hover {
+            border-color: var(--color-border);
+            background: var(--color-inset);
+        }
+        .list-price.no-price {
+            color: var(--color-text-dim);
+            font-weight: 400;
+        }
+        .list-price-input {
+            width: 72px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--font-family);
+            color: var(--color-accent);
+            background: var(--color-inset);
+            border: 1px solid var(--color-accent);
+            border-radius: var(--radius-sm);
+            padding: 3px 7px;
+            outline: none;
+            text-align: right;
+        }
+        .list-price-saving {
+            color: var(--color-text-dim);
+            font-size: 12px;
+        }
+        .list-price-ok {
+            color: var(--color-success);
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .list-price-err {
+            color: var(--color-danger);
+            font-size: 12px;
+        }
+
         /* List view layout */
         .comics-list {
             display: flex;
@@ -1647,43 +1696,43 @@
                                 ? `<img data-src="${thumbnailUrl}" alt="${comic.Title || 'Comic'}" class="comics-list-thumb lazy-image" style="background: var(--color-elevated);" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2260%22><rect width=%2244%22 height=%2260%22 fill=%22%232A2A2A%22/></svg>'">`
                                 : `<div class="comics-list-thumb-placeholder">No Image</div>`;
 
-                            const conditionAcronym = getConditionAcronym(comic.Condition);
-                            const typeAbbreviation = getTypeAbbreviation(comic.Type || 'Auction', comic.Title);
-                            const priceText = comic.Price ? `$${comic.Price}` : '';
-                            const metaParts = [];
-                            if (priceText) metaParts.push(`<span style="color:var(--color-accent);">${priceText}</span>`);
-                            if (conditionAcronym) metaParts.push(`<span title="${comic.Condition || ''}">${conditionAcronym}</span>`);
-                            if (typeAbbreviation) metaParts.push(typeAbbreviation);
+                                            const conditionAcronym = getConditionAcronym(comic.Condition);
+                                            const typeAbbreviation = getTypeAbbreviation(comic.Type || 'Auction', comic.Title);
+                                            const priceText = comic.Price ? `$${comic.Price}` : '';
+                                            const metaParts = [];
+                                            if (conditionAcronym) metaParts.push(`<span title="${comic.Condition || ''}">${conditionAcronym}</span>`);
+                                            if (typeAbbreviation) metaParts.push(typeAbbreviation);
 
                             const ebayItemId = comic['eBay Item ID'] || comic.ebay_item_id || '';
                             const whatnotItemId = comic['WhatNot Item ID'] || comic.whatnot_item_id || '';
                             const isListedOnEbay = ebayItemId && ebayItemId.trim();
                             const isListedOnWhatNot = whatnotItemId === 'TRUE';
 
-                            row.innerHTML = `
-                                <input type="checkbox" class="comic-checkbox" data-sku="${comic.SKU}" style="display: none;">
-                                ${thumbHtml}
-                                <div class="comics-list-info">
-                                    <div class="comics-list-title">${comic.Title || 'Untitled Comic'}</div>
-                                    <div class="comics-list-meta">
-                                        SKU: ${comic.SKU || 'N/A'}
-                                        ${metaParts.length ? ' &bull; ' + metaParts.join(' &bull; ') : ''}
-                                    </div>
-                                    <div class="comics-list-meta" style="font-size:11px; color:var(--color-accent);">${window.formatDate(comic.last_modified) || ''}</div>
-                                </div>
-                                <div class="comics-list-right">
-                                    <div class="status-indicators" style="flex-direction:column; gap:4px;">
-                                        <div class="status-indicator-item">
-                                            <div class="${isListedOnEbay ? 'status-light ebay' : 'status-light ebay inactive'}" title="${isListedOnEbay ? 'Listed on eBay' : 'Not listed on eBay'}"></div>
-                                            <span class="${isListedOnEbay ? 'status-label ebay' : 'status-label ebay inactive'}">eBay</span>
-                                        </div>
-                                        <div class="status-indicator-item">
-                                            <div class="${isListedOnWhatNot ? 'status-light whatnot' : 'status-light whatnot inactive'}" title="${isListedOnWhatNot ? 'Listed on WhatNot' : 'Not listed on WhatNot'}"></div>
-                                            <span class="${isListedOnWhatNot ? 'status-label whatnot' : 'status-label whatnot inactive'}">WhatNot</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                                            row.innerHTML = `
+                                                <input type="checkbox" class="comic-checkbox" data-sku="${comic.SKU}" style="display: none;">
+                                                ${thumbHtml}
+                                                <div class="comics-list-info">
+                                                    <div class="comics-list-title">${comic.Title || 'Untitled Comic'}</div>
+                                                    <div class="comics-list-meta">
+                                                        SKU: ${comic.SKU || 'N/A'}
+                                                        ${metaParts.length ? ' &bull; ' + metaParts.join(' &bull; ') : ''}
+                                                    </div>
+                                                    <div class="comics-list-meta" style="font-size:11px; color:var(--color-accent);">${window.formatDate(comic.last_modified) || ''}</div>
+                                                </div>
+                                                <div class="comics-list-right">
+                                                    <span class="list-price${comic.Price ? '' : ' no-price'}" data-sku="${comic.SKU}" data-price="${comic.Price || ''}" title="Click to edit price">${comic.Price ? '$' + comic.Price : '—'}</span>
+                                                    <div class="status-indicators" style="flex-direction:column; gap:4px;">
+                                                        <div class="status-indicator-item">
+                                                            <div class="${isListedOnEbay ? 'status-light ebay' : 'status-light ebay inactive'}" title="${isListedOnEbay ? 'Listed on eBay' : 'Not listed on eBay'}"></div>
+                                                            <span class="${isListedOnEbay ? 'status-label ebay' : 'status-label ebay inactive'}">eBay</span>
+                                                        </div>
+                                                        <div class="status-indicator-item">
+                                                            <div class="${isListedOnWhatNot ? 'status-light whatnot' : 'status-light whatnot inactive'}" title="${isListedOnWhatNot ? 'Listed on WhatNot' : 'Not listed on WhatNot'}"></div>
+                                                            <span class="${isListedOnWhatNot ? 'status-label whatnot' : 'status-label whatnot inactive'}">WhatNot</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
 
                             row.onclick = () => {
                                 const urlParams = new URLSearchParams(window.location.search);
@@ -3811,6 +3860,127 @@
             loadComics(1, false);
         }
         window.switchBrowseView = switchBrowseView;
+
+        // ── Inline price editing in list view ──────────────────────────────────
+        // Delegate clicks on .list-price spans so dynamically added rows work.
+        document.getElementById('comicsContainer').addEventListener('click', function(e) {
+            const priceEl = e.target.closest('.list-price');
+            if (!priceEl) return;
+
+            // Block row navigation / selection
+            e.stopPropagation();
+
+            // Prevent opening a second input while one is already active
+            if (priceEl.querySelector('input')) return;
+
+            const sku = priceEl.dataset.sku;
+            const currentPrice = priceEl.dataset.price || '';
+
+            // Replace the span content with an input
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = '0';
+            input.step = '1';
+            input.value = currentPrice;
+            input.className = 'list-price-input';
+            input.title = 'Enter price, press Enter to save or Escape to cancel';
+
+            // Clear the span and insert the input
+            priceEl.textContent = '';
+            priceEl.classList.remove('no-price');
+            priceEl.appendChild(input);
+            input.focus();
+            input.select();
+
+            /**
+             * Save the new price to the backend and update the UI.
+             * @param {string} newValue - raw input value
+             */
+            async function savePrice(newValue) {
+                const parsed = parseFloat(newValue);
+                if (isNaN(parsed) || parsed < 0) {
+                    // Invalid — restore original display
+                    restoreDisplay(currentPrice);
+                    return;
+                }
+                const rounded = Math.ceil(parsed);
+
+                // Show saving indicator
+                priceEl.textContent = '…';
+                priceEl.classList.add('list-price-saving');
+
+                try {
+                    const resp = await fetch('/api/comics/update-title-price', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': window.csrfToken || ''
+                        },
+                        body: JSON.stringify({ sku, price: rounded })
+                    });
+                    const result = await resp.json();
+                    priceEl.classList.remove('list-price-saving');
+
+                    if (resp.ok && result.success) {
+                        // Persist new value on the element
+                        priceEl.dataset.price = rounded;
+                        // Brief ✓ then show new price
+                        priceEl.textContent = '✓';
+                        priceEl.classList.add('list-price-ok');
+                        setTimeout(() => {
+                            priceEl.classList.remove('list-price-ok', 'no-price');
+                            priceEl.textContent = `$${rounded}`;
+                        }, 800);
+                        // Sync in-memory allComics array
+                        const comicInMem = allComics.find(c => c.SKU === sku);
+                        if (comicInMem) comicInMem.Price = String(rounded);
+                    } else {
+                        priceEl.classList.add('list-price-err');
+                        priceEl.textContent = '✗';
+                        setTimeout(() => {
+                            priceEl.classList.remove('list-price-err');
+                            restoreDisplay(currentPrice);
+                        }, 1200);
+                    }
+                } catch (_err) {
+                    priceEl.classList.remove('list-price-saving');
+                    priceEl.classList.add('list-price-err');
+                    priceEl.textContent = '✗';
+                    setTimeout(() => {
+                        priceEl.classList.remove('list-price-err');
+                        restoreDisplay(currentPrice);
+                    }, 1200);
+                }
+            }
+
+            function restoreDisplay(price) {
+                priceEl.classList.remove('list-price-saving', 'list-price-ok', 'list-price-err');
+                if (price) {
+                    priceEl.textContent = `$${price}`;
+                    priceEl.classList.remove('no-price');
+                } else {
+                    priceEl.textContent = '—';
+                    priceEl.classList.add('no-price');
+                }
+            }
+
+            input.addEventListener('keydown', function(ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    savePrice(input.value);
+                } else if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    restoreDisplay(currentPrice);
+                }
+            });
+
+            input.addEventListener('blur', function() {
+                // Only save on blur if the input is still in the DOM (not already handled)
+                if (priceEl.contains(input)) {
+                    savePrice(input.value);
+                }
+            });
+        });
 
         // Sub-filter function for "Not Listed"
         function setNotListedSubFilter(subFilter) {
