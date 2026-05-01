@@ -769,6 +769,25 @@
             <button id="priceFilterGiveaway" class="listing-filter-tab" onclick="setPriceLookupListingFilter('Giveaway')">WN Givys</button>
         </div>
 
+        <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
+        <div id="priceNotListedSubFilters" style="display: none; margin-bottom: 16px; padding: 10px 12px; background: var(--color-bg); border: 1px solid var(--color-border-hover); border-radius: 8px;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <span style="color: var(--color-text-muted); font-size: 13px; font-weight: 600; margin-right: 8px;">SHOW:</span>
+                <button id="priceSubfilterBoth" class="subfilter-btn active" onclick="setPriceNotListedSubFilter('both')" style="padding: 6px 14px; background: var(--color-accent); color: var(--color-surface); border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    Missing from Both Platforms
+                </button>
+                <button id="priceSubfilterEbayOnly" class="subfilter-btn" onclick="setPriceNotListedSubFilter('ebay')" style="padding: 6px 14px; background: transparent; color: var(--color-accent); border: 2px solid var(--color-accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    Missing eBay Only
+                </button>
+                <button id="priceSubfilterWhatnotOnly" class="subfilter-btn" onclick="setPriceNotListedSubFilter('whatnot')" style="padding: 6px 14px; background: transparent; color: var(--color-accent); border: 2px solid var(--color-accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    Missing WhatNot Only
+                </button>
+                <button id="priceSubfilterGiveawayOnly" class="subfilter-btn" onclick="setPriceNotListedSubFilter('giveaway')" style="padding: 6px 14px; background: transparent; color: var(--color-whatnot); border: 2px solid var(--color-whatnot); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    Not in Giveaway
+                </button>
+            </div>
+        </div>
+
         <div id="tableView">
             <table class="comics-table">
                 <thead>
@@ -880,6 +899,7 @@
         const itemsPerPage = 20; // For eBay image search results pagination
         let maxLoadedPage = 1; // Track the highest page we've loaded
         let currentListingTypeFilter = localStorage.getItem('pricingListingTypeFilter') || 'all';
+        let pricingNotListedSubFilter = localStorage.getItem('pricingNotListedSubFilter') || 'both';
 
         let currentView = 'table';
 
@@ -902,11 +922,51 @@
             if (activeTab) {
                 activeTab.classList.add('active');
             }
+
+            // Show / hide the Not Listed sub-filter bar
+            const subFilters = document.getElementById('priceNotListedSubFilters');
+            if (subFilters) {
+                subFilters.style.display = currentListingTypeFilter === 'Not Listed' ? 'block' : 'none';
+            }
+
+            // Sync sub-filter button active states
+            updatePriceNotListedSubFilterUI();
+        }
+
+        function updatePriceNotListedSubFilterUI() {
+            const buttons = {
+                'both':    document.getElementById('priceSubfilterBoth'),
+                'ebay':    document.getElementById('priceSubfilterEbayOnly'),
+                'whatnot': document.getElementById('priceSubfilterWhatnotOnly'),
+                'giveaway': document.getElementById('priceSubfilterGiveawayOnly')
+            };
+
+            Object.entries(buttons).forEach(([key, btn]) => {
+                if (!btn) return;
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.color = key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
+                btn.style.border = `2px solid ${key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)'}`;
+            });
+
+            const activeBtn = buttons[pricingNotListedSubFilter];
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.style.background = pricingNotListedSubFilter === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
+                activeBtn.style.color = 'var(--color-surface)';
+                activeBtn.style.border = 'none';
+            }
         }
 
         function setPriceLookupListingFilter(type) {
+            const previousFilter = currentListingTypeFilter;
             currentListingTypeFilter = type;
             localStorage.setItem('pricingListingTypeFilter', type);
+            // Only reset sub-filter when switching TO Not Listed from a different tab
+            if (type === 'Not Listed' && previousFilter !== 'Not Listed') {
+                pricingNotListedSubFilter = 'both';
+                localStorage.setItem('pricingNotListedSubFilter', 'both');
+            }
             sessionStorage.removeItem('pricing_maxLoadedPage');
             maxLoadedPage = 1;
             currentPage = 1;
@@ -915,6 +975,17 @@
             loadComics(1, false);
         }
         window.setPriceLookupListingFilter = setPriceLookupListingFilter;
+
+        function setPriceNotListedSubFilter(subFilter) {
+            pricingNotListedSubFilter = subFilter;
+            localStorage.setItem('pricingNotListedSubFilter', subFilter);
+            updatePriceNotListedSubFilterUI();
+            maxLoadedPage = 1;
+            currentPage = 1;
+            allComics = [];
+            loadComics(1, false);
+        }
+        window.setPriceNotListedSubFilter = setPriceNotListedSubFilter;
 
         function switchView(view) {
             currentView = view;
@@ -1562,6 +1633,10 @@
                 let url = `/api/comics?page=${page}&per_page=${perPage}&sort_by=${sortBy}`;
                 if (currentListingTypeFilter && currentListingTypeFilter !== 'all') {
                     url += `&listing_type=${encodeURIComponent(currentListingTypeFilter)}`;
+                    // Pass sub-filter when Not Listed is active
+                    if (currentListingTypeFilter === 'Not Listed') {
+                        url += `&not_listed_subfilter=${encodeURIComponent(pricingNotListedSubFilter)}`;
+                    }
                 }
                 if (currentSearchTerm) {
                     url += `&search=${encodeURIComponent(currentSearchTerm)}`;

@@ -2389,42 +2389,6 @@
             }
         }
 
-        // WhatNot Givys Function - filters for Giveaway items
-        async function showBulkWhatNotGivysAction() {
-            bulkCurrentAction = 'givys';
-            bulkCurrentPlatform = 'whatnot';
-
-            // Hide management modal but keep it in the stack
-            document.getElementById('bulkWhatNotModal').style.display = 'none';
-
-            // Update UI for Givys
-            const titleEl = document.getElementById('bulkWhatNotSelectionTitle');
-            const allLabelEl = document.getElementById('whatnotAllLabel');
-
-            titleEl.textContent = 'WhatNot Givys Management';
-            allLabelEl.textContent = 'All Giveaway Items';
-
-            document.getElementById('bulkWhatNotSelectionModal').style.display = 'flex';
-            pushModalToStack('bulkWhatNotSelectionModal', closeBulkWhatNotSelectionModal);
-
-            // Load Giveaway items from the server
-            try {
-                const response = await fetch('/api/comics?per_page=1000&listing_type=Giveaway');
-                const result = await response.json();
-
-                if (result.success && result.comics) {
-                    // Temporarily store these comics for the bulk action
-                    window.bulkActionComics = result.comics;
-                    document.getElementById('whatnotAllCount').textContent = `${result.comics.length} items`;
-                } else {
-                    throw new Error('Failed to load giveaway comics');
-                }
-            } catch (error) {
-                console.error('Error loading giveaway comics:', error);
-                alert('Failed to load giveaway comics. Please try again.');
-                closeBulkWhatNotSelectionModal();
-            }
-        }
 
         // ------------------------------------------------------------------------
         // MICRO CARD BROWSER COMPONENT (Reusable)
