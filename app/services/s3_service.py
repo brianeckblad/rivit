@@ -3,10 +3,25 @@ import boto3
 from botocore.exceptions import ClientError
 from PIL import Image, ImageCms
 import io
+import json
 import os
 import hashlib
+import random
+import shutil
+import time
+import urllib.parse
+from datetime import datetime, timezone
 from pathlib import Path
 from app.utils.logging_utils import log_service_info as _log_info, log_service_warning as _log_warning, log_service_error as _log_error
+from app.utils.user_context import (
+    get_user_s3_images_prefix,
+    get_user_s3_sku_prefix,
+    get_user_s3_csv_prefix,
+    get_user_s3_exports_prefix,
+    get_user_s3_config_prefix,
+    get_user_exports_dir,
+    get_user_images_dir,
+)
 
 
 def _get_config(key, default=None):
@@ -24,7 +39,7 @@ def _get_config(key, default=None):
         The configuration value or default.
     """
     try:
-        from flask import current_app
+        from flask import current_app  # Deferred: requires Flask app context (falls back to os.environ outside context)
         return current_app.config.get(key, default)
     except RuntimeError:
         # Not in Flask context, use environment variables
@@ -80,9 +95,6 @@ class S3Service:
         Raises:
             Exception: If all retry attempts fail.
         """
-        import time
-        import random
-        
         retries = 0
         while retries < max_retries:
             try:
@@ -183,7 +195,6 @@ class S3Service:
         Returns:
             str: Presigned URL, or the original URL if generation fails.
         """
-        import urllib.parse
 
         if not s3_url:
             return s3_url
@@ -252,7 +263,6 @@ class S3Service:
             str: Path to the optimized image file, or original if optimization fails.
         """
         try:
-            from pathlib import Path
 
             original_path = Path(file_path)
 
@@ -410,7 +420,6 @@ class S3Service:
 
             # Ensure image is in the user's images folder unless the key
             # is already fully qualified (starts with a known prefix).
-            from app.utils.user_context import get_user_s3_images_prefix
             images_prefix = get_user_s3_images_prefix()
             s3_folder = _get_config('S3_FOLDER', 'production')
             known_prefixes = (f'{s3_folder}/', 'users/', 'exports/', 'deleted/')
@@ -470,7 +479,6 @@ class S3Service:
                 return False
 
             # Ensure parent directory exists
-            from pathlib import Path
             local_file = Path(local_path)
             local_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -523,8 +531,7 @@ class S3Service:
             # - https://s3.region.amazonaws.com/bucket/key
             
             # Decode any URL encoding (e.g., %20 -> space)
-            from urllib.parse import unquote
-            s3_url_decoded = unquote(s3_url)
+            s3_url_decoded = urllib.parse.unquote(s3_url)
 
             s3_key = None
             if '.s3.amazonaws.com/' in s3_url_decoded:
@@ -551,7 +558,6 @@ class S3Service:
 
             # Safety check: only delete files from an images folder
             images_prefix = _get_images_prefix()
-            from app.utils.user_context import get_user_s3_images_prefix
             user_images_prefix = get_user_s3_images_prefix()
             if not (s3_key.startswith(images_prefix) or s3_key.startswith(user_images_prefix)):
                 _log_warning(f"Refusing to delete file outside images folder: {s3_key}")
@@ -651,15 +657,12 @@ class S3Service:
                 return False
 
             # Get user-specific SKU prefix
-            from app.utils.user_context import get_user_s3_sku_prefix
             user_sku_prefix = get_user_s3_sku_prefix(username)
             sku_key = f'{user_sku_prefix}sku.txt'
 
             # Determine content to upload
             content = None
-            
-            # 1. Handle Path objects explicitly
-            from pathlib import Path
+                        # 1. Handle Path objects explicitly
             if isinstance(sku_value, Path):
                 if sku_value.exists() and sku_value.is_file():
                     with open(sku_value, 'r') as f:
@@ -734,7 +737,6 @@ class S3Service:
                 return None
 
             # Get user-specific SKU prefix
-            from app.utils.user_context import get_user_s3_sku_prefix
             user_sku_prefix = get_user_s3_sku_prefix(username)
             sku_key = f'{user_sku_prefix}sku.txt'
 
@@ -795,7 +797,6 @@ class S3Service:
                 local_md5 = hashlib.md5(f.read()).hexdigest()
 
             # Get user-specific CSV prefix
-            from app.utils.user_context import get_user_s3_csv_prefix
             user_csv_prefix = get_user_s3_csv_prefix(username)
             csv_key = f'{user_csv_prefix}items.csv'
 
@@ -842,7 +843,6 @@ class S3Service:
             s3_folder = _get_config('S3_FOLDER', 'production')
 
             # Try user-specific CSV prefix first, fall back to legacy path
-            from app.utils.user_context import get_user_s3_csv_prefix
             user_csv_prefix = get_user_s3_csv_prefix(username)
             csv_key = f'{user_csv_prefix}items.csv'
 
@@ -890,9 +890,6 @@ class S3Service:
             bool: True if the backup was successful.
         """
         try:
-            from datetime import datetime
-            from pathlib import Path
-            import shutil
 
             bucket_name = _get_config('S3_BUCKET')
 
@@ -906,7 +903,6 @@ class S3Service:
                 return False
 
             # Get user-specific exports prefix
-            from app.utils.user_context import get_user_s3_exports_prefix
             user_exports_prefix = get_user_s3_exports_prefix()
 
             # Create timestamped filename: users/{username}/exports/2024-12-21_1430_comics_export.csv
@@ -919,7 +915,6 @@ class S3Service:
             _log_info(f"Backed up CSV export to S3: {s3_key}")
 
             # Save a local timestamped copy to user-specific exports directory
-            from app.utils.user_context import get_user_exports_dir
             exports_dir = get_user_exports_dir()
             exports_dir.mkdir(parents=True, exist_ok=True)
 
@@ -949,8 +944,6 @@ class S3Service:
             keep_count: Number of recent exports to keep on server (default: 100)
         """
         try:
-            from pathlib import Path
-            from app.utils.user_context import get_user_exports_dir
 
             # Get user-specific exports directory
             exports_dir = get_user_exports_dir()
@@ -997,7 +990,6 @@ class S3Service:
         if bucket_name:
             try:
                 paginator = self.client().get_paginator('list_objects_v2')
-                from app.utils.user_context import get_user_s3_images_prefix
                 pages = paginator.paginate(Bucket=bucket_name, Prefix=get_user_s3_images_prefix())
 
                 for page in pages:
@@ -1029,7 +1021,6 @@ class S3Service:
             images_prefix = _get_images_prefix()
 
             # Also include user-specific images prefix
-            from app.utils.user_context import get_user_s3_images_prefix
             user_images_prefix = get_user_s3_images_prefix()
 
             # List all objects under both prefixes
@@ -1110,7 +1101,6 @@ class S3Service:
             dict: Summary of results (downloaded, uploaded, skipped).
         """
         try:
-            from datetime import timezone
             bucket_name = self.bucket_name
             if not bucket_name:
                 return None
@@ -1196,7 +1186,6 @@ class S3Service:
         Returns:
             dict: Summary of the sync results (downloaded, uploaded, skipped).
         """
-        from app.utils.user_context import get_user_images_dir, get_user_s3_images_prefix
 
         local_images_dir = get_user_images_dir(username)
         local_images_dir.mkdir(parents=True, exist_ok=True)
@@ -1214,7 +1203,6 @@ class S3Service:
         Returns:
             dict: Summary of the sync results (downloaded, uploaded, skipped).
         """
-        from app.utils.user_context import get_user_exports_dir, get_user_s3_exports_prefix
 
         exports_dir = get_user_exports_dir(username)
         exports_dir.mkdir(parents=True, exist_ok=True)
@@ -1241,7 +1229,6 @@ class S3Service:
         if not bucket_name:
             return []
 
-        from app.utils.user_context import get_user_s3_images_prefix
         images_prefix = get_user_s3_images_prefix()
 
         for image_url in image_urls_to_copy:
@@ -1285,8 +1272,6 @@ class S3Service:
 
                     # 4. Download locally for consistency
                     try:
-                        from pathlib import Path
-                        from app.utils.user_context import get_user_images_dir
 
                         local_images_dir = get_user_images_dir()
                         local_images_dir.mkdir(parents=True, exist_ok=True)
@@ -1358,10 +1343,7 @@ class S3Service:
                   changes, False if an error occurred.
         """
         try:
-            import json
-            from pathlib import Path
             bucket_name = _get_config('S3_BUCKET')
-            from app.utils.user_context import get_user_s3_config_prefix
             config_prefix = get_user_s3_config_prefix()
             if not bucket_name:
                 return False
@@ -1411,9 +1393,7 @@ class S3Service:
                           or None if the file is missing or an error occurs.
         """
         try:
-            import json
             bucket_name = _get_config('S3_BUCKET')
-            from app.utils.user_context import get_user_s3_config_prefix
             config_prefix = get_user_s3_config_prefix()
             prefs_key = f'{config_prefix}user_preferences.json'
 

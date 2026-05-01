@@ -4,6 +4,7 @@ import boto3
 import os
 from botocore.exceptions import ClientError
 from flask import current_app
+from app.utils.logging_utils import safe_error_message
 
 
 class UserSecretsService:
@@ -155,7 +156,7 @@ class UserSecretsService:
 
         except Exception as e:
             current_app.logger.error(f"[User: {username}] Error saving eBay credentials: {e}")
-            return False, f"Error saving credentials: {str(e)}"
+            return False, f"Error saving credentials: {safe_error_message(e)}"
 
     def delete_user_ebay_credentials(self, username):
         """
@@ -181,7 +182,7 @@ class UserSecretsService:
             return True, "No credentials found to delete"
         except Exception as e:
             current_app.logger.error(f"[User: {username}] Error deleting eBay credentials: {e}")
-            return False, f"Error deleting credentials: {str(e)}"
+            return False, f"Error deleting credentials: {safe_error_message(e)}"
 
     def check_credentials_exist(self, username):
         """

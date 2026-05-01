@@ -167,7 +167,7 @@ class HealthCheckService:
 
         except Exception as e:
             log_app_error(f"Error reading CSV for health check: {e}")
-            self.results['errors'].append(f"CSV read error: {e}")
+            self.results['errors'].append(f"CSV read error: {safe_error_message(e)}")
 
         return image_urls
 
@@ -368,7 +368,6 @@ def get_health_check_service():
     """
     global _health_check_service
     if _health_check_service is None:
-        from pathlib import Path
         # Use instance path directly - health check is system-wide
         instance_path = Path(current_app.instance_path)
         # Use a dummy CSV path since health check doesn't actually read CSV

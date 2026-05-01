@@ -5,6 +5,7 @@ import os
 import shutil
 import logging
 import tempfile
+import traceback
 from contextlib import contextmanager
 from pathlib import Path
 from app.utils.whatnot_validators import WHATNOT_FIELD_VALIDATION, METADATA_FIELDS, WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
@@ -427,7 +428,6 @@ class CSVService:
                 self._invalidate_cache()
                 return True
         except Exception as e:
-            import traceback
             logger.error(f"Error updating comic in CSV: {e}")
             logger.error(traceback.format_exc())
             return False

@@ -1,15 +1,22 @@
 """Comic service for business logic."""
+from datetime import datetime, timezone
 from pathlib import Path
-from flask import current_app
+
+from flask import current_app, session
+from PIL import Image
+
 from app.models.comic import Comic
+from app.models.trash_item import TrashItem
 from app.services.csv_service import CSVService
 from app.services.s3_service import s3_service
+from app.services.trash_service import trash_service  # Deferred: avoids circular import at module level — trash_service does not import comic_service
 from app.utils.helpers import generate_unique_filename, is_giveaway
-from app.utils.whatnot_validators import allowed_file
 from app.utils.logging_utils import log_service_info, log_service_warning, log_app_error, safe_error_message
-from app.utils.user_context import get_user_csv_file, get_user_sku_file, get_current_username
-import os
+from app.utils.mass_deletion_protection import get_protection, check_csv_health_before_cleanup
+from app.utils.user_context import get_user_csv_file, get_user_sku_file, get_current_username, get_user_s3_images_prefix
+from app.utils.whatnot_validators import allowed_file, WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
 import fcntl
+import os
 import time
 
 
@@ -43,7 +50,6 @@ class ComicService:
 
         # Reinitialize if user changed
         if self.csv_service is None or self._current_user != current_user:
-            from app.services.csv_service import CSVService
             user_csv_file = get_user_csv_file(current_user)
             self.csv_service = CSVService(user_csv_file)
             self.csv_service.initialize()
@@ -177,7 +183,6 @@ class ComicService:
 
         # Determine which SKU to use based on modification time
         if sku_from_s3 and local_sku:
-            from datetime import timezone
             s3_mtime = sku_from_s3['last_modified'].replace(tzinfo=timezone.utc).timestamp()
 
             # Use the most recently modified SKU
@@ -481,7 +486,6 @@ class ComicService:
             csv_service = self._get_csv_service()
             if csv_service.add(comic):
                 # Backup CSV to S3 for state sync (use user-specific CSV)
-                from app.utils.user_context import get_user_csv_file
                 user_csv = get_user_csv_file()
                 s3_service.backup_main_csv_to_s3(str(user_csv))
                 return True, comic
@@ -528,7 +532,6 @@ class ComicService:
 
              # Handle removed images
             if removed_image_urls:
-                from app.utils.mass_deletion_protection import get_protection
 
                 # SAFETY CHECK: Prevent mass deletion if suspicious
                 protection = get_protection()
@@ -568,10 +571,6 @@ class ComicService:
                 final_image_urls.extend(new_urls)
 
             # Update comic data
-            from app.utils.whatnot_validators import WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
-            from datetime import datetime
-            from flask import session
-
             comic_data[WHATNOT_FIELD_NAMES['SKU']] = sku
             comic_data['image_urls'] = final_image_urls
 
@@ -619,8 +618,6 @@ class ComicService:
             tuple: (bool, str) Success status and a descriptive message.
         """
         try:
-            from app.services.trash_service import trash_service
-            from app.models.trash_item import TrashItem
 
             csv_service = self._get_csv_service()
 
@@ -666,8 +663,6 @@ class ComicService:
             dict: Summary containing 'comics_deleted' count and a status 'message'.
         """
         try:
-            from app.services.trash_service import trash_service
-            from app.models.trash_item import TrashItem
 
             csv_service = self._get_csv_service()
 
@@ -692,7 +687,6 @@ class ComicService:
             csv_service.clear_all()
 
             # Backup empty CSV to S3 for state sync (use user-specific CSV)
-            from app.utils.user_context import get_user_csv_file
             s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
 
             # Images stay in production folder
@@ -720,8 +714,6 @@ class ComicService:
             int: The total count of comics successfully updated.
         """
         try:
-            from app.utils.whatnot_validators import WHATNOT_FIELD_NAMES, METADATA_FIELD_NAMES
-            from datetime import datetime
             csv_service = self._get_csv_service()
             updated_count = 0
 
@@ -743,7 +735,6 @@ class ComicService:
                 comic_dict[METADATA_FIELD_NAMES['LAST_MODIFIED']] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                 # Convert back to Comic object
-                from app.models.comic import Comic
                 updated_comic = Comic.from_dict(comic_dict)
 
                 # Update in CSV
@@ -755,7 +746,6 @@ class ComicService:
 
             # Backup CSV to S3 for state sync if any were updated
             if updated_count > 0:
-                from app.utils.user_context import get_user_csv_file
                 s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
                 log_service_info(f"Bulk updated {updated_count} comics")
 
@@ -777,8 +767,6 @@ class ComicService:
                    and a status message.
         """
         try:
-            from app.services.trash_service import trash_service
-            from app.models.trash_item import TrashItem
 
             csv_service = self._get_csv_service()
             deleted_count = 0
@@ -801,7 +789,6 @@ class ComicService:
 
             # Backup CSV to S3 for state sync if any were deleted
             if deleted_count > 0:
-                from app.utils.user_context import get_user_csv_file
                 s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
                 log_service_info(f"Moved {deleted_count} comics to trash (30-day retention)")
 
@@ -901,7 +888,6 @@ class ComicService:
         Raises:
             Exception: If any part of the upload process fails.
         """
-        from PIL import Image
         image_urls = []
         upload_folder = Path(current_app.config['UPLOAD_FOLDER'])
         upload_folder.mkdir(parents=True, exist_ok=True)
@@ -969,7 +955,6 @@ class ComicService:
         csv_service = self._get_csv_service()
         if not csv_service.update(comic.sku, comic):
             raise RuntimeError(f"Failed to save comic {comic.sku}")
-        from app.utils.user_context import get_user_csv_file
         s3_service.backup_main_csv_to_s3(str(get_user_csv_file()))
         return comic
 
@@ -982,8 +967,6 @@ class ComicService:
             dict: Summary of the cleanup operation results.
         """
         try:
-            from app.services.trash_service import trash_service
-            from app.utils.mass_deletion_protection import check_csv_health_before_cleanup, get_protection
 
             log_service_info("Starting orphaned image cleanup")
 
@@ -1005,7 +988,7 @@ class ComicService:
                 log_app_error(f"Orphaned image cleanup blocked by safety check: {e}")
                 return {
                     'success': False,
-                    'error': f"Safety check failed: {str(e)}",
+                    'error': f"Safety check failed: {safe_error_message(e)}",
                     'total_images': 0,
                     'deleted_count': 0,
                     'preserved_count': 0
@@ -1017,7 +1000,6 @@ class ComicService:
                 return {'success': False, 'error': 'S3 bucket not configured'}
 
             paginator = s3_service.client().get_paginator('list_objects_v2')
-            from app.utils.user_context import get_user_s3_images_prefix
             images_prefix = get_user_s3_images_prefix()
             pages = paginator.paginate(Bucket=bucket_name, Prefix=images_prefix)
 
@@ -1112,7 +1094,7 @@ class ComicService:
 
         except Exception as e:
             log_app_error(f"Error in orphaned image cleanup: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': safe_error_message(e)}
 
 
 def initialize_sku_file(sku_file_path):

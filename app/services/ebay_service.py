@@ -5,6 +5,7 @@ import re
 import time
 import base64
 import hashlib
+import threading
 import traceback
 import urllib.parse
 import requests
@@ -67,7 +68,6 @@ class EbayService:
 
     def __init__(self):
         """Initialize the eBay service and determine the environment (production/sandbox)."""
-        import threading
         # User-specific state (cached per user to avoid repeated AWS calls).
         # Mutated from request handlers across threads; protect with a lock.
         self._user_credentials_cache = {}  # {username: {credentials}}
@@ -809,7 +809,6 @@ class EbayService:
         Returns:
             dict: Contains the URL and instructions for manual lookup.
         """
-        import urllib.parse
 
         # Build search URL with sold items filter
         base_url = "https://www.ebay.com/sch/i.html"
