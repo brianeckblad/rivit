@@ -266,6 +266,23 @@
 
         /* .filter-tabs / .filter-tab defined in components.css */
 
+        /* Title as clickable load-image button in table view */
+        .title-load-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            font: inherit;
+            color: var(--color-text);
+            cursor: pointer;
+            text-align: left;
+            transition: color 0.2s;
+        }
+        .title-load-btn:hover {
+            color: var(--color-accent);
+            text-decoration: underline;
+        }
+
 
         /* Page-specific width override for form-input */
         .search-box {
@@ -721,14 +738,8 @@
             <h2>Working Inventory</h2>
             <div class="search-container">
                 <div class="view-toggle">
-                    <span class="toggle-label-left">Table</span>
-                    <button class="view-btn active" id="tableViewBtn" onclick="switchView('table')">
-                        <span class="nav-label">Table</span>
-                    </button>
-                    <button class="view-btn" id="gridViewBtn" onclick="switchView('grid')">
-                        <span class="nav-label">Grid</span>
-                    </button>
-                    <span class="toggle-label-right">Grid</span>
+                    <button class="view-btn active" id="tableViewBtn" onclick="switchView('table')">Table</button>
+                    <button class="view-btn" id="gridViewBtn" onclick="switchView('grid')">Grid</button>
                 </div>
                 <label for="searchBox" class="sr-only">Search comics</label>
                 <input type="text" id="searchBox" class="form-input search-box" placeholder="🔍 Search comics...">
@@ -1805,7 +1816,7 @@
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </a>
-                            <span class="title-text" data-full-title="${comic.Title}" style="transition: color 0.3s ease;">${titleText}</span>
+                            <button class="title-text title-load-btn" data-full-title="${comic.Title}" onclick="lookupPrice('${comic.SKU}', event); event.stopPropagation();" title="Load image &amp; search eBay">${titleText}</button>
                         </div>
                     </td>
                     <td>$${comic.Price}</td>
