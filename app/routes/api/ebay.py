@@ -748,6 +748,63 @@ def update_comic_whatnot_status(sku: str) -> Response:
         return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
 
 
+@api_bp.route('/comic/<sku>/giveaway/status', methods=['POST'])
+@login_required
+@csrf_required
+def update_comic_giveaway_status(sku: str) -> Response:
+    """Toggle WhatNot Giveaway status for a comic.
+
+    Sets or clears the Giveaway listing type.  When added to a giveaway the
+    ``listing_type`` is set to ``'Giveaway'`` and ``whatnot_item_id`` to
+    ``'TRUE'``.  When removed the item reverts to ``'For Sale'`` and
+    ``whatnot_item_id`` is cleared.
+
+    Path Parameters:
+        sku (str): Comic SKU
+
+    Request Body (JSON):
+        {
+            "is_giveaway": bool  # True to add to giveaway, False to remove
+        }
+
+    Returns:
+        Response: Flask JSON response containing:
+            - success (bool): Whether update succeeded
+            - listing_type (str): Updated listing_type value
+            - is_giveaway (bool): Current giveaway state
+
+    Status Codes:
+        200: Status updated
+        404: Comic not found
+        500: Server error
+    """
+    try:
+        data = request.get_json() or {}
+        is_giveaway_flag = bool(data.get('is_giveaway', False))
+
+        comic = comic_service.get_comic(sku)
+        if not comic:
+            return jsonify({'success': False, 'error': 'Comic not found'}), 404
+
+        if is_giveaway_flag:
+            comic.listing_type = 'Giveaway'
+            comic.whatnot_item_id = 'TRUE'
+        else:
+            comic.listing_type = 'For Sale'
+            comic.whatnot_item_id = 'FALSE'
+
+        comic_service.save_comic(comic)
+
+        return jsonify({
+            'success': True,
+            'listing_type': comic.listing_type,
+            'is_giveaway': is_giveaway_flag,
+        })
+    except Exception as exc:
+        current_app.logger.error(f"Failed to update giveaway status for {sku}: {exc}")
+        return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
+
+
 @api_bp.route('/ebay/trading-api-status', methods=['GET'])
 @login_required
 def ebay_trading_api_status() -> Response:

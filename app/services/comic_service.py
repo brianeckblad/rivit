@@ -353,6 +353,9 @@ class ComicService:
                         comic for comic in non_giveaway_comics
                         if (comic.whatnot_item_id or '').strip().upper() != 'TRUE'
                     ]
+                elif not_listed_subfilter == 'giveaway':
+                    # Items not in giveaway (reverse of the Giveaway filter)
+                    filtered_comics = non_giveaway_comics
                 else:
                     # Default to 'both' if invalid sub-filter
                     filtered_comics = [
@@ -367,10 +370,11 @@ class ComicService:
                     if (comic.ebay_item_id or '').strip() and not is_giveaway_comic(comic)
                 ]
             elif listing_type == 'WhatNot':
-                # Filter for items that are listed on WhatNot
+                # Filter for items that are listed on WhatNot (exclude giveaways)
                 filtered_comics = [
                     comic for comic in filtered_comics
                     if (comic.whatnot_item_id or '').strip().upper() == 'TRUE'
+                    and not is_giveaway_comic(comic)
                 ]
 
         # 2.5. Apply sorting

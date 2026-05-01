@@ -585,6 +585,20 @@
                             Browse Collection
                         </a>
                     </div>
+                    <div class="actions-row" style="margin-top: 12px;">
+                        <button class="btn btn-secondary" onclick="showWhatnotExportModal()" style="color: var(--color-whatnot); border-color: var(--color-whatnot);">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            </svg>
+                            Export WhatNot Comics
+                        </button>
+                        <button class="btn btn-secondary" onclick="showEbayExportModal()" style="color: var(--color-ebay); border-color: var(--color-ebay);">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm3 3h8v2H8V8zm0 4h8v2H8v-2z" fill="currentColor"/>
+                            </svg>
+                            Export eBay Comics
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Export, Manage and Backup Data -->
@@ -623,37 +637,9 @@
                 </div>
                 <div class="modal-body">
                     <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <!-- WhatNot Data Management Section -->
-                        <div style="margin-bottom: 8px;">
-                            <div style="font-size: 13px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 8px; padding-left: 4px;">WhatNot Data Management</div>
-                            <button onclick="closeExportBackupModal(); showWhatnotExportModal()" class="btn btn-secondary" style="width: 100%; justify-content: flex-start;">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                    <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                </svg>
-                                <div style="flex: 1; text-align: left;">
-                                    <div style="font-weight: 600;">WhatNot Data Management</div>
-                                    <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Download WhatNot CSV format</div>
-                                </div>
-                            </button>
-                        </div>
-
-                        <!-- eBay Data Management Section -->
-                        <div style="margin-bottom: 8px;">
-                            <div style="font-size: 13px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 8px; padding-left: 4px;">eBay Data Management</div>
-                            <button onclick="closeExportBackupModal(); showEbayExportModal()" class="btn btn-secondary" style="width: 100%; justify-content: flex-start;">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-                                    <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm3 3h8v2H8V8zm0 4h8v2H8v-2z" fill="currentColor"/>
-                                </svg>
-                                <div style="flex: 1; text-align: left;">
-                                    <div style="font-weight: 600;">eBay Data Management</div>
-                                    <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px;">Bulk export or selective eBay listings</div>
-                                </div>
-                            </button>
-                        </div>
-
                         <!-- Backup & Snapshots Section -->
-                        <div style="border-top: 1px solid var(--color-border-hover); padding-top: 12px; margin-top: 4px;">
-                            <div style="font-size: 13px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 8px; padding-left: 4px;">Backup & Snapshots</div>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 8px; padding-left: 4px;">Backup &amp; Snapshots</div>
                             <div style="display: flex; flex-direction: column; gap: 8px;">
                                 <button id="backupDownloadBtn" onclick="downloadBackup()" class="btn btn-secondary" style="width: 100%; justify-content: flex-start;">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">

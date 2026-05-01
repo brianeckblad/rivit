@@ -753,6 +753,9 @@
                     <button id="subfilterWhatnotOnly" class="subfilter-btn" onclick="setNotListedSubFilter('whatnot')" style="padding: 8px 16px; background: transparent; color: var(--color-accent); border: 2px solid var(--color-accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         Missing WhatNot Only
                     </button>
+                    <button id="subfilterGiveawayOnly" class="subfilter-btn" onclick="setNotListedSubFilter('giveaway')" style="padding: 8px 16px; background: transparent; color: var(--color-whatnot); border: 2px solid var(--color-whatnot); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        Not in Giveaway
+                    </button>
                 </div>
             </div>
 
@@ -774,6 +777,12 @@
                             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                         </svg>
                         eBay Management
+                    </button>
+                    <button id="bulkGiveawayBtn" onclick="openBulkGiveawayModal()" style="display: none; padding: 8px 16px; background: var(--color-whatnot); color: var(--color-bg); border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        WhatNot Giveaway Management
                     </button>
                     <!-- eBay status sub-filters (shown alongside bulk when eBay tab is active) -->
                     <div id="ebayStatusFilters" style="display: none; margin-left: auto;">
@@ -1073,6 +1082,89 @@
                 <!-- Scrollable Items Container -->
                 <div id="bulkWhatNotItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid var(--color-border-hover); border-radius: var(--radius-sm); padding: var(--space-sm);">
                     <div id="whatnotItemsContainer" style="display: grid; gap: var(--space-xs); justify-items: center;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk WhatNot Giveaway Management Modal -->
+    <div id="bulkGiveawayModal" class="modal" style="z-index: 1004;" onclick="closeBulkGiveawayModalOnOutside(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 600px; padding: 0; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header" style="padding: var(--space-lg); margin-bottom: 0; position: sticky; top: 0; background: var(--color-elevated); z-index: 1;">
+                <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-whatnot)" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <h3 style="color: var(--color-whatnot);">WhatNot Giveaway Bulk Actions</h3>
+                </div>
+                <button onclick="closeBulkGiveawayModal()" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: var(--space-lg);">
+                <div style="display: grid; gap: var(--space-md);">
+                    <button onclick="showBulkGiveawayAction('add')" class="cl-action-card whatnot-brand">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <div>
+                            <div>Bulk Add to Giveaway</div>
+                            <div style="font-size: var(--font-size-sm); color: var(--color-text-muted); font-weight: 400; margin-top: var(--space-xs);">Mark multiple items as WhatNot Giveaway</div>
+                        </div>
+                    </button>
+                    <button onclick="showBulkGiveawayAction('remove')" class="cl-action-card danger">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <div>
+                            <div>Bulk Remove from Giveaway</div>
+                            <div style="font-size: var(--font-size-sm); color: var(--color-text-muted); font-weight: 400; margin-top: var(--space-xs);">Revert multiple giveaway items back to For Sale</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk WhatNot Giveaway Selection Modal -->
+    <div id="bulkGiveawaySelectionModal" class="modal" style="z-index: 1005;" onclick="closeBulkGiveawaySelectionModalOnOutside(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 720px; padding: 0; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header" style="padding: var(--space-lg); margin-bottom: 0; position: sticky; top: 0; background: var(--color-elevated); z-index: 1;">
+                <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                    <button onclick="closeBulkGiveawaySelectionModal(); openBulkGiveawayModal();" class="close-btn" style="font-size: 20px;" title="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <h3 id="bulkGiveawaySelectionTitle" style="color: var(--color-whatnot);">Select Items</h3>
+                </div>
+                <button onclick="closeBulkGiveawaySelectionModal()" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: var(--space-lg);">
+                <div style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg);">
+                    <button onclick="selectGiveawayOption('all')" class="cl-option-btn whatnot-brand">
+                        <div id="giveawayAllLabel">All Items</div>
+                        <div id="giveawayAllCount" style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-xs);">0 items</div>
+                    </button>
+                    <button onclick="selectGiveawayOption('selection')" class="cl-option-btn info">
+                        <div>Select Specific Items</div>
+                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-xs);">Choose manually</div>
+                    </button>
+                </div>
+                <!-- Controls Bar -->
+                <div id="bulkGiveawayControlsBar" style="display: none; margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--color-elevated); border: 1px solid var(--color-border-hover); border-radius: var(--radius-sm); position: sticky; top: 0; z-index: 2;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" id="giveawayItemSearch" class="form-input" placeholder="Search items..." style="flex: 1; min-width: 150px;" oninput="filterGiveawayItems(this.value)">
+                        <div style="display: flex; gap: var(--space-sm); flex-shrink: 0;">
+                            <button onclick="toggleAllGiveawayItems()" class="btn btn-secondary btn-sm">Select All</button>
+                            <button onclick="proceedWithGiveawaySelection()" class="btn btn-sm" style="background: var(--color-whatnot); color: var(--color-bg);">Proceed (<span id="giveawaySelectedCount">0</span>)</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Scrollable Items Container -->
+                <div id="bulkGiveawayItemList" style="display: none; max-height: 500px; overflow-y: auto; border: 1px solid var(--color-border-hover); border-radius: var(--radius-sm); padding: var(--space-sm);">
+                    <div id="giveawayItemsContainer" style="display: grid; gap: var(--space-xs); justify-items: center;">
                     </div>
                 </div>
             </div>
@@ -2039,6 +2131,12 @@
                 populateEbayItems();
             }
 
+            // Check Giveaway container
+            const giveawayContainer = document.getElementById('giveawayItemsContainer');
+            if (giveawayContainer && giveawayContainer.offsetParent !== null && giveawayContainer.children.length > 0) {
+                populateGiveawayItems();
+            }
+
             // Restore selection state after a short delay
             if (previouslySelected.length > 0) {
                 setTimeout(() => {
@@ -2051,8 +2149,8 @@
         function restoreSelectionState(selectedSKUs) {
             if (!selectedSKUs || selectedSKUs.length === 0) return;
 
-            // Restore for both containers
-            const containers = ['whatnotItemsContainer', 'ebayItemsContainer'];
+            // Restore for all containers
+            const containers = ['whatnotItemsContainer', 'ebayItemsContainer', 'giveawayItemsContainer'];
             let restoredCount = 0;
 
             containers.forEach(containerId => {
@@ -2100,16 +2198,20 @@
             const bulkContainer = document.getElementById('bulkManagementButtons');
             const whatnotBtn = document.getElementById('bulkWhatNotBtn');
             const ebayBtn = document.getElementById('bulkEbayManagementBtn');
+            const giveawayBtn = document.getElementById('bulkGiveawayBtn');
             const ebayFilters = document.getElementById('ebayStatusFilters');
+
+            // Hide all platform buttons by default
+            whatnotBtn.style.display = 'none';
+            ebayBtn.style.display = 'none';
+            giveawayBtn.style.display = 'none';
+            ebayFilters.style.display = 'none';
 
             if (listingType === 'WhatNot') {
                 bulkContainer.style.display = 'block';
                 whatnotBtn.style.display = 'inline-flex';
-                ebayBtn.style.display = 'none';
-                ebayFilters.style.display = 'none';
             } else if (listingType === 'For Sale eBay') {
                 bulkContainer.style.display = 'block';
-                whatnotBtn.style.display = 'none';
                 ebayBtn.style.display = 'inline-flex';
                 ebayFilters.style.display = 'block';
                 // Reset eBay sub-filter to "all"
@@ -2117,9 +2219,11 @@
                 updateEbaySubFilterUI();
                 // Fetch eBay listing statuses for cross-reference
                 fetchEbayStatusMap();
+            } else if (listingType === 'Giveaway') {
+                bulkContainer.style.display = 'block';
+                giveawayBtn.style.display = 'inline-flex';
             } else {
                 bulkContainer.style.display = 'none';
-                ebayFilters.style.display = 'none';
             }
         }
 
@@ -2720,6 +2824,187 @@
         }
 
         // ------------------------------------------------------------------------
+        // WhatNot Giveaway Bulk Management Functions
+        // ------------------------------------------------------------------------
+        // Handles bulk giveaway operations:
+        // - Bulk Add to Giveaway (sets Listing Type = 'Giveaway', WhatNot = TRUE)
+        // - Bulk Remove from Giveaway (reverts to For Sale)
+        // ------------------------------------------------------------------------
+
+        function openBulkGiveawayModal() {
+            document.getElementById('bulkGiveawayModal').style.display = 'flex';
+            pushModalToStack('bulkGiveawayModal', closeBulkGiveawayModal);
+        }
+
+        function closeBulkGiveawayModal() {
+            document.getElementById('bulkGiveawayModal').style.display = 'none';
+            popModalFromStack('bulkGiveawayModal');
+        }
+
+        function closeBulkGiveawayModalOnOutside(event) {
+            if (event.target.id === 'bulkGiveawayModal') {
+                closeBulkGiveawayModal();
+            }
+        }
+
+        async function showBulkGiveawayAction(action) {
+            bulkCurrentAction = action;
+            bulkCurrentPlatform = 'giveaway';
+
+            // Hide management modal but keep it in the stack
+            document.getElementById('bulkGiveawayModal').style.display = 'none';
+
+            // Update UI based on action
+            const titleEl = document.getElementById('bulkGiveawaySelectionTitle');
+            const allLabelEl = document.getElementById('giveawayAllLabel');
+
+            if (action === 'add') {
+                titleEl.textContent = 'Bulk Add to Giveaway';
+                allLabelEl.textContent = 'All Non-Giveaway Items';
+            } else {
+                titleEl.textContent = 'Bulk Remove from Giveaway';
+                allLabelEl.textContent = 'All Giveaway Items';
+            }
+
+            document.getElementById('bulkGiveawaySelectionModal').style.display = 'flex';
+            pushModalToStack('bulkGiveawaySelectionModal', closeBulkGiveawaySelectionModal);
+
+            // Reset UI state
+            document.getElementById('bulkGiveawayControlsBar').style.display = 'none';
+            document.getElementById('bulkGiveawayItemList').style.display = 'none';
+
+            // Load items from the server
+            try {
+                let url;
+                if (action === 'remove') {
+                    // Get items that are currently giveaways
+                    url = '/api/comics?per_page=1000&listing_type=Giveaway';
+                } else {
+                    // Get all items and filter out giveaways client-side
+                    url = '/api/comics?per_page=1000';
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success && result.comics) {
+                    let comics = result.comics;
+                    if (action === 'add') {
+                        // Filter out items that are already giveaways
+                        comics = comics.filter(c => {
+                            const lt = (c['Listing Type'] || '').toLowerCase();
+                            const title = (c['Title'] || '').toUpperCase();
+                            return lt !== 'giveaway' && !title.startsWith('G-') && !title.startsWith('G - ');
+                        });
+                    }
+                    window.bulkActionComics = comics;
+                    document.getElementById('giveawayAllCount').textContent = `${comics.length} items`;
+                } else {
+                    throw new Error('Failed to load comics');
+                }
+            } catch (error) {
+                console.error('Error loading comics for giveaway bulk action:', error);
+                alert('Failed to load comics. Please try again.');
+                closeBulkGiveawaySelectionModal();
+            }
+        }
+
+        function populateGiveawayItems() {
+            const comicsToUse = window.bulkActionComics || allComics;
+
+            populateMiniCardBrowser({
+                containerId: 'giveawayItemsContainer',
+                countElementId: 'giveawayAllCount',
+                selectedCountElementId: 'giveawaySelectedCount',
+                comicsArray: comicsToUse,
+                filterFunction: () => true,
+                borderColor: 'var(--color-whatnot)',
+                overlayColor: 'var(--color-whatnot-subtle)',
+                cssClass: 'giveaway-bulk-item'
+            });
+        }
+
+        function selectGiveawayOption(option) {
+            const comicsToUse = window.bulkActionComics || allComics;
+
+            if (option === 'all') {
+                bulkSelectedItems = comicsToUse.map(comic => comic.SKU);
+                showBulkConfirmation();
+            } else {
+                document.getElementById('bulkGiveawayControlsBar').style.display = 'block';
+                document.getElementById('bulkGiveawayItemList').style.display = 'block';
+                populateGiveawayItems();
+            }
+        }
+
+        function filterGiveawayItems(searchTerm) {
+            const items = document.querySelectorAll('.giveaway-bulk-item');
+            const term = searchTerm.toLowerCase();
+
+            items.forEach(item => {
+                const title = item.dataset.title || '';
+                const sku = item.dataset.sku.toLowerCase();
+                const matchesSearch = title.includes(term) || sku.includes(term);
+                item.style.display = matchesSearch ? 'block' : 'none';
+            });
+        }
+
+        function toggleAllGiveawayItems() {
+            const items = document.querySelectorAll('.giveaway-bulk-item');
+            const selectedCountEl = document.getElementById('giveawaySelectedCount');
+            const allSelected = Array.from(items).every(item => item.dataset.selected === 'true' && item.style.display !== 'none');
+
+            items.forEach(item => {
+                if (item.style.display !== 'none') {
+                    const overlay = item.querySelector('.selection-overlay');
+                    const sku = item.dataset.sku;
+
+                    if (allSelected) {
+                        item.dataset.selected = 'false';
+                        item.style.borderColor = 'var(--color-border-hover)';
+                        overlay.style.display = 'none';
+                        bulkSelectedItems = bulkSelectedItems.filter(s => s !== sku);
+                    } else {
+                        item.dataset.selected = 'true';
+                        item.style.borderColor = 'var(--color-whatnot)';
+                        overlay.style.display = 'flex';
+                        if (!bulkSelectedItems.includes(sku)) {
+                            bulkSelectedItems.push(sku);
+                        }
+                    }
+                }
+            });
+
+            if (selectedCountEl) {
+                selectedCountEl.textContent = bulkSelectedItems.length;
+            }
+        }
+
+        function proceedWithGiveawaySelection() {
+            if (bulkSelectedItems.length === 0) {
+                alert('Please select at least one item.');
+                return;
+            }
+            showBulkConfirmation();
+        }
+
+        function closeBulkGiveawaySelectionModal() {
+            document.getElementById('bulkGiveawaySelectionModal').style.display = 'none';
+            document.getElementById('bulkGiveawayControlsBar').style.display = 'none';
+            document.getElementById('bulkGiveawayItemList').style.display = 'none';
+            popModalFromStack('bulkGiveawaySelectionModal');
+
+            // Re-show the management modal
+            document.getElementById('bulkGiveawayModal').style.display = 'flex';
+        }
+
+        function closeBulkGiveawaySelectionModalOnOutside(event) {
+            if (event.target.id === 'bulkGiveawaySelectionModal') {
+                closeBulkGiveawaySelectionModal();
+            }
+        }
+
+        // ------------------------------------------------------------------------
         // eBay Bulk Management Functions
         // ------------------------------------------------------------------------
         // Handles bulk operations for eBay platform:
@@ -2972,12 +3257,16 @@
             // Hide selection modals but keep them in the stack
             const whatNotSelectionModal = document.getElementById('bulkWhatNotSelectionModal');
             const ebaySelectionModal = document.getElementById('bulkEbaySelectionModal');
+            const giveawaySelectionModal = document.getElementById('bulkGiveawaySelectionModal');
 
             if (whatNotSelectionModal.style.display === 'flex') {
                 whatNotSelectionModal.style.display = 'none';
             }
             if (ebaySelectionModal.style.display === 'flex') {
                 ebaySelectionModal.style.display = 'none';
+            }
+            if (giveawaySelectionModal.style.display === 'flex') {
+                giveawaySelectionModal.style.display = 'none';
             }
 
             // Show confirmation modal
@@ -3005,6 +3294,20 @@
                     actionText = `Remove ${bulkSelectedItems.length} item(s) from WhatNot`;
                     warningText = 'This will mark these items as unlisted.';
                     confirmBtn.textContent = 'Remove Items';
+                    confirmBtn.style.background = 'var(--color-danger)';
+                    confirmBtn.style.color = 'var(--color-text)';
+                }
+            } else if (bulkCurrentPlatform === 'giveaway') {
+                if (bulkCurrentAction === 'add') {
+                    actionText = `Add ${bulkSelectedItems.length} item(s) to WhatNot Giveaway`;
+                    warningText = 'These items will be marked as Giveaway and listed on WhatNot.';
+                    confirmBtn.textContent = 'Add to Giveaway';
+                    confirmBtn.style.background = 'var(--color-whatnot)';
+                    confirmBtn.style.color = 'var(--color-bg)';
+                } else {
+                    actionText = `Remove ${bulkSelectedItems.length} item(s) from WhatNot Giveaway`;
+                    warningText = 'These items will revert to For Sale status.';
+                    confirmBtn.textContent = 'Remove from Giveaway';
                     confirmBtn.style.background = 'var(--color-danger)';
                     confirmBtn.style.color = 'var(--color-text)';
                 }
@@ -3094,6 +3397,8 @@
                 document.getElementById('bulkWhatNotSelectionModal').style.display = 'flex';
             } else if (bulkCurrentPlatform === 'ebay') {
                 document.getElementById('bulkEbaySelectionModal').style.display = 'flex';
+            } else if (bulkCurrentPlatform === 'giveaway') {
+                document.getElementById('bulkGiveawaySelectionModal').style.display = 'flex';
             }
         }
 
@@ -3138,8 +3443,10 @@
             'bulkConfirmModal',
             'bulkEbaySelectionModal',
             'bulkWhatNotSelectionModal',
+            'bulkGiveawaySelectionModal',
             'bulkEbayModal',
-            'bulkWhatNotModal'
+            'bulkWhatNotModal',
+            'bulkGiveawayModal'
         ];
 
         function closeAllBulkModals() {
@@ -3231,6 +3538,12 @@
                                 method = 'POST';
                                 body = {
                                     'is_listed': bulkCurrentAction === 'add'
+                                };
+                            } else if (bulkCurrentPlatform === 'giveaway') {
+                                endpoint = `/api/comic/${sku}/giveaway/status`;
+                                method = 'POST';
+                                body = {
+                                    'is_giveaway': bulkCurrentAction === 'add'
                                 };
                             } else if (bulkCurrentPlatform === 'ebay') {
                                 if (bulkCurrentAction === 'add') {
@@ -3399,34 +3712,27 @@
             const buttons = {
                 'both': document.getElementById('subfilterBoth'),
                 'ebay': document.getElementById('subfilterEbayOnly'),
-                'whatnot': document.getElementById('subfilterWhatnotOnly')
+                'whatnot': document.getElementById('subfilterWhatnotOnly'),
+                'giveaway': document.getElementById('subfilterGiveawayOnly')
             };
 
             // Reset all buttons
-            Object.values(buttons).forEach(btn => {
+            Object.entries(buttons).forEach(([key, btn]) => {
+                if (!btn) return;
                 btn.classList.remove('active');
                 btn.style.background = 'transparent';
-                btn.style.color = 'var(--color-accent)';
-                btn.style.border = '2px solid var(--color-accent)';
+                // Keep giveaway button using its own magenta color
+                btn.style.color = key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
+                btn.style.border = `2px solid ${key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)'}`;
             });
 
             // Set active button
             const activeBtn = buttons[notListedSubFilter];
             if (activeBtn) {
                 activeBtn.classList.add('active');
-                if (notListedSubFilter === 'both') {
-                    activeBtn.style.background = 'var(--color-accent)';
-                    activeBtn.style.color = 'var(--color-surface)';
-                    activeBtn.style.border = 'none';
-                } else if (notListedSubFilter === 'ebay') {
-                    activeBtn.style.background = 'var(--color-accent)';
-                    activeBtn.style.color = 'var(--color-surface)';
-                    activeBtn.style.border = 'none';
-                } else if (notListedSubFilter === 'whatnot') {
-                    activeBtn.style.background = 'var(--color-accent)';
-                    activeBtn.style.color = 'var(--color-surface)';
-                    activeBtn.style.border = 'none';
-                }
+                activeBtn.style.background = notListedSubFilter === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
+                activeBtn.style.color = 'var(--color-surface)';
+                activeBtn.style.border = 'none';
             }
         }
 
