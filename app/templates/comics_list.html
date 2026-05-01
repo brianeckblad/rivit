@@ -635,6 +635,11 @@
         }
 
         /* View toggle buttons (grid / list) */
+        .view-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
         .view-btn {
             background: none;
             border: none;
@@ -645,9 +650,6 @@
             padding: 4px 8px;
             border-radius: var(--radius-sm);
             transition: color 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
         .view-btn:hover { color: var(--color-text); }
         .view-btn.active { color: var(--color-accent); font-weight: 600; }
@@ -754,15 +756,9 @@
             <!-- Controls row: View toggle + Sort + Search (separate from filter tabs) -->
             <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px;">
                 <!-- View toggle -->
-                <div style="display: flex; gap: 2px; align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px; background: var(--color-surface);">
-                    <button class="view-btn active" id="browseGridViewBtn" onclick="switchBrowseView('grid')" title="Grid view">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                        Grid
-                    </button>
-                    <button class="view-btn" id="browseListViewBtn" onclick="switchBrowseView('list')" title="List view">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        List
-                    </button>
+                <div class="view-toggle">
+                    <button class="view-btn active" id="browseGridViewBtn" onclick="switchBrowseView('grid')">Grid</button>
+                    <button class="view-btn" id="browseListViewBtn" onclick="switchBrowseView('list')">List</button>
                 </div>
                 <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 34px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setBrowseSort(this.value)">
                     <option value="sku_asc">SKU: Low → High</option>
