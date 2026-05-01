@@ -7442,22 +7442,25 @@
                     closeEbaySearchModal();
                     return;
                 }
+                // Close image modal if open — always return so edit-mode logic never fires
                 if (isModalOpen) {
                     closeImageModal();
-                } else if ((editMode || viewMode) && !isEditableField(e.target)) {
-                    if (viewMode) {
-                        // In view mode, ESC switches to edit mode
-                        enableEditMode();
-                    } else {
-                        // In edit mode, warn if unsaved changes
-                        if (editMode && (formHasChanged || checkFormChanged())) {
-                            if (confirm('You have unsaved changes. Are you sure you want to exit edit mode?')) {
-                                formHasChanged = false;
-                                cancelEdit();
-                            }
-                        } else {
-                            cancelEdit();
+                    return;
+                }
+                // In view mode, ESC goes back (does not enter edit mode)
+                if (viewMode && !isEditableField(e.target)) {
+                    window.history.back();
+                    return;
+                }
+                // In edit mode, warn if unsaved changes then cancel
+                if (editMode && !isEditableField(e.target)) {
+                    if (formHasChanged || checkFormChanged()) {
+                        if (confirm('You have unsaved changes. Are you sure you want to exit edit mode?')) {
+                            formHasChanged = false;
+                            cancelEditMode();
                         }
+                    } else {
+                        cancelEditMode();
                     }
                 }
             }
