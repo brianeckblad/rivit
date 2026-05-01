@@ -634,6 +634,85 @@
             border-color: var(--color-info);
         }
 
+        /* View toggle buttons (grid / list) */
+        .view-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+            font-family: var(--font-family);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .view-btn:hover { color: var(--color-text); }
+        .view-btn.active { color: var(--color-accent); font-weight: 600; }
+
+        /* List view layout */
+        .comics-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .comics-list-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--color-surface);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+            border: 1px solid transparent;
+        }
+        .comics-list-row:hover { background: var(--color-elevated); }
+        .comics-list-thumb {
+            width: 44px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: var(--color-elevated);
+            flex-shrink: 0;
+        }
+        .comics-list-thumb-placeholder {
+            width: 44px;
+            height: 60px;
+            background: var(--color-elevated);
+            border-radius: 4px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-dim);
+            font-size: 10px;
+            text-align: center;
+        }
+        .comics-list-info { flex: 1; min-width: 0; }
+        .comics-list-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .comics-list-meta {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-top: 2px;
+        }
+        .comics-list-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
         /* Grading scale item hover in modal */
         .grading-scale-item {
             display: flex;
@@ -672,29 +751,38 @@
                 </div>
             </div>
 
-            <!-- Listing Type Filter Tabs with Sort + Search on the right -->
-            <div style="display: flex; align-items: flex-end; gap: 8px; border-bottom: 2px solid var(--color-elevated); margin-bottom: 16px;">
-                <!-- Scrollable filter tabs (no sort/search inside) -->
-                <div style="display: flex; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                    <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')">All Comics</button>
-                    <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')">Not Listed</button>
-                    <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')">eBay</button>
-                    <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')">WhatNot</button>
-                    <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')">Giveaway</button>
+            <!-- Controls row: View toggle + Sort + Search (separate from filter tabs) -->
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <!-- View toggle -->
+                <div style="display: flex; gap: 2px; align-items: center; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px; background: var(--color-surface);">
+                    <button class="view-btn active" id="browseGridViewBtn" onclick="switchBrowseView('grid')" title="Grid view">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                        Grid
+                    </button>
+                    <button class="view-btn" id="browseListViewBtn" onclick="switchBrowseView('list')" title="List view">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        List
+                    </button>
                 </div>
-                <!-- Sort + Search: outside tabs so they don't break the scroll context -->
-                <div style="display: flex; gap: 8px; align-items: center; padding-bottom: 6px; flex-shrink: 0;">
-                    <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 34px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setBrowseSort(this.value)">
-                        <option value="sku_asc">SKU: Low → High</option>
-                        <option value="sku_desc">SKU: High → Low</option>
-                        <option value="title_asc">Title: A → Z</option>
-                        <option value="title_desc">Title: Z → A</option>
-                        <option value="price_asc">Price: Low → High</option>
-                        <option value="price_desc">Price: High → Low</option>
-                    </select>
-                    <label for="searchBox" class="sr-only">Search comics</label>
-                    <input type="text" id="searchBox" class="form-input" placeholder="🔍 Search..." style="width: 200px; height: 34px;">
-                </div>
+                <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 34px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setBrowseSort(this.value)">
+                    <option value="sku_asc">SKU: Low → High</option>
+                    <option value="sku_desc">SKU: High → Low</option>
+                    <option value="title_asc">Title: A → Z</option>
+                    <option value="title_desc">Title: Z → A</option>
+                    <option value="price_asc">Price: Low → High</option>
+                    <option value="price_desc">Price: High → Low</option>
+                </select>
+                <label for="searchBox" class="sr-only">Search comics</label>
+                <input type="text" id="searchBox" class="form-input" placeholder="🔍 Search..." style="width: 200px; height: 34px;">
+            </div>
+
+            <!-- Listing Type Filter Tabs (scrollable, own row) -->
+            <div class="filter-tabs">
+                <button id="filterAll" class="filter-tab active" onclick="filterByListingType('all')">All Comics</button>
+                <button id="filterNotListed" class="filter-tab" onclick="filterByListingType('Not Listed')">Not Listed</button>
+                <button id="filterForSaleEbay" class="filter-tab" onclick="filterByListingType('For Sale eBay')">eBay</button>
+                <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')">WhatNot</button>
+                <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')">Giveaway</button>
             </div>
 
             <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
@@ -1390,6 +1478,8 @@
         let notListedSubFilter = 'both'; // Sub-filter for "Not Listed": 'both', 'ebay', 'whatnot'
         // Browse sort — persist in localStorage; used by loadComics()
         let browseSortOrder = localStorage.getItem('browseSortOrder') || 'sku_asc';
+        // Browse view — persist in localStorage; 'grid' or 'list'
+        let currentBrowseView = localStorage.getItem('browseView') || 'grid';
 
         // Pagination state persistence - save and restore from sessionStorage
         // sessionStorage persists within a single browser session and clears on logout
@@ -1537,17 +1627,98 @@
                         allComics = result.comics;
                     }
 
-                    // Clear or get existing grid
-                    let grid = container.querySelector('.comics-grid');
+                    // Clear or get existing container (grid or list)
+                    const containerClass = currentBrowseView === 'list' ? 'comics-list' : 'comics-grid';
+                    let grid = container.querySelector(`.${containerClass}`);
                     if (!append || !grid) {
                         container.innerHTML = '';
                         grid = document.createElement('div');
-                        grid.className = 'comics-grid';
+                        grid.className = containerClass;
                         container.appendChild(grid);
                     }
 
                     // Render new comics
                     result.comics.forEach(comic => {
+                        if (currentBrowseView === 'list') {
+                            // ── LIST ROW ────────────────────────────────────────────
+                            const row = document.createElement('div');
+                            row.className = 'comics-list-row';
+                            row.dataset.sku = comic.SKU;
+
+                            const firstImage = comic['Image URL 1'] || '';
+                            const thumbnailUrl = getThumbnailUrl(firstImage);
+                            const thumbHtml = firstImage
+                                ? `<img data-src="${thumbnailUrl}" alt="${comic.Title || 'Comic'}" class="comics-list-thumb lazy-image" style="background: var(--color-elevated);" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2260%22><rect width=%2244%22 height=%2260%22 fill=%22%232A2A2A%22/></svg>'">`
+                                : `<div class="comics-list-thumb-placeholder">No Image</div>`;
+
+                            const conditionAcronym = getConditionAcronym(comic.Condition);
+                            const typeAbbreviation = getTypeAbbreviation(comic.Type || 'Auction', comic.Title);
+                            const priceText = comic.Price ? `$${comic.Price}` : '';
+                            const metaParts = [];
+                            if (priceText) metaParts.push(`<span style="color:var(--color-accent);">${priceText}</span>`);
+                            if (conditionAcronym) metaParts.push(`<span title="${comic.Condition || ''}">${conditionAcronym}</span>`);
+                            if (typeAbbreviation) metaParts.push(typeAbbreviation);
+
+                            const ebayItemId = comic['eBay Item ID'] || comic.ebay_item_id || '';
+                            const whatnotItemId = comic['WhatNot Item ID'] || comic.whatnot_item_id || '';
+                            const isListedOnEbay = ebayItemId && ebayItemId.trim();
+                            const isListedOnWhatNot = whatnotItemId === 'TRUE';
+
+                            row.innerHTML = `
+                                <input type="checkbox" class="comic-checkbox" data-sku="${comic.SKU}" style="display: none;">
+                                ${thumbHtml}
+                                <div class="comics-list-info">
+                                    <div class="comics-list-title">${comic.Title || 'Untitled Comic'}</div>
+                                    <div class="comics-list-meta">
+                                        SKU: ${comic.SKU || 'N/A'}
+                                        ${metaParts.length ? ' &bull; ' + metaParts.join(' &bull; ') : ''}
+                                    </div>
+                                    <div class="comics-list-meta" style="font-size:11px; color:var(--color-accent);">${window.formatDate(comic.last_modified) || ''}</div>
+                                </div>
+                                <div class="comics-list-right">
+                                    <div class="status-indicators" style="flex-direction:column; gap:4px;">
+                                        <div class="status-indicator-item">
+                                            <div class="${isListedOnEbay ? 'status-light ebay' : 'status-light ebay inactive'}" title="${isListedOnEbay ? 'Listed on eBay' : 'Not listed on eBay'}"></div>
+                                            <span class="${isListedOnEbay ? 'status-label ebay' : 'status-label ebay inactive'}">eBay</span>
+                                        </div>
+                                        <div class="status-indicator-item">
+                                            <div class="${isListedOnWhatNot ? 'status-light whatnot' : 'status-light whatnot inactive'}" title="${isListedOnWhatNot ? 'Listed on WhatNot' : 'Not listed on WhatNot'}"></div>
+                                            <span class="${isListedOnWhatNot ? 'status-label whatnot' : 'status-label whatnot inactive'}">WhatNot</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+
+                            row.onclick = () => {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const mode = urlParams.get('mode');
+                                if (mode === 'delete' || mode === 'export' || mode === 'ebay') {
+                                    const checkbox = row.querySelector('.comic-checkbox');
+                                    if (checkbox) {
+                                        checkbox.checked = !checkbox.checked;
+                                        if (checkbox.checked) {
+                                            if (mode === 'delete') {
+                                                row.style.border = '1px solid var(--color-danger)';
+                                                row.style.backgroundColor = 'var(--color-danger-subtle)';
+                                            } else {
+                                                row.style.border = '1px solid var(--color-accent)';
+                                                row.style.backgroundColor = 'var(--color-accent-subtle)';
+                                            }
+                                        } else {
+                                            row.style.border = '1px solid transparent';
+                                            row.style.backgroundColor = '';
+                                        }
+                                        updateSelection();
+                                    }
+                                } else {
+                                    savePaginationState();
+                                    window.location.href = getNavigationUrl(comic.SKU);
+                                }
+                            };
+
+                            grid.appendChild(row);
+                        } else {
+                            // ── GRID CARD ───────────────────────────────────────────
                         const card = document.createElement('div');
                         card.className = 'comic-card';
                         card.dataset.sku = comic.SKU;
@@ -1735,7 +1906,8 @@
                         }, false);
 
                         grid.appendChild(card);
-                    });
+                        } // end grid branch
+                    }); // end result.comics.forEach
 
                     // Add or update Load More button
                     const loadMoreContainer = document.getElementById('loadMoreContainer');
@@ -1835,6 +2007,10 @@
             // Sync inline sort dropdown to stored value
             const sortSelect = document.getElementById('browseSortSelect');
             if (sortSelect) sortSelect.value = browseSortOrder;
+
+            // Sync view toggle buttons to stored view
+            document.getElementById('browseGridViewBtn').classList.toggle('active', currentBrowseView === 'grid');
+            document.getElementById('browseListViewBtn').classList.toggle('active', currentBrowseView === 'list');
 
             // If we're on "Not Listed" filter, make sure sub-filter UI is correct
             if (currentListingTypeFilter === 'Not Listed') {
@@ -2249,7 +2425,7 @@
         function applyEbaySubFilter() {
             // Client-side filter: show/hide comic cards based on eBay status
             const container = document.getElementById('comicsContainer');
-            const cards = container.querySelectorAll('.comic-card, tr[data-sku]');
+            const cards = container.querySelectorAll('.comic-card, .comics-list-row, tr[data-sku]');
 
             cards.forEach(card => {
                 const sku = card.dataset.sku || card.getAttribute('data-sku');
@@ -3626,6 +3802,20 @@
         }
         window.setBrowseSort = setBrowseSort;
 
+        function switchBrowseView(view) {
+            currentBrowseView = view;
+            localStorage.setItem('browseView', view);
+            document.getElementById('browseGridViewBtn').classList.toggle('active', view === 'grid');
+            document.getElementById('browseListViewBtn').classList.toggle('active', view === 'list');
+            // Reset and reload so the correct view renders
+            currentPage = 1;
+            maxLoadedPage = 1;
+            allComics = [];
+            document.getElementById('loadMoreContainer').innerHTML = '';
+            loadComics(1, false);
+        }
+        window.switchBrowseView = switchBrowseView;
+
         // Sub-filter function for "Not Listed"
         function setNotListedSubFilter(subFilter) {
             notListedSubFilter = subFilter;
@@ -3755,24 +3945,25 @@
                 selectAll.indeterminate = count > 0 && count < checkboxes.length;
             }
 
-            // Update card visual states to match checkbox selection
+            // Update card/row visual states to match checkbox selection
             checkboxes.forEach(cb => {
-                const card = document.querySelector(`.comic-card[data-sku="${cb.dataset.sku}"]`);
+                const card = document.querySelector(`.comic-card[data-sku="${cb.dataset.sku}"], .comics-list-row[data-sku="${cb.dataset.sku}"]`);
                 if (card) {
+                    const isListRow = card.classList.contains('comics-list-row');
                     if (cb.checked) {
                         // In delete mode, use red highlighting
                         if (isDeleteMode) {
-                            card.style.border = '2px solid var(--color-danger)';
+                            card.style.border = isListRow ? '1px solid var(--color-danger)' : '2px solid var(--color-danger)';
                             card.style.backgroundColor = 'var(--color-danger-subtle)';
-                            card.style.boxShadow = '0 0 12px var(--color-danger-subtle)';
+                            card.style.boxShadow = isListRow ? '' : '0 0 12px var(--color-danger-subtle)';
                         } else {
                             // Export and eBay modes: yellow highlighting
-                            card.style.border = '2px solid var(--color-accent)';
+                            card.style.border = isListRow ? '1px solid var(--color-accent)' : '2px solid var(--color-accent)';
                             card.style.backgroundColor = 'var(--color-accent-subtle)';
-                            card.style.boxShadow = '0 0 12px var(--color-accent-subtle)';
+                            card.style.boxShadow = isListRow ? '' : '0 0 12px var(--color-accent-subtle)';
                         }
                     } else {
-                        card.style.border = 'none';
+                        card.style.border = isListRow ? '1px solid transparent' : 'none';
                         card.style.backgroundColor = '';
                         card.style.boxShadow = '';
                     }
