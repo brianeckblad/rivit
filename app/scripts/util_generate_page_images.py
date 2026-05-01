@@ -1,34 +1,23 @@
 #!/usr/bin/env python3
 """
 Generate page mockup images for analytics heatmap visualization.
-Creates PNG images representing each page of the app with accurate layouts.
-
-Run from the project root:
+Creates PNG images representing each page of the app with accurate layouts.Can be run directly from the project root:
     python app/scripts/util_generate_page_images.py
+
+Or imported and called programmatically (no side effects on import):
+    from app.scripts.util_generate_page_images import generate_all_pages
+    generate_all_pages('/path/to/output')
 """
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import os
 import glob
 from pathlib import Path
 
-# Output path: project root / app/static/analytics
-# __file__ = app/scripts/util_generate_page_images.py
+# Script/output path resolution
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
-output_dir = str(PROJECT_ROOT / 'app' / 'static' / 'analytics')
-os.makedirs(output_dir, exist_ok=True)
-
-# Clean up old page images before regenerating
-print("Cleaning up old page mockup images...")
-old_images = glob.glob(os.path.join(output_dir, '*.png'))
-for old_img in old_images:
-    try:
-        os.remove(old_img)
-        print(f"Removed {os.path.basename(old_img)}")
-    except Exception as e:
-        print(f"Could not remove {os.path.basename(old_img)}: {e}")
-print()
+DEFAULT_OUTPUT_DIR = str(PROJECT_ROOT / 'app' / 'static' / 'analytics')
 
 # Canvas size (matches typical viewport)
 WIDTH = 1200
@@ -71,7 +60,7 @@ def create_base_page(title="Page"):
     draw.line([logo_x + 15, logo_y, logo_x + 15, logo_y + 50], fill=hex_to_rgb(BG_DARK), width=2)
     draw.line([logo_x + 35, logo_y, logo_x + 35, logo_y + 50], fill=hex_to_rgb(BG_DARK), width=2)
 
-    # Bottom navigation bar (8 icons)
+    # Bottom navigation bar (8 icons matching actual nav)
     draw.rectangle([0, HEIGHT - 80, WIDTH, HEIGHT], fill=hex_to_rgb(BG_MEDIUM), outline=hex_to_rgb(BORDER), width=1)
 
     # Bottom nav items with icons (matching actual nav)
@@ -94,16 +83,16 @@ def create_base_page(title="Page"):
     return img, draw
 
 def create_browse_page():
-    """Create browse/comic list page mockup - matches actual grid layout."""
+    """Create browse/comic list page mockup - matches current filter tab layout."""
     img, draw = create_base_page("Browse Comics")
 
-    # Filter buttons row (All Comics, For Sale, eBay, WhatNot, WhatNot Givys)
+    # Filter tabs row (matches actual page: All, Not Listed, For Sale eBay, WhatNot, Giveaway)
     filters = [
-        ('All Comics', 40, BG_LIGHT),
-        ('For Sale', 200, ACCENT),  # Active/selected
-        ('eBay', 340, BG_LIGHT),
-        ('WhatNot', 460, BG_LIGHT),
-        ('WhatNot Givys', 590, BG_LIGHT),
+        ('All', 40, BG_LIGHT),
+        ('Not Listed', 180, ACCENT),         # example active state
+        ('For Sale eBay', 330, BG_LIGHT),
+        ('WhatNot', 500, BG_LIGHT),
+        ('Giveaway', 630, BG_LIGHT),
     ]
 
     for label, x, color in filters:
@@ -142,10 +131,8 @@ def create_browse_page():
                           outline=hex_to_rgb(BORDER), width=1)
 
             # Status indicators (eBay blue circle, WhatNot magenta circle)
-            # eBay indicator
             draw.ellipse([x + 85, y + img_height + 12, x + 100, y + img_height + 27],
                         fill=hex_to_rgb(EBAY_BLUE))
-            # WhatNot indicator
             draw.ellipse([x + 110, y + img_height + 12, x + 125, y + img_height + 27],
                         fill=hex_to_rgb(WHATNOT_MAGENTA))
 
@@ -189,7 +176,7 @@ def create_add_page():
                       fill=hex_to_rgb(BG_MEDIUM),
                       outline=hex_to_rgb(BORDER), width=1)
 
-    # Action buttons section (below image area, above form)
+    # Action buttons section (below image area)
     actions_y = 540
     btn_width = 180
     btn_height = 36
@@ -218,16 +205,9 @@ def create_add_page():
     field_height = 50
     field_spacing = 15
 
-    # Form fields (title, publisher, issue, grade, price, etc.)
     fields = [
-        'Title',
-        'Publisher',
-        'Issue Number',
-        'Grade/Condition',
-        'Price',
-        'Listing Type',
-        'Description',
-        'Notes',
+        'Title', 'Publisher', 'Issue Number', 'Grade/Condition',
+        'Price', 'Listing Type', 'Description', 'Notes',
     ]
 
     for i, field in enumerate(fields):
@@ -258,6 +238,75 @@ def create_add_page():
     draw.rectangle([1000, footer_y, 1160, footer_y + 50],
                   fill=hex_to_rgb(GREEN),
                   outline=hex_to_rgb(BORDER), width=2)
+
+    return img
+
+def create_add_from_image_page():
+    """Create add-from-image page mockup — upload cover, pick eBay match, pre-fill form."""
+    img, draw = create_base_page("Add From Image")
+
+    # LEFT COLUMN: Image upload / capture area
+    left_x = 40
+    left_width = 420
+
+    # Upload box
+    draw.rectangle([left_x, 100, left_x + left_width, 480],
+                  fill=hex_to_rgb(BG_LIGHT),
+                  outline=hex_to_rgb(BORDER), width=2)
+
+    # Large preview area (dashed border style)
+    draw.rectangle([left_x + 15, 120, left_x + left_width - 15, 380],
+                  fill=hex_to_rgb(BG_MEDIUM),
+                  outline=hex_to_rgb(BORDER_HOVER), width=1)
+
+    # Upload / camera buttons
+    btn_y = 400
+    btn_w = 190
+    draw.rectangle([left_x + 20, btn_y, left_x + 20 + btn_w, btn_y + 50],
+                  fill=hex_to_rgb(ACCENT),
+                  outline=hex_to_rgb(BORDER), width=1)
+    draw.rectangle([left_x + 220, btn_y, left_x + 220 + btn_w, btn_y + 50],
+                  fill=hex_to_rgb(BG_LIGHT),
+                  outline=hex_to_rgb(BORDER), width=1)
+
+    # Search eBay button (full width below)
+    draw.rectangle([left_x + 20, btn_y + 70, left_x + left_width - 20, btn_y + 120],
+                  fill=hex_to_rgb(EBAY_BLUE),
+                  outline=hex_to_rgb(BORDER), width=2)
+
+    # RIGHT COLUMN: eBay match results
+    right_x = 500
+    right_width = 660
+    result_height = 130
+    result_gap = 12
+
+    # Section label
+    draw.rectangle([right_x, 95, right_x + right_width, 130],
+                  fill=hex_to_rgb(BG_MEDIUM),
+                  outline=hex_to_rgb(BORDER), width=1)
+
+    # Result cards (4 items)
+    for i in range(4):
+        ry = 145 + i * (result_height + result_gap)
+        draw.rectangle([right_x, ry, right_x + right_width, ry + result_height],
+                      fill=hex_to_rgb(BG_LIGHT),
+                      outline=hex_to_rgb(BORDER), width=1)
+        # Thumbnail
+        draw.rectangle([right_x + 10, ry + 10, right_x + 110, ry + result_height - 10],
+                      fill=hex_to_rgb(BG_MEDIUM),
+                      outline=hex_to_rgb(BORDER), width=1)
+        # Title bar
+        draw.rectangle([right_x + 125, ry + 15, right_x + right_width - 10, ry + 50],
+                      fill=hex_to_rgb(BG_MEDIUM),
+                      outline=hex_to_rgb(BORDER), width=1)
+        # Price
+        draw.rectangle([right_x + 125, ry + 60, right_x + 220, ry + 88],
+                      fill=hex_to_rgb(ACCENT),
+                      outline=hex_to_rgb(BORDER), width=1)
+        # Use This button
+        draw.rectangle([right_x + right_width - 140, ry + 55, right_x + right_width - 10, ry + 95],
+                      fill=hex_to_rgb(GREEN),
+                      outline=hex_to_rgb(BORDER), width=1)
 
     return img
 
@@ -341,11 +390,9 @@ def create_account_page():
 
         # Form fields in section (2 columns)
         field_y = y + 65
-        # Left field
         draw.rectangle([50, field_y, 590, field_y + 40],
                       fill=hex_to_rgb(BG_MEDIUM),
                       outline=hex_to_rgb(BORDER), width=1)
-        # Right field
         draw.rectangle([610, field_y, 1150, field_y + 40],
                       fill=hex_to_rgb(BG_MEDIUM),
                       outline=hex_to_rgb(BORDER), width=1)
@@ -422,11 +469,9 @@ def create_trash_page():
     img, draw = create_base_page("Trash (Deleted Items)")
 
     # Action buttons at top
-    # Restore All (green)
     draw.rectangle([40, 100, 300, 155],
                   fill=hex_to_rgb(GREEN),
                   outline=hex_to_rgb(BORDER), width=2)
-    # Empty Trash (red)
     draw.rectangle([320, 100, 580, 155],
                   fill=hex_to_rgb(RED),
                   outline=hex_to_rgb(BORDER), width=2)
@@ -438,65 +483,165 @@ def create_trash_page():
     for i in range(6):
         y = start_y + (i * (item_height + 10))
 
-        # Item container
         draw.rectangle([40, y, 1160, y + item_height],
                       fill=hex_to_rgb(BG_LIGHT),
                       outline=hex_to_rgb(BORDER), width=1)
-
         # Thumbnail
         draw.rectangle([50, y + 10, 140, y + item_height - 10],
                       fill=hex_to_rgb(BG_MEDIUM),
                       outline=hex_to_rgb(BORDER), width=1)
-
-        # Item info (SKU, title, etc.)
-        # Top info line
+        # Info lines
         draw.rectangle([160, y + 15, 520, y + 40],
                       fill=hex_to_rgb(BG_MEDIUM),
                       outline=hex_to_rgb(BORDER), width=1)
-        # Bottom info line
         draw.rectangle([160, y + 50, 520, y + 75],
                       fill=hex_to_rgb(BG_MEDIUM),
                       outline=hex_to_rgb(BORDER), width=1)
-
-        # Action buttons (right side)
         # Restore button (green)
         draw.rectangle([920, y + 20, 1070, y + 70],
                       fill=hex_to_rgb(GREEN),
                       outline=hex_to_rgb(BORDER), width=1)
-        # Permanent Delete button (red)
+        # Delete button (red)
         draw.rectangle([1080, y + 20, 1150, y + 70],
                       fill=hex_to_rgb(RED),
                       outline=hex_to_rgb(BORDER), width=1)
 
     return img
 
-# Generate all pages
-pages = {
+def create_ebay_listings_page():
+    """Create eBay listings management page mockup."""
+    img, draw = create_base_page("eBay Listings")
+
+    # Summary stats row (4 stat cards)
+    stats_labels = ['Active', 'Scheduled', 'Ended', 'Total Revenue']
+    for i, label in enumerate(stats_labels):
+        x = 40 + i * 290
+        draw.rectangle([x, 100, x + 260, 175],
+                      fill=hex_to_rgb(BG_LIGHT),
+                      outline=hex_to_rgb(BORDER), width=2)
+        draw.rectangle([x + 10, 145, x + 250, 168],
+                      fill=hex_to_rgb(EBAY_BLUE),
+                      outline=hex_to_rgb(BORDER), width=1)
+
+    # Action bar (Bulk Actions button + filter)
+    draw.rectangle([40, 195, 230, 240],
+                  fill=hex_to_rgb(EBAY_BLUE),
+                  outline=hex_to_rgb(BORDER), width=2)
+    draw.rectangle([250, 195, 600, 240],
+                  fill=hex_to_rgb(BG_LIGHT),
+                  outline=hex_to_rgb(BORDER), width=1)
+
+    # Listing cards grid (3 columns x 2 rows)
+    card_width = 365
+    card_height = 210
+    spacing = 20
+    start_x = 40
+    start_y = 260
+
+    for row in range(2):
+        for col in range(3):
+            x = start_x + col * (card_width + spacing)
+            y = start_y + row * (card_height + spacing)
+
+            draw.rectangle([x, y, x + card_width, y + card_height],
+                          fill=hex_to_rgb(BG_LIGHT),
+                          outline=hex_to_rgb(BORDER), width=1)
+
+            # Thumbnail
+            draw.rectangle([x + 10, y + 10, x + 115, y + 120],
+                          fill=hex_to_rgb(BG_MEDIUM),
+                          outline=hex_to_rgb(BORDER), width=1)
+
+            # eBay status badge
+            draw.rectangle([x + 130, y + 15, x + 260, y + 45],
+                          fill=hex_to_rgb(EBAY_BLUE),
+                          outline=hex_to_rgb(BORDER), width=1)
+
+            # Title area
+            draw.rectangle([x + 130, y + 55, x + card_width - 10, y + 85],
+                          fill=hex_to_rgb(BG_MEDIUM),
+                          outline=hex_to_rgb(BORDER), width=1)
+
+            # Price
+            draw.rectangle([x + 130, y + 95, x + 230, y + 120],
+                          fill=hex_to_rgb(ACCENT),
+                          outline=hex_to_rgb(BORDER), width=1)
+
+            # Action buttons (end / relist)
+            draw.rectangle([x + 10, y + 160, x + 170, y + 195],
+                          fill=hex_to_rgb(BG_MEDIUM),
+                          outline=hex_to_rgb(BORDER), width=1)
+            draw.rectangle([x + 185, y + 160, x + card_width - 10, y + 195],
+                          fill=hex_to_rgb(BG_MEDIUM),
+                          outline=hex_to_rgb(BORDER), width=1)
+
+    return img
+
+
+_ALL_PAGES = {
     'home': create_home_page,
     'browse': create_browse_page,
     'add': create_add_page,
+    'add-from-image': create_add_from_image_page,
     'account': create_account_page,
     'price-lookup': create_price_lookup_page,
     'trash': create_trash_page,
+    'ebay-listings': create_ebay_listings_page,
 }
 
-print("Generating page mockup images for analytics heatmap...")
-print(f"Output directory: {output_dir}")
-print()
+# Expected PNG filenames — used by the startup check in app/__init__.py
+EXPECTED_PNGS = [f"{name}.png" for name in _ALL_PAGES]
 
-for page_name, create_func in pages.items():
-    try:
-        img = create_func()
-        output_path = os.path.join(output_dir, f'{page_name}.png')
-        img.save(output_path, 'PNG')
-        file_size = os.path.getsize(output_path) / 1024
-        print(f"Created {page_name}.png ({file_size:.1f} KB)")
-    except Exception as e:
-        print(f"Error creating {page_name}.png: {e}")
 
-print()
-print("All page mockups generated!")
-print(f"Images saved to: {output_dir}")
-print()
-print("These images will be used in the analytics heatmap visualization")
-print("to show click patterns overlaid on page layouts.")
+def generate_all_pages(output_dir=None, verbose=False):
+    """Generate all page mockup images and save to *output_dir*.
+
+    Args:
+        output_dir: Destination directory.  Defaults to
+            ``app/static/analytics/`` relative to the project root.
+        verbose: When True, print a status line for each image.
+
+    Returns:
+        dict mapping page name → True (created) / False (error).
+    """
+    if output_dir is None:
+        output_dir = DEFAULT_OUTPUT_DIR
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Remove stale PNG files before regenerating
+    for old_img in glob.glob(os.path.join(output_dir, '*.png')):
+        try:
+            os.remove(old_img)
+        except Exception as exc:
+            if verbose:
+                print(f"  Could not remove {os.path.basename(old_img)}: {exc}")
+
+    results = {}
+    for page_name, create_func in _ALL_PAGES.items():
+        try:
+            page_img = create_func()
+            output_path = os.path.join(output_dir, f'{page_name}.png')
+            page_img.save(output_path, 'PNG')
+            if verbose:
+                size_kb = os.path.getsize(output_path) / 1024
+                print(f"  Created {page_name}.png ({size_kb:.1f} KB)")
+            results[page_name] = True
+        except Exception as exc:
+            if verbose:
+                print(f"  Error creating {page_name}.png: {exc}")
+            results[page_name] = False
+
+    return results
+
+
+if __name__ == '__main__':
+    print("Generating page mockup images for analytics heatmap...")
+    print(f"Output directory: {DEFAULT_OUTPUT_DIR}")
+    print()
+    results = generate_all_pages(verbose=True)
+    ok = sum(1 for v in results.values() if v)
+    failed = sum(1 for v in results.values() if not v)
+    print()
+    print(f"Done: {ok} created, {failed} failed.")
+    print("These images are used in the analytics heatmap visualization.")

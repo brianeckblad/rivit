@@ -782,9 +782,6 @@
                 <button id="priceSubfilterWhatnotOnly" class="subfilter-btn" onclick="setPriceNotListedSubFilter('whatnot')" style="padding: 6px 14px; background: transparent; color: var(--color-accent); border: 2px solid var(--color-accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                     Missing WhatNot Only
                 </button>
-                <button id="priceSubfilterGiveawayOnly" class="subfilter-btn" onclick="setPriceNotListedSubFilter('giveaway')" style="padding: 6px 14px; background: transparent; color: var(--color-whatnot); border: 2px solid var(--color-whatnot); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                    Not in Giveaway
-                </button>
             </div>
         </div>
 
@@ -900,6 +897,11 @@
         let maxLoadedPage = 1; // Track the highest page we've loaded
         let currentListingTypeFilter = localStorage.getItem('pricingListingTypeFilter') || 'all';
         let pricingNotListedSubFilter = localStorage.getItem('pricingNotListedSubFilter') || 'both';
+        // Guard against stale 'giveaway' value from a previous session
+        if (!['both', 'ebay', 'whatnot'].includes(pricingNotListedSubFilter)) {
+            pricingNotListedSubFilter = 'both';
+            localStorage.setItem('pricingNotListedSubFilter', 'both');
+        }
 
         let currentView = 'table';
 
@@ -938,21 +940,20 @@
                 'both':    document.getElementById('priceSubfilterBoth'),
                 'ebay':    document.getElementById('priceSubfilterEbayOnly'),
                 'whatnot': document.getElementById('priceSubfilterWhatnotOnly'),
-                'giveaway': document.getElementById('priceSubfilterGiveawayOnly')
             };
 
             Object.entries(buttons).forEach(([key, btn]) => {
                 if (!btn) return;
                 btn.classList.remove('active');
                 btn.style.background = 'transparent';
-                btn.style.color = key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
-                btn.style.border = `2px solid ${key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)'}`;
+                btn.style.color = 'var(--color-accent)';
+                btn.style.border = '2px solid var(--color-accent)';
             });
 
             const activeBtn = buttons[pricingNotListedSubFilter];
             if (activeBtn) {
                 activeBtn.classList.add('active');
-                activeBtn.style.background = pricingNotListedSubFilter === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
+                activeBtn.style.background = 'var(--color-accent)';
                 activeBtn.style.color = 'var(--color-surface)';
                 activeBtn.style.border = 'none';
             }

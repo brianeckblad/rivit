@@ -503,7 +503,8 @@ async function loadTabData(tabName) {
 }
 
 function showTabError(tabName, message) {
-    const tabContent = document.querySelector(`.tab-content[data-tab="${tabName}"]`);
+    // Tab content divs use id="tab-{tabName}", not a data-tab attribute
+    const tabContent = document.getElementById(`tab-${tabName}`);
     if (tabContent) {
         tabContent.innerHTML = `
             <div style="text-align: center; padding: 60px 20px; color: var(--color-text-muted);">
@@ -570,9 +571,11 @@ function renderHeatmap(clicks) {
         '/': 'home',
         '/browse': 'browse',
         '/add': 'add',
+        '/add-from-image': 'add-from-image',
         '/account': 'account',
         '/price-lookup': 'price-lookup',
-        '/trash': 'trash'
+        '/trash': 'trash',
+        '/ebay-listings': 'ebay-listings',
     };
 
     const pageName = pageMap[selectedPage] || 'home';

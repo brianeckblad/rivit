@@ -753,9 +753,6 @@
                     <button id="subfilterWhatnotOnly" class="subfilter-btn" onclick="setNotListedSubFilter('whatnot')" style="padding: 8px 16px; background: transparent; color: var(--color-accent); border: 2px solid var(--color-accent); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         Missing WhatNot Only
                     </button>
-                    <button id="subfilterGiveawayOnly" class="subfilter-btn" onclick="setNotListedSubFilter('giveaway')" style="padding: 8px 16px; background: transparent; color: var(--color-whatnot); border: 2px solid var(--color-whatnot); border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                        Not in Giveaway
-                    </button>
                 </div>
             </div>
 
@@ -1463,6 +1460,10 @@
                 currentSearchTerm = state.currentSearchTerm || '';
                 currentListingTypeFilter = state.currentListingTypeFilter || 'all';
                 notListedSubFilter = state.notListedSubFilter || 'both'; // Restore sub-filter state
+                // Guard against stale 'giveaway' value from a previous session
+                if (!['both', 'ebay', 'whatnot'].includes(notListedSubFilter)) {
+                    notListedSubFilter = 'both';
+                }
 
                 return true;
             } catch (error) {
@@ -3677,7 +3678,6 @@
                 'both': document.getElementById('subfilterBoth'),
                 'ebay': document.getElementById('subfilterEbayOnly'),
                 'whatnot': document.getElementById('subfilterWhatnotOnly'),
-                'giveaway': document.getElementById('subfilterGiveawayOnly')
             };
 
             // Reset all buttons
@@ -3685,16 +3685,15 @@
                 if (!btn) return;
                 btn.classList.remove('active');
                 btn.style.background = 'transparent';
-                // Keep giveaway button using its own magenta color
-                btn.style.color = key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
-                btn.style.border = `2px solid ${key === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)'}`;
+                btn.style.color = 'var(--color-accent)';
+                btn.style.border = '2px solid var(--color-accent)';
             });
 
             // Set active button
             const activeBtn = buttons[notListedSubFilter];
             if (activeBtn) {
                 activeBtn.classList.add('active');
-                activeBtn.style.background = notListedSubFilter === 'giveaway' ? 'var(--color-whatnot)' : 'var(--color-accent)';
+                activeBtn.style.background = 'var(--color-accent)';
                 activeBtn.style.color = 'var(--color-surface)';
                 activeBtn.style.border = 'none';
             }

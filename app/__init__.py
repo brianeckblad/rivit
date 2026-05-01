@@ -1,5 +1,6 @@
 """Flask application factory."""
 from flask import Flask, has_request_context, g
+import hashlib
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -641,6 +642,77 @@ def create_app(config_name='development'):
             except Exception as e:
                 app.logger.error(f"CSV health check failed for {username}: {e}")
 
+    # Auto-regenerate analytics page mockup images if the generation script
+    # has changed since the last run, or if any expected PNG is missing.
+    _check_analytics_images(app)
+
     return app
+
+
+def _check_analytics_images(app) -> None:
+    """Regenerate analytics page mockup PNGs if the script changed or images are missing.
+
+    Computes an MD5 hash of ``util_generate_page_images.py`` and compares it
+    against a hash stored in ``app/static/analytics/.gen_hash``.  If the hash
+    differs, or if any expected PNG is absent, the images are regenerated and
+    the hash file is updated so subsequent restarts skip the work.
+    """
+
+    script_path = Path(__file__).parent / 'scripts' / 'util_generate_page_images.py'
+    analytics_dir = Path(__file__).parent / 'static' / 'analytics'
+    hash_file = analytics_dir / '.gen_hash'
+
+    # Read the generation script
+    try:
+        script_bytes = script_path.read_bytes()
+        current_hash = hashlib.md5(script_bytes).hexdigest()
+    except Exception as exc:
+        app.logger.warning(f"⚠ Analytics image check: could not read generation script: {exc}")
+        return
+
+    # Read the stored hash (empty string if missing)
+    stored_hash = ''
+    if hash_file.exists():
+        try:
+            stored_hash = hash_file.read_text(encoding='utf-8').strip()
+        except Exception:
+            pass
+
+    # Determine which PNGs are expected
+    try:
+        # Deferred: requires script to be importable; guard against import errors
+        from app.scripts.util_generate_page_images import EXPECTED_PNGS  # noqa: PLC0415
+    except Exception:
+        # Fallback list if import fails for any reason
+        EXPECTED_PNGS = [
+            'home.png', 'browse.png', 'add.png', 'add-from-image.png',
+            'account.png', 'price-lookup.png', 'trash.png', 'ebay-listings.png',
+        ]
+
+    missing = [p for p in EXPECTED_PNGS if not (analytics_dir / p).exists()]
+
+    if current_hash == stored_hash and not missing:
+        app.logger.debug("✓ Analytics page images are up-to-date")
+        return
+
+    reason = 'script changed' if current_hash != stored_hash else f'{len(missing)} image(s) missing'
+    app.logger.info(f"↻ Regenerating analytics page images ({reason})…")
+
+    try:
+        from app.scripts.util_generate_page_images import generate_all_pages  # noqa: PLC0415
+        results = generate_all_pages(str(analytics_dir))
+        ok = sum(1 for v in results.values() if v)
+        failed = sum(1 for v in results.values() if not v)
+        app.logger.info(f"✓ Analytics images regenerated: {ok} created, {failed} failed")
+
+        # Persist the new hash so the next restart skips this work
+        try:
+            analytics_dir.mkdir(parents=True, exist_ok=True)
+            hash_file.write_text(current_hash, encoding='utf-8')
+        except Exception as exc:
+            app.logger.warning(f"⚠ Could not write analytics image hash: {exc}")
+
+    except Exception as exc:
+        app.logger.warning(f"⚠ Failed to regenerate analytics images: {exc}")
 
 
