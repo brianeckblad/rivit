@@ -1594,6 +1594,44 @@ class EbayService:
         response = self._execute_trading_call('ReviseFixedPriceItem', payload, environment=environment, mode=mode)
         return getattr(response.reply, 'ItemID', comic.ebay_item_id)
 
+    def update_price_only(self, item_id: str, new_price: float, environment: str | None = None) -> str:
+        """Send a lightweight ReviseFixedPriceItem that changes only the StartPrice.
+
+        Does not re-upload images or rebuild the full listing payload.  Use this
+        for quick price edits where only the price field needs to change.
+
+        Args:
+            item_id: eBay item ID of the active listing.
+            new_price: New price in USD (will be formatted to 2 decimal places).
+            environment: 'production' or 'sandbox'. Defaults to service default.
+
+        Returns:
+            The eBay ItemID returned by the API (same as item_id on success).
+
+        Raises:
+            ValueError: If item_id is empty.
+            TradingError: If the eBay API call fails.
+        """
+        if not item_id:
+            raise ValueError("item_id is required for update_price_only")
+
+        payload = {
+            'Item': {
+                'ItemID': str(item_id),
+                'StartPrice': f"{float(new_price):.2f}",
+            }
+        }
+        current_app.logger.info(
+            "[update_price_only] ItemID=%s new_price=%.2f env=%s",
+            item_id,
+            new_price,
+            environment or self.environment or 'production',
+        )
+        response = self._execute_trading_call(
+            'ReviseFixedPriceItem', payload, environment=environment, mode='list'
+        )
+        return getattr(response.reply, 'ItemID', item_id)
+
     def upload_picture(self, image_url, environment=None):
         """Upload a single image to eBay via UploadSiteHostedPictures.
 

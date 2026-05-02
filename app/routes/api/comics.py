@@ -749,7 +749,32 @@ def update_comic_title_price() -> Response:
         success, message = comic_service.update_comic(sku, update_data)
 
         if success:
-            return jsonify({'success': True, 'message': 'Comic updated successfully'})
+            ebay_updated = False
+            ebay_error = None
+
+            # If price was changed and comic is listed on eBay, push the new price
+            if price is not None:
+                updated_comic = comic_service.get_comic_by_sku(sku)
+                ebay_item_id = (updated_comic.ebay_item_id if updated_comic else None) or comic.ebay_item_id
+                if ebay_item_id:
+                    try:
+                        ebay_service.update_price_only(ebay_item_id, math.ceil(float(price)))
+                        ebay_updated = True
+                        current_app.logger.info(
+                            "[update_comic_title_price] SKU %s: eBay price updated to %s (item %s)",
+                            sku, math.ceil(float(price)), ebay_item_id,
+                        )
+                    except Exception as ebay_exc:
+                        ebay_error = safe_error_message(ebay_exc)
+                        current_app.logger.warning(
+                            "[update_comic_title_price] SKU %s: eBay price update failed: %s",
+                            sku, ebay_exc,
+                        )
+
+            response_body = {'success': True, 'message': 'Comic updated successfully', 'ebay_updated': ebay_updated}
+            if ebay_error:
+                response_body['ebay_error'] = ebay_error
+            return jsonify(response_body)
         else:
             return jsonify({'success': False, 'error': message}), 500
 

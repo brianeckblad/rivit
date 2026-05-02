@@ -1594,9 +1594,9 @@
                         const img = entry.target;
                         const src = img.dataset.src;
                         if (src) {
-                            img.src = src;
-                            img.removeAttribute('data-src');
-                            observer.unobserve(img);
+                          img.src = src;
+                          img.removeAttribute('data-src');
+                          observer.unobserve(img);
                         }
                     }
                 });
@@ -1717,7 +1717,7 @@
                                                         SKU: ${comic.SKU || 'N/A'}
                                                         ${metaParts.length ? ' &bull; ' + metaParts.join(' &bull; ') : ''}
                                                     </div>
-                                                    <div class="comics-list-meta" style="font-size:11px; color:var(--color-accent);">${window.formatDate(comic.last_modified) || ''}</div>
+                                                    <div class="comics-list-meta" style="font-size:11px; color:var(--color-accent)">${window.formatDate(comic.last_modified) || ''}</div>
                                                 </div>
                                                 <div class="comics-list-right">
                                                     <span class="list-price${comic.Price ? '' : ' no-price'}" data-sku="${comic.SKU}" data-price="${comic.Price || ''}" title="Click to edit price">${comic.Price ? '$' + comic.Price : '—'}</span>
@@ -1763,6 +1763,15 @@
                                 }
                             };
 
+                            // Wire the inline price editor directly to the .list-price span
+                            const listPriceEl = row.querySelector('.list-price');
+                            if (listPriceEl) {
+                                listPriceEl.addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    activateInlinePriceEditor(listPriceEl);
+                                });
+                            }
+
                             grid.appendChild(row);
                         } else {
                             // ── GRID CARD ───────────────────────────────────────────
@@ -1774,7 +1783,7 @@
                         const firstImage = comic['Image URL 1'] || '';
                         const thumbnailUrl = getThumbnailUrl(firstImage);
                         const imageHtml = firstImage
-                            ? `<img data-src="${thumbnailUrl}" alt="${comic.Title || 'Comic'}" class="comic-image lazy-image" style="background: var(--color-elevated);" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22280%22 height=%22280%22><rect width=%22280%22 height=%22280%22 fill=%22%232A2A2A%22/><text x=%2250%%22 y=%2250%%22 font-size=%2216%22 fill=%22%236B6B6B%22 text-anchor=%22middle%22 dy=%22.3em%22>No Image</text></svg>'">`
+                            ? `<img data-src="${thumbnailUrl}" alt="${comic.Title || 'Comic'}" class="comic-image lazy-image" style="background: var(--color-elevated);" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22280%22 height=%22280%22><rect width=%22280%22 height=%22280%22 fill=%22%232A2A2A%22/><text x=%2250%%22 y=%2250%%22 font-size=%2216%22 fill=%22%236B6B6B%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>No Image</text></svg>'">`
                             : `<div class="comic-image" style="display: flex; align-items: center; justify-content: center; color: var(--color-text-dim);">No Image</div>`;
 
                         const conditionAcronym = getConditionAcronym(comic.Condition);
@@ -2659,7 +2668,7 @@
             // If no images available, use a data URI placeholder
             if (!imgSrc) {
                 const placeholderText = scaleFactor < 0.5 ? 'No' : 'No Image';
-                imgSrc = `data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="${cardWidth}" height="${imgHeight}" viewBox="0 0 ${cardWidth} ${imgHeight}"%3E%3Crect fill="%232A2A2A" width="${cardWidth}" height="${imgHeight}"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="${Math.max(5, titleFontSize)}" fill="%239A9A9A" text-anchor="middle" dominant-baseline="middle"%3E${placeholderText}%3C/text%3E%3C/svg%3E`;
+                imgSrc = `data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="${cardWidth}" height="${imgHeight}" viewBox="0 0 ${cardWidth} ${imgHeight}"%3E%3Crect fill="%232A2A2A" width="${cardWidth}" height="${imgHeight}"/%3E%3Ctext x="50%25" y="50%25" font-size="%2216%22 fill="%239A9A9A" text-anchor="middle" dominant-baseline="middle"%3E${placeholderText}%3C/text%3E%3C/svg%3E`;
                 imgFallback = imgSrc;
             }
 
@@ -3396,7 +3405,10 @@
             }
         }
 
+        // ------------------------------------------------------------------------
         // Shared Functions
+        // ------------------------------------------------------------------------
+
         function showBulkConfirmation() {
             // bulkSelectedItems is already populated by the mini card browser or "All" button
             // No need to get selected items from checkboxes
@@ -3863,51 +3875,47 @@
         }
         window.switchBrowseView = switchBrowseView;
 
-i        // ── Inline price editing in list view ──────────────────────────────────
-        // Delegate clicks on .list-price spans so dynamically added rows work.
-        document.getElementById('comicsContainer').addEventListener('click', function(e) {
-            const priceEl = e.target.closest('.list-price');
-            if (!priceEl) return;
-
-            // Block row navigation / selection
-            e.stopPropagation();
-
-            // Prevent opening a second input while one is already active
-            if (priceEl.querySelector('input')) return;
+        /**
+         * Activate the inline price editor on a .list-price span element.
+         * Replaces the span content with a number input; Enter/blur saves,
+         * Escape cancels. Saves via /api/comics/update-title-price.
+         *
+         * @param {HTMLElement} priceEl - The .list-price span to edit.
+         */
+        function activateInlinePriceEditor(priceEl) {
+            if (priceEl.querySelector('input')) return; // already editing
 
             const sku = priceEl.dataset.sku;
             const currentPrice = priceEl.dataset.price || '';
 
-            // Replace the span content with an input
             const input = document.createElement('input');
             input.type = 'number';
             input.min = '0';
             input.step = '1';
             input.value = currentPrice;
             input.className = 'list-price-input';
-            input.title = 'Enter price, press Enter to save or Escape to cancel';
+            input.title = 'Press Enter to save, Escape to cancel';
 
-            // Clear the span and insert the input
             priceEl.textContent = '';
             priceEl.classList.remove('no-price');
             priceEl.appendChild(input);
             input.focus();
             input.select();
 
-            /**
-             * Save the new price to the backend and update the UI.
-             * @param {string} newValue - raw input value
-             */
+            // Guard so blur doesn't double-fire after Enter/Escape already handled it
+            let handled = false;
+
             async function savePrice(newValue) {
+                if (handled) return;
+                handled = true;
+
                 const parsed = parseFloat(newValue);
                 if (isNaN(parsed) || parsed < 0) {
-                    // Invalid — restore original display
                     restoreDisplay(currentPrice);
                     return;
                 }
                 const rounded = Math.ceil(parsed);
 
-                // Show saving indicator
                 priceEl.textContent = '…';
                 priceEl.classList.add('list-price-saving');
 
@@ -3924,16 +3932,13 @@ i        // ── Inline price editing in list view ─────────
                     priceEl.classList.remove('list-price-saving');
 
                     if (resp.ok && result.success) {
-                        // Persist new value on the element
                         priceEl.dataset.price = rounded;
-                        // Brief ✓ then show new price
-                        priceEl.textContent = '✓';
+                        priceEl.textContent = result.ebay_updated ? '✓ +eBay' : '✓';
                         priceEl.classList.add('list-price-ok');
                         setTimeout(() => {
                             priceEl.classList.remove('list-price-ok', 'no-price');
                             priceEl.textContent = `$${rounded}`;
-                        }, 800);
-                        // Sync in-memory allComics array
+                        }, result.ebay_updated ? 1400 : 800);
                         const comicInMem = allComics.find(c => c.SKU === sku);
                         if (comicInMem) comicInMem.Price = String(rounded);
                     } else {
@@ -3955,6 +3960,12 @@ i        // ── Inline price editing in list view ─────────
                 }
             }
 
+            function cancelEdit() {
+                if (handled) return;
+                handled = true;
+                restoreDisplay(currentPrice);
+            }
+
             function restoreDisplay(price) {
                 priceEl.classList.remove('list-price-saving', 'list-price-ok', 'list-price-err');
                 if (price) {
@@ -3972,17 +3983,14 @@ i        // ── Inline price editing in list view ─────────
                     savePrice(input.value);
                 } else if (ev.key === 'Escape') {
                     ev.preventDefault();
-                    restoreDisplay(currentPrice);
+                    cancelEdit();
                 }
             });
 
-            input.addEventListener('blur', function() {
-                // Only save on blur if the input is still in the DOM (not already handled)
-                if (priceEl.contains(input)) {
-                    savePrice(input.value);
-                }
-            });
-        });
+            // Small delay lets keydown set `handled` before blur fires
+            input.addEventListener('blur', () => setTimeout(() => savePrice(input.value), 80));
+        }
+        window.activateInlinePriceEditor = activateInlinePriceEditor;
 
         // Sub-filter function for "Not Listed"
         function setNotListedSubFilter(subFilter) {
@@ -4668,4 +4676,3 @@ i        // ── Inline price editing in list view ─────────
 
     </script>
 {% endblock %}
- 

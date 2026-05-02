@@ -844,26 +844,6 @@
             box-shadow: 0 3px 10px var(--color-accent-subtle);
         }
 
-        /* Prevent duplicate button from showing active state on focus/click */
-        #duplicateBtn:focus {
-            outline: none;
-            border-color: var(--color-border-hover) !important;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        #duplicateBtn.active,
-        #duplicateBtn:active {
-            background: var(--color-surface) !important;
-            color: var(--color-text) !important;
-            border-color: var(--color-border-hover) !important;
-        }
-
-        #duplicateBtn:focus:hover {
-            border-color: var(--color-accent) !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px var(--color-accent-subtle) !important;
-        }
 
         .sticky-footer {
             position: fixed;
@@ -2297,8 +2277,16 @@
             <div id="actionsDisplay" style="display: none; margin-top: 12px; margin-bottom: 20px; gap: 12px; flex-wrap: wrap;">
                 <!-- Quick actions -->
                 <div class="inline-action-set" id="quickActions" style="display:none; flex-direction: column; align-items: flex-start; gap: 8px;">
-                    <!-- Google Lens and Delete Comic in same row -->
+                    <!-- Duplicate, Google Lens and Delete Comic in same row -->
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" id="duplicateBtn" class="inline-action-btn secondary" onclick="duplicateComic()" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                            </svg>
+                            <span>Duplicate</span>
+                        </button>
+
                         <a href="#" id="googleLensLink"
                            class="inline-action-btn secondary"
                            target="_blank"
@@ -2496,8 +2484,8 @@
                                 <label for="quantity">Quantity <span class="required">*</span></label>
                                 <div style="display: flex; gap: 8px; align-items: center;">
                                     <input type="number" id="quantity" name="Quantity" required style="max-width: 100px;">
-                                    <button type="button" id="duplicateBtn" class="type-btn" onclick="duplicateComic()" style="display: none; padding: 10px 20px; white-space: nowrap; flex: 0 0 auto;">
-                                        📋 Duplicate
+                                    <button type="button" id="duplicateBtnInline" class="type-btn" onclick="duplicateComic()" style="display: none; padding: 10px 20px; white-space: nowrap; flex: 0 0 auto;">
+                                        📋 Duplicate Comic
                                     </button>
                                 </div>
                             </div>
@@ -9540,7 +9528,9 @@
             setTimeout(scrollToTop, 10);
             // Show duplicate button in edit mode
             const duplicateBtn = document.getElementById('duplicateBtn');
-            if (duplicateBtn) duplicateBtn.style.display = 'block';
+            if (duplicateBtn) duplicateBtn.style.display = 'inline-flex';
+            const duplicateBtnInline = document.getElementById('duplicateBtnInline');
+            if (duplicateBtnInline) duplicateBtnInline.style.display = 'inline-flex';
 
             // Populate metadata in page title area with formatted dates
             const metaAddedByTitle = document.getElementById('metaAddedByTitle');
@@ -9724,6 +9714,8 @@
 
             // Hide duplicate button
             document.getElementById('duplicateBtn').style.display = 'none';
+            const _dupInline1 = document.getElementById('duplicateBtnInline');
+            if (_dupInline1) _dupInline1.style.display = 'none';
 
             // Clear edit mode
             editMode = false;
@@ -9788,6 +9780,8 @@
 
             // Hide duplicate button
             document.getElementById('duplicateBtn').style.display = 'none';
+            const _dupInline2 = document.getElementById('duplicateBtnInline');
+            if (_dupInline2) _dupInline2.style.display = 'none';
 
             // Clear edit mode
             editMode = false;
@@ -9803,6 +9797,98 @@
             document.getElementById('editModeIndicator').classList.remove('show');
             document.getElementById('viewModeIndicator').classList.remove('show');
             document.body.classList.remove('edit-mode');
+        }
+
+        function duplicateComic() {
+            if (!editingSKU) return; // must have a comic loaded (works in both view and edit mode)
+
+            // 1. Snapshot all current form field values before resetting
+            const snap = {
+                category:         document.getElementById('category')?.value || '',
+                subCategory:      document.getElementById('subCategory')?.value || '',
+                title:            document.getElementById('title')?.value || '',
+                description:      document.getElementById('description')?.value || '',
+                quantity:         document.getElementById('quantity')?.value || '1',
+                price:            document.getElementById('price')?.value || '0',
+                type:             document.getElementById('type')?.value || 'Auction',
+                shippingProfile:  document.getElementById('shippingProfile')?.value || '',
+                offerable:        document.getElementById('offerable')?.value || '',
+                hazmat:           document.getElementById('hazmat')?.value || '',
+                condition:        document.getElementById('condition')?.value || '',
+                conditionDetails: document.getElementById('conditionDetails')?.value || '',
+                photosDetails:    document.getElementById('photosDetails')?.value || '',
+                shippingDetails:  document.getElementById('shippingDetails')?.value || '',
+                signoff:          document.getElementById('signoff')?.value || '',
+                costPerItem:      document.getElementById('costPerItem')?.value || '0',
+            };
+
+            // Snapshot eBay item-specifics metadata fields
+            const metaSnap = {};
+            for (const [, fieldId] of Object.entries(METADATA_FIELD_MAP)) {
+                const el = document.getElementById(fieldId);
+                if (el) metaSnap[fieldId] = el.value;
+            }
+
+            // Capture images and source SKU for duplication on submit
+            const imageUrls = [...existingImageUrls];
+            const capturedSKU = editingSKU;
+
+            // 2. Exit edit mode and reset the form
+            resetForm();
+
+            // 3. Re-populate with snapshot after defaults settle
+            setTimeout(() => {
+                const set = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = val;
+                };
+                set('category', snap.category);
+                set('subCategory', snap.subCategory);
+                set('title', snap.title);
+                set('description', snap.description);
+                if (window.setDescriptionEditor) window.setDescriptionEditor(snap.description);
+                set('quantity', snap.quantity);
+                set('price', snap.price);
+                set('shippingProfile', snap.shippingProfile);
+                set('offerable', snap.offerable);
+                set('hazmat', snap.hazmat);
+                set('condition', snap.condition);
+                set('conditionDetails', snap.conditionDetails);
+                set('photosDetails', snap.photosDetails);
+                set('shippingDetails', snap.shippingDetails);
+                set('signoff', snap.signoff);
+                set('costPerItem', snap.costPerItem);
+
+                // Restore type/pricing UI
+                updateTypeUI(snap.type, { userInitiated: false });
+
+                // Restore eBay item-specifics metadata
+                for (const [fieldId, value] of Object.entries(metaSnap)) {
+                    const el = document.getElementById(fieldId);
+                    if (el) el.value = value;
+                }
+
+                // Guarantee the duplicate is raw — no eBay or WhatNot links
+                const ebayHidden = document.getElementById('ebay-item-id');
+                if (ebayHidden) ebayHidden.value = '';
+                currentComicEbayId = '';
+                currentComicWhatNotId = '';
+                currentComicEbayListingStatus = '';
+                refreshEbayControls();
+                updateWhatNotControls();
+
+                // 4. Set up image duplication — images are copied from source SKU on submit
+                if (imageUrls.length > 0) {
+                    window.imagesToDuplicate = imageUrls;
+                    sourceSKU = capturedSKU;
+                    isDuplicating = true;
+                    existingImageUrls = [...imageUrls];
+                    displayExistingImages();
+                }
+
+                showNotification('Comic data copied — edit as needed and save', 'info');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 80);
         }
 
         function openAdminModal() {
