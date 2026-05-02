@@ -1734,7 +1734,9 @@
                                                 </div>
                                             `;
 
-                            row.onclick = () => {
+                            row.onclick = (e) => {
+                                // Let the inline price editor handle its own clicks
+                                if (e.target.closest('.list-price, .list-price-input')) return;
                                 const urlParams = new URLSearchParams(window.location.search);
                                 const mode = urlParams.get('mode');
                                 if (mode === 'delete' || mode === 'export' || mode === 'ebay') {
@@ -3861,7 +3863,7 @@
         }
         window.switchBrowseView = switchBrowseView;
 
-        // ── Inline price editing in list view ──────────────────────────────────
+i        // ── Inline price editing in list view ──────────────────────────────────
         // Delegate clicks on .list-price spans so dynamically added rows work.
         document.getElementById('comicsContainer').addEventListener('click', function(e) {
             const priceEl = e.target.closest('.list-price');
