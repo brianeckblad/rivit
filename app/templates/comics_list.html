@@ -3889,9 +3889,9 @@
             const currentPrice = priceEl.dataset.price || '';
 
             const input = document.createElement('input');
-            input.type = 'number';
-            input.min = '0';
-            input.step = '1';
+            input.type = 'text';
+            input.inputMode = 'numeric';
+            input.pattern = '[0-9]*';
             input.value = currentPrice;
             input.className = 'list-price-input';
             input.title = 'Press Enter to save, Escape to cancel';
