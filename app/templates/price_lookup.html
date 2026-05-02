@@ -283,6 +283,44 @@
             text-decoration: underline;
         }
 
+        /* Inline price editor (shared with browse page) */
+        .list-price {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-accent);
+            cursor: pointer;
+            padding: 3px 7px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            transition: border-color 0.15s, background 0.15s;
+            white-space: nowrap;
+            display: inline-block;
+        }
+        .list-price:hover {
+            border-color: var(--color-border);
+            background: var(--color-inset);
+        }
+        .list-price.no-price {
+            color: var(--color-text-dim);
+            font-weight: 400;
+        }
+        .list-price-input {
+            width: 72px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--font-family);
+            color: var(--color-accent);
+            background: var(--color-inset);
+            border: 1px solid var(--color-accent);
+            border-radius: var(--radius-sm);
+            padding: 3px 7px;
+            outline: none;
+            text-align: right;
+        }
+        .list-price-saving { color: var(--color-text-dim); font-size: 12px; }
+        .list-price-ok     { color: var(--color-success); font-size: 13px; font-weight: 700; }
+        .list-price-err    { color: var(--color-danger); font-size: 12px; }
+
 
         /* Page-specific width override for form-input */
         .search-box {
@@ -1026,7 +1064,9 @@
                 const thumbnailUrl = getThumbnailUrl(imageUrl);
                 const conditionAcronym = getConditionAcronym(comic.Condition);
                 const typeAbbreviation = getTypeAbbreviation(comic.Type || 'Auction', comic.Title);
-                const priceDisplay = comic.Price ? `<span style="color: var(--color-accent);">$${comic.Price}</span>` : '';
+                const priceDisplay = comic.Price
+                    ? `<span class="list-price" data-sku="${comic.SKU}" data-price="${comic.Price}" title="Click to edit price" style="display:inline-block;">$${comic.Price}</span>`
+                    : `<span class="list-price no-price" data-sku="${comic.SKU}" data-price="" title="Click to set price" style="display:inline-block;">—</span>`;
                 let typeDisplay = [];
                 if (priceDisplay) typeDisplay.push(priceDisplay);
                 if (conditionAcronym) typeDisplay.push(`<span title="${comic.Condition || ''}">${conditionAcronym}</span>`);
@@ -1096,6 +1136,15 @@
                     lookupPrice(comic.SKU, event);
                 };
                 grid.appendChild(card);
+
+                // Wire inline price editor on grid card price span
+                const gridPriceEl = card.querySelector('.list-price');
+                if (gridPriceEl) {
+                    gridPriceEl.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        activateInlinePriceEditor(this);
+                    });
+                }
             });
         }
 
@@ -1812,7 +1861,9 @@
                             <button class="title-text title-load-btn" data-full-title="${comic.Title}" onclick="lookupPrice('${comic.SKU}', event); event.stopPropagation();" title="Load image &amp; search eBay">${titleText}</button>
                         </div>
                     </td>
-                    <td>$${comic.Price}</td>
+                    <td>
+                        <span class="list-price${comic.Price ? '' : ' no-price'}" data-sku="${comic.SKU}" data-price="${comic.Price || ''}" title="Click to edit price">${comic.Price ? '$' + comic.Price : '—'}</span>
+                    </td>
                     <td><span class="badge badge-condition">${conditionAcronym}</span></td>
                     <td class="desktop-actions">
                         <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -1867,6 +1918,15 @@
                 });
 
                 tbody.appendChild(row);
+
+                // Wire inline price editor on the price span
+                const priceSpan = row.querySelector('.list-price');
+                if (priceSpan) {
+                    priceSpan.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        activateInlinePriceEditor(this);
+                    });
+                }
 
                 // Always add action buttons row on mobile
                 const actionsRow = document.createElement('tr');
@@ -2218,6 +2278,126 @@
                 console.error('Error updating comic:', error);
                 showNotification('Failed to update comic. Please try again.', 'error');
             }
+        }
+
+        /**
+         * Inline price editor — click a .list-price element to edit in place.
+         * Enter/blur saves via /api/comics/update-title-price; Escape cancels.
+         */
+        function activateInlinePriceEditor(priceEl) {
+            if (priceEl.querySelector('input')) return; // already editing
+
+            const sku = priceEl.dataset.sku;
+            const currentPrice = priceEl.dataset.price || '';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.inputMode = 'numeric';
+            input.pattern = '[0-9]*';
+            input.value = currentPrice;
+            input.className = 'list-price-input';
+            input.title = 'Press Enter to save, Escape to cancel';
+
+            priceEl.textContent = '';
+            priceEl.classList.remove('no-price');
+            priceEl.appendChild(input);
+            input.focus();
+            input.select();
+
+            let handled = false;
+
+            async function savePrice(newValue) {
+                if (handled) return;
+                handled = true;
+
+                const parsed = parseFloat(newValue);
+                if (isNaN(parsed) || parsed < 0) {
+                    restoreDisplay(currentPrice);
+                    return;
+                }
+                const rounded = Math.ceil(parsed);
+
+                priceEl.textContent = '…';
+                priceEl.classList.add('list-price-saving');
+
+                try {
+                    const resp = await fetch('/api/comics/update-title-price', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': window.csrfToken || ''
+                        },
+                        body: JSON.stringify({ sku, price: rounded })
+                    });
+                    const result = await resp.json();
+                    priceEl.classList.remove('list-price-saving');
+
+                    if (resp.ok && result.success) {
+                        priceEl.dataset.price = rounded;
+                        priceEl.textContent = result.ebay_updated ? '✓ +eBay' : '✓';
+                        priceEl.classList.add('list-price-ok');
+                        setTimeout(() => {
+                            priceEl.classList.remove('list-price-ok', 'no-price');
+                            priceEl.textContent = `$${rounded}`;
+                        }, result.ebay_updated ? 1400 : 800);
+                        // Update in-memory record
+                        const comicInMem = allComics.find(c => c.SKU === sku);
+                        if (comicInMem) comicInMem.Price = String(rounded);
+                        // Sync any other price spans for the same SKU (table + grid both visible)
+                        document.querySelectorAll(`.list-price[data-sku="${sku}"]`).forEach(el => {
+                            if (el !== priceEl) {
+                                el.dataset.price = rounded;
+                                el.textContent = `$${rounded}`;
+                                el.classList.remove('no-price');
+                            }
+                        });
+                    } else {
+                        priceEl.classList.add('list-price-err');
+                        priceEl.textContent = '✗';
+                        setTimeout(() => {
+                            priceEl.classList.remove('list-price-err');
+                            restoreDisplay(currentPrice);
+                        }, 1200);
+                    }
+                } catch (_err) {
+                    priceEl.classList.remove('list-price-saving');
+                    priceEl.classList.add('list-price-err');
+                    priceEl.textContent = '✗';
+                    setTimeout(() => {
+                        priceEl.classList.remove('list-price-err');
+                        restoreDisplay(currentPrice);
+                    }, 1200);
+                }
+            }
+
+            function cancelEdit() {
+                if (handled) return;
+                handled = true;
+                restoreDisplay(currentPrice);
+            }
+
+            function restoreDisplay(price) {
+                priceEl.classList.remove('list-price-saving', 'list-price-ok', 'list-price-err');
+                if (price) {
+                    priceEl.textContent = `$${price}`;
+                    priceEl.classList.remove('no-price');
+                } else {
+                    priceEl.textContent = '—';
+                    priceEl.classList.add('no-price');
+                }
+            }
+
+            input.addEventListener('keydown', function(ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    savePrice(input.value);
+                } else if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    cancelEdit();
+                }
+            });
+
+            input.addEventListener('blur', () => setTimeout(() => savePrice(input.value), 80));
         }
 
         async function lookupPrice(sku, event) {
