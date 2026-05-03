@@ -470,20 +470,6 @@
                                 <span>Normal (100%)</span>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">eBay Environment</label>
-                            <div style="display: flex; gap: 12px; margin-top: 8px;">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="sandbox">
-                                    <input type="radio" name="ebayEnvironment" value="sandbox" id="ebayEnvSandbox" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-info);">
-                                    <span style="font-weight: 500; color: var(--color-info); font-size: 13px;">Sandbox</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="production">
-                                    <input type="radio" name="ebayEnvironment" value="production" id="ebayEnvProduction" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent);">
-                                    <span style="font-weight: 500; color: var(--color-accent); font-size: 13px;">Production</span>
-                                </label>
-                            </div>
-                            <input type="hidden" id="ebayEnvironment" value="production">
-                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary" id="preferencesSubmitBtn" style="width: 100%; margin-top: 8px;">Save Preferences</button>
                 </form>
@@ -563,6 +549,21 @@
                     <div style="text-align: center; padding: 20px; color: var(--color-text-muted);">
                         Loading credentials...
                     </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label class="form-label">eBay Environment</label>
+                    <div style="display: flex; gap: 12px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="sandbox">
+                            <input type="radio" name="ebayEnvironment" value="sandbox" id="ebayEnvSandbox" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-info);">
+                            <span style="font-weight: 500; color: var(--color-info); font-size: 13px;">Sandbox</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="production">
+                            <input type="radio" name="ebayEnvironment" value="production" id="ebayEnvProduction" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent);">
+                            <span style="font-weight: 500; color: var(--color-accent); font-size: 13px;">Production</span>
+                        </label>
+                    </div>
+                    <input type="hidden" id="ebayEnvironment" value="production">
                 </div>
 
                 <button type="button" class="btn btn-secondary" onclick="openEbayCredentialsModal()" style="width: 100%; border-color: var(--color-info);">
