@@ -308,8 +308,15 @@ def update_preferences() -> Response:
         if 'timezone' in filtered_prefs and filtered_prefs['timezone'] not in ['local', 'utc']:
             return jsonify({'success': False, 'error': 'Invalid timezone value'}), 400
 
-        # Validate default_sort
-        if 'default_sort' in filtered_prefs and filtered_prefs['default_sort'] not in ['sku_asc', 'sku_desc']:
+        # Validate default_sort (must match account.html options)
+        if 'default_sort' in filtered_prefs and filtered_prefs['default_sort'] not in [
+            'sku_asc',
+            'sku_desc',
+            'title_asc',
+            'title_desc',
+            'price_asc',
+            'price_desc',
+        ]:
             return jsonify({'success': False, 'error': 'Invalid default_sort value'}), 400
 
         # Validate default_view

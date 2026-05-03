@@ -1926,6 +1926,226 @@ class EbayService:
         current_app.logger.info(f"Relisted SKU {comic.sku}: old={old_item_id} -> new={new_item_id}")
         return new_item_id
 
+    def get_category_tree_id(self, marketplace_id='EBAY_US'):
+        """Map marketplace ID to eBay category tree ID."""
+        marketplace_to_tree_id = {
+            'EBAY_US': '0',
+            'EBAY_GB': '3',
+            'EBAY_CA': '2',
+            'EBAY_AU': '15',
+            'EBAY_DE': '77',
+            'EBAY_FR': '71',
+            'EBAY_IT': '101',
+            'EBAY_ES': '186',
+            'EBAY_MOTORS_US': '100',
+        }
+        return marketplace_to_tree_id.get(marketplace_id, '0')
+
+    def _load_category_cache(self):
+        """Load the cached full category tree from disk."""
+        try:
+            if not os.path.exists(self.category_cache_file):
+                return False
+
+            with open(self.category_cache_file, 'r') as f:
+                cache_data = json.load(f)
+
+            self.category_tree_cache = cache_data.get('tree')
+            self.category_tree_version = cache_data.get('version')
+            return bool(self.category_tree_cache)
+        except Exception as e:
+            current_app.logger.error(f"Error loading category cache: {e}")
+            return False
+
+    def _save_category_cache(self, tree_data, version):
+        """Persist the full category tree cache to disk."""
+        try:
+            cache_data = {
+                'tree': tree_data,
+                'version': version,
+                'cached_at': datetime.now().isoformat(),
+            }
+
+            cache_dir = os.path.dirname(self.category_cache_file)
+            if cache_dir:
+                os.makedirs(cache_dir, exist_ok=True)
+
+            temp_file = self.category_cache_file + '.tmp'
+            with open(temp_file, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+            os.replace(temp_file, self.category_cache_file)
+
+            self.category_tree_cache = tree_data
+            self.category_tree_version = version
+            return True
+        except Exception as e:
+            current_app.logger.error(f"Error saving category cache: {e}")
+            return False
+
+    def _normalize_category_node(self, node):
+        """Normalize eBay taxonomy node shape to a flat categoryId/categoryName schema."""
+        if not node:
+            return None
+
+        category_obj = node.get('category', {}) if isinstance(node, dict) else {}
+        category_id = (
+            node.get('categoryId')
+            or node.get('categoryTreeNodeId')
+            or category_obj.get('categoryId')
+        )
+        category_name = (
+            node.get('categoryName')
+            or node.get('categoryTreeNodeName')
+            or category_obj.get('categoryName')
+            or 'Unknown'
+        )
+
+        children = node.get('childCategoryTreeNodes', []) if isinstance(node, dict) else []
+        normalized_children = []
+        for child in children:
+            normalized_child = self._normalize_category_node(child)
+            if normalized_child:
+                normalized_children.append(normalized_child)
+
+        return {
+            'categoryId': str(category_id) if category_id is not None else '',
+            'categoryName': str(category_name),
+            'childCategoryTreeNodes': normalized_children,
+        }
+
+    def _count_categories(self, node):
+        """Count categories in a normalized category tree node."""
+        if not node:
+            return 0
+        count = 1
+        for child in node.get('childCategoryTreeNodes', []):
+            count += self._count_categories(child)
+        return count
+
+    def _fetch_full_category_tree(self, marketplace_id='EBAY_US', max_depth=2):
+        """Fetch and normalize the full taxonomy tree from eBay and cache it."""
+        _ = max_depth  # kept for API compatibility
+
+        token = self._get_oauth_token()
+        if not token:
+            return {'error': 'Failed to obtain OAuth token'}
+
+        try:
+            category_tree_id = self.get_category_tree_id(marketplace_id)
+            tree_url = f"https://api.ebay.com/commerce/taxonomy/v1/category_tree/{category_tree_id}"
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json',
+            }
+
+            response = requests.get(tree_url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                return {'error': f'Failed to get tree: {response.status_code}'}
+
+            tree_data = response.json()
+            version = tree_data.get('categoryTreeVersion')
+            root_node = tree_data.get('rootCategoryNode', {})
+            normalized_root = self._normalize_category_node(root_node)
+
+            result = {
+                'categoryTreeId': category_tree_id,
+                'categoryTreeVersion': version,
+                'categoryTreeNode': {
+                    'categoryId': '0',
+                    'categoryName': 'All Categories',
+                    'childCategoryTreeNodes': normalized_root.get('childCategoryTreeNodes', []) if normalized_root else [],
+                },
+            }
+
+            total = self._count_categories(result['categoryTreeNode'])
+            current_app.logger.info(f"Fetched eBay category tree with {total} categories")
+
+            self._save_category_cache(result, version)
+            return result
+        except Exception as e:
+            current_app.logger.error(f"Error fetching full category tree: {e}")
+            return {'error': safe_error_message(e)}
+
+    def get_root_categories(self, marketplace_id='EBAY_US'):
+        """Return full category tree used by the category explorer UI.
+
+        The root endpoint historically returns the whole tree for client-side
+        filtering/expansion, so keep that behavior for compatibility.
+        """
+        try:
+            if self.category_tree_cache is not None:
+                return self.category_tree_cache
+
+            if self._load_category_cache() and self.category_tree_cache is not None:
+                return self.category_tree_cache
+
+            return self._fetch_full_category_tree(marketplace_id)
+        except Exception as e:
+            current_app.logger.error(f"Error in get_root_categories: {e}")
+            return {'error': safe_error_message(e)}
+
+    def get_category_tree(self, marketplace_id='EBAY_US'):
+        """Return the complete eBay category tree for a marketplace."""
+        return self.get_root_categories(marketplace_id)
+
+    def get_category_children(self, category_id, marketplace_id='EBAY_US'):
+        """Return childCategoryTreeNodes for a specific category ID."""
+        try:
+            tree = self.get_root_categories(marketplace_id)
+            if 'error' in tree:
+                return tree
+
+            target_id = str(category_id)
+
+            def _find_node(node):
+                if not node:
+                    return None
+                if str(node.get('categoryId', '')) == target_id:
+                    return node
+                for child in node.get('childCategoryTreeNodes', []):
+                    found = _find_node(child)
+                    if found:
+                        return found
+                return None
+
+            root = tree.get('categoryTreeNode')
+            found_node = _find_node(root)
+            if not found_node:
+                return {'success': True, 'childCategoryTreeNodes': []}
+
+            return {
+                'success': True,
+                'childCategoryTreeNodes': found_node.get('childCategoryTreeNodes', []),
+            }
+        except Exception as e:
+            current_app.logger.error(f"Error fetching category children: {e}")
+            return {'error': safe_error_message(e)}
+
+    def search_categories(self, query, marketplace_id='EBAY_US'):
+        """Search eBay taxonomy categories by query string."""
+        token = self._get_oauth_token()
+        if not token:
+            return {'error': 'Failed to obtain OAuth token'}
+
+        try:
+            category_tree_id = self.get_category_tree_id(marketplace_id)
+            url = f"https://api.ebay.com/commerce/taxonomy/v1/category_tree/{category_tree_id}/get_category_suggestions"
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json',
+            }
+            params = {'q': query}
+
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+
+            current_app.logger.error(f"Category search failed: {response.status_code} - {response.text}")
+            return {'error': f'Request failed with status {response.status_code}'}
+        except Exception as e:
+            current_app.logger.error(f"Error searching categories: {e}")
+            return {'error': safe_error_message(e)}
+
 
 # Singleton instance
 ebay_service = EbayService()

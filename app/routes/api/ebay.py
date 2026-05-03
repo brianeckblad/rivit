@@ -62,9 +62,10 @@ def _sanitize_error(exc):
 
 def _duplicate_error_response(exc: "EbayDuplicateListingError") -> dict:
     """Build a consistent error payload for duplicate-listing conflicts."""
+    safe_message = _sanitize_error(exc)
     detail: dict = {
         'error': 'Duplicate listing detected',
-        'message': str(exc),
+        'message': safe_message,
         'is_duplicate': True,
     }
     if exc.existing_item_id:
