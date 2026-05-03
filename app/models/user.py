@@ -40,6 +40,7 @@ class UserManager:
         'mobile_per_page': 8,
         'desktop_per_page': 24,
         'default_sort': 'sku_asc',
+        'default_view': 'grid',  # Default view layout: 'grid' or 'list'
         'micro_card_size': 60,  # 60% of normal card size (40% smaller as default)
         'ebay_format': 'FixedPrice',
         'ebay_duration': 'GTC',

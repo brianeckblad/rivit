@@ -1524,7 +1524,16 @@
         // Browse sort — persist in localStorage; used by loadComics()
         let browseSortOrder = localStorage.getItem('browseSortOrder') || 'sku_asc';
         // Browse view — persist in localStorage; 'grid' or 'list'
-        let currentBrowseView = localStorage.getItem('browseView') || 'grid';
+        // Seed localStorage from the server-side default once per browser session.
+        // sessionStorage is cleared whenever a new browser session begins (e.g. after an app
+        // restart forces a fresh login), so the server preference wins on that first page load
+        // and overrides any stale localStorage value.
+        const _browseServerDefault = '{{ default_view | default("grid") }}';
+        if (!sessionStorage.getItem('browseViewSeeded')) {
+            localStorage.setItem('browseView', _browseServerDefault);
+            sessionStorage.setItem('browseViewSeeded', 'true');
+        }
+        let currentBrowseView = localStorage.getItem('browseView') || _browseServerDefault;
 
         // Pagination state persistence - save and restore from sessionStorage
         // sessionStorage persists within a single browser session and clears on logout
@@ -3915,6 +3924,12 @@
                     return;
                 }
                 const rounded = Math.ceil(parsed);
+
+                // No-op if the price didn't change — skip the API call and eBay update
+                if (rounded === parseInt(currentPrice, 10)) {
+                    restoreDisplay(currentPrice);
+                    return;
+                }
 
                 priceEl.textContent = '…';
                 priceEl.classList.add('list-price-saving');

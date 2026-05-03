@@ -734,7 +734,7 @@ def update_comic_title_price() -> Response:
             return jsonify({'success': False, 'error': 'Either title or price must be provided'}), 400
 
         # Get the existing comic
-        comic = comic_service.get_comic_by_sku(sku)
+        comic = comic_service.get_comic(sku)
         if not comic:
             return jsonify({'success': False, 'error': 'Comic not found'}), 404
 
@@ -754,7 +754,7 @@ def update_comic_title_price() -> Response:
 
             # If price was changed and comic is listed on eBay, push the new price
             if price is not None:
-                updated_comic = comic_service.get_comic_by_sku(sku)
+                updated_comic = comic_service.get_comic(sku)
                 ebay_item_id = (updated_comic.ebay_item_id if updated_comic else None) or comic.ebay_item_id
                 if ebay_item_id:
                     try:

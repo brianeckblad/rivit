@@ -297,8 +297,8 @@ def update_preferences() -> Response:
 
         # Validate preferences
         valid_keys = ['timezone', 'mobile_per_page', 'desktop_per_page', 'default_sort',
-                      'micro_card_size', 'ebay_format', 'ebay_duration', 'ebay_listing_mode',
-                      'ebay_environment', 'ebay_location', 'ebay_postal_code']
+                      'default_view', 'micro_card_size', 'ebay_format', 'ebay_duration',
+                      'ebay_listing_mode', 'ebay_environment', 'ebay_location', 'ebay_postal_code']
         filtered_prefs = {k: v for k, v in preferences.items() if k in valid_keys}
 
         if not filtered_prefs:
@@ -311,6 +311,10 @@ def update_preferences() -> Response:
         # Validate default_sort
         if 'default_sort' in filtered_prefs and filtered_prefs['default_sort'] not in ['sku_asc', 'sku_desc']:
             return jsonify({'success': False, 'error': 'Invalid default_sort value'}), 400
+
+        # Validate default_view
+        if 'default_view' in filtered_prefs and filtered_prefs['default_view'] not in ['grid', 'list']:
+            return jsonify({'success': False, 'error': 'Invalid default_view value'}), 400
 
         # Validate micro_card_size
         if 'micro_card_size' in filtered_prefs:

@@ -60,6 +60,20 @@ def _sanitize_error(exc):
     return msg or 'An unexpected error occurred'
 
 
+def _duplicate_error_response(exc: "EbayDuplicateListingError") -> dict:
+    """Build a consistent error payload for duplicate-listing conflicts."""
+    detail: dict = {
+        'error': 'Duplicate listing detected',
+        'message': str(exc),
+        'is_duplicate': True,
+    }
+    if exc.existing_item_id:
+        detail['existing_item_id'] = exc.existing_item_id
+    if getattr(exc, 'existing_title', None):
+        detail['existing_title'] = exc.existing_title
+    return detail
+
+
 @api_bp.route('/comic/<sku>/ebay/list', methods=['POST'])
 @login_required
 @csrf_required
@@ -157,19 +171,8 @@ def list_comic_on_ebay(sku: str) -> Response:
         comic_service.save_comic(comic)
         return jsonify({'success': True, 'item_id': item_id, 'environment': environment, 'mode': listing_mode})
     except EbayDuplicateListingError as exc:
-        # Handle duplicate listing error with user-friendly message
-        error_detail = {
-            'error': 'Duplicate listing detected',
-            'message': str(exc),
-            'is_duplicate': True
-        }
-        if exc.existing_item_id:
-            error_detail['existing_item_id'] = exc.existing_item_id
-        if exc.existing_title:
-            error_detail['existing_title'] = exc.existing_title
-
         current_app.logger.warning(f"Duplicate listing detected for SKU {sku}: {exc}")
-        return jsonify({'success': False, **error_detail}), 409  # 409 Conflict
+        return jsonify({'success': False, **_duplicate_error_response(exc)}), 409
     except Exception as exc:
         current_app.logger.error(f"Failed to list {sku} on eBay: {exc}")
         return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
@@ -258,18 +261,8 @@ def update_comic_on_ebay(sku: str) -> Response:
         })
     except EbayDuplicateListingError as exc:
         # Handle duplicate listing error with user-friendly message
-        error_detail = {
-            'error': 'Duplicate listing detected',
-            'message': str(exc),
-            'is_duplicate': True
-        }
-        if exc.existing_item_id:
-            error_detail['existing_item_id'] = exc.existing_item_id
-        if exc.existing_title:
-            error_detail['existing_title'] = exc.existing_title
-
         current_app.logger.warning(f"Duplicate listing detected while updating SKU {sku}: {exc}")
-        return jsonify({'success': False, **error_detail}), 409  # 409 Conflict
+        return jsonify({'success': False, **_duplicate_error_response(exc)}), 409
     except Exception as exc:
         current_app.logger.error(f"Failed to update eBay listing for {sku}: {exc}")
         return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500
@@ -401,14 +394,8 @@ def relist_comic_on_ebay(sku: str) -> Response:
             'message': 'Relisted successfully with updated description'
         })
     except EbayDuplicateListingError as exc:
-        error_detail = {
-            'error': 'Duplicate listing detected',
-            'message': str(exc),
-            'is_duplicate': True
-        }
-        if exc.existing_item_id:
-            error_detail['existing_item_id'] = exc.existing_item_id
-        return jsonify({'success': False, **error_detail}), 409
+        current_app.logger.warning(f"Duplicate listing detected while relisting SKU {sku}: {exc}")
+        return jsonify({'success': False, **_duplicate_error_response(exc)}), 409
     except Exception as exc:
         current_app.logger.error(f"Failed to relist {sku} on eBay: {exc}")
         return jsonify({'success': False, 'error': _sanitize_error(exc)}), 500

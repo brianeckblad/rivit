@@ -121,6 +121,27 @@
             border-color: var(--color-accent) !important;
         }
 
+        /* Default view radio options */
+        .view-option {
+            transition: all 0.2s;
+        }
+
+        .view-option:hover {
+            border-color: var(--color-text-dim) !important;
+            transform: translateY(-1px);
+        }
+
+        .view-option:has(input:checked) {
+            border-color: var(--color-accent) !important;
+            background: var(--color-accent-subtle);
+        }
+
+        .view-option:has(input:checked) span,
+        .view-option:has(input:checked) svg {
+            color: var(--color-accent) !important;
+            stroke: var(--color-accent) !important;
+        }
+
         /* User list items */
         .user-list-item {
             display: flex;
@@ -386,6 +407,88 @@
         <div id="message" class="message"></div>
 
         <div class="sections-grid">
+            <!-- Display Preferences — full-width, always first -->
+            <div class="action-section" style="grid-column: 1 / -1;">
+                <div class="section-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    Display Preferences
+                </div>
+                <form id="preferencesForm" onsubmit="savePreferences(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 var(--space-lg);">
+                        <div class="form-group">
+                            <label class="form-label">Browse &amp; Pricing Page Default View</label>
+                            <p style="font-size: 12px; color: var(--color-text-muted); margin: 4px 0 8px;">Sets the starting view on the Browse and Pricing pages. Resets to this whenever you log in fresh. Your manual in-page toggle is remembered within a session.</p>
+                            <div style="display: flex; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: var(--radius-sm); transition: all 0.2s; flex: 1;" class="view-option" data-view="grid">
+                                    <input type="radio" name="defaultView" value="grid" id="defaultViewGrid" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent);">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent);"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                    <span style="font-weight: 500; color: var(--color-accent); font-size: 13px;">Grid</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: var(--radius-sm); transition: all 0.2s; flex: 1;" class="view-option" data-view="list">
+                                    <input type="radio" name="defaultView" value="list" id="defaultViewList" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent);">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-muted);"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                                    <span style="font-weight: 500; color: var(--color-text-muted); font-size: 13px;">List</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="timezone">Timezone</label>
+                            <select id="timezone" name="timezone" class="form-input" style="cursor: pointer;">
+                                <option value="local">Local Browser Time</option>
+                                <option value="utc">UTC Time</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="desktopPerPage">Comics Per Page (Desktop)</label>
+                            <input type="number" id="desktopPerPage" name="desktopPerPage" class="form-input" required min="1" max="100" value="24">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="mobilePerPage">Comics Per Page (Mobile)</label>
+                            <input type="number" id="mobilePerPage" name="mobilePerPage" class="form-input" required min="1" max="100" value="8">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="defaultSort">Default Sort Order</label>
+                            <select id="defaultSort" name="defaultSort" class="form-input" style="cursor: pointer;">
+                                <option value="sku_asc">SKU: Low to High</option>
+                                <option value="sku_desc">SKU: High to Low</option>
+                                <option value="title_asc">Title: A to Z</option>
+                                <option value="title_desc">Title: Z to A</option>
+                                <option value="price_asc">Price: Low to High</option>
+                                <option value="price_desc">Price: High to Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="microCardSize">Bulk Action Card Size: <span id="microCardSizeValue">60%</span></label>
+                            <input type="range" id="microCardSize" name="microCardSize" min="40" max="100" step="5" value="60" class="form-input" style="cursor: pointer; height: 8px; accent-color: var(--color-accent);">
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-dim); margin-top: 4px;">
+                                <span>Micro (40%)</span>
+                                <span>Small (60%)</span>
+                                <span>Normal (100%)</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">eBay Environment</label>
+                            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="sandbox">
+                                    <input type="radio" name="ebayEnvironment" value="sandbox" id="ebayEnvSandbox" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-info);">
+                                    <span style="font-weight: 500; color: var(--color-info); font-size: 13px;">Sandbox</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="production">
+                                    <input type="radio" name="ebayEnvironment" value="production" id="ebayEnvProduction" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent);">
+                                    <span style="font-weight: 500; color: var(--color-accent); font-size: 13px;">Production</span>
+                                </label>
+                            </div>
+                            <input type="hidden" id="ebayEnvironment" value="production">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="preferencesSubmitBtn" style="width: 100%; margin-top: 8px;">Save Preferences</button>
+                </form>
+            </div>
+
             <!-- Account & Security (Combined) -->
             <div class="action-section">
                 <div class="section-label">
@@ -442,69 +545,6 @@
                 </form>
             </div>
 
-            <!-- Display Preferences -->
-            <div class="action-section">
-                <div class="section-label">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                        <line x1="8" y1="21" x2="16" y2="21"></line>
-                        <line x1="12" y1="17" x2="12" y2="21"></line>
-                    </svg>
-                    Display Preferences
-                </div>
-                <form id="preferencesForm" onsubmit="savePreferences(event)">
-                    <div class="form-group">
-                        <label class="form-label" for="timezone">Timezone</label>
-                        <select id="timezone" name="timezone" class="form-input" style="cursor: pointer;">
-                            <option value="local">Local Browser Time</option>
-                            <option value="utc">UTC Time</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="desktopPerPage">Comics Per Page (Desktop)</label>
-                        <input type="number" id="desktopPerPage" name="desktopPerPage" class="form-input" required min="1" max="100" value="24">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="mobilePerPage">Comics Per Page (Mobile)</label>
-                        <input type="number" id="mobilePerPage" name="mobilePerPage" class="form-input" required min="1" max="100" value="8">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="defaultSort">Default Sort Order</label>
-                        <select id="defaultSort" name="defaultSort" class="form-input" style="cursor: pointer;">
-                            <option value="sku_asc">SKU: Low to High</option>
-                            <option value="sku_desc">SKU: High to Low</option>
-                            <option value="title_asc">Title: A to Z</option>
-                            <option value="title_desc">Title: Z to A</option>
-                            <option value="price_asc">Price: Low to High</option>
-                            <option value="price_desc">Price: High to Low</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="microCardSize">Bulk Action Card Size: <span id="microCardSizeValue">60%</span></label>
-                        <input type="range" id="microCardSize" name="microCardSize" min="40" max="100" step="5" value="60" class="form-input" style="cursor: pointer; height: 8px; accent-color: var(--color-accent);">
-                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-dim); margin-top: 4px;">
-                            <span>Micro (40%)</span>
-                            <span>Small (60%)</span>
-                            <span>Normal (100%)</span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">eBay Environment</label>
-                        <div style="display: flex; gap: 12px; margin-top: 8px;">
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="sandbox">
-                                <input type="radio" name="ebayEnvironment" value="sandbox" id="ebayEnvSandbox" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-info);">
-                                <span style="font-weight: 500; color: var(--color-info); font-size: 13px;">Sandbox</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border: 2px solid var(--color-elevated); border-radius: 6px; transition: all 0.2s; flex: 1;" class="env-option" data-env="production">
-                                <input type="radio" name="ebayEnvironment" value="production" id="ebayEnvProduction" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent);">
-                                <span style="font-weight: 500; color: var(--color-accent); font-size: 13px;">Production</span>
-                            </label>
-                        </div>
-                        <input type="hidden" id="ebayEnvironment" value="production">
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="preferencesSubmitBtn" style="width: 100%; margin-top: 8px;">Save Preferences</button>
-                </form>
-            </div>
 
             <!-- eBay API Credentials -->
             <div class="action-section">
@@ -1102,6 +1142,12 @@
                 document.getElementById('mobilePerPage').value = prefs.mobile_per_page || 8;
                 document.getElementById('defaultSort').value = prefs.default_sort || 'sku_asc';
 
+                // Set default view radio
+                const defaultView = prefs.default_view || 'grid';
+                const viewRadio = document.querySelector(`input[name="defaultView"][value="${defaultView}"]`);
+                if (viewRadio) viewRadio.checked = true;
+                updateViewOptionStyles(defaultView);
+
                 // Set micro card size
                 const microCardSize = prefs.micro_card_size || 60;
                 document.getElementById('microCardSize').value = microCardSize;
@@ -1323,6 +1369,25 @@
         }
     }
 
+    function updateViewOptionStyles(selectedView) {
+        document.querySelectorAll('.view-option').forEach(label => {
+            const isSelected = label.dataset.view === selectedView;
+            const span = label.querySelector('span');
+            const svg = label.querySelector('svg');
+            if (isSelected) {
+                label.style.borderColor = 'var(--color-accent)';
+                label.style.background = 'var(--color-accent-subtle)';
+                if (span) span.style.color = 'var(--color-accent)';
+                if (svg) svg.style.stroke = 'var(--color-accent)';
+            } else {
+                label.style.borderColor = 'var(--color-elevated)';
+                label.style.background = '';
+                if (span) span.style.color = 'var(--color-text-muted)';
+                if (svg) svg.style.stroke = 'var(--color-text-muted)';
+            }
+        });
+    }
+
     async function savePreferences(event) {
         event.preventDefault();
         const btn = document.getElementById('preferencesSubmitBtn');
@@ -1338,6 +1403,7 @@
                 desktop_per_page: parseInt(document.getElementById('desktopPerPage').value, 10) || 24,
                 mobile_per_page: parseInt(document.getElementById('mobilePerPage').value, 10) || 8,
                 default_sort: document.getElementById('defaultSort').value,
+                default_view: document.querySelector('input[name="defaultView"]:checked')?.value || 'grid',
                 micro_card_size: parseInt(document.getElementById('microCardSize').value, 10) || 60,
                 ebay_environment: document.getElementById('ebayEnvironment').value
             }
@@ -1362,6 +1428,18 @@
                 window.userPreferences = { ...window.userPreferences, ...payload.preferences };
             } else {
                 window.userPreferences = payload.preferences;
+            }
+
+            // Sync the saved default_view into localStorage immediately so the
+            // browse and pricing pages respect it on next navigation, and clear
+            // the sessionStorage seed flags so the seed logic re-runs with the
+            // new value.
+            const savedView = payload.preferences.default_view;
+            if (savedView) {
+                localStorage.setItem('browseView', savedView);
+                localStorage.setItem('priceView', savedView === 'grid' ? 'grid' : 'table');
+                sessionStorage.removeItem('browseViewSeeded');
+                sessionStorage.removeItem('priceViewSeeded');
             }
 
             // Dispatch custom event so other pages can react to preference changes
@@ -1520,6 +1598,13 @@
                 microCardSizeValue.textContent = e.target.value + '%';
             });
         }
+
+        // Update view option styles when a radio changes
+        document.querySelectorAll('input[name="defaultView"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) updateViewOptionStyles(e.target.value);
+            });
+        });
 
         loadPreferences();
         loadEbayCredentials();

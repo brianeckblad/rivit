@@ -936,7 +936,19 @@
         // Inline sort order for the pricing page
         let priceSortOrder = localStorage.getItem('priceSortOrder') || 'sku_asc';
 
-        let currentView = 'table';
+        // Pricing view — persist in localStorage; 'table' or 'grid'
+        // Fall back to server-side user preference when localStorage is empty (first visit or cache cleared)
+        // 'list' preference maps to 'table' on this page
+        const _serverDefaultView = '{{ default_view | default("grid") }}';
+        const _pricingDefaultView = _serverDefaultView === 'grid' ? 'grid' : 'table';
+        // Seed localStorage from the server default once per browser session.
+        // sessionStorage is cleared on a new browser session (e.g. fresh login after app restart),
+        // so the server default wins on that first load and overrides any stale localStorage value.
+        if (!sessionStorage.getItem('priceViewSeeded')) {
+            localStorage.setItem('priceView', _pricingDefaultView);
+            sessionStorage.setItem('priceViewSeeded', 'true');
+        }
+        let currentView = localStorage.getItem('priceView') || _pricingDefaultView;
 
         function updatePriceLookupFilterTabUI() {
             const activeTabId = currentListingTypeFilter === 'all'
@@ -1033,6 +1045,7 @@
 
         function switchView(view) {
             currentView = view;
+            localStorage.setItem('priceView', view);
             document.getElementById('tableView').style.display = view === 'table' ? 'block' : 'none';
             document.getElementById('gridView').style.display = view === 'grid' ? 'block' : 'none';
             
@@ -2317,6 +2330,12 @@
                 }
                 const rounded = Math.ceil(parsed);
 
+                // No-op if the price didn't change — skip the API call and eBay update
+                if (rounded === parseInt(currentPrice, 10)) {
+                    restoreDisplay(currentPrice);
+                    return;
+                }
+
                 priceEl.textContent = '…';
                 priceEl.classList.add('list-price-saving');
 
@@ -2646,6 +2665,9 @@
             // Sync inline sort dropdown to stored value
             const sortSel = document.getElementById('priceSortSelect');
             if (sortSel) sortSel.value = priceSortOrder;
+
+            // Apply the restored/default view (updates buttons and panel visibility)
+            switchView(currentView);
 
             // Load comics - restore previous state if available
             const savedMaxPage = sessionStorage.getItem('pricing_maxLoadedPage');

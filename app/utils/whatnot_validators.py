@@ -1,6 +1,37 @@
 """Whatnot data validation utilities."""
 
+import html
+import re
 from typing import Any
+
+
+def strip_html(text: str) -> str:
+    """Return *text* with all HTML tags removed and entities decoded.
+
+    Whatnot's bulk-upload CSV requires plain text in the Description field.
+    This helper converts HTML like ``<div>Title</div><br>&nbsp;`` to the
+    equivalent plain text, collapsing runs of whitespace to single spaces.
+
+    Args:
+        text: Raw string that may contain HTML markup and entities.
+
+    Returns:
+        Plain-text string suitable for a Whatnot CSV cell.
+    """
+    if not text:
+        return ''
+    # Replace block-level tags with spaces so words don't run together
+    text = re.sub(r'<(br|/div|/p|/li|/h\d)[^>]*>', ' ', text, flags=re.IGNORECASE)
+    # Remove all remaining tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Decode HTML entities (&nbsp; → ' ', &amp; → '&', etc.)
+    text = html.unescape(text)
+    # Replace non-breaking spaces with regular spaces
+    text = text.replace('\xa0', ' ')
+    # Collapse whitespace
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
 
 # ============================================================================
 # METADATA FIELD NAMES (stored in CSV but not exported)
@@ -394,17 +425,54 @@ def is_whatnot_listed(item: Any) -> bool:
     return str(raw_value).strip().upper() == 'TRUE'
 
 
+# Exact column order accepted by the Whatnot bulk-upload CSV template.
+# Internal-only fields (Condition Details, Photos Details, Shipping Details,
+# Signoff, Listing Type) are stored in the app's CSV but must NOT appear in
+# the file uploaded to Whatnot — they cause an "invalid CSV" error.
+WHATNOT_EXPORT_FIELDNAMES: list[str] = [
+    WHATNOT_FIELD_NAMES['CATEGORY'],
+    WHATNOT_FIELD_NAMES['SUB_CATEGORY'],
+    WHATNOT_FIELD_NAMES['TITLE'],
+    WHATNOT_FIELD_NAMES['DESCRIPTION'],
+    WHATNOT_FIELD_NAMES['QUANTITY'],
+    WHATNOT_FIELD_NAMES['TYPE'],
+    WHATNOT_FIELD_NAMES['PRICE'],
+    WHATNOT_FIELD_NAMES['SHIPPING_PROFILE'],
+    WHATNOT_FIELD_NAMES['OFFERABLE'],
+    WHATNOT_FIELD_NAMES['HAZMAT'],
+    WHATNOT_FIELD_NAMES['CONDITION'],
+    WHATNOT_FIELD_NAMES['COST_PER_ITEM'],
+    WHATNOT_FIELD_NAMES['SKU'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_1'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_2'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_3'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_4'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_5'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_6'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_7'],
+    WHATNOT_FIELD_NAMES['IMAGE_URL_8'],
+]
+
+
 def get_whatnot_export_fieldnames() -> list[str]:
-    """Return the canonical WhatNot CSV column order."""
-    return list(WHATNOT_FIELD_VALIDATION.keys())
+    """Return the canonical WhatNot CSV column order for upload to Whatnot.
+
+    This matches the official Whatnot bulk-upload template exactly.
+    Internal-only fields are excluded.
+    """
+    return list(WHATNOT_EXPORT_FIELDNAMES)
 
 
 def build_whatnot_export_row(item: Any) -> dict[str, str]:
-    """Build one full-schema WhatNot export row for ``item``.
+    """Build one WhatNot export row for ``item``.
 
-    This matches the existing proper WhatNot export format used by the main
-    download flow: auto-populated values, validator defaults, and all columns
-    present in the exact validator-defined order.
+    Populates values from the item, fills validator defaults, and returns only
+    the columns accepted by the official Whatnot bulk-upload CSV template
+    (internal-only fields such as Condition Details, Photos Details, Shipping
+    Details, Signoff, and Listing Type are intentionally excluded).
+
+    The Description field is stripped of HTML tags and entities because
+    Whatnot expects plain text in that column.
     """
     whatnot_data = populate_whatnot_fields_from_item(item)
     fieldnames = get_whatnot_export_fieldnames()
@@ -416,6 +484,32 @@ def build_whatnot_export_row(item: Any) -> dict[str, str]:
     for field in fieldnames:
         if field not in whatnot_data:
             whatnot_data[field] = ''
+
+    # Whatnot requires plain text in the Description column — strip any HTML
+    # that may have been entered via the rich-text editor.
+    desc_field = WHATNOT_FIELD_NAMES['DESCRIPTION']
+    if desc_field in whatnot_data:
+        whatnot_data[desc_field] = strip_html(whatnot_data[desc_field])
+
+    # Whatnot's bulk-upload importer does not support the "Giveaway" Type value
+    # in CSV imports.  Map giveaway items to "Auction" as a workaround so the
+    # file is accepted.  The Listing Type (internal only) is not exported, so
+    # we inspect it from the original item data.
+    type_field = WHATNOT_FIELD_NAMES['TYPE']
+    listing_type_field = WHATNOT_FIELD_NAMES['LISTING_TYPE']
+    # Get listing type from either the already-populated dict or the item directly
+    listing_type_value = ''
+    if isinstance(item, dict):
+        listing_type_value = (
+            item.get(listing_type_field, '')
+            or item.get('listing_type', '')
+            or item.get('Listing Type', '')
+        )
+    else:
+        listing_type_value = getattr(item, 'listing_type', '') or ''
+
+    if str(listing_type_value).strip().lower() == 'giveaway':
+        whatnot_data[type_field] = 'Auction'
 
     return {field: whatnot_data[field] for field in fieldnames}
 

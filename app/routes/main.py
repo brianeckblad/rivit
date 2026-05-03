@@ -6,6 +6,7 @@ from app.services.s3_service import s3_service
 from app.services.csv_service import CSVService
 from app.services.analytics_service import HeatmapAnalyzer
 from app.models.analytics import AnalyticsStore
+from app.models.user import UserManager
 from app.utils.logging_utils import safe_error_message
 from app.utils.user_context import get_current_username, get_user_csv_file, get_user_analytics_dir
 from app.utils.whatnot_validators import (
@@ -23,6 +24,18 @@ import io
 import traceback
 
 main_bp = Blueprint('main', __name__)
+user_manager = UserManager()
+
+
+def _get_default_view() -> str:
+    """Return the current user's default view preference ('grid' or 'list')."""
+    username = session.get('username')
+    if username:
+        prefs = user_manager.get_preferences(username) or {}
+        view = prefs.get('default_view', 'grid')
+        if view in ('grid', 'list'):
+            return view
+    return 'grid'
 
 
 @main_bp.route('/')
@@ -74,7 +87,7 @@ def add_from_image():
 @login_required
 def browse_comics():
     """Display the comic inventory browsing page."""
-    return render_template('comics_list.html', active_page='browse')
+    return render_template('comics_list.html', active_page='browse', default_view=_get_default_view())
 
 
 @main_bp.route('/trash')
@@ -248,7 +261,7 @@ def download_ebay_csv():
 @login_required
 def price_lookup():
     """eBay price lookup page."""
-    return render_template('price_lookup.html', active_page='prices')
+    return render_template('price_lookup.html', active_page='prices', default_view=_get_default_view())
 
 
 @main_bp.route('/account')
