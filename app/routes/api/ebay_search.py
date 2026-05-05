@@ -12,9 +12,9 @@ import base64
 import binascii
 import io
 import os
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from flask import Response, current_app, jsonify, request
+from flask import Response, current_app, jsonify, redirect, request
 from flask.typing import ResponseReturnValue
 from werkzeug.datastructures import FileStorage
 
@@ -536,3 +536,71 @@ def proxy_image() -> ResponseReturnValue:
             return jsonify({'error': 'Image not found'}), 404
         current_app.logger.exception("Error proxying image %s", image_url)
         return jsonify({'error': 'Failed to fetch image'}), 500
+
+
+@api_bp.route('/google-lens', methods=['GET'])
+@login_required
+def google_lens_redirect() -> ResponseReturnValue:
+    """Redirect to Google Lens using a Lens-compatible image URL.
+
+    For private S3 objects, this route generates a short-lived presigned URL so
+    Google can fetch the image. If no usable image URL is available, it falls
+    back to Google Images search by title.
+    """
+
+    raw_image_url = (request.args.get('url') or '').strip()
+    title = (request.args.get('title') or '').strip()
+    image_url = raw_image_url
+
+    def _is_public_host(hostname: str) -> bool:
+        host = (hostname or '').lower()
+        if not host or host in {'localhost', '127.0.0.1', '0.0.0.0'}:
+            return False
+        if host.endswith('.local'):
+            return False
+        if host.startswith('10.') or host.startswith('192.168.'):
+            return False
+        if host.startswith('172.'):
+            parts = host.split('.')
+            if len(parts) >= 2:
+                try:
+                    second_octet = int(parts[1])
+                    if 16 <= second_octet <= 31:
+                        return False
+                except ValueError:
+                    pass
+        return True
+
+    try:
+        # Unwrap local proxy URLs: /api/proxy-image?url=<s3_url>
+        if image_url:
+            parsed_input = urlparse(image_url)
+            if parsed_input.path.endswith('/api/proxy-image'):
+                nested = parse_qs(parsed_input.query).get('url', [''])[0].strip()
+                if nested:
+                    image_url = nested
+
+        # Generate a presigned URL when the source is in our private S3 bucket
+        if image_url and 's3.amazonaws.com' in image_url:
+            s3_bucket = current_app.config.get('S3_BUCKET', os.environ.get('S3_BUCKET_NAME', ''))
+            if s3_bucket and s3_bucket in image_url:
+                image_url = s3_service.generate_presigned_url(image_url, expires_in=900)
+
+        if image_url:
+            parsed = urlparse(image_url)
+            if parsed.scheme in {'http', 'https'} and _is_public_host(parsed.hostname or ''):
+                lens_url = f"https://lens.google.com/uploadbyurl?url={quote(image_url, safe='')}"
+                return redirect(lens_url, code=302)
+
+        if title:
+            search_url = f"https://www.google.com/search?tbm=isch&q={quote(title, safe='')}"
+            return redirect(search_url, code=302)
+
+        return jsonify({'error': 'No valid image URL or title provided'}), 400
+    except Exception:
+        current_app.logger.exception("Failed to prepare Google Lens redirect")
+        if title:
+            search_url = f"https://www.google.com/search?tbm=isch&q={quote(title, safe='')}"
+            return redirect(search_url, code=302)
+        return jsonify({'error': 'Failed to prepare Google Lens link'}), 500
+

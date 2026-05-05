@@ -9344,9 +9344,7 @@
             }
 
             // Update Google Lens link.
-            // Lens requires a publicly reachable absolute image URL. Some records
-            // store image_urls as a list, others as a string, and local/private
-            // URLs will fail in Lens. Fall back to Google Images query search.
+            // Route through our backend so private S3 URLs can be presigned for Lens.
             if (googleLensLink) {
                 const rawImageCandidates = [];
 
@@ -9361,43 +9359,17 @@
                     if (comic[key]) rawImageCandidates.push(String(comic[key]));
                 }
 
-                const firstImageRaw = rawImageCandidates
+                const firstImage = rawImageCandidates
                     .map((u) => String(u || '').trim())
                     .find((u) => u.length > 0) || '';
 
-                let firstImageAbsolute = firstImageRaw;
-                if (firstImageAbsolute.startsWith('//')) {
-                    firstImageAbsolute = `https:${firstImageAbsolute}`;
-                } else if (firstImageAbsolute.startsWith('/')) {
-                    firstImageAbsolute = `${window.location.origin}${firstImageAbsolute}`;
-                }
-
-                const isPublicLensUrl = (() => {
-                    try {
-                        const parsed = new URL(firstImageAbsolute);
-                        if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-
-                        const host = (parsed.hostname || '').toLowerCase();
-                        if (!host || host === 'localhost' || host.endsWith('.local')) return false;
-                        if (host === '127.0.0.1' || host === '0.0.0.0') return false;
-                        if (/^10\./.test(host)) return false;
-                        if (/^192\.168\./.test(host)) return false;
-                        if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return false;
-
-                        return true;
-                    } catch (_) {
-                        return false;
-                    }
-                })();
-
                 const titleQuery = String(comic.Title || comic.title || '').trim();
-                if (isPublicLensUrl) {
-                    googleLensLink.href = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(firstImageAbsolute)}`;
-                    googleLensLink.title = 'Open Google Lens for this comic image';
-                    googleLensLink.style.display = 'inline-flex';
-                } else if (titleQuery) {
-                    googleLensLink.href = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(titleQuery)}`;
-                    googleLensLink.title = 'Image URL is not publicly reachable. Opening Google Images search by title instead.';
+                if (firstImage || titleQuery) {
+                    const params = new URLSearchParams();
+                    if (firstImage) params.set('url', firstImage);
+                    if (titleQuery) params.set('title', titleQuery);
+                    googleLensLink.href = `/api/google-lens?${params.toString()}`;
+                    googleLensLink.title = 'Open Google Lens for this comic';
                     googleLensLink.style.display = 'inline-flex';
                 } else {
                     googleLensLink.style.display = 'none';
