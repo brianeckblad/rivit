@@ -3346,7 +3346,7 @@
     <div class="ebay-search-modal" id="ebaySearchModal" onclick="if(event.target===this)closeEbaySearchModal()">
         <div class="ebay-search-modal-content" onclick="event.stopPropagation()">
             <div class="ebay-search-header">
-                <h2>
+                <h2 id="ebaySearchModalTitle">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
                     Add from eBay
                 </h2>
@@ -3382,6 +3382,7 @@
                             <div class="ebay-image-actions">
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="triggerEbayImageUpload()">Choose different image</button>
                                 <button type="button" id="ebayImageSearchBtn" class="btn btn-sm" style="background:var(--color-ebay);color:var(--color-bg);font-weight:600;" onclick="searchEbayByImageForModal()" disabled>Search eBay by image</button>
+                                <button type="button" id="ebayImageSoldSearchBtn" class="btn btn-secondary btn-sm" onclick="searchEbaySoldByImageForModal()" disabled>Search Sold comps</button>
                             </div>
                         </div>
                     </div>
@@ -6630,6 +6631,7 @@
         function openEbaySearchModal(options = {}) {
             const { imageBrowseOnly = false } = options;
             const modal = document.getElementById('ebaySearchModal');
+            const titleEl = document.getElementById('ebaySearchModalTitle');
             modal.classList.add('show');
             document.getElementById('ebaySearchResults').innerHTML = '';
             document.getElementById('ebayFilterInput').value = '';
@@ -6648,6 +6650,10 @@
                     cloneBtn.disabled = true;
                     cloneBtn.textContent = 'Add';
                 }
+            }
+
+            if (titleEl) {
+                titleEl.textContent = ebayImageQuickBrowseMode ? 'eBay Image Search' : 'Add from eBay';
             }
 
             document.querySelectorAll('#ebaySearchModal .ebay-filter-pill').forEach(p => p.classList.remove('active'));
@@ -6761,6 +6767,11 @@
                 cloneBtn.style.display = '';
                 cloneBtn.textContent = 'Add';
                 cloneBtn.disabled = true;
+            }
+
+            const titleEl = document.getElementById('ebaySearchModalTitle');
+            if (titleEl) {
+                titleEl.textContent = 'Add from eBay';
             }
         }
 
@@ -6883,6 +6894,7 @@
             const previewImg = document.getElementById('ebayImagePreviewImg');
             const fileName = document.getElementById('ebayImageFileName');
             const searchBtn = document.getElementById('ebayImageSearchBtn');
+            const soldSearchBtn = document.getElementById('ebayImageSoldSearchBtn');
             const dropzone = document.getElementById('ebayImageDropzone');
 
 
@@ -6893,6 +6905,7 @@
             if (previewImg) previewImg.src = '';
             if (fileName) fileName.textContent = 'No image selected yet.';
             if (searchBtn) searchBtn.disabled = true;
+            if (soldSearchBtn) soldSearchBtn.disabled = true;
             if (dropzone) dropzone.classList.remove('dragover', 'has-image');
             toggleEbayImageViewControls(false);
         }
@@ -6929,6 +6942,7 @@
             const previewImg = document.getElementById('ebayImagePreviewImg');
             const fileName = document.getElementById('ebayImageFileName');
             const searchBtn = document.getElementById('ebayImageSearchBtn');
+            const soldSearchBtn = document.getElementById('ebayImageSoldSearchBtn');
             const dropzone = document.getElementById('ebayImageDropzone');
 
             resetEbaySearchSelection();
@@ -6952,6 +6966,7 @@
             if (fileName) fileName.textContent = file.name || 'Selected image';
             if (preview) preview.classList.add('show');
             if (searchBtn) searchBtn.disabled = false;
+            if (soldSearchBtn) soldSearchBtn.disabled = false;
             if (dropzone) dropzone.classList.add('has-image');
 
             setEbaySearchStatus('Image ready. Click Search eBay by image to find similar listings.');
@@ -6995,6 +7010,35 @@
             });
         }
 
+        async function fetchEbayImageSearchResultForModal() {
+            if (!ebayImageSearchFile) {
+                throw new Error('Choose an image first.');
+            }
+
+            const titleHint = document.getElementById('title')?.value?.trim() || '';
+            const formData = new FormData();
+            formData.append('image_file', ebayImageSearchFile);
+            formData.append('limit', '24');
+            if (titleHint) {
+                formData.append('title', titleHint);
+            }
+
+            const response = await fetch('/api/ebay/search-by-image', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': window.csrfToken || ''
+                },
+                body: formData
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Failed to search eBay by image.');
+            }
+
+            return result;
+        }
+
         async function searchEbayByImageForModal() {
             if (!ebayImageSearchFile) {
                 setEbaySearchStatus('Choose an image first.');
@@ -7003,14 +7047,7 @@
 
             const resultsContainer = document.getElementById('ebaySearchResults');
             const searchBtn = document.getElementById('ebayImageSearchBtn');
-            const titleHint = document.getElementById('title')?.value?.trim() || '';
             const originalLabel = searchBtn.textContent;
-            const formData = new FormData();
-            formData.append('image_file', ebayImageSearchFile);
-            formData.append('limit', '24');
-            if (titleHint) {
-                formData.append('title', titleHint);
-            }
 
             resetEbaySearchSelection();
             resultsContainer.innerHTML = '';
@@ -7020,19 +7057,7 @@
             searchBtn.textContent = 'Searching...';
 
             try {
-                const response = await fetch('/api/ebay/search-by-image', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-Token': window.csrfToken || ''
-                    },
-                    body: formData
-                });
-                const result = await response.json();
-
-                if (!response.ok || !result.success) {
-                    throw new Error(result.error || 'Failed to search eBay by image.');
-                }
-
+                const result = await fetchEbayImageSearchResultForModal();
                 renderEbayImageSearchResults(result);
             } catch (error) {
                 console.error('Failed to search eBay by image:', error);
@@ -7041,6 +7066,49 @@
             } finally {
                 searchBtn.disabled = false;
                 searchBtn.textContent = originalLabel;
+            }
+        }
+
+        async function searchEbaySoldByImageForModal() {
+            if (!ebayImageSearchFile) {
+                setEbaySearchStatus('Choose an image first.');
+                return;
+            }
+
+            const soldBtn = document.getElementById('ebayImageSoldSearchBtn');
+            const imageBtn = document.getElementById('ebayImageSearchBtn');
+            const originalSoldLabel = soldBtn ? soldBtn.textContent : 'Search Sold comps';
+
+            if (soldBtn) {
+                soldBtn.disabled = true;
+                soldBtn.textContent = 'Searching sold...';
+            }
+            if (imageBtn) imageBtn.disabled = true;
+
+            try {
+                setEbaySearchStatus('Finding best image matches, then opening sold comps...');
+                const result = await fetchEbayImageSearchResultForModal();
+                renderEbayImageSearchResults(result);
+
+                const items = Array.isArray(result?.items) ? result.items : [];
+                if (items.length === 0) {
+                    setEbaySearchStatus('No similar image matches found to build sold comps search.');
+                    return;
+                }
+
+                const bestTitle = String(items[0].title || '').trim() || 'comic';
+                const soldUrl = getEbaySoldListingsUrl(bestTitle);
+                window.open(soldUrl, '_blank', 'noopener,noreferrer');
+                setEbaySearchStatus('Opened sold comps in a new tab (based on best image match).');
+            } catch (error) {
+                console.error('Failed to search sold comps by image:', error);
+                setEbaySearchStatus(error.message || 'Failed to open sold comps by image.');
+            } finally {
+                if (soldBtn) {
+                    soldBtn.disabled = false;
+                    soldBtn.textContent = originalSoldLabel;
+                }
+                if (imageBtn) imageBtn.disabled = false;
             }
         }
 
@@ -7094,6 +7162,7 @@
                         if (targetUrl) {
                             window.open(targetUrl, '_blank', 'noopener,noreferrer');
                         }
+                        closeEbaySearchModal();
                         return;
                     }
 
