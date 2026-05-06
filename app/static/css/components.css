@@ -254,6 +254,7 @@ body {
   justify-content: center;
   gap: 10px;
   line-height: 1;
+  min-height: 40px;
 }
 
 .btn svg {
@@ -621,6 +622,64 @@ textarea[readonly] {
   border-color: var(--color-info);
 }
 
+/* Shared one-line filter/sort status under tab rows */
+.filter-state-summary {
+  margin: 6px 0 14px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.filter-state-summary strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* Shared confirm dialog for destructive actions */
+.confirm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-heavy);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+  padding: var(--space-md);
+}
+
+.confirm-dialog-overlay.show {
+  display: flex;
+}
+
+.confirm-dialog {
+  width: min(560px, 100%);
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-lg);
+}
+
+.confirm-dialog-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.confirm-dialog-body {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.confirm-dialog-actions {
+  margin-top: var(--space-lg);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
 /* ── Status Components ──────────────────────────────────────────────────── */
 .status-chip {
   display: none;
@@ -962,6 +1021,14 @@ textarea[readonly] {
   .notification {
     top: 70px;
     max-width: calc(100% - 40px);
+  }
+
+  .btn {
+    min-height: 44px;
+  }
+
+  .footer-bar {
+    padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
   }
 }
 

@@ -829,6 +829,7 @@
                 <button id="filterWhatNot" class="filter-tab" onclick="filterByListingType('WhatNot')">WhatNot</button>
                 <button id="filterGiveaway" class="filter-tab" onclick="filterByListingType('Giveaway')">Giveaway</button>
             </div>
+            <div id="browseFilterSummary" class="filter-state-summary"></div>
 
             <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
             <div id="notListedSubFilters" style="display: none; margin-bottom: 24px; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border-hover); border-radius: 8px;">
@@ -2076,6 +2077,7 @@
             // Sync view toggle buttons to stored view
             document.getElementById('browseGridViewBtn').classList.toggle('active', currentBrowseView === 'grid');
             document.getElementById('browseListViewBtn').classList.toggle('active', currentBrowseView === 'list');
+            updateBrowseFilterSummary();
 
             // If we're on "Not Listed" filter, make sure sub-filter UI is correct
             if (currentListingTypeFilter === 'Not Listed') {
@@ -3811,6 +3813,24 @@
         // ========== END BULK MANAGEMENT FUNCTIONS ==========
 
         // Listing Type Filter Function
+        function updateBrowseFilterSummary() {
+            const summaryEl = document.getElementById('browseFilterSummary');
+            if (!summaryEl) return;
+
+            const filterLabel = currentListingTypeFilter === 'all' ? 'All Comics' : currentListingTypeFilter;
+            const viewLabel = currentBrowseView === 'grid' ? 'Grid' : 'List';
+            const sortLabelMap = {
+                sku_asc: 'SKU Low-High',
+                sku_desc: 'SKU High-Low',
+                title_asc: 'Title A-Z',
+                title_desc: 'Title Z-A',
+                price_asc: 'Price Low-High',
+                price_desc: 'Price High-Low'
+            };
+            const sortLabel = sortLabelMap[browseSortOrder] || browseSortOrder;
+            summaryEl.innerHTML = `<strong>Filter:</strong> ${filterLabel} | <strong>View:</strong> ${viewLabel} | <strong>Sort:</strong> ${sortLabel}`;
+        }
+
         function filterByListingType(type) {
             const previousFilter = currentListingTypeFilter;
             currentListingTypeFilter = type;
@@ -3854,6 +3874,7 @@
             document.getElementById('loadMoreContainer').innerHTML = '';
 
             // Reload comics from page 1 with the current filter
+            updateBrowseFilterSummary();
             loadComics(1, false);
         }
         window.filterByListingType = filterByListingType;
@@ -3866,6 +3887,7 @@
             maxLoadedPage = 1;
             allComics = [];
             document.getElementById('loadMoreContainer').innerHTML = '';
+            updateBrowseFilterSummary();
             loadComics(1, false);
         }
         window.setBrowseSort = setBrowseSort;
@@ -3880,6 +3902,7 @@
             maxLoadedPage = 1;
             allComics = [];
             document.getElementById('loadMoreContainer').innerHTML = '';
+            updateBrowseFilterSummary();
             loadComics(1, false);
         }
         window.switchBrowseView = switchBrowseView;

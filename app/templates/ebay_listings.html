@@ -559,6 +559,7 @@
                 Scheduled <span class="tab-count" id="tabCountPending">0</span>
             </button>
         </div>
+        <div id="listingFilterSummary" class="filter-state-summary" style="display: none;"></div>
 
         <!-- Loading State -->
         <div id="loadingState" class="loading">
@@ -592,6 +593,10 @@
                 This page shows active and scheduled listings from your eBay account via the API.
                 Drafts are stored only in eBay Seller Hub and cannot be retrieved programmatically.
             </p>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top: 16px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='/add'">Add a comic</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload()">Refresh</button>
+            </div>
         </div>
     </main>
 
@@ -847,7 +852,7 @@
                 }
             } catch (error) {
                 console.error('Error refreshing from eBay:', error);
-                alert('Failed to refresh listings. Please try again.');
+                window.showNotification('Failed to refresh listings. Please try again.', 'error');
                 const btn = event.target;
                 btn.disabled = false;
                 btn.textContent = '🔄 Refresh from eBay';
@@ -873,6 +878,19 @@
             displayPage(1);
         }
 
+        function updateListingFilterSummary(count) {
+            const summaryEl = document.getElementById('listingFilterSummary');
+            if (!summaryEl) return;
+
+            const label = currentFilter === 'all'
+                ? 'All listings'
+                : currentFilter === 'active'
+                    ? 'Active listings'
+                    : 'Scheduled listings';
+            summaryEl.innerHTML = `<strong>${label}:</strong> ${count}`;
+            summaryEl.style.display = 'block';
+        }
+
         function displayPage(pageNum) {
             currentPage = pageNum;
 
@@ -886,6 +904,7 @@
             }
 
             const filteredListings = getFilteredListings();
+            updateListingFilterSummary(filteredListings.length);
 
             // Calculate which items to show on this page
             currentPageStartIndex = (pageNum - 1) * itemsPerPage;
@@ -1792,66 +1811,11 @@
         }
 
         function showNotification(message, type) {
-            // Use standard app notification system
-            const notification = document.createElement('div');
-            const bgColor = type === 'success' ? 'var(--color-success)' : type === 'error' ? 'var(--color-danger)' : 'var(--color-info)';
-            const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
-
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${bgColor};
-                color: var(--color-text);
-                padding: 16px 24px;
-                border-radius: 8px;
-                font-weight: 600;
-                z-index: 10000;
-                max-width: 400px;
-                word-wrap: break-word;
-                box-shadow: var(--shadow-md);
-                animation: slideIn 0.3s ease-out;
-            `;
-
-            notification.textContent = `${icon} ${message}`;
-            document.body.appendChild(notification);
-
-            // Auto-remove after 4 seconds
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => notification.remove(), 300);
-            }, 4000);
+            window.showNotification(message, type || 'info');
         }
 
         function showStatusModal(message, type) {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: var(--overlay-medium);
-                z-index: 400;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            `;
-
-            const icon = type === 'success' ? '✓' : '⚠';
-            const bgColor = type === 'success' ? 'var(--color-success-subtle)' : 'var(--color-danger-subtle)';
-            const borderColor = type === 'success' ? '1px solid var(--color-success-border)' : '1px solid var(--color-danger-border)';
-            const iconColor = type === 'success' ? 'var(--color-success)' : 'var(--color-danger)';
-
-            modal.innerHTML = `
-                <div style="background: var(--color-surface); border: ${borderColor}; border-radius: 12px; max-width: 500px; padding: 32px; text-align: center; color: var(--color-text);">
-                    <div style="font-size: 48px; color: ${iconColor}; margin-bottom: 16px;">${icon}</div>
-                    <p style="margin: 0; font-size: 16px; line-height: 1.6;">${message}</p>
-                    <button onclick="this.closest('[style*=position]').remove()" style="padding: 10px 32px; background: var(--color-accent); color: var(--color-bg); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 24px;">OK</button>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
+            window.showNotification(message, type === 'success' ? 'success' : 'error', 5000);
         }
 
         function createNewItemFromEbay(event) {
@@ -1864,7 +1828,7 @@
             // Check if we have eBay item data
             if (!currentEbayItem) {
                 console.error('ERROR: currentEbayItem is null or undefined');
-                alert('Error: eBay item data not found. Please click the Link button on an eBay listing again.');
+                window.showNotification('eBay item data not found. Please click Link again.', 'error');
                 return;
             }
 
@@ -1896,7 +1860,14 @@
 
         // Relist an unsold item with the app's generated description
         async function relistFromEbay(sku, oldItemId) {
-            if (!confirm('Relist this item? The old listing will be ended and a new one created with your updated description.')) {
+            const confirmed = await window.showConfirmDialog({
+                title: 'Relist this item?',
+                message: 'The old listing will be ended and a new one created with your latest description.',
+                confirmText: 'Relist',
+                cancelText: 'Cancel',
+                confirmVariant: 'primary'
+            });
+            if (!confirmed) {
                 return;
             }
 
@@ -1931,7 +1902,14 @@
 
         // Delete an eBay draft or ended listing
         async function deleteEbayDraft(itemId) {
-            if (!confirm('Delete this eBay listing? This cannot be undone.')) {
+            const confirmed = await window.showConfirmDialog({
+                title: 'Delete this eBay listing?',
+                message: 'This ends the listing on eBay and cannot be undone.',
+                confirmText: 'Delete listing',
+                cancelText: 'Cancel',
+                confirmVariant: 'danger'
+            });
+            if (!confirmed) {
                 return;
             }
 

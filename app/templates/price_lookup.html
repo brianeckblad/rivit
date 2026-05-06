@@ -799,6 +799,7 @@
             <button id="priceFilterWhatNot" class="filter-tab" onclick="setPriceLookupListingFilter('WhatNot')">WhatNot</button>
             <button id="priceFilterGiveaway" class="filter-tab" onclick="setPriceLookupListingFilter('Giveaway')">Giveaway</button>
         </div>
+        <div id="priceFilterSummary" class="filter-state-summary"></div>
 
         <!-- Sub-filter tabs for "Not Listed" (hidden by default) -->
         <div id="priceNotListedSubFilters" style="display: none; margin-bottom: 16px; padding: 10px 12px; background: var(--color-bg); border: 1px solid var(--color-border-hover); border-radius: 8px;">
@@ -1018,6 +1019,7 @@
             currentPage = 1;
             allComics = [];
             updatePriceLookupFilterTabUI();
+            updatePriceFilterSummary();
             loadComics(1, false);
         }
         window.setPriceLookupListingFilter = setPriceLookupListingFilter;
@@ -1039,9 +1041,28 @@
             localStorage.setItem('priceSortOrder', value);
             currentPage = 1;
             maxLoadedPage = 1;
+            updatePriceFilterSummary();
             loadComics(1, false);
         }
         window.setPriceSort = setPriceSort;
+
+        function updatePriceFilterSummary() {
+            const summaryEl = document.getElementById('priceFilterSummary');
+            if (!summaryEl) return;
+
+            const filterLabel = currentListingTypeFilter === 'all' ? 'All Comics' : currentListingTypeFilter;
+            const viewLabel = currentView === 'grid' ? 'Grid' : 'Table';
+            const sortLabelMap = {
+                sku_asc: 'SKU Low-High',
+                sku_desc: 'SKU High-Low',
+                title_asc: 'Title A-Z',
+                title_desc: 'Title Z-A',
+                price_asc: 'Price Low-High',
+                price_desc: 'Price High-Low'
+            };
+            const sortLabel = sortLabelMap[priceSortOrder] || priceSortOrder;
+            summaryEl.innerHTML = `<strong>Filter:</strong> ${filterLabel} | <strong>View:</strong> ${viewLabel} | <strong>Sort:</strong> ${sortLabel}`;
+        }
 
         function switchView(view) {
             currentView = view;
@@ -1051,7 +1072,8 @@
             
             document.getElementById('tableViewBtn').classList.toggle('active', view === 'table');
             document.getElementById('gridViewBtn').classList.toggle('active', view === 'grid');
-            
+            updatePriceFilterSummary();
+
             renderComics();
         }
 
@@ -2661,6 +2683,7 @@
             currentLoadedComic = null;
             uploadedImageData = null;
             updatePriceLookupFilterTabUI();
+            updatePriceFilterSummary();
 
             // Sync inline sort dropdown to stored value
             const sortSel = document.getElementById('priceSortSelect');

@@ -192,6 +192,11 @@
             </button>
         </div>
 
+        <div id="trashLoading" class="loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Loading trash items...</p>
+        </div>
+
         <div id="trashGrid" class="trash-grid">
             <!-- Items will be loaded here -->
         </div>
@@ -202,6 +207,10 @@
             </svg>
             <h3>Trash is Empty</h3>
             <p>No items in trash</p>
+            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <a href="/browse" class="btn btn-secondary btn-sm">Browse inventory</a>
+                <a href="/add" class="btn btn-primary btn-sm">Add comic</a>
+            </div>
         </div>
     </main>
 
@@ -229,6 +238,9 @@
     }
 
     async function loadTrash() {
+        const loadingEl = document.getElementById('trashLoading');
+        if (loadingEl) loadingEl.style.display = 'block';
+
         try {
             const response = await fetch('/api/trash/list');
             const result = await response.json();
@@ -302,6 +314,8 @@
         } catch (error) {
             console.error('Error loading trash:', error);
             showNotification('Error loading trash items', 'error');
+        } finally {
+            if (loadingEl) loadingEl.style.display = 'none';
         }
     }
 

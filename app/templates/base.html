@@ -32,6 +32,18 @@
     <!-- Notification Container -->
     <div id="notification" class="notification"></div>
 
+    <!-- Global Confirm Dialog -->
+    <div id="globalConfirmDialog" class="confirm-dialog-overlay" onclick="if(event.target===this)window.closeConfirmDialog(false)">
+        <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="globalConfirmDialogTitle">
+            <h3 id="globalConfirmDialogTitle" class="confirm-dialog-title">Confirm action</h3>
+            <p id="globalConfirmDialogBody" class="confirm-dialog-body"></p>
+            <div class="confirm-dialog-actions">
+                <button type="button" id="globalConfirmCancel" class="btn btn-secondary btn-sm">Cancel</button>
+                <button type="button" id="globalConfirmOk" class="btn btn-danger btn-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <header class="header" role="banner">
         <div class="header-content">
             <a href="/" style="text-decoration: none; display: flex; align-items: center;" aria-label="Listing Tool - Home">
@@ -366,6 +378,51 @@
         // Make it available globally
         window.showNotification = showNotification;
 
+        let confirmDialogResolver = null;
+
+        window.closeConfirmDialog = function(confirmed) {
+            const dialog = document.getElementById('globalConfirmDialog');
+            if (dialog) dialog.classList.remove('show');
+            if (confirmDialogResolver) {
+                confirmDialogResolver(Boolean(confirmed));
+                confirmDialogResolver = null;
+            }
+        };
+
+        window.showConfirmDialog = function(options = {}) {
+            const {
+                title = 'Confirm action',
+                message = 'Are you sure you want to continue?',
+                confirmText = 'Confirm',
+                cancelText = 'Cancel',
+                confirmVariant = 'danger'
+            } = options;
+
+            const dialog = document.getElementById('globalConfirmDialog');
+            const titleEl = document.getElementById('globalConfirmDialogTitle');
+            const bodyEl = document.getElementById('globalConfirmDialogBody');
+            const okBtn = document.getElementById('globalConfirmOk');
+            const cancelBtn = document.getElementById('globalConfirmCancel');
+
+            if (!dialog || !titleEl || !bodyEl || !okBtn || !cancelBtn) {
+                return Promise.resolve(window.confirm(message));
+            }
+
+            titleEl.textContent = title;
+            bodyEl.textContent = message;
+            okBtn.textContent = confirmText;
+            cancelBtn.textContent = cancelText;
+            okBtn.className = confirmVariant === 'primary' ? 'btn btn-primary btn-sm' : 'btn btn-danger btn-sm';
+
+            return new Promise((resolve) => {
+                confirmDialogResolver = resolve;
+                dialog.classList.add('show');
+
+                okBtn.onclick = () => window.closeConfirmDialog(true);
+                cancelBtn.onclick = () => window.closeConfirmDialog(false);
+            });
+        };
+
         function openExportModal() {
             const modal = document.getElementById('exportModal');
             if (modal) {
@@ -432,6 +489,7 @@
             if (typeof window.closeDangerZoneModal === 'function') window.closeDangerZoneModal();
             if (typeof window.closeCreateSnapshotModal === 'function') window.closeCreateSnapshotModal();
             if (typeof window.closeSnapshotsModal === 'function') window.closeSnapshotsModal();
+            if (typeof window.closeConfirmDialog === 'function') window.closeConfirmDialog(false);
         };
 
         // Global Escape key listener
