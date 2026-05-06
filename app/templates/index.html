@@ -3355,7 +3355,7 @@
             <div class="ebay-search-body">
                 <p id="ebaySearchHelperText" style="color:var(--color-text-muted);font-size:13px;margin:0 0 12px;">Select one of your eBay drafts or listings to clone its metadata into a new item. Find an item on eBay → Sell One Like This → Save as Draft → select it here.</p>
                 <div class="ebay-search-input-row">
-                    <div class="ebay-filter-pills">
+                    <div class="ebay-filter-pills" id="ebaySearchModePills">
                         <button class="ebay-filter-pill active" data-ebay-mode="listings" data-ebay-status="All" onclick="setEbaySearchMode('listings', 'All', this)">All</button>
                         <button class="ebay-filter-pill" data-ebay-mode="listings" data-ebay-status="Pending" onclick="setEbaySearchMode('listings', 'Pending', this)">Scheduled</button>
                         <button class="ebay-filter-pill" data-ebay-mode="listings" data-ebay-status="Active" onclick="setEbaySearchMode('listings', 'Active', this)">Active</button>
@@ -6632,6 +6632,7 @@
             const { imageBrowseOnly = false } = options;
             const modal = document.getElementById('ebaySearchModal');
             const titleEl = document.getElementById('ebaySearchModalTitle');
+            const modePills = document.getElementById('ebaySearchModePills');
             modal.classList.add('show');
             document.getElementById('ebaySearchResults').innerHTML = '';
             document.getElementById('ebayFilterInput').value = '';
@@ -6654,6 +6655,10 @@
 
             if (titleEl) {
                 titleEl.textContent = ebayImageQuickBrowseMode ? 'eBay Image Search' : 'Add from eBay';
+            }
+
+            if (modePills) {
+                modePills.style.display = ebayImageQuickBrowseMode ? 'none' : '';
             }
 
             document.querySelectorAll('#ebaySearchModal .ebay-filter-pill').forEach(p => p.classList.remove('active'));
@@ -6737,8 +6742,7 @@
                 }
 
                 openEbaySearchModal({ imageBrowseOnly: true });
-                const imageModeBtn = document.querySelector('#ebaySearchModal .ebay-filter-pill[data-ebay-mode="image"]');
-                setEbaySearchMode('image', null, imageModeBtn);
+                setEbaySearchMode('image', null, null);
                 applyEbayImageSearchFile(file);
 
                 // Preserve current title hint for better ranking when available.
@@ -6761,6 +6765,11 @@
             resetEbayImageSearchState();
             setEbaySearchStatus('');
             ebayImageQuickBrowseMode = false;
+
+            const modePills = document.getElementById('ebaySearchModePills');
+            if (modePills) {
+                modePills.style.display = '';
+            }
 
             const cloneBtn = document.getElementById('ebayCloneBtn');
             if (cloneBtn) {
@@ -6804,6 +6813,11 @@
             const helperText = document.getElementById('ebaySearchHelperText');
             const listingsControls = document.getElementById('ebayListingsControls');
             const imagePanel = document.getElementById('ebayImageSearchPanel');
+            const modePills = document.getElementById('ebaySearchModePills');
+
+            if (modePills) {
+                modePills.style.display = ebayImageQuickBrowseMode ? 'none' : '';
+            }
 
             if (ebayModalSourceMode === 'image') {
                 helperText.textContent = ebayImageQuickBrowseMode
