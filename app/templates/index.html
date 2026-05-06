@@ -6614,6 +6614,7 @@
         let ebayModalListings = [];        // All listings fetched from API
         let ebayModalStatusFilter = 'All'; // Current status filter
         let ebayModalSourceMode = 'listings';
+        let ebayImageQuickBrowseMode = false;
         let ebayImageSearchFile = null;
         let ebayImageResultsViewMode = 'grid';
 
@@ -6626,7 +6627,8 @@
         ]);
         const EBAY_IMAGE_SEARCH_MAX_BYTES = 10 * 1024 * 1024;
 
-        function openEbaySearchModal() {
+        function openEbaySearchModal(options = {}) {
+            const { imageBrowseOnly = false } = options;
             const modal = document.getElementById('ebaySearchModal');
             modal.classList.add('show');
             document.getElementById('ebaySearchResults').innerHTML = '';
@@ -6635,13 +6637,46 @@
             resetEbayImageSearchState();
             ebayModalStatusFilter = 'All';
             ebayModalSourceMode = 'listings';
+            ebayImageQuickBrowseMode = !!imageBrowseOnly;
+
+            const cloneBtn = document.getElementById('ebayCloneBtn');
+            if (cloneBtn) {
+                if (ebayImageQuickBrowseMode) {
+                    cloneBtn.style.display = 'none';
+                } else {
+                    cloneBtn.style.display = '';
+                    cloneBtn.disabled = true;
+                    cloneBtn.textContent = 'Add';
+                }
+            }
 
             document.querySelectorAll('#ebaySearchModal .ebay-filter-pill').forEach(p => p.classList.remove('active'));
-            document.querySelector('#ebaySearchModal .ebay-filter-pill[data-ebay-mode="listings"][data-ebay-status="All"]')?.classList.add('active');
+            if (ebayImageQuickBrowseMode) {
+                document.querySelector('#ebaySearchModal .ebay-filter-pill[data-ebay-mode="image"]')?.classList.add('active');
+                ebayModalSourceMode = 'image';
+            } else {
+                document.querySelector('#ebaySearchModal .ebay-filter-pill[data-ebay-mode="listings"][data-ebay-status="All"]')?.classList.add('active');
+            }
 
             updateEbaySearchModeUi();
             setEbaySearchStatus('');
-            fetchEbayListingsForModal();
+
+            if (!ebayImageQuickBrowseMode) {
+                fetchEbayListingsForModal();
+            }
+        }
+
+        function getEbaySoldListingsUrl(title) {
+            const query = `${String(title || '').trim()} comic`;
+            const params = new URLSearchParams({
+                _nkw: query,
+                _sacat: '63',
+                LH_Sold: '1',
+                LH_Complete: '1',
+                LH_BIN: '1',
+                _sop: '13'
+            });
+            return `https://www.ebay.com/sch/i.html?${params.toString()}`;
         }
 
         function getPrimaryComicImageUrl(comicData) {
@@ -6695,7 +6730,7 @@
                     throw new Error('Unsupported image type for eBay image search.');
                 }
 
-                openEbaySearchModal();
+                openEbaySearchModal({ imageBrowseOnly: true });
                 const imageModeBtn = document.querySelector('#ebaySearchModal .ebay-filter-pill[data-ebay-mode="image"]');
                 setEbaySearchMode('image', null, imageModeBtn);
                 applyEbayImageSearchFile(file);
@@ -6719,6 +6754,14 @@
             resetEbaySearchSelection();
             resetEbayImageSearchState();
             setEbaySearchStatus('');
+            ebayImageQuickBrowseMode = false;
+
+            const cloneBtn = document.getElementById('ebayCloneBtn');
+            if (cloneBtn) {
+                cloneBtn.style.display = '';
+                cloneBtn.textContent = 'Add';
+                cloneBtn.disabled = true;
+            }
         }
 
         function resetEbaySearchSelection() {
@@ -6752,7 +6795,9 @@
             const imagePanel = document.getElementById('ebayImageSearchPanel');
 
             if (ebayModalSourceMode === 'image') {
-                helperText.textContent = 'Upload a comic image to search eBay by image, then import a matching listing’s details into this form.';
+                helperText.textContent = ebayImageQuickBrowseMode
+                    ? 'Image matches from eBay. Click a card to open the listing, or use Sold comps to pop open sold-listing research.'
+                    : 'Upload a comic image to search eBay by image, then import a matching listing’s details into this form.';
                 listingsControls.classList.add('is-hidden');
                 imagePanel.classList.add('active');
             } else {
@@ -7010,7 +7055,11 @@
                 return;
             }
 
-            setEbaySearchStatus('Select the closest match to import its details into the add-comic form.');
+            if (ebayImageQuickBrowseMode) {
+                setEbaySearchStatus('Click any match to open the eBay listing. Use Sold comps for recent sold prices in a new tab.');
+            } else {
+                setEbaySearchStatus('Select the closest match to import its details into the add-comic form.');
+            }
             toggleEbayImageViewControls(true);
             setEbayImageResultsView(ebayImageResultsViewMode);
 
@@ -7023,6 +7072,7 @@
                 const price = formatEbayPrice(item.price);
                 const condition = escapeHtml(item.condition || '');
                 const listingUrl = item.listing_url || (item.itemId ? `https://www.ebay.com/itm/${encodeURIComponent(item.itemId)}` : '');
+                const soldUrl = getEbaySoldListingsUrl(item.title || 'comic');
 
                 card.innerHTML = `
                     <img src="${imgSrc}" alt="" loading="lazy" onerror="this.src='/static/placeholder.png'">
@@ -7034,19 +7084,30 @@
                         </div>
                         ${condition ? `<div class="ebay-result-submeta">${condition}</div>` : ''}
                         ${listingUrl ? `<a class="ebay-result-link" href="${listingUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">View item on eBay</a>` : ''}
+                        <a class="ebay-result-link" href="${soldUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Sold comps on eBay</a>
                     </div>
                 `;
 
-                card.addEventListener('click', () => selectEbayResult(card, {
-                    itemId: item.itemId,
-                    title: item.title,
-                    price: item.price,
-                    image_url: item.image_url,
-                    condition: item.condition,
-                    listing_url: item.listing_url,
-                    status: 'ImageMatch',
-                    sourceMode: 'image'
-                }));
+                card.addEventListener('click', () => {
+                    if (ebayImageQuickBrowseMode) {
+                        const targetUrl = listingUrl || soldUrl;
+                        if (targetUrl) {
+                            window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                        }
+                        return;
+                    }
+
+                    selectEbayResult(card, {
+                        itemId: item.itemId,
+                        title: item.title,
+                        price: item.price,
+                        image_url: item.image_url,
+                        condition: item.condition,
+                        listing_url: item.listing_url,
+                        status: 'ImageMatch',
+                        sourceMode: 'image'
+                    });
+                });
                 container.appendChild(card);
             });
         }
