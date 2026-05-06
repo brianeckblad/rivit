@@ -2299,6 +2299,14 @@
                             <span>Google Lens</span>
                         </a>
 
+                        <button type="button" id="ebayImageSearchQuickBtn" class="inline-action-btn ebay" style="display:none;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                            <span>eBay Image Search</span>
+                        </button>
+
                         <button type="button" id="deleteComicBtn" class="inline-action-btn danger" style="display:none;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
@@ -6636,6 +6644,75 @@
             fetchEbayListingsForModal();
         }
 
+        function getPrimaryComicImageUrl(comicData) {
+            if (!comicData) return '';
+
+            const candidates = [];
+            if (Array.isArray(comicData.image_urls)) {
+                candidates.push(...comicData.image_urls);
+            } else if (typeof comicData.image_urls === 'string' && comicData.image_urls.trim()) {
+                candidates.push(comicData.image_urls.trim());
+            }
+
+            for (let i = 1; i <= 8; i += 1) {
+                const key = `Image URL ${i}`;
+                if (comicData[key]) candidates.push(String(comicData[key]));
+            }
+
+            return candidates
+                .map((u) => String(u || '').trim())
+                .find((u) => u.length > 0) || '';
+        }
+
+        async function quickSearchEbayByComicImage(comicData) {
+            const imageUrl = getPrimaryComicImageUrl(comicData);
+            const titleHint = String(comicData?.Title || comicData?.title || '').trim();
+
+            if (!imageUrl) {
+                showNotification('No image found for this comic.', 'error');
+                return;
+            }
+
+            try {
+                const sourceUrl = getProxiedUrl(imageUrl);
+                const response = await fetch(sourceUrl, { credentials: 'same-origin' });
+                if (!response.ok) {
+                    throw new Error('Could not fetch comic image for eBay image search.');
+                }
+
+                const blob = await response.blob();
+                const mimeType = (blob.type || 'image/jpeg').toLowerCase();
+                const ext = mimeType.includes('png')
+                    ? 'png'
+                    : mimeType.includes('webp')
+                        ? 'webp'
+                        : mimeType.includes('gif')
+                            ? 'gif'
+                            : 'jpg';
+                const file = new File([blob], `comic-image-search.${ext}`, { type: mimeType || 'image/jpeg' });
+
+                if (!isAllowedEbayImageFile(file)) {
+                    throw new Error('Unsupported image type for eBay image search.');
+                }
+
+                openEbaySearchModal();
+                const imageModeBtn = document.querySelector('#ebaySearchModal .ebay-filter-pill[data-ebay-mode="image"]');
+                setEbaySearchMode('image', null, imageModeBtn);
+                applyEbayImageSearchFile(file);
+
+                // Preserve current title hint for better ranking when available.
+                const titleInput = document.getElementById('title');
+                if (titleInput && titleHint && !titleInput.value) {
+                    titleInput.value = titleHint;
+                }
+
+                await searchEbayByImageForModal();
+            } catch (error) {
+                console.error('Quick eBay image search failed:', error);
+                showNotification(error.message || 'Failed to run eBay image search.', 'error');
+            }
+        }
+
         function closeEbaySearchModal() {
             document.getElementById('ebaySearchModal').classList.remove('show');
             document.getElementById('ebaySearchResults').innerHTML = '';
@@ -9331,6 +9408,7 @@
             const actionsDisplay = document.getElementById('actionsDisplay');
             const quickActions = document.getElementById('quickActions');
             const googleLensLink = document.getElementById('googleLensLink');
+            const ebayImageSearchQuickBtn = document.getElementById('ebayImageSearchQuickBtn');
             const deleteComicBtn = document.getElementById('deleteComicBtn');
             const ebayStatusSection = document.getElementById('ebayStatusSection');
             const ebayItemIdField = document.getElementById('ebayItemIdField');
@@ -9346,22 +9424,7 @@
             // Update Google Lens link.
             // Route through our backend so private S3 URLs can be presigned for Lens.
             if (googleLensLink) {
-                const rawImageCandidates = [];
-
-                if (Array.isArray(comic.image_urls)) {
-                    rawImageCandidates.push(...comic.image_urls);
-                } else if (typeof comic.image_urls === 'string' && comic.image_urls.trim()) {
-                    rawImageCandidates.push(comic.image_urls.trim());
-                }
-
-                for (let i = 1; i <= 8; i += 1) {
-                    const key = `Image URL ${i}`;
-                    if (comic[key]) rawImageCandidates.push(String(comic[key]));
-                }
-
-                const firstImage = rawImageCandidates
-                    .map((u) => String(u || '').trim())
-                    .find((u) => u.length > 0) || '';
+                const firstImage = getPrimaryComicImageUrl(comic);
 
                 const titleQuery = String(comic.Title || comic.title || '').trim();
                 if (firstImage || titleQuery) {
@@ -9373,6 +9436,18 @@
                     googleLensLink.style.display = 'inline-flex';
                 } else {
                     googleLensLink.style.display = 'none';
+                }
+            }
+
+            // Quick eBay image search button (opens the existing eBay image
+            // search modal and auto-runs with the comic's first image).
+            if (ebayImageSearchQuickBtn) {
+                const firstImage = getPrimaryComicImageUrl(comic);
+                if (firstImage) {
+                    ebayImageSearchQuickBtn.onclick = () => quickSearchEbayByComicImage(comic);
+                    ebayImageSearchQuickBtn.style.display = 'inline-flex';
+                } else {
+                    ebayImageSearchQuickBtn.style.display = 'none';
                 }
             }
 
