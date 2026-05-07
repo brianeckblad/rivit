@@ -803,13 +803,13 @@
             </div>
 
             <!-- Controls row: View toggle + Sort + Search (separate from filter tabs) -->
-            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <div class="page-controls-row">
                 <!-- View toggle with border box -->
                 <div class="view-toggle" style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px; background: var(--color-surface);">
                     <button class="view-btn active" id="browseGridViewBtn" onclick="switchBrowseView('grid')">Grid</button>
                     <button class="view-btn" id="browseListViewBtn" onclick="switchBrowseView('list')">List</button>
                 </div>
-                <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 34px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setBrowseSort(this.value)">
+                <select id="browseSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setBrowseSort(this.value)">
                     <option value="sku_asc">SKU: Low → High</option>
                     <option value="sku_desc">SKU: High → Low</option>
                     <option value="title_asc">Title: A → Z</option>
@@ -818,7 +818,7 @@
                     <option value="price_desc">Price: High → Low</option>
                 </select>
                 <label for="searchBox" class="sr-only">Search comics</label>
-                <input type="text" id="searchBox" class="form-input" placeholder="🔍 Search..." style="width: 200px; height: 34px;">
+                <input type="text" id="searchBox" class="form-input search-input" placeholder="🔍 Search comics...">
             </div>
 
             <!-- Listing Type Filter Tabs (scrollable, own row) -->
@@ -1422,6 +1422,7 @@
                 </div>
                 <div id="bulkGoScheduledDaysLabel" style="font-size: var(--font-size-xs); color: var(--color-text-dim);">Select a day offset above.</div>
             </div>
+            <div id="bulkPreflightSummary" style="display:none; padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-surface);"></div>
             <div style="padding: var(--space-md) var(--space-lg); display: flex; gap: var(--space-sm); justify-content: flex-end;">
                 <button onclick="closeBulkConfirmModal()" class="btn btn-secondary" style="padding: 10px 24px;">Cancel</button>
                 <button id="bulkConfirmButton" onclick="executeBulkAction()" class="btn btn-primary" style="padding: 10px 24px;">Confirm</button>
@@ -2296,6 +2297,8 @@
         let bulkCurrentAction = null;
         let bulkCurrentPlatform = null;
         let bulkSelectedItems = [];
+        let bulkExecutionSkus = [];
+        let bulkPreflightEligibleCount = 0;
         let bulkScheduleDays = 0; // Days to push scheduled listings (0 = no change)
         let bulkGoScheduledDays = 0;
         let modalStack = []; // Track modal hierarchy for ESC key navigation
@@ -2304,6 +2307,8 @@
             bulkCurrentAction = null;
             bulkCurrentPlatform = null;
             bulkSelectedItems = [];
+            bulkExecutionSkus = [];
+            bulkPreflightEligibleCount = 0;
             bulkScheduleDays = 0;
             bulkGoScheduledDays = 0;
             window.bulkActionComics = null;
@@ -3420,6 +3425,83 @@
         // Shared Functions
         // ------------------------------------------------------------------------
 
+        function getBulkComicBySku(sku) {
+            const skuStr = String(sku);
+            const scoped = Array.isArray(window.bulkActionComics) ? window.bulkActionComics : [];
+            const scopedMatch = scoped.find((comic) => String(comic.SKU) === skuStr);
+            if (scopedMatch) return scopedMatch;
+            return allComics.find((comic) => String(comic.SKU) === skuStr) || null;
+        }
+
+        function getComicImageCountForPreflight(comic) {
+            if (!comic || typeof comic !== 'object') return 0;
+            let count = 0;
+            for (let i = 1; i <= 8; i++) {
+                const value = String(comic[`Image URL ${i}`] || '').trim();
+                if (value) count += 1;
+            }
+            if (count > 0) return count;
+
+            if (Array.isArray(comic.image_urls)) {
+                return comic.image_urls.filter((url) => String(url || '').trim()).length;
+            }
+
+            if (typeof comic.image_urls === 'string' && comic.image_urls.trim()) {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        function getBulkBlockerReasons(comic) {
+            const reasons = [];
+            if (!comic) {
+                reasons.push('Missing comic data');
+                return reasons;
+            }
+
+            const needsListingReadiness =
+                (bulkCurrentPlatform === 'ebay' && (bulkCurrentAction === 'add' || bulkCurrentAction === 'update'))
+                || (bulkCurrentPlatform === 'whatnot' && bulkCurrentAction === 'add')
+                || (bulkCurrentPlatform === 'giveaway' && bulkCurrentAction === 'add');
+
+            if (!needsListingReadiness) {
+                return reasons;
+            }
+
+            const title = String(comic.Title || '').trim();
+            const priceNum = parseFloat(String(comic.Price || '').replace(/\$/g, '').trim());
+            const imageCount = getComicImageCountForPreflight(comic);
+
+            if (!title) reasons.push('Missing title');
+            if (!Number.isFinite(priceNum) || priceNum <= 0) reasons.push('Missing valid price');
+            if (imageCount === 0) reasons.push('Missing image');
+
+            return reasons;
+        }
+
+        function buildBulkPreflightResult() {
+            const selected = [...new Set(bulkSelectedItems.map((sku) => String(sku)))];
+            const blocked = [];
+            const eligibleSkus = [];
+
+            selected.forEach((sku) => {
+                const comic = getBulkComicBySku(sku);
+                const reasons = getBulkBlockerReasons(comic);
+                if (reasons.length > 0) {
+                    blocked.push({ sku, reasons });
+                } else {
+                    eligibleSkus.push(sku);
+                }
+            });
+
+            return {
+                selectedCount: selected.length,
+                eligibleSkus,
+                blocked
+            };
+        }
+
         function showBulkConfirmation() {
             // bulkSelectedItems is already populated by the mini card browser or "All" button
             // No need to get selected items from checkboxes
@@ -3547,6 +3629,41 @@
                 <span style="color: var(--color-text-muted); font-size: 13px;">This action cannot be undone. Are you sure you want to proceed?</span>
             `;
 
+            const preflight = buildBulkPreflightResult();
+            bulkExecutionSkus = preflight.eligibleSkus;
+            bulkPreflightEligibleCount = preflight.eligibleSkus.length;
+
+            const preflightEl = document.getElementById('bulkPreflightSummary');
+            if (preflightEl) {
+                if (preflight.blocked.length === 0) {
+                    preflightEl.style.display = 'none';
+                    preflightEl.innerHTML = '';
+                } else {
+                    const blockedPreview = preflight.blocked.slice(0, 5)
+                        .map((item) => `${item.sku} (${item.reasons.join(', ')})`)
+                        .join('<br>');
+                    const moreCount = preflight.blocked.length > 5 ? `<br><span style="font-size: var(--font-size-xs); color: var(--color-text-dim);">+ ${preflight.blocked.length - 5} more blocked item(s)</span>` : '';
+                    preflightEl.innerHTML = `
+                        <div style="font-size: var(--font-size-sm); color: var(--color-text);">
+                            <strong>Preflight check:</strong> ${preflight.eligibleSkus.length} eligible, ${preflight.blocked.length} blocked.
+                        </div>
+                        <div style="margin-top: var(--space-xs); font-size: var(--font-size-xs); color: var(--color-text-muted); line-height: 1.5;">
+                            ${blockedPreview}${moreCount}
+                        </div>
+                    `;
+                    preflightEl.style.display = 'block';
+                }
+            }
+
+            const baseConfirmText = confirmBtn.textContent;
+            confirmBtn.textContent = bulkPreflightEligibleCount > 0
+                ? `${baseConfirmText} (${bulkPreflightEligibleCount})`
+                : 'No Eligible Items';
+            confirmBtn.disabled = bulkPreflightEligibleCount === 0;
+            if (bulkCurrentPlatform === 'ebay' && bulkCurrentAction === 'go-scheduled' && bulkGoScheduledDays <= 0) {
+                confirmBtn.disabled = true;
+            }
+
             // Hide day-picker for non-update actions
             if (!(bulkCurrentPlatform === 'ebay' && bulkCurrentAction === 'update')) {
                 const dayPicker = document.getElementById('bulkScheduleDayPicker');
@@ -3660,12 +3777,25 @@
                 futureDate.setDate(futureDate.getDate() + days);
                 const formatted = futureDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
                 if (label) label.textContent = `Listings will go live on ${formatted}.`;
-                if (confirmBtn) confirmBtn.disabled = false;
+                if (confirmBtn) confirmBtn.disabled = bulkPreflightEligibleCount === 0;
             }
         }
 
         // Execute the bulk action
         async function executeBulkAction() {
+            const skusToProcess = Array.isArray(bulkExecutionSkus) && bulkExecutionSkus.length > 0
+                ? [...bulkExecutionSkus]
+                : [];
+
+            if (skusToProcess.length === 0) {
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification('No eligible items to process. Fix blocked items and try again.', 'error');
+                } else {
+                    alert('No eligible items to process. Fix blocked items and try again.');
+                }
+                return;
+            }
+
             // Close ALL bulk modals immediately so the user can't interact with
             // them while the batch is running. Previously only the confirm modal
             // was closed — its close handler re-showed the selection modal,
@@ -3682,7 +3812,7 @@
             };
             const platformLabel = bulkCurrentPlatform === 'ebay' ? 'eBay' : 'WhatNot';
             const actionLabel = actionLabelMap[bulkCurrentAction] || 'Processing';
-            const totalCount = bulkSelectedItems.length;
+            const totalCount = skusToProcess.length;
 
             // Acquire global busy lock — blocks navigation + beforeunload prompt.
             const busy = window.BusyLock
@@ -3699,8 +3829,8 @@
             try {
                 try {
                     // Process each item
-                    for (let i = 0; i < bulkSelectedItems.length; i++) {
-                        const sku = bulkSelectedItems[i];
+                    for (let i = 0; i < skusToProcess.length; i++) {
+                        const sku = skusToProcess[i];
                         if (busy) busy.setSubMessage(`${i + 1} of ${totalCount} — ${sku}`);
 
                         try {
