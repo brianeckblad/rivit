@@ -864,6 +864,66 @@
             gap: 12px;
         }
 
+        .footer-helper-panel {
+            max-width: 1600px;
+            margin: 0 auto 10px;
+            padding: 8px 10px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .footer-helper-title {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+        }
+
+        .readiness-chip-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .readiness-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: var(--font-size-xs);
+            border: 1px solid var(--color-border);
+            border-radius: 999px;
+            padding: 3px 8px;
+            color: var(--color-text-muted);
+            background: var(--color-surface);
+        }
+
+        .readiness-chip.ready {
+            border-color: var(--color-success);
+            color: var(--color-success);
+            background: var(--color-success-subtle);
+        }
+
+        .readiness-chip.missing {
+            border-color: var(--color-warning);
+            color: var(--color-warning);
+            background: var(--color-warning-subtle);
+        }
+
+        .post-save-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .post-save-actions .btn {
+            min-height: 34px;
+        }
+
 
         .btn-ebay {
             background: var(--color-bg);
@@ -1053,7 +1113,7 @@
             border: 1px solid var(--color-ebay);
             border-radius: var(--radius-lg);
             width: 90%;
-            max-width: 800px;
+            max-width: 960px;
             max-height: 80vh;
             display: flex;
             flex-direction: column;
@@ -1085,26 +1145,91 @@
 
         .ebay-search-input-row {
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            gap: 12px;
             margin-bottom: 16px;
-            align-items: center;
-            flex-wrap: wrap;
+            align-items: stretch;
         }
 
         .ebay-listings-controls {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
             gap: 10px;
             align-items: center;
-            flex: 1;
-            flex-wrap: wrap;
+            width: 100%;
         }
 
         .ebay-marketplace-controls {
+            min-width: 0;
+        }
+
+        .ebay-marketplace-controls .ebay-filter-text {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .ebay-listings-actions {
             display: flex;
             gap: 8px;
             align-items: center;
-            flex: 1;
-            min-width: 220px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        #ebayFilterInput {
+            min-width: 0;
+        }
+
+        #ebayMarketplaceSearchBtn,
+        #ebayMarketplaceClearBtn,
+        #ebayRefreshBtn {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 960px) {
+            .ebay-listings-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .ebay-listings-actions {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(120px, 1fr));
+                justify-content: flex-start;
+                width: 100%;
+            }
+
+            .ebay-listings-actions .ebay-refresh-btn {
+                justify-content: center;
+            }
+
+            #ebayRefreshBtn {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .ebay-search-modal {
+                padding-top: 20px;
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .ebay-search-modal-content {
+                width: 100%;
+                max-height: calc(100vh - 40px);
+            }
+
+            .ebay-search-header {
+                padding: 16px;
+            }
+
+            .ebay-search-body {
+                padding: 14px 16px;
+            }
+
+            .ebay-filter-pill {
+                padding: 8px 12px;
+            }
         }
 
         .ebay-listings-controls.is-hidden {
@@ -1144,7 +1269,8 @@
         .ebay-filter-text {
             flex: 1;
             min-width: 140px;
-            padding: 6px 12px;
+            min-height: 38px;
+            padding: 8px 12px;
             background: var(--color-inset);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-sm);
@@ -1158,7 +1284,8 @@
         }
 
         .ebay-refresh-btn {
-            padding: 6px 14px;
+            padding: 8px 14px;
+            min-height: 38px;
             background: transparent;
             color: var(--color-text-muted);
             border: 1px solid var(--color-border);
@@ -2135,6 +2262,19 @@
                 flex-wrap: wrap;
             }
 
+            .footer-helper-panel {
+                margin-bottom: 8px;
+                padding: 8px;
+            }
+
+            .footer-helper-title {
+                width: 100%;
+            }
+
+            .post-save-actions {
+                width: 100%;
+            }
+
             .btn {
                 padding: 8px !important;
                 font-size: 14px !important;
@@ -2961,6 +3101,19 @@
     </div>
 
     <div class="sticky-footer">
+        <div id="listingReadinessPanel" class="footer-helper-panel" aria-live="polite">
+            <div class="footer-helper-title">Ready to list:</div>
+            <div id="listingReadinessChips" class="readiness-chip-row"></div>
+        </div>
+        <div id="postSaveActionPanel" class="footer-helper-panel" style="display:none;" aria-live="polite">
+            <div class="footer-helper-title" id="postSaveSummary">Comic saved. Choose your next step:</div>
+            <div class="post-save-actions">
+                <button type="button" id="postSaveEbayBtn" class="btn btn-secondary btn-sm" onclick="triggerPostSaveEbayList()">List on eBay</button>
+                <button type="button" id="postSaveWhatnotBtn" class="btn btn-secondary btn-sm" onclick="triggerPostSaveWhatNotList()">List on WhatNot</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="triggerPostSaveAddNext()">Add Next Comic</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.href='/browse'">Go to Browse</button>
+            </div>
+        </div>
         <div class="footer-content">
             <div style="display: flex; gap: 16px; margin-right: auto; align-items: center;">
                 <button onclick="openGradingModal()" title="View CGC Grading Scale" class="footer-icon-btn-idx">
@@ -3370,16 +3523,20 @@
                         <button class="ebay-filter-pill" data-ebay-mode="image" onclick="setEbaySearchMode('image', null, this)">Image</button>
                     </div>
                     <div class="ebay-listings-controls" id="ebayListingsControls">
+                        <label for="ebayFilterInput" class="sr-only">Filter your eBay listings by title</label>
                         <input type="text" class="ebay-filter-text" id="ebayFilterInput" placeholder="Filter by title..." oninput="renderFilteredEbayListings()">
                         <div class="ebay-marketplace-controls">
+                            <label for="ebayMarketplaceSearchInput" class="sr-only">Search eBay marketplace by keyword</label>
                             <input type="text" class="ebay-filter-text" id="ebayMarketplaceSearchInput" placeholder="Search eBay marketplace..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchEbayMarketplaceForModal();}">
+                        </div>
+                        <div class="ebay-listings-actions">
                             <button class="ebay-refresh-btn" onclick="searchEbayMarketplaceForModal()" id="ebayMarketplaceSearchBtn" title="Search all of eBay by text">Search</button>
                             <button class="ebay-refresh-btn" onclick="clearEbayMarketplaceSearchForModal()" id="ebayMarketplaceClearBtn" title="Back to your listings" style="display:none;">Clear</button>
+                            <button class="ebay-refresh-btn" onclick="refreshEbayListings()" id="ebayRefreshBtn" title="Clear cache and reload from eBay">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                                Refresh
+                            </button>
                         </div>
-                        <button class="ebay-refresh-btn" onclick="refreshEbayListings()" id="ebayRefreshBtn" title="Clear cache and reload from eBay">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                            Refresh
-                        </button>
                     </div>
                 </div>
                 <div id="ebayImageSearchPanel" class="ebay-image-search-panel">
@@ -5253,6 +5410,8 @@
             refreshEbayControls();
             // Capture initial form state after defaults are applied
             captureFormState();
+            renderListingReadinessPanel();
+            syncPostSaveActionAvailability();
             // Check if filtering/search is in URL query params
             const urlParams = new URLSearchParams(window.location.search);
             currentListingTypeFilter = urlParams.get('listing_type') || '';
@@ -5668,6 +5827,9 @@
                 if (dropZone) dropZone.style.display = 'flex';
                 imageGrid.classList.remove('has-images');
             }
+
+            renderListingReadinessPanel();
+            syncPostSaveActionAvailability();
         }
 
         // Load images that were dragged from browse page
@@ -6018,10 +6180,14 @@
                 form.addEventListener('change', () => {
                     formHasChanged = true;
                     refreshEbayControls();
+                    renderListingReadinessPanel();
+                    syncPostSaveActionAvailability();
                 });
                 form.addEventListener('input', () => {
                     formHasChanged = true;
                     refreshEbayControls();
+                    renderListingReadinessPanel();
+                    syncPostSaveActionAvailability();
                 });
             }
         });
@@ -8276,6 +8442,91 @@
         }
 
         let saveAndAddNewMode = false;
+        let lastSavedSku = '';
+
+        function computeListingReadinessState() {
+            const title = String(document.getElementById('title')?.value || '').trim();
+            const description = String(document.getElementById('description')?.value || '').trim();
+            const condition = String(document.getElementById('condition')?.value || '').trim();
+            const priceValue = parseFloat(String(document.getElementById('price')?.value || '').replace(/\$/g, '').trim());
+
+            const checks = [
+                { label: 'Title', ok: title.length > 0 },
+                { label: 'Description', ok: description.length > 0 },
+                { label: 'Condition', ok: condition.length > 0 },
+                { label: 'Price', ok: Number.isFinite(priceValue) && priceValue > 0 },
+                { label: 'Image', ok: getTotalImageCount() > 0 }
+            ];
+
+            return {
+                checks,
+                ready: checks.every((check) => check.ok)
+            };
+        }
+
+        function renderListingReadinessPanel() {
+            const panel = document.getElementById('listingReadinessPanel');
+            const chips = document.getElementById('listingReadinessChips');
+            if (!panel || !chips) return;
+
+            if (viewMode) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            const state = computeListingReadinessState();
+            chips.innerHTML = state.checks
+                .map((check) => `<span class="readiness-chip ${check.ok ? 'ready' : 'missing'}">${check.ok ? '✓' : '•'} ${check.label}</span>`)
+                .join('');
+            panel.style.display = 'flex';
+        }
+
+        function syncPostSaveActionAvailability() {
+            const ebayBtn = document.getElementById('postSaveEbayBtn');
+            const whatnotBtn = document.getElementById('postSaveWhatnotBtn');
+            if (!ebayBtn || !whatnotBtn) return;
+
+            const state = computeListingReadinessState();
+            const disabledTitle = state.ready ? '' : 'Complete title, description, condition, price, and image first.';
+            ebayBtn.disabled = !state.ready;
+            whatnotBtn.disabled = !state.ready;
+            ebayBtn.title = disabledTitle;
+            whatnotBtn.title = disabledTitle;
+        }
+
+        function showPostSaveActionPanel(sku) {
+            const panel = document.getElementById('postSaveActionPanel');
+            const summary = document.getElementById('postSaveSummary');
+            if (!panel) return;
+            lastSavedSku = sku ? String(sku) : (editingSKU ? String(editingSKU) : '');
+            if (summary) {
+                summary.textContent = lastSavedSku
+                    ? `Comic ${lastSavedSku} saved. Choose your next step:`
+                    : 'Comic saved. Choose your next step:';
+            }
+            panel.style.display = 'flex';
+            syncPostSaveActionAvailability();
+        }
+
+        function hidePostSaveActionPanel() {
+            const panel = document.getElementById('postSaveActionPanel');
+            if (panel) panel.style.display = 'none';
+        }
+
+        function triggerPostSaveEbayList() {
+            if (!editingSKU) return;
+            confirmEbayListAction();
+        }
+
+        function triggerPostSaveWhatNotList() {
+            if (!editingSKU) return;
+            toggleWhatNotListing(true);
+        }
+
+        function triggerPostSaveAddNext() {
+            hidePostSaveActionPanel();
+            saveAndAddNew();
+        }
 
         function emitComicSaveCompletedEvent(success, message = '', sku = '') {
             window.dispatchEvent(new CustomEvent('comic-save-completed', {
@@ -8718,6 +8969,7 @@
                     if (saveAndAddNewMode) {
                         saveAndAddNewMode = false; // Reset flag
                         clearForm();
+                        hidePostSaveActionPanel();
                     } else {
                         // Fetch fresh comic data from API to ensure we have S3 URLs
                         // Then switch to view mode
@@ -8749,12 +9001,14 @@
                                         }
                                     }, 100);
                                 }
+                                showPostSaveActionPanel(skuToEdit);
                             } else {
                                 console.error('[Save] Could not fetch comic after save');
                                 // Fallback to cached data
                                 const comicToEdit = allComics.find(c => String(c.SKU) === String(skuToEdit));
                                 if (comicToEdit) {
                                     loadComicForView(comicToEdit);
+                                    showPostSaveActionPanel(skuToEdit);
                                 }
                             }
                         } catch (error) {
@@ -8763,6 +9017,7 @@
                             const comicToEdit = allComics.find(c => String(c.SKU) === String(skuToEdit));
                             if (comicToEdit) {
                                 loadComicForView(comicToEdit);
+                                showPostSaveActionPanel(skuToEdit);
                             }
                         }
                     }
@@ -9649,6 +9904,7 @@
 
             // Exit view mode if active
             viewMode = false;
+            hidePostSaveActionPanel();
             const viewModeIndicator = document.getElementById('viewModeIndicator');
             if (viewModeIndicator) viewModeIndicator.classList.remove('show');
 
@@ -10037,6 +10293,8 @@
             if (manualInput && manualInput !== document.activeElement) {
                 manualInput.value = currentComicEbayId || '';
             }
+            renderListingReadinessPanel();
+            syncPostSaveActionAvailability();
          }
 
         function loadComicForView(comic) {
@@ -10073,6 +10331,7 @@
             if (metaLastModifiedView) metaLastModifiedView.textContent = window.formatDate(comic.last_modified) || '-';
             makeFormReadOnly(true);
             refreshEbayControls();  // Update eBay button visibility - hide in view mode
+            syncPostSaveActionAvailability();
         }
 
         // captureFormState will be called after admin defaults are loaded
@@ -10125,6 +10384,8 @@
             // Hide page title edit button
             const pageTitleEditBtn = document.getElementById('pageTitleEditBtn');
             if (pageTitleEditBtn) pageTitleEditBtn.style.display = 'none';
+            hidePostSaveActionPanel();
+            renderListingReadinessPanel();
         }
 
         // Admin Modal Functions
@@ -10184,6 +10445,8 @@
             document.getElementById('editModeIndicator').classList.remove('show');
             document.getElementById('viewModeIndicator').classList.remove('show');
             document.body.classList.remove('edit-mode');
+            hidePostSaveActionPanel();
+            renderListingReadinessPanel();
         }
 
         function duplicateComic() {
