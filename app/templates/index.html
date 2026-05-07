@@ -1099,6 +1099,14 @@
             flex-wrap: wrap;
         }
 
+        .ebay-marketplace-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+            min-width: 220px;
+        }
+
         .ebay-listings-controls.is-hidden {
             display: none;
         }
@@ -3363,6 +3371,11 @@
                     </div>
                     <div class="ebay-listings-controls" id="ebayListingsControls">
                         <input type="text" class="ebay-filter-text" id="ebayFilterInput" placeholder="Filter by title..." oninput="renderFilteredEbayListings()">
+                        <div class="ebay-marketplace-controls">
+                            <input type="text" class="ebay-filter-text" id="ebayMarketplaceSearchInput" placeholder="Search eBay marketplace..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchEbayMarketplaceForModal();}">
+                            <button class="ebay-refresh-btn" onclick="searchEbayMarketplaceForModal()" id="ebayMarketplaceSearchBtn" title="Search all of eBay by text">Search</button>
+                            <button class="ebay-refresh-btn" onclick="clearEbayMarketplaceSearchForModal()" id="ebayMarketplaceClearBtn" title="Back to your listings" style="display:none;">Clear</button>
+                        </div>
                         <button class="ebay-refresh-btn" onclick="refreshEbayListings()" id="ebayRefreshBtn" title="Clear cache and reload from eBay">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                             Refresh
@@ -6618,6 +6631,7 @@
         let ebayImageQuickBrowseMode = false;
         let ebayImageSearchFile = null;
         let ebayImageResultsViewMode = 'grid';
+        let ebayModalMarketplaceResults = null;
 
         const EBAY_IMAGE_SEARCH_ALLOWED_TYPES = new Set([
             'image/jpeg',
@@ -6636,6 +6650,16 @@
             modal.classList.add('show');
             document.getElementById('ebaySearchResults').innerHTML = '';
             document.getElementById('ebayFilterInput').value = '';
+            const marketplaceInput = document.getElementById('ebayMarketplaceSearchInput');
+            const seededMarketplaceQuery = String(document.getElementById('title')?.value || '').trim();
+            if (marketplaceInput) {
+                marketplaceInput.value = seededMarketplaceQuery;
+            }
+            const clearBtn = document.getElementById('ebayMarketplaceClearBtn');
+            if (clearBtn) {
+                clearBtn.style.display = 'none';
+            }
+            ebayModalMarketplaceResults = null;
             resetEbaySearchSelection();
             resetEbayImageSearchState();
             ebayModalStatusFilter = 'All';
@@ -6765,6 +6789,12 @@
             resetEbayImageSearchState();
             setEbaySearchStatus('');
             ebayImageQuickBrowseMode = false;
+            ebayModalMarketplaceResults = null;
+
+            const clearBtn = document.getElementById('ebayMarketplaceClearBtn');
+            if (clearBtn) {
+                clearBtn.style.display = 'none';
+            }
 
             const modePills = document.getElementById('ebaySearchModePills');
             if (modePills) {
@@ -6826,10 +6856,122 @@
                 listingsControls.classList.add('is-hidden');
                 imagePanel.classList.add('active');
             } else {
-                helperText.textContent = 'Select one of your eBay drafts or listings to clone its metadata into a new item. Find an item on eBay → Sell One Like This → Save as Draft → select it here.';
+                helperText.textContent = 'Select one of your eBay drafts/listings, or run a keyword search across eBay, then import details into this form.';
                 listingsControls.classList.remove('is-hidden');
                 imagePanel.classList.remove('active');
             }
+        }
+
+        async function searchEbayMarketplaceForModal() {
+            const input = document.getElementById('ebayMarketplaceSearchInput');
+            const searchBtn = document.getElementById('ebayMarketplaceSearchBtn');
+            const clearBtn = document.getElementById('ebayMarketplaceClearBtn');
+            const query = (input?.value || '').trim();
+
+            if (!query) {
+                setEbaySearchStatus('Enter a title or keywords to search eBay.');
+                return;
+            }
+
+            if (searchBtn) {
+                searchBtn.disabled = true;
+                searchBtn.textContent = 'Searching...';
+            }
+            resetEbaySearchSelection();
+            document.getElementById('ebaySearchResults').innerHTML = '';
+            setEbaySearchStatus('Searching eBay marketplace...');
+
+            try {
+                const response = await fetch('/api/ebay/search-marketplace', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.csrfToken || ''
+                    },
+                    body: JSON.stringify({ title: query, limit: 24 })
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to search eBay marketplace.');
+                }
+
+                ebayModalMarketplaceResults = Array.isArray(data.items) ? data.items : [];
+                renderEbayMarketplaceSearchResults();
+                if (clearBtn) {
+                    clearBtn.style.display = '';
+                }
+            } catch (error) {
+                console.error('Marketplace search failed:', error);
+                setEbaySearchStatus(error.message || 'Failed to search eBay marketplace.');
+            } finally {
+                if (searchBtn) {
+                    searchBtn.disabled = false;
+                    searchBtn.textContent = 'Search';
+                }
+            }
+        }
+
+        function clearEbayMarketplaceSearchForModal() {
+            ebayModalMarketplaceResults = null;
+            resetEbaySearchSelection();
+            const clearBtn = document.getElementById('ebayMarketplaceClearBtn');
+            const input = document.getElementById('ebayMarketplaceSearchInput');
+            if (clearBtn) {
+                clearBtn.style.display = 'none';
+            }
+            if (input) {
+                input.value = '';
+            }
+            setEbaySearchStatus('');
+            renderFilteredEbayListings();
+        }
+
+        function renderEbayMarketplaceSearchResults() {
+            const container = document.getElementById('ebaySearchResults');
+            const items = Array.isArray(ebayModalMarketplaceResults) ? ebayModalMarketplaceResults : [];
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                setEbaySearchStatus('No marketplace matches found. Try broader keywords.');
+                return;
+            }
+
+            setEbaySearchStatus(`Found ${items.length} marketplace matches.`);
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'ebay-result-card';
+
+                const itemId = item.itemId || '';
+                const title = item.title || '';
+                const imageUrl = item.image_url || '/static/placeholder.png';
+                const listingUrl = item.listing_url || (itemId ? `https://www.ebay.com/itm/${encodeURIComponent(itemId)}` : '');
+                const price = formatEbayPrice(item.price);
+                const condition = escapeHtml(item.condition || '');
+
+                card.innerHTML = `
+                    <img src="${imageUrl}" alt="" loading="lazy" onerror="this.src='/static/placeholder.png'">
+                    <div>
+                        <div class="ebay-result-title">${escapeHtml(title)}</div>
+                        <div class="ebay-result-meta">
+                            <span class="ebay-result-price">${price}</span>
+                        </div>
+                        ${condition ? `<div class="ebay-result-submeta">${condition}</div>` : ''}
+                        ${listingUrl ? `<a class="ebay-result-link" href="${listingUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">View item on eBay</a>` : ''}
+                    </div>
+                `;
+
+                card.addEventListener('click', () => selectEbayResult(card, {
+                    itemId,
+                    title,
+                    price: item.price,
+                    image_url: item.image_url,
+                    listing_url: listingUrl,
+                    condition: item.condition || ''
+                }));
+
+                container.appendChild(card);
+            });
         }
 
         function setEbayImageResultsView(viewMode) {
@@ -6886,6 +7028,12 @@
                 document.getElementById('ebaySearchResults').innerHTML = '';
                 setEbaySearchStatus('Upload a comic image, then click Search eBay by image.');
                 return;
+            }
+
+            ebayModalMarketplaceResults = null;
+            const clearBtn = document.getElementById('ebayMarketplaceClearBtn');
+            if (clearBtn) {
+                clearBtn.style.display = 'none';
             }
 
             toggleEbayImageViewControls(false);
@@ -7230,7 +7378,7 @@
 
                 if (!data.success || !data.listings || data.listings.length === 0) {
                     if (ebayModalSourceMode === 'listings') {
-                        status.innerHTML = '<div>No eBay listings found.</div><div style="margin-top:8px;font-size:12px;color:var(--color-text-dim);">To use this feature: find an item on eBay → click <strong>Sell One Like This</strong> → save as a <strong>Draft</strong> → then refresh here.</div>';
+                        status.innerHTML = '<div>No eBay listings found.</div><div style="margin-top:8px;font-size:12px;color:var(--color-text-dim);">You can still use the <strong>Search eBay marketplace</strong> field to find items by title/keywords, or create a draft in Seller Hub and refresh.</div>';
                     } else {
                         setEbaySearchStatus('Upload a comic image, then click Search eBay by image.');
                     }
@@ -7275,6 +7423,11 @@
 
         function renderFilteredEbayListings() {
             if (ebayModalSourceMode !== 'listings') {
+                return;
+            }
+
+            if (Array.isArray(ebayModalMarketplaceResults)) {
+                renderEbayMarketplaceSearchResults();
                 return;
             }
 
