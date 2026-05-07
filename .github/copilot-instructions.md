@@ -71,6 +71,9 @@ The vast majority are **false positives**. Before acting on any diagnostic, iden
 **Key rule:** `node --check` passing clean means JS is correct. IDE template errors in `.html`
 files are noise from the HTML parser misreading JS — ignore them.
 
+For large templates with multiple `<script>` blocks, extract and validate each relevant block
+(or a merged extract) with `node --check` so parser noise does not hide real syntax errors.
+
 For full documentation see [AGENTS.md → IDE Diagnostic False Positives](../AGENTS.md).
 
 ---
@@ -165,6 +168,9 @@ EOF
 git commit -F /tmp/msg.txt && rm /tmp/msg.txt
 ```
 
+When a UI change spans multiple files and distinct behaviors, split commits by feature area
+(for example: add-flow, bulk-flow, shared-style) so review and rollback stay low-risk.
+
 ---
 
 ## Documentation Standards
@@ -179,6 +185,7 @@ All docs in `deployment/docs/` follow a consistent vendor-guide style. See [AGEN
 - No emojis in headings, no analogies, no marketing bullets
 - Cross-reference by chapter number: "See [Chapter 5: Operations](OPERATIONS.md)"
 - Chapter numbers (1–13) are tracked in `deployment/docs/README.md`
+- If a code change alters a user-facing workflow, add a short matching docs note in `README.md` or the relevant `deployment/docs/` guide in the same change set
 
 ---
 

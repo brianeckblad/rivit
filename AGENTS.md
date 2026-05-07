@@ -295,6 +295,7 @@ The IDE can't see the caller is HTML, so it flags the parameter as unused. These
 
 1. **Python files:** `python3 -m py_compile app/path/to/file.py` — zero output = clean
 2. **JS inside HTML:** Extract the `<script>` block to `/tmp/check.js`, run `node --check /tmp/check.js`
+   - For large templates with multiple script blocks, validate each relevant block (or a merged extract) so parser noise does not hide real syntax errors.
 3. **After confirming clean syntax**, run `black` and `isort` on Python files
 4. **IDE warnings** are informational only in HTML files — do not block a change on them
 
@@ -411,6 +412,14 @@ unless they explicitly request branching.
 
 ### Problem Solved
 The project experienced recurring `dquote>` console errors when making git commits. This has been analyzed and resolved.
+
+### Rule 0: Split multi-file UI work by feature
+
+When a UI change spans multiple files with distinct behaviors, prefer separate commits per feature area (for example: add-flow, bulk-flow, shared-style).
+
+- Keeps review and rollback low-risk
+- Prevents unrelated template/CSS churn from being bundled together
+- Makes future audits of behavior changes much faster
 
 
 ### Rule 1: Keep Git Commit Messages Simple (Primary Method)
@@ -1258,6 +1267,10 @@ Add these to your pre-commit review alongside the security checklist:
 All documentation in `deployment/docs/` follows a consistent style modeled after
 professional vendor guides (Cisco, HashiCorp, AWS). Apply these rules when creating
 or editing any `.md` file in the project.
+
+When code changes alter a user-facing workflow (new required steps, new preflight behavior,
+new post-save actions), include a short matching note in docs (`README.md` or the relevant
+guide in `deployment/docs/`) in the same change set.
 
 ### File Structure
 
