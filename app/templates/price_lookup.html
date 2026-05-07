@@ -768,18 +768,18 @@
                 <div style="margin-bottom: 16px;">
                     <span id="imageFileName" style="color: var(--color-text-muted); font-size: 14px;"></span>
                 </div>
-                <img id="previewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--radius-md); border: 1px solid var(--color-border-hover);">
+                <img id="previewImg" alt="Selected comic preview" style="max-width: 200px; max-height: 200px; border-radius: var(--radius-md); border: 1px solid var(--color-border-hover);">
             </div>
         </div>
 
         <!-- Controls row: View toggle + Sort + Search (matches browse page layout) -->
-        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px;">
+        <div class="page-controls-row">
             <!-- View toggle with border box -->
             <div class="view-toggle" style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px; background: var(--color-surface);">
                 <button class="view-btn active" id="tableViewBtn" onclick="switchView('table')">Table</button>
                 <button class="view-btn" id="gridViewBtn" onclick="switchView('grid')">Grid</button>
             </div>
-            <select id="priceSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; height: 34px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setPriceSort(this.value)">
+            <select id="priceSortSelect" class="form-input" title="Sort order" style="width: auto; min-width: 150px; padding: 4px 10px; font-size: 13px; cursor: pointer;" onchange="setPriceSort(this.value)">
                 <option value="sku_asc">SKU: Low → High</option>
                 <option value="sku_desc">SKU: High → Low</option>
                 <option value="title_asc">Title: A → Z</option>
@@ -788,7 +788,7 @@
                 <option value="price_desc">Price: High → Low</option>
             </select>
             <label for="searchBox" class="sr-only">Search comics</label>
-            <input type="text" id="searchBox" class="form-input search-box" placeholder="🔍 Search comics...">
+            <input type="text" id="searchBox" class="form-input search-box search-input" placeholder="🔍 Search comics...">
         </div>
 
         <!-- Listing Type Filter Tabs (scrollable, own row) -->

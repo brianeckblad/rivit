@@ -66,6 +66,37 @@
   color: var(--color-accent);
 }
 
+/* ── Page Controls Row ─────────────────────────────────────────────────── */
+/* Shared top toolbar row: view toggle + sort + search */
+.page-controls-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.page-controls-row .form-input {
+  height: 36px;
+}
+
+.page-controls-row .search-input {
+  min-width: 220px;
+  width: min(320px, 100%);
+}
+
+@media (max-width: 900px) {
+  .page-controls-row {
+    justify-content: flex-start;
+  }
+
+  .page-controls-row .search-input {
+    min-width: 180px;
+    width: 100%;
+  }
+}
+
 /* ── Listing Status Indicators ─────────────────────────────────────────── */
 /* Coloured dot + label used on comic cards (Browse page) */
 .status-light {
