@@ -51,6 +51,8 @@ Complete Chapter 2 or 3. Your application is live.
 | Document | Topic |
 |----------|-------|
 | [Architecture](reference/ARCHITECTURE.md) | System design and technology choices |
+| [Application Architecture](reference/APPLICATION_ARCHITECTURE.md) | Flask app internals — structure, services, data model, patterns |
+| [AWS Deployment Architecture](reference/AWS_DEPLOYMENT_ARCHITECTURE.md) | Generic blueprint — replicate this stack in any project |
 | [Infrastructure](guides/INFRASTRUCTURE.md) | AWS resource details (S3, IAM, EC2, SG) |
 | [EBS Storage](guides/EBS_APPLICATION_STORAGE.md) | Application storage on EBS volumes |
 | [Application Security](reference/APPLICATION_SECURITY.md) | WAF rules, attack detection, rate limiting |
