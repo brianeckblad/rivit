@@ -19,7 +19,12 @@ to replicate the same application architecture in a new project.
 5. [Blueprint and Route Layout](#blueprint-and-route-layout)
 6. [Service Layer](#service-layer)
 7. [Data Storage Model](#data-storage-model)
-8. [Multi-User Isolation](#multi-user-isolation)
+8. [Multi-User Design](#multi-user-design)
+    - [Directory isolation](#directory-isolation)
+    - [UserManager internals](#usermanager-internals)
+    - [User lifecycle](#user-lifecycle)
+    - [Admin model](#admin-model)
+    - [User preferences](#user-preferences)
 9. [Security Model](#security-model)
     - [Layer overview](#layer-overview)
     - [Authentication and session security](#authentication-and-session-security)
@@ -33,12 +38,21 @@ to replicate the same application architecture in a new project.
     - [Input validation and path safety](#input-validation-and-path-safety)
     - [HTTP response headers](#http-response-headers)
     - [Secret and credential handling](#secret-and-credential-handling)
-10. [Startup Sequence](#startup-sequence)
-11. [Configuration and Secrets](#configuration-and-secrets)
-12. [Logging](#logging)
-13. [Frontend Design System](#frontend-design-system)
-14. [Key Patterns and Conventions](#key-patterns-and-conventions)
-15. [Local Development Setup](#local-development-setup)
+10. [Concurrency and Worker Safety](#concurrency-and-worker-safety)
+    - [Cross-worker sync lock](#cross-worker-sync-lock)
+    - [CSV file locking](#csv-file-locking)
+    - [eBay listing cache](#ebay-listing-cache)
+11. [Startup Sequence](#startup-sequence)
+12. [Configuration and Secrets](#configuration-and-secrets)
+13. [Logging](#logging)
+14. [Monitoring and Metrics](#monitoring-and-metrics)
+15. [Platform Integrations](#platform-integrations)
+    - [eBay Trading API](#ebay-trading-api)
+    - [WhatNot exports](#whatnot-exports)
+    - [Analytics heatmap](#analytics-heatmap)
+16. [Frontend Design System](#frontend-design-system)
+17. [Key Patterns and Conventions](#key-patterns-and-conventions)
+18. [Local Development Setup](#local-development-setup)
 
 ---
 
@@ -320,6 +334,17 @@ from app.services.ebay_service import ebay_service
 
 This application uses **no database**. All persistent state is in files.
 
+### Shared instance files
+
+| File | Purpose | Per-user? |
+|------|---------|-----------|
+| `user_preferences.json` | All user credentials + preferences; synced to S3 | No — keyed by username |
+| `app_defaults.json` | Application-level default settings (e.g. default eBay listing fields, category mappings) | No |
+| `ebay_category_cache.json` | eBay category taxonomy; shared across all users; initialized at startup | No |
+| `blocked_ips.json` | Persistent IP blocklist; loaded on startup; updated on every block/unblock | No |
+| `.sync.lock` | `fcntl` cross-worker sync mutex | No |
+| `app_version` | Build number written by deploy playbook; read by `inject_version()` context processor | No |
+
 ### Per-user data layout
 
 ```
@@ -387,36 +412,181 @@ csv_service.delete_comic(csv_path, sku)
 
 ---
 
-## Multi-User Isolation
+## Multi-User Design
 
-Each user has their own subdirectory. **All path construction must go through
-`app/utils/user_context.py`** — never hand-craft paths with
-`f"instance/data/{username}/..."` in routes or services.
+### Directory isolation
 
-### `user_context.py` helpers
+Each user has a fully isolated subtree on disk and in S3. No user can see or
+modify another user's data.
+
+```
+instance/
+├── user_preferences.json      # ALL users — shared file, per-user keys
+├── app_defaults.json          # App-level defaults (shared, not per-user)
+├── ebay_category_cache.json   # eBay taxonomy cache (shared, not per-user)
+├── blocked_ips.json           # IP blocklist (shared, not per-user)
+├── .sync.lock                 # Cross-worker sync lock file
+└── data/
+    └── {username}/            # One directory per user (lowercase)
+        ├── items.csv
+        ├── sku.txt
+        ├── images/
+        ├── exports/
+        ├── snapshots/
+        ├── trash/
+        │   └── recent/
+        ├── analytics/
+        └── uploads/           # Temporary upload staging (not persisted)
+```
+
+**All path construction goes through `app/utils/user_context.py`**.
+Never hand-craft `f"instance/data/{username}/..."` in routes or services.
 
 ```python
 from app.utils.user_context import (
-    get_current_username,    # reads session['username']
-    get_user_csv_file,       # → Path("instance/data/{u}/items.csv")
-    get_user_sku_file,       # → Path("instance/data/{u}/sku.txt")
-    get_user_image_dir,      # → Path("instance/data/{u}/images/")
-    get_user_exports_dir,    # → Path("instance/data/{u}/exports/")
-    get_user_trash_dir,      # → Path("instance/data/{u}/trash/")
-    get_user_snapshots_dir,  # → Path("instance/data/{u}/snapshots/")
-    get_user_analytics_dir,  # → Path("instance/data/{u}/analytics/")
-    migrate_legacy_user_files,  # one-time migration for pre-multi-user installs
+    get_current_username,     # reads session['username']
+    get_user_csv_file,        # → Path("instance/data/{u}/items.csv")
+    get_user_sku_file,        # → Path("instance/data/{u}/sku.txt")
+    get_user_image_dir,       # → Path("instance/data/{u}/images/")
+    get_user_images_dir,      # alias for get_user_image_dir
+    get_user_exports_dir,     # → Path("instance/data/{u}/exports/")
+    get_user_trash_dir,       # → Path("instance/data/{u}/trash/")
+    get_user_snapshots_dir,   # → Path("instance/data/{u}/snapshots/")
+    get_user_analytics_dir,   # → Path("instance/data/{u}/analytics/")
+    get_user_uploads_dir,     # → Path("instance/data/{u}/uploads/")
+    migrate_legacy_user_files,  # one-time migration from flat to subdirectory layout
 )
 ```
 
-### Authorization rule
+All helpers create the directory on first call if it does not exist. The
+`username` argument always comes from `session['username']` — never from the
+request body.
 
-Username for access decisions always comes from the server-side session:
+### UserManager internals
+
+`UserManager` (`app/models/user.py`) is the single authority for user
+credentials and preferences. One module-level singleton is shared across all
+workers: `user_manager = UserManager()`.
+
+#### File-backed cache
+
+`_load_users()` reads `instance/user_preferences.json` and caches the result
+in-memory. Before returning cached data it checks the file's `mtime`; if the
+file changed on disk (e.g., written by another Gunicorn worker), it reloads.
+This balances I/O efficiency with consistency in a multi-worker environment.
 
 ```python
-username = session['username']   # CORRECT
-username = request.args.get('username')  # NEVER — attackable
+# Reload only when the file has changed
+if self._users_cache is None or self._last_modified != current_mtime:
+    self._users_cache = json.load(open(users_file))
+    self._last_modified = current_mtime
 ```
+
+Fallback chain on missing or empty file:
+1. If cache is non-empty (written by this process), recreate the file from cache.
+2. Otherwise, initialize from the `USERS` secret (Secrets Manager → env var), if set.
+3. If `USERS` is not set, no default users are created — an operator must create them.
+
+#### Write-through to S3
+
+`_save_users(users)` writes to `user_preferences.json` and immediately calls
+`s3_service.backup_user_preferences_to_s3()`. S3 failure is logged but does not
+prevent the local write from completing (non-fatal).
+
+#### `USERS` secret bootstrap format
+
+The `USERS` secret (read via `get_secret('USERS', '')`) uses a simple
+comma-separated format:
+
+```
+username:password,user2:pass2
+```
+
+On first boot, if no `user_preferences.json` exists, the app parses the
+`USERS` secret, hashes all passwords (bcrypt), and writes the file. This is
+the recommended way to seed users in a new deployment via Ansible vault.
+
+### User lifecycle
+
+#### Creating a user
+
+`create_user(username, password)`:
+1. Validates username against the allow-list regex.
+2. Checks for duplicates.
+3. If the only existing user is the auto-created default admin (`username=admin`,
+   password=`admin123`, default prefs), it is automatically removed and replaced.
+   This allows the first real user creation to also clean up the bootstrap account.
+4. Hashes the password (bcrypt via Werkzeug).
+5. Writes updated `user_preferences.json` and backs up to S3.
+6. Calls `_initialize_user_data(username)` which creates:
+   - `items.csv` (empty file)
+   - `sku.txt` (starting value: `1000`)
+   - All user subdirectories via `user_context.py` helpers
+
+#### Changing a username
+
+`change_username(old, password, new)` renames the key in `user_preferences.json`
+but does **not** rename the filesystem directory. The data directory remains
+under the old username key until manually migrated or recreated.
+
+#### Deleting a user
+
+`delete_user(username)` refuses to delete the last remaining user — at least
+one account must always exist. It does not delete the user's data directory.
+
+#### Canonicalization
+
+Usernames are stored lowercase as the dict key:
+
+```python
+users[username.lower()] = {'username': username, ...}
+                                         # ↑ original casing for display
+```
+
+Sessions always store the lowercase canonical form. `get_user(username)` calls
+`username.lower()` before the lookup so comparisons are always case-insensitive.
+
+### Admin model
+
+`is_admin(username)` evaluates three rules in priority order:
+
+| Rule | Condition | Result |
+|------|-----------|--------|
+| 1 — Explicit flag | `user['is_admin'] == True` in record | Admin |
+| 2 — Single-user bootstrap | No user has `is_admin` flag AND only one user exists | That user is admin |
+| 3 — Legacy fallback | No user has `is_admin` flag AND multiple users | Alphabetically first username (by lowercase key) is admin |
+
+`set_admin(username, is_admin=True)` grants or revokes the explicit flag.
+Once any user has `is_admin=True`, rules 2 and 3 no longer apply — only
+explicitly flagged users are admins.
+
+`admin_required` decorator checks `is_admin(session['username'])` on every
+call. Admin routes are registration-time decorated — there is no runtime
+bypass.
+
+### User preferences
+
+All preferences have defaults defined in `UserManager.DEFAULT_PREFERENCES`:
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `timezone` | `local` | Display timezone |
+| `mobile_per_page` | `8` | Items per page on mobile |
+| `desktop_per_page` | `24` | Items per page on desktop |
+| `default_sort` | `sku_asc` | Default sort order on browse page |
+| `default_view` | `grid` | Grid or list view on browse page |
+| `micro_card_size` | `60` | Card size as percent of normal |
+| `ebay_format` | `FixedPrice` | eBay listing format |
+| `ebay_duration` | `GTC` | eBay listing duration (Good Till Cancelled) |
+| `ebay_listing_mode` | `future` | Schedule (`future`) or list immediately (`list`) |
+| `ebay_environment` | `production` | eBay API environment |
+| `ebay_location` | `Highlands Ranch, CO` | eBay item location |
+| `ebay_postal_code` | `80129` | eBay postal code for shipping |
+
+`get_preferences(username)` always merges stored values with the defaults
+so missing keys never cause KeyErrors when new preferences are added.
+`update_preferences(username, preferences)` writes only the provided keys
+(partial update).
 
 ---
 
@@ -749,34 +919,149 @@ rejected before the path is constructed.
 
 ---
 
+## Concurrency and Worker Safety
+
+The app runs as 4 Gunicorn sync workers (separate processes, not threads within
+one process). Three distinct locking strategies prevent data corruption.
+
+### Cross-worker sync lock
+
+`app/utils/sync_state.py` — `SyncState` singleton.
+
+The startup S3 sync runs in a background thread inside each worker. Only one
+worker should run the sync; the other three must skip it. Coordination uses
+`fcntl.flock` on a shared file (`instance/.sync.lock`):
+
+```
+Worker 1: flock(LOCK_EX | LOCK_NB) → succeeds → runs sync
+Worker 2: flock(LOCK_EX | LOCK_NB) → EAGAIN  → skips sync
+Worker 3: flock(LOCK_EX | LOCK_NB) → EAGAIN  → skips sync
+Worker 4: flock(LOCK_EX | LOCK_NB) → EAGAIN  → skips sync
+```
+
+The lock is released when sync completes, fails, or is unlocked via
+`sync_state.unlock_sync()`. An in-process `threading.Lock` additionally
+protects all state fields (progress counters, timestamps) from concurrent
+reads within the same worker's threads.
+
+**Sync state machine:**
+
+| Status | Meaning |
+|--------|---------|
+| `not_started` | Default state; sync thread not yet launched |
+| `in_progress` | Worker holds `fcntl` lock; sync running |
+| `synchronized` | Sync completed successfully; lock released |
+| `failed` | Sync failed; lock released; `error_message` populated |
+
+State includes progress fields (`total_backups`, `completed_backups`,
+`current_backup`, `retry_count`, `max_retries=3`) exposed via the
+`/api/system/sync-status` endpoint.
+
+`@sync_not_locked` route decorator reads `sync_state.is_locked()` and
+returns 503 to any write operation attempted while a sync is running.
+
+To skip sync entirely (for local development with no S3 access):
+```bash
+SKIP_S3_SYNC=1 python runapp.py
+```
+
+### CSV file locking
+
+`CSVService` (`app/services/csv_service.py`) acquires a `filelock.FileLock`
+before every write. The lock file lives at `{csv_path}.lock`. All four
+Gunicorn workers share the same `items.csv` file via the EBS volume — the
+lock prevents concurrent writes from corrupting it.
+
+```python
+# All writes go through this pattern
+with filelock.FileLock(f"{csv_path}.lock"):
+    # read → modify → write
+```
+
+Reads do not acquire the lock (acceptable eventual-consistency for the
+read-heavy inventory browse use case).
+
+### eBay listing cache
+
+`app.ebay_cache` is a per-process dict protected by `app.ebay_cache_lock`
+(a `threading.Lock`). It caches eBay listing status fetched from the eBay API
+to avoid redundant API calls across requests within the same worker.
+
+```python
+# Structure: {"{username}_{sku}": {"fetched_at": ISO, "status": ..., ...}}
+```
+
+A `before_request` hook (`check_ebay_cache_expiry`) evicts entries older than
+1 hour. The eviction walk first snapshots keys under the lock, then removes
+expired keys under the lock, to avoid `RuntimeError: dictionary changed size
+during iteration`.
+
+Because the cache is per-process, across 4 workers each worker may have a
+slightly different view of eBay listing status. This is an accepted tradeoff
+for the 1-hour TTL — the cache is informational, not authoritative.
+
+---
+
 ## Startup Sequence
 
 `create_app()` executes these steps synchronously before returning the app:
 
 ```
-1. Load configuration (Config class, get_secret())
-2. Configure logging (app.log, service.log, cleanup.log)
-3. Initialize security middleware (before_request hook)
-4. Ensure required directories exist
-5. Migrate legacy flat-file user data (one-time, idempotent)
-6. Sync user_preferences.json with S3 (timestamp-based, newest wins)
-7. Initialize UserManager (load users into memory)
-8. Per registered user:
-   a. Sync SKU counter (highest wins between local and S3)
-   b. Sync items.csv (newest wins; size-safety check prevents overwrite with empty)
-   c. Initialize CSV headers if file is new
-9. Cleanup expired trash items (all users)
-10. Start background thread → sync images + exports from S3 → health check
+1.  Load configuration (Config class, get_secret())
+2.  Configure app.logger, service_logger, cleanup_logger (rotating files)
+3.  Initialize security middleware (before_request + after_request hooks)
+4.  Ensure required directories exist (uploads, csv, sku)
+5.  Migrate legacy flat-file user data (one-time, idempotent)
+6.  Sync user_preferences.json with S3 (see tie-breaking rules below)
+7.  Initialize UserManager — load users into memory; init from USERS secret if empty
+8.  Per registered user:
+    a. Sync SKU counter: highest value wins (local vs S3)
+    b. Sync items.csv: newest timestamp wins; if local is newer but ≤ 300 bytes,
+       prefer S3 (guards against startup with an empty/corrupt local file)
+    c. If neither exists, initialize empty CSV with schema headers
+9.  Cleanup expired trash items (all users)
+10. Start background thread (one worker only — fcntl-guarded):
+    a. sync_images_from_s3() for each user (bi-directional)
+    b. sync_exports_from_s3() for each user (bi-directional)
+    c. Run HealthCheckService (orphan detection + deletion)
+    d. Release fcntl sync lock
 11. Register blueprints (auth_bp, main_bp, api_bp)
 12. Register Jinja2 globals (csrf_token)
-13. Initialize eBay listings cache + category cache
-14. Install before_request cache-expiry hook (1-hour eBay cache TTL)
-15. Per-user CSV health check (log warning if count < 5)
-16. Auto-regenerate analytics mockup PNGs if generation script changed
+13. Initialize app.ebay_cache dict + app.ebay_cache_lock
+14. Initialize eBay category cache from instance/ebay_category_cache.json
+15. Install before_request hook for 1-hour eBay cache TTL eviction
+16. Per-user CSV health check: log WARNING if item count < 5
+17. Auto-regenerate analytics mockup PNGs (if generation script hash changed or PNGs missing)
 ```
 
-The background thread (step 10) uses a cross-worker lock (`sync_state`) so that
-only one Gunicorn worker runs the sync, even when all four start simultaneously.
+### S3 sync tie-breaking rules
+
+**User preferences (`user_preferences.json`):**
+
+| Condition | Action |
+|-----------|--------|
+| No local file | Download from S3 |
+| S3 is newer AND S3 has ≥ local user count | Download from S3 |
+| S3 is newer BUT local has MORE users | Keep local, upload to S3 (safety: local is authoritative when user count is higher) |
+| Local is newer | Upload to S3 |
+| Same timestamp | No-op |
+| S3 missing | Upload local to S3 |
+
+**SKU counter:** `max(local_sku, s3_sku)` — always preserves the highest to avoid SKU collision.
+
+**CSV inventory:** newest timestamp wins except: if local CSV is 300 bytes or
+smaller (indicates empty-headers-only file) and S3 has a real CSV, prefer S3
+regardless of timestamp. This prevents overwriting a full S3 inventory with
+an empty local file created by a fresh clone.
+
+### Disabling S3 sync
+
+```bash
+SKIP_S3_SYNC=1 python runapp.py
+```
+
+When `SKIP_S3_SYNC=1` the background thread returns immediately. All other
+startup steps run normally. Useful for local development with no S3 access.
 
 ---
 
@@ -819,29 +1104,189 @@ variable tier.
 
 ## Logging
 
-Three dedicated rotating-file loggers, each capped at 10 MB × 10 rotations:
+### Three dedicated loggers
 
-| Logger | Attribute | File | Content |
-|--------|-----------|------|---------|
-| Main app | `app.logger` | `app.log` | Request lifecycle, auth events, startup |
-| Service | `app.service_logger` | `service.log` | S3 sync, health checks, background jobs |
-| Cleanup | `app.cleanup_logger` | `cleanup.log` | Trash expiry, orphan deletion |
+| Logger name | App attribute | File (prod) | File (dev) |
+|-------------|--------------|-------------|------------|
+| `app` / Flask default | `app.logger` | `/var/log/{app_name}/app.log` | `instance/app.log` |
+| `service` | `app.service_logger` | `/var/log/{app_name}/service.log` | `instance/service.log` |
+| `cleanup` | `app.cleanup_logger` | `/var/log/{app_name}/cleanup.log` | `instance/cleanup.log` |
 
-All loggers use a `UserContextFilter` that injects the current username into
-every log record from request context.
+Each logger is independent (`propagate = False`) so records are not
+double-logged to Gunicorn's stderr.
 
-In production, `ERROR`+ messages are additionally written to `error.log`.
-All log files are shipped to CloudWatch by the CloudWatch agent.
+### Log format
+
+`app.logger` (main app log):
+```
+[2026-05-08 14:23:01,456] brian - INFO in comics: Added comic SKU-1042
+ └───────────────────────  └────  └──  └──────   └────────────────────
+    asctime                 user  lvl   module     message
+```
+
+`service` and `cleanup` loggers:
+```
+[2026-05-08 14:23:01,456] INFO in s3_service: Synced 12 images for brian
+```
+(No `%(username)s` — these run in background threads outside a request context.)
+
+### Log rotation
+
+All handlers use `RotatingFileHandler`:
+
+| Environment | Max file size | Backup count |
+|-------------|--------------|-------------|
+| Production | 10 MB | 10 (each logger) |
+| Development | 10 MB | 5 (app.log only) |
+
+When a file reaches 10 MB it is renamed to `.log.1`, `.log.2`, …, up to the
+backup count. The oldest rotation is deleted when the limit is exceeded.
+
+### `error.log` (production only)
+
+In production an additional `RotatingFileHandler` at `ERROR` level is added
+to every logger, writing to `/var/log/{app_name}/error.log`. This file
+contains only ERROR and CRITICAL entries from all three loggers combined —
+useful for a quick triage view without grepping the verbose logs.
+
+### `UserContextFilter`
+
+The `UserContextFilter` (defined in `app/__init__.py`) injects a `username`
+field into every log record:
+
+- Inside a request context: reads `g.username` (set by `@login_required`)
+- Outside request context (background threads): writes `'system'`
+- Unauthenticated request (no `g.username`): writes `'anonymous'`
+
+### `propagate = False` rationale
+
+By default Python loggers propagate records up to the root logger, which
+Gunicorn also attaches its own handlers to. Without `propagate = False`,
+every application log line would appear twice — once in the app's rotating
+file and once in Gunicorn's stderr. Every logger in this app sets
+`propagate = False` to prevent that.
 
 ### Logging utilities
 
 `app/utils/logging_utils.py` exports:
 
-- `safe_error_message(exc)` — returns a generic string for client responses
-  in production; full detail always goes to the logger only. **Use this in
-  every `jsonify` error response** — never `str(e)`.
-- `get_service_logger()` — returns `logging.getLogger('service')`
-- `get_cleanup_logger()` — returns `logging.getLogger('cleanup')`
+| Helper | Purpose |
+|--------|---------|
+| `safe_error_message(exc)` | Returns a generic "something went wrong" string for client-facing JSON responses in production. Full exception detail goes to the logger. **Always use this in `jsonify` error responses — never `str(e)`.** |
+| `get_service_logger()` | Returns `logging.getLogger('service')` |
+| `get_cleanup_logger()` | Returns `logging.getLogger('cleanup')` |
+
+### CloudWatch log shipping
+
+All log files are forwarded to CloudWatch by the CloudWatch agent installed
+on the EC2 instance. See the AWS Deployment Architecture reference for log
+group names and retention settings.
+
+---
+
+## Monitoring and Metrics
+
+### `@monitor_endpoint` decorator
+
+`app/utils/monitoring.py` provides a decorator that sends two CloudWatch
+metrics for any function it wraps:
+
+```python
+@monitor_endpoint(metric_prefix='API')
+def my_route():
+    ...
+```
+
+Metrics emitted (dimensions: `endpoint`, `method`, `status`):
+
+| Metric name | Unit | Value |
+|-------------|------|-------|
+| `{prefix}ResponseTime` | Milliseconds | Wall-clock time of the function call |
+| `{prefix}RequestCount` | Count | Always 1 (one per call) |
+
+`status` dimension is `'success'` normally; `'error'` if the function raises
+an exception (the exception is still re-raised after the metric is sent).
+
+Metric send failures are caught and logged at DEBUG level — they never affect
+the response.
+
+### `track_user_action(action_name, **extra_dimensions)`
+
+Sends a `UserAction` CloudWatch metric (count=1) with dimensions `action` and
+`username`. Used for tracking significant events (login, export, bulk
+operation). Safe to call from any request context; silently no-ops if called
+outside an app context.
+
+### CloudWatch agent metrics
+
+The CloudWatch agent on EC2 additionally ships system metrics:
+CPU, memory, disk usage, network I/O. See the AWS Deployment Architecture
+reference for alarm thresholds.
+
+---
+
+## Platform Integrations
+
+### eBay Trading API
+
+**Service:** `app/services/ebay_service.py` → `ebay_service` singleton.
+
+Key operations: `AddFixedPriceItem`, `ReviseFixedPriceItem`, `EndItem`,
+`GetMyeBaySelling`, `GetSuggestedCategories`, `GetCategorySpecifics`.
+
+**Payload sanitization:** `_sanitize_trading_payload_strings(payload)` walks
+the entire payload dict recursively and escapes bare `&` (not already part of
+`&amp;`, `&gt;`, or other named entities) before the XML request is sent.
+A bare `&` in a title causes eBay to return `Code: 5 — XML Parse error`.
+Do not manually escape `&` — the sanitizer handles it automatically.
+
+**Category cache:** `instance/ebay_category_cache.json` (shared, not
+per-user). Populated by `ebay_service.initialize_category_cache()` at startup.
+Stores category IDs and item-aspect definitions to reduce API round-trips
+during listing creation. Updated manually via the eBay Taxonomy API routes.
+
+**Per-user credentials:** Each user's eBay OAuth token is stored in AWS
+Secrets Manager under a path that includes the username. Retrieved via
+`user_secrets_service`. Never written to CSV, JSON files, or logs.
+
+**Scheduled ↔ Live toggle:** `/api/comic/<sku>/ebay/relist` accepts
+`{"mode": "list"}` (go live immediately) or
+`{"mode": "future", "schedule_time": "<ISO-8601>"}` (schedule). The endpoint
+ends the current listing internally before relisting — no separate end call
+is needed from the client.
+
+**Daily API limit:** 5000 calls (`EBAY_DAILY_LIMIT` config). Tracked per
+session; not persisted across restarts.
+
+### WhatNot exports
+
+WhatNot is a live-auction platform. The app tracks a `whatnot_listed` field
+per item and can generate a WhatNot-formatted CSV export.
+
+`app/utils/whatnot_validators.py` defines:
+- `WHATNOT_FIELD_VALIDATION` — dict of field name → validation rules
+- `build_whatnot_export_row(item)` — maps item fields to WhatNot column names
+- `get_whatnot_export_fieldnames()` — ordered list of WhatNot CSV headers
+- `is_whatnot_listed(item)` — returns True if the item is marked as listed on WhatNot
+
+WhatNot exports are generated via the download route and are CSV-injection
+sanitized via `sanitize_row()` before writing.
+
+### Analytics heatmap
+
+`app/services/analytics_service.py` — `HeatmapAnalyzer`.
+
+`app/models/analytics.py` — `AnalyticsStore`.
+
+The analytics system records where users click on pages, accumulating a
+heat map of interaction density. Events are sent via `POST /api/analytics/`
+from the browser and stored in per-user JSON files under
+`instance/data/{username}/analytics/`. The analytics dashboard
+(`/analytics`) reads these files and renders the heatmap visualization.
+Mockup PNGs of each page are auto-generated at startup from
+`app/scripts/util_generate_page_images.py` and stored in
+`app/static/analytics/`. If the generation script changes between restarts
+the PNGs are automatically regenerated.
 
 ---
 
