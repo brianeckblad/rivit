@@ -67,11 +67,7 @@ git_repo: "{{ git_repo_url | replace('https://', 'https://' + git_token + '@') i
 # AWS (REQUIRED)
 # ============================================================================
 aws_region: "us-east-2"                          # AWS region for your resources
-cd deployment
-ansible-playbook playbooks/terminate-ec2-instance.yml --vault-password-file ~/.vault_pass
-ansible-playbook playbooks/provision-infrastructure.yml --vault-password-file ~/.vault_pass
-ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
-ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_passaws_root_account_email: "you@example.com"        # AWS root account email (for serial console access)
+aws_root_account_email: "you@example.com"        # AWS root account email (for serial console access)
 s3_bucket_name: "your-unique-bucket-name"        # S3 bucket (must be globally unique)
 s3_folder: "data"                                # Folder/prefix within S3 bucket
 secret_name: "{{ app_name }}/production"            # AWS Secrets Manager secret name
