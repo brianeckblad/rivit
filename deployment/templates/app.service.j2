@@ -80,7 +80,8 @@ Environment="CLOUDWATCH_NAMESPACE={{ app_display_name }}"
 #   --threads: Threads per worker (I/O-bound multiplier)
 #   --worker-class gthread: Thread-based workers (good for I/O)
 #   --timeout: Kill worker if request takes longer than this
-#   --bind: Where to listen (127.0.0.1:8000 = localhost only)
+#   --bind: Where to listen ({{ gunicorn_bind }} = localhost only)
+#           MULTI-APP: set gunicorn_bind to a unique port per app (8001, 8002 ...)
 #   --access-logfile: Track all HTTP requests
 #   --error-logfile: Application exceptions and errors
 #   --log-level warning: Only log warnings and above
@@ -95,7 +96,7 @@ ExecStart={{ venv_dir }}/bin/gunicorn \
     --threads 2 \
     --timeout {{ gunicorn_timeout }} \
     --worker-tmp-dir /tmp \
-    --control-socket /tmp/gunicorn.ctl \
+    --control-socket /tmp/{{ service_name }}-gunicorn.ctl \
     --access-logfile {{ log_dir }}/access.log \
     --error-logfile {{ log_dir }}/error.log \
     --log-level warning \

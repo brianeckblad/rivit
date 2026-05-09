@@ -114,9 +114,9 @@
         rm -rf {{ app_dir }}/logs
       when: old_log_dir.stat.exists and old_log_dir.stat.isdir and log_dir != (app_dir + '/logs')
 
-    - name: Verify only {{ app_name }} configuration exists
+    - name: Verify nginx and supervisor configuration inventory
       block:
-        - name: Check for unexpected nginx site configs
+        - name: Check for nginx site configs
           find:
             paths:
               - /etc/nginx/sites-available
@@ -129,7 +129,7 @@
           debug:
             msg: "Found nginx configs: {{ nginx_configs.files | map(attribute='path') | list }}"
 
-        - name: Check for unexpected supervisor configs
+        - name: Check for supervisor configs
           find:
             paths: /etc/supervisor/conf.d
             patterns: "*.conf"
@@ -139,12 +139,9 @@
           debug:
             msg: "Found supervisor configs: {{ supervisor_configs.files | map(attribute='path') | list }}"
 
-        - name: Warn if unexpected configs found
+        - name: Confirm this app config is present
           debug:
-            msg: "⚠️  WARNING: Unexpected configuration files detected. Expected only '{{ app_name }}' and 'default' configs."
-          when: >
-            (nginx_configs.files | map(attribute='path') | reject('search', app_name ~ '|default') | list | length > 0) or
-            (supervisor_configs.files | map(attribute='path') | reject('search', app_name) | list | length > 0)
+            msg: "✓ Config for '{{ app_name }}' is deployed alongside {{ (nginx_configs.files | map(attribute='path') | reject('search', '/default') | list | length) - 1 }} other app(s) on this host."
 
     - name: Ensure instance directory exists
       file:

@@ -37,15 +37,15 @@
 {% set has_ssl = has_ssl | default(false) | bool %}
 
 # ============================================================================
-# RATE LIMITING ZONES
+# RATE LIMITING ZONES — namespaced per app to support multiple apps on one host
 # ============================================================================
-# Three zones with different limits for different endpoint types
-# Zones are per-IP address and reset after the time window expires
+# Zone names are prefixed with the app_name so two apps on the same server
+# do not collide (nginx requires globally unique zone names).
+# Zones are per-IP address and reset after the time window expires.
 # ============================================================================
-# Rate limiting zones
-limit_req_zone $binary_remote_addr zone=login_limit:10m rate=20r/m;
-limit_req_zone $binary_remote_addr zone=api_limit:10m rate=200r/m;
-limit_req_zone $binary_remote_addr zone=general_limit:10m rate=300r/m;
+limit_req_zone $binary_remote_addr zone={{ app_name }}_login_limit:10m rate=20r/m;
+limit_req_zone $binary_remote_addr zone={{ app_name }}_api_limit:10m rate=200r/m;
+limit_req_zone $binary_remote_addr zone={{ app_name }}_general_limit:10m rate=300r/m;
 
 {% if has_ssl %}
 # HTTPS - main application server
@@ -168,10 +168,10 @@ server {
     # IMPORTANT: This must be BEFORE the WAF blacklist below that blocks /admin
     location ~ ^/admin/analytics(/.*)?$ {
         # Rate limiting for analytics
-        limit_req zone=general_limit burst=50 nodelay;
+        limit_req zone={{ app_name }}_general_limit burst=50 nodelay;
         limit_req_status 429;
 
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://{{ gunicorn_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -224,10 +224,10 @@ server {
     # Authentication routes (publicly accessible)
     location ~ ^/(login|logout)$ {
         # Rate limiting to prevent brute force
-        limit_req zone=login_limit burst=30 nodelay;
+        limit_req zone={{ app_name }}_login_limit burst=30 nodelay;
         limit_req_status 429;
 
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://{{ gunicorn_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -247,10 +247,10 @@ server {
     # Main application pages (require authentication at Flask level)
     location ~ ^/(add|add-from-image|browse|download(/ebay)?|price-lookup|account|trash|ebay-listings)$ {
         # Rate limiting for authenticated pages
-        limit_req zone=general_limit burst=100 nodelay;
+        limit_req zone={{ app_name }}_general_limit burst=100 nodelay;
         limit_req_status 429;
 
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://{{ gunicorn_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -270,14 +270,14 @@ server {
     # eBay Marketplace Account Deletion endpoint (public - required by eBay)
     location = /api/ebay/marketplace-account-deletion {
         # Rate limiting for public eBay webhook
-        limit_req zone=api_limit burst=20 nodelay;
+        limit_req zone={{ app_name }}_api_limit burst=20 nodelay;
         limit_req_status 429;
 
         # Only allow eBay's IP ranges (optional - add if eBay provides specific IPs)
         # For now, allowing all as eBay doesn't publish webhook IPs
         allow all;
 
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://{{ gunicorn_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -297,10 +297,10 @@ server {
     # API routes (require authentication at Flask level)
     location /api/ {
         # Rate limiting for API
-        limit_req zone=api_limit burst=50 nodelay;
+        limit_req zone={{ app_name }}_api_limit burst=50 nodelay;
         limit_req_status 429;
 
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://{{ gunicorn_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -320,10 +320,10 @@ server {
     # Root path (home/dashboard)
     location = / {
         # Rate limiting for home page (60 requests per minute)
-        limit_req zone=general_limit burst=20 nodelay;
+        limit_req zone={{ app_name }}_general_limit burst=20 nodelay;
         limit_req_status 429;
 
-        proxy_pass http://127.0.0.1:8000;
+        proxy_pass http://{{ gunicorn_bind }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

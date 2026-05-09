@@ -102,7 +102,8 @@ ExecStartPre=/bin/bash -c 'echo "✓ CSV schema validation passed"'
 #   --threads 4: Each worker gets 4 threads (handles 8 concurrent total)
 #   --worker-class gthread: Thread-based workers (good for I/O bound apps)
 #   --timeout 120: Kill worker if request takes > 120 seconds
-#   --bind 127.0.0.1:8000: Listen on localhost (nginx proxies to here)
+#   --bind {{ gunicorn_bind }}: Listen on localhost (nginx proxies to here)
+#               MULTI-APP: set gunicorn_bind to a unique port per app (8001, 8002 ...)
 #
 # Logs:
 #   - access log: Track all requests (GET /api/comics, 200, 45ms)
@@ -117,13 +118,13 @@ ExecStartPre=/bin/bash -c 'echo "✓ CSV schema validation passed"'
 # Using 2 workers to minimize startup logging duplication
 # Each worker gets 4 threads for concurrency (2 workers * 4 threads = 8 concurrent requests)
 ExecStart={{ venv_dir }}/bin/gunicorn \
-    --bind 127.0.0.1:8000 \
+    --bind {{ gunicorn_bind }} \
     --workers 2 \
     --threads 4 \
     --worker-class gthread \
     --timeout 120 \
     --worker-tmp-dir /tmp \
-    --control-socket /tmp/gunicorn.ctl \
+    --control-socket /tmp/{{ service_name }}-gunicorn.ctl \
     --access-logfile {{ log_dir }}/access.log \
     --error-logfile {{ log_dir }}/error.log \
     --log-level warning \
