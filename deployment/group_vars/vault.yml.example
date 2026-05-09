@@ -15,6 +15,28 @@
 #
 # Edit later:  ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
 # View later:  ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
+#
+# ============================================================================
+# MULTI-APP ON ONE EC2 HOST
+# ============================================================================
+# Multiple instances of this app (or any other Flask app using this playbook)
+# can run on the same EC2 server. Nginx routes traffic by FQDN (server_name).
+# Each app deployment needs its own vault.yml with UNIQUE values for:
+#
+#   app_name        - must differ per app (drives paths, groups, log dirs)
+#   server_name     - must differ per app (the FQDN nginx routes on)
+#   gunicorn_bind   - must use a different localhost port per app
+#                       app 1: "127.0.0.1:8000"
+#                       app 2: "127.0.0.1:8001"
+#                       app 3: "127.0.0.1:8002"
+#   app_dir         - already unique if it derives from app_name (e.g. /opt/app2)
+#   log_dir         - already unique if it derives from app_name (e.g. /var/log/app2)
+#   s3_bucket_name  - may be shared or separate depending on data isolation needs
+#   secret_name     - must differ per app in Secrets Manager
+#
+# Run setup.yml once per app, each time pointing at its own vault.yml.
+# Nginx virtual hosts are stored as /etc/nginx/sites-available/<service_name>,
+# so each app produces its own vhost file without overwriting the others.
 # ============================================================================
 
 # ============================================================================
@@ -66,7 +88,6 @@ users: "admin:change-this-password"              # Format: user1:pass1,user2:pas
 # FLASK (REQUIRED)
 # ============================================================================
 secret_key: "change-this-to-a-random-secret-key"    # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-flask_port: "8000"
 flask_env: "production"
 
 # ============================================================================
@@ -80,10 +101,15 @@ app_secret_token: ""                             # Generate: python3 -c "import 
 # ============================================================================
 # PERFORMANCE (OPTIONAL)
 # ============================================================================
+# gunicorn_port: THE key value to change when deploying multiple apps on one EC2.
+#   Allocate ports sequentially: app1=8000, app2=8001, app3=8002, ...
+#   All other port-related variables derive from this single value.
+gunicorn_port: "8000"                            # UNIQUE per app on a shared EC2 host
+gunicorn_bind: "127.0.0.1:{{ gunicorn_port }}"  # Derived — gunicorn listens on loopback only
+app_port: "{{ gunicorn_port }}"                  # Derived — used by nginx proxy_pass
+flask_port: "{{ gunicorn_port }}"                # Derived — used by Flask dev server
 gunicorn_workers: 4                              # Worker processes (2-4 x CPU cores)
 gunicorn_timeout: 120                            # Request timeout in seconds
-gunicorn_bind: "127.0.0.1:8000"                 # Gunicorn bind address
-app_port: "{{ gunicorn_bind.split(':')[1] }}"    # Derived from gunicorn_bind
 python_version: "3.10"                           # Python version on target server
 
 # ============================================================================
