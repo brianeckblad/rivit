@@ -39,12 +39,13 @@ echo "======================================"
 echo "Application: $APP_NAME"
 echo ""
 
-cd ~/${APP_NAME}
+APP_DIR="/opt/${APP_NAME}"
+cd "${APP_DIR}"
 
 # Step 1: Stop the app
 echo ""
 echo "1️⃣ Stopping application..."
-sudo systemctl stop ${APP_NAME}
+sudo supervisorctl stop ${APP_NAME}
 sleep 2
 echo "✅ App stopped"
 
@@ -52,11 +53,11 @@ echo "✅ App stopped"
 echo ""
 echo "2️⃣ Clearing all Python caches..."
 echo "   • Clearing __pycache__ directories..."
-find ~/${APP_NAME} -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+find "${APP_DIR}" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 echo "   • Clearing .pyc files..."
-find ~/${APP_NAME} -type f -name "*.pyc" -delete 2>/dev/null || true
+find "${APP_DIR}" -type f -name "*.pyc" -delete 2>/dev/null || true
 echo "   • Clearing .pytest_cache..."
-find ~/${APP_NAME} -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
+find "${APP_DIR}" -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 echo "   • Clearing Flask temp files..."
 rm -rf /tmp/flask-* 2>/dev/null || true
 rm -rf /tmp/gunicorn-* 2>/dev/null || true
@@ -79,14 +80,14 @@ echo "✅ Old processes killed"
 # Step 5: Start the app fresh
 echo ""
 echo "5️⃣ Starting application fresh..."
-sudo systemctl start ${APP_NAME}
+sudo supervisorctl start ${APP_NAME}
 sleep 5  # Give it more time to start
 echo "✅ App started"
 
 # Step 6: Check status
 echo ""
 echo "6️⃣ Checking application status..."
-if sudo systemctl is-active --quiet ${APP_NAME}; then
+if sudo supervisorctl status ${APP_NAME} | grep -q "RUNNING"; then
     echo "✅ App is running"
 else
     echo "❌ App is NOT running - check logs"
@@ -109,10 +110,10 @@ fi
 # Step 8: Verify the method is accessible via Python (live check)
 echo ""
 echo "8️⃣ Testing if method is accessible in running app..."
-cd ~/${APP_NAME}
+cd "/opt/${APP_NAME}"
 python3 << PYTHON_TEST
 import sys
-sys.path.insert(0, '/home/ubuntu/${APP_NAME}')
+sys.path.insert(0, '/opt/${APP_NAME}')
 try:
     from app.services.comic_service import comic_service
     if hasattr(comic_service, 'cleanup_orphaned_images'):
@@ -132,7 +133,7 @@ if [ $? -ne 0 ]; then
     echo "This suggests the virtual environment or imports are stale."
     echo ""
     echo "Trying to reinstall dependencies in venv..."
-    source ~/.venv/bin/activate 2>/dev/null || source /home/ubuntu/${APP_NAME}/.venv/bin/activate
+    source /opt/${APP_NAME}/.venv/bin/activate
     pip install --force-reinstall --no-cache-dir -e . 2>/dev/null || true
 fi
 

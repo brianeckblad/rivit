@@ -279,7 +279,7 @@ System metrics shipped: CPU utilization, memory, disk usage, network I/O.
 
 ## Security Model
 
-### OS-level hardening (applied by `setup-server.yml`)
+### OS-level hardening (applied by `security-hardening.yml` — server admin only)
 
 | Control | Configuration |
 |---------|--------------|
@@ -441,37 +441,36 @@ Cost: ~$5/month base + ~$1/month per rule group.
 
 ### Playbook inventory
 
-#### Infrastructure provisioning
+#### AWS resource provisioning
 
 | Playbook | What it creates |
 |----------|----------------|
 | `create-s3-bucket.yml` | S3 bucket with versioning, encryption, access block |
-| `create-iam-role.yml` | EC2 instance role + policies |
-| `create-security-group.yml` | Security group (22, 80, 443) |
-| `create-ssh-key.yml` | SSH key pair (saved to `~/.ssh/`) |
-| `launch-ec2-instance.yml` | EC2 instance with EBS data volume attached |
+| `create-iam-policies.yml` | Three app-scoped IAM managed policies |
 | `setup-secrets-manager.yml` | Secrets Manager secret (synced from vault) |
-| `provision-infrastructure.yml` | Orchestrates all of the above in order |
+| `setup-cloudfront.yml` | CloudFront distribution (optional) |
+| `setup-waf.yml` | WAF Web ACL (optional) |
+| `provision-app.yml` | Orchestrates all of the above in order |
 
 #### Application deployment
 
 | Playbook | What it does |
 |----------|-------------|
-| `setup-server.yml` | System packages, app user, EBS mount, OS hardening, fail2ban |
-| `setup.yml` | Clone repo, venv, pip install, Nginx, Supervisor, SSL, start app |
-| `update.yml` | Pull latest code, pip install, restart, validate |
+| `setup.yml` | Create app user, clone repo, venv, pip install, Nginx vhost, Supervisor, SSL, start app |
+| `update.yml` | Pull latest code, pip install, reload nginx, restart supervisor process, validate |
 
 #### Operations
 
 | Playbook | What it does |
 |----------|-------------|
-| `setup-monitoring.yml` | CloudWatch agent, log groups, metric filters, alarms |
+| `setup-monitoring.yml` | CloudWatch agent (per-app config fragment), logrotate, monitoring cron |
+| `setup-ssl.yml` | Obtain or renew Let's Encrypt certificate for this app's domain |
 | `setup-cloudfront.yml` | CloudFront distribution |
 | `setup-waf.yml` | WAF Web ACL + managed rule groups |
 | `secret-rotate.yml` | Create AWSPENDING version in Secrets Manager |
 | `secret-promote.yml` | Promote AWSPENDING → AWSCURRENT |
 | `secret-sync.yml` | Full vault → Secrets Manager sync |
-| `decommission.yml` | Full teardown (EC2, S3, IAM, SG, key pair, CloudFront, WAF) |
+| `decommission.yml` | Full per-app teardown (S3, IAM policies, Secrets Manager, CloudFront, WAF) |
 
 ### Standard deployment sequence
 
@@ -480,14 +479,10 @@ cd deployment
 source scripts/load-vars.sh
 
 # Step 1: Create all AWS resources
-ansible-playbook playbooks/provision-infrastructure.yml \
+ansible-playbook playbooks/provision-app.yml \
     --vault-password-file ~/.vault_pass
 
-# Step 2: Prepare the server (OS hardening, app user, EBS mount)
-ansible-playbook playbooks/setup-server.yml \
-    --vault-password-file ~/.vault_pass
-
-# Step 3: Deploy the application
+# Step 2: Deploy the application to the shared server
 ansible-playbook playbooks/setup.yml \
     --vault-password-file ~/.vault_pass
 ```
@@ -523,7 +518,7 @@ deployment/
 │
 ├── inventories/
 │   └── production/
-│       └── hosts.yml               # EC2 host (populated by launch-ec2-instance.yml)
+│       └── hosts.yml               # Shared server IP and SSH key (gitignored)
 │
 ├── playbooks/                      # All Ansible playbooks (see table above)
 │

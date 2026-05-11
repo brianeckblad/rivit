@@ -1,6 +1,5 @@
 # Chapter 8: Security Hardening
-
-Verify, tune, and maintain the security controls for this application on a shared server.
+anVerify, tune, and maintain the security controls for this application on a shared server.
 
 ---
 

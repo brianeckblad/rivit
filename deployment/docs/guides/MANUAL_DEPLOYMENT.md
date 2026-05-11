@@ -48,7 +48,7 @@ CLI commands in this guide use shell variables from vault.yml. Load them once pe
 cd deployment
 source scripts/load-vars.sh
 
-echo $app_name      # e.g., rampe
+echo $app_name      # e.g., myapp
 echo $aws_region    # e.g., us-east-2
 ```
 

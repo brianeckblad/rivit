@@ -84,7 +84,7 @@ git push origin main
 cd deployment
 
 # Update application from Git
-ansible-playbook -i inventories playbooks/update.yml
+ansible-playbook -i inventories/hosts.yml playbooks/update.yml
 ```
 
 **What it does:**
@@ -99,7 +99,7 @@ ansible-playbook -i inventories playbooks/update.yml
 **If update fails:**
 ```bash
 # See error details
-ansible-playbook -i inventories playbooks/update.yml -vv
+ansible-playbook -i inventories/hosts.yml playbooks/update.yml -vv
 ```
 
 ### Option B: Manual Deployment via SSH
@@ -111,13 +111,13 @@ ansible-playbook -i inventories playbooks/update.yml -vv
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Navigate to app directory
-cd /home/ubuntu/{app_name}
+cd /opt/{app_name}
 
 # Pull latest code
 git pull origin main
 
 # Activate virtual environment
-source /home/ubuntu/.venv/bin/activate
+source /opt/{app_name}/.venv/bin/activate
 
 # Install/update dependencies
 pip install -r requirements.txt
@@ -215,12 +215,12 @@ sudo tail -100 /var/log/{app_name}/app.log
 sudo tail -50 /var/log/{app_name}/error.log
 
 # Check if dependencies installed
-source ~/.venv/bin/activate
+source /opt/{app_name}/.venv/bin/activate
 pip list | grep -i dependency-name
 
 # Try starting manually to see full error
-cd /home/ubuntu/{app_name}
-source /home/ubuntu/.venv/bin/activate
+cd /opt/{app_name}
+source /opt/{app_name}/.venv/bin/activate
 gunicorn --bind 127.0.0.1:8000 "app:create_app('production')" 2>&1 | head -50
 
 exit
@@ -239,8 +239,8 @@ exit
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Check migration status
-cd /home/ubuntu/{app_name}
-source /home/ubuntu/.venv/bin/activate
+cd /opt/{app_name}
+source /opt/{app_name}/.venv/bin/activate
 
 # For Alembic:
 python -m alembic history
@@ -295,7 +295,7 @@ exit
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
 # Go to app directory
-cd /home/ubuntu/{app_name}
+cd /opt/{app_name}
 
 # Go back to previous commit
 git reset --hard HEAD~1
@@ -316,7 +316,7 @@ cd deployment
 
 # The update playbook should handle rollback
 # But if not, use:
-ansible-playbook -i inventories playbooks/update.yml -e version=PREVIOUS_VERSION
+ansible-playbook -i inventories/hosts.yml playbooks/update.yml -e version=PREVIOUS_VERSION
 ```
 
 ### Option C: Manual Rollback to Specific Version
@@ -324,7 +324,7 @@ ansible-playbook -i inventories playbooks/update.yml -e version=PREVIOUS_VERSION
 ```bash
 ssh -i ~/.ssh/{app_name}-key.pem ubuntu@YOUR_SERVER_IP
 
-cd /home/ubuntu/{app_name}
+cd /opt/{app_name}
 
 # Check available versions
 git log --oneline | head -20
@@ -385,7 +385,7 @@ During deployment:
 while true; do curl -w "%{http_code}\n" -o /dev/null -s http://YOUR_SERVER_IP/health && sleep 1; done
 
 # In another terminal, deploy
-ansible-playbook -i inventories playbooks/update.yml
+ansible-playbook -i inventories/hosts.yml playbooks/update.yml
 
 # Keep watching - should see no 500/503 errors
 ```
@@ -453,7 +453,7 @@ git status | grep "working tree clean" || exit 1
 
 # Deploy
 cd deployment
-ansible-playbook -i inventories playbooks/update.yml
+ansible-playbook -i inventories/hosts.yml playbooks/update.yml
 
 # Verify
 curl -f http://YOUR_SERVER_IP/health || exit 1
@@ -488,7 +488,7 @@ jobs:
       - name: Deploy to AWS
         run: |
           cd deployment
-          ansible-playbook -i inventories playbooks/update.yml
+          ansible-playbook -i inventories/hosts.yml playbooks/update.yml
 ```
 
 Then every push to `main` auto-deploys!

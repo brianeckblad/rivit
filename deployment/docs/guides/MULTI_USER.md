@@ -428,7 +428,7 @@ sudo supervisorctl restart {app_name}
 aws ssm start-session --target i-xxxxxxxxxxxxx
 
 # Run password reset script
-cd /home/ubuntu/{app_name}
+cd /opt/{app_name}
 source ~/.venv/bin/activate
 python3 << 'EOF'
 from app.models.user import user_manager
@@ -447,7 +447,7 @@ EOF
 NEW_HASH=$(python3 -c "from werkzeug.security import generate_password_hash; print(generate_password_hash('TempPass123'))")
 
 # Edit user_preferences.json
-cd /home/ubuntu/{app_name}/instance
+cd /opt/{app_name}/instance
 cp user_preferences.json user_preferences.json.bak
 # Manually update the password_hash for the user
 nano user_preferences.json
@@ -605,7 +605,7 @@ echo ""
 
 # Connect to server and add user
 ssh ubuntu@your-server.com << EOF
-cd /home/ubuntu/{app_name}
+cd /opt/{app_name}
 source ~/.venv/bin/activate
 
 python3 << PYTHON

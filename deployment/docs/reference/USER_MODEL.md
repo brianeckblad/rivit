@@ -159,7 +159,7 @@ SSH as ubuntu (admin_user)
 ### Code Directory
 
 ```bash
-/home/ubuntu/{app_name}/
+/opt/{app_name}/
 ├── Owner: ubuntu (admin_user)
 ├── Permission: 755 (admin_user full access, app_user read-execute)
 └── Readable by: app_user ✅
@@ -169,7 +169,7 @@ SSH as ubuntu (admin_user)
 ### Python Virtual Environment
 
 ```bash
-/home/ubuntu/.venv/
+/opt/{app_name}/.venv/
 ├── Owner: ubuntu (admin_user)
 ├── Permission: 755 (admin_user full access, app_user read-execute)
 └── Used by: app_user for Python interpreter and libraries
@@ -187,7 +187,7 @@ SSH as ubuntu (admin_user)
 ### Instance Data Directory
 
 ```bash
-/home/ubuntu/{app_name}/instance/
+/opt/{app_name}/instance/
 ├── Owner: {app_name} (app_user)
 ├── Permission: 755
 └── Writable by: app_user ✅
@@ -214,14 +214,14 @@ getent passwd {app_name}
 ps aux | grep gunicorn
 
 # Should show:
-# {app_name}  12345  ...  /home/ubuntu/.venv/bin/gunicorn ...
+# {app_name}  12345  ...  /opt/{app_name}/.venv/bin/gunicorn ...
 ```
 
 ### Check File Ownership
 
 ```bash
 # Check code ownership
-ls -ld /home/ubuntu/{app_name}
+ls -ld /opt/{app_name}
 # drwxr-xr-x ubuntu ubuntu ...
 
 # Check log ownership

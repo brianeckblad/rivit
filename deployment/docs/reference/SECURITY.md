@@ -95,7 +95,7 @@ This deployment uses a **dedicated, non-privileged application user** with no SS
 │     ├── sudo: ✅ YES (via Ansible)                      │
 │     ├── Group: {app_name} (shared)                      │
 │     ├── Purpose: Deployment, git, pip, system mgmt      │
-│     └── Home: /home/ubuntu/                             │
+│     └── Home: /opt/{app_name}/                             │
 │                                                          │
 │  👤 {app_name} (app_user)                               │
 │     ├── SSH Access: ❌ NO                               │
@@ -334,7 +334,7 @@ User=ubuntu              # Admin user with SSH access
 Shell=/bin/bash         # Full shell available
 sudo=YES                # Can escalate privileges (via ansible)
 SSH=YES                 # Can SSH to server
-Home=/home/ubuntu       # Full access to all deployment files
+WorkingDirectory=/opt/{app_name}       # Full access to all deployment files
 
 # If app is compromised:
 # - Attacker has SSH user access

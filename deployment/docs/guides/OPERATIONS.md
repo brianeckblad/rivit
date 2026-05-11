@@ -96,26 +96,26 @@ curl https://your-cloudfront-domain.cloudfront.net/health
 
 **If unhealthy:**
 1. Check application logs: `./scripts/app-deploy.sh logs`
-2. Check service status: `ssh ubuntu@server "sudo systemctl status app_item_listing_tool"`
+2. Check service status: `ssh ubuntu@server "sudo supervisorctl status {app_name}"`
 3. Check recent deployments: Review git log
-4. Restart if needed: `./scripts/app-deploy.sh restart`
+4. Restart if needed: SSH to server and run `sudo supervisorctl restart {app_name}`
 
 ### Review Error Logs
 
 ```bash
 # Via SSH
-aws ssm start-session --target i-xxxxxxxxxxxxx
-sudo tail -f /var/log/app_item_listing_tool/error.log
+ssh ubuntu@YOUR_SERVER_IP
+sudo tail -f /var/log/{app_name}/error.log
 
 # Via deployment script
 cd deployment
 ./scripts/app-deploy.sh logs --errors
 
 # Check for specific patterns
-sudo grep -i "error\|exception\|critical" /var/log/app_item_listing_tool/app.log | tail -50
+sudo grep -i "error\|exception\|critical" /var/log/{app_name}/app.log | tail -50
 
 # Count errors by hour
-sudo awk '/ERROR/ {print $1, $2}' /var/log/app_item_listing_tool/app.log | cut -d: -f1 | uniq -c
+sudo awk '/ERROR/ {print $1, $2}' /var/log/{app_name}/app.log | cut -d: -f1 | uniq -c
 ```
 
 **Look for:**
@@ -155,7 +155,7 @@ aws s3 ls s3://your-bucket-name/backups/$(date +%Y%m%d)/ --recursive --summarize
 
 **If backup missing:**
 1. Check cron job: `sudo crontab -l -u ubuntu`
-2. Check backup script: `/home/ubuntu/app_item_listing_tool/scripts/backup.sh`
+2. Check backup script: `/opt/{app_name}/scripts/backup.sh`
 3. Check S3 permissions
 4. Run manual backup: `./scripts/backup-now.sh`
 
@@ -229,16 +229,16 @@ done
 
 ```bash
 # Request count per hour (Nginx logs)
-sudo awk '{print $4}' /var/log/app_item_listing_tool/nginx_access.log | cut -d: -f2 | sort | uniq -c
+sudo awk '{print $4}' /var/log/{app_name}/nginx_access.log | cut -d: -f2 | sort | uniq -c
 
 # Top requesting IPs
-sudo awk '{print $1}' /var/log/app_item_listing_tool/nginx_access.log | sort | uniq -c | sort -rn | head -10
+sudo awk '{print $1}' /var/log/{app_name}/nginx_access.log | sort | uniq -c | sort -rn | head -10
 
 # Top requested URLs
-sudo awk '{print $7}' /var/log/app_item_listing_tool/nginx_access.log | sort | uniq -c | sort -rn | head -10
+sudo awk '{print $7}' /var/log/{app_name}/nginx_access.log | sort | uniq -c | sort -rn | head -10
 
 # Response codes distribution
-sudo awk '{print $9}' /var/log/app_item_listing_tool/nginx_access.log | sort | uniq -c
+sudo awk '{print $9}' /var/log/{app_name}/nginx_access.log | sort | uniq -c
 ```
 
 **Normal patterns:**
@@ -260,13 +260,13 @@ sudo awk '{print $9}' /var/log/app_item_listing_tool/nginx_access.log | sort | u
 curl http://localhost:8000/api/admin/security/blocked-ips
 
 # Or check file directly
-ssh ubuntu@server "cat /home/ubuntu/app_item_listing_tool/instance/blocked_ips.json"
+ssh ubuntu@server "cat /opt/{app_name}/instance/blocked_ips.json"
 
 # Count blocked IPs
-ssh ubuntu@server "cat /home/ubuntu/app_item_listing_tool/instance/blocked_ips.json" | jq '. | length'
+ssh ubuntu@server "cat /opt/{app_name}/instance/blocked_ips.json" | jq '. | length'
 
 # Check recent blocks in logs
-sudo grep "IP BLOCKED" /var/log/app_item_listing_tool/app.log | tail -20
+sudo grep "IP BLOCKED" /var/log/{app_name}/app.log | tail -20
 ```
 
 **Action if many blocked IPs:**
@@ -279,7 +279,7 @@ sudo grep "IP BLOCKED" /var/log/app_item_listing_tool/app.log | tail -20
 
 ```bash
 # Connect to server
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 
 # Disk usage
 df -h
@@ -356,16 +356,16 @@ aws s3 ls s3://your-bucket-name/backups/$(date +%Y%m%d)/ --recursive --human-rea
 ### Check Disk Space
 
 ```bash
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 
 # Check disk usage
 df -h
 
 # Check largest directories
-sudo du -h --max-depth=1 /home/ubuntu/app_item_listing_tool/ | sort -h
+sudo du -h --max-depth=1 /opt/{app_name}/ | sort -h
 
 # Check log sizes
-sudo du -sh /var/log/app_item_listing_tool/
+sudo du -sh /var/log/{app_name}/
 ```
 
 **Actions:**
@@ -462,7 +462,7 @@ echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2
 
 ```bash
 # Connect to server
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 
 # Check certbot status
 sudo certbot certificates
@@ -486,7 +486,7 @@ If automatic renewal fails or you need to renew early:
 
 ```bash
 # Connect to server
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 
 # Stop nginx (required for standalone renewal)
 sudo systemctl stop nginx
@@ -604,7 +604,7 @@ echo "0 6 * * * /usr/bin/certbot certificates | grep 'VALID: [0-9] days' && echo
 ### Update System Packages
 
 ```bash
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 
 # Update packages
 sudo apt-get update
@@ -672,7 +672,7 @@ ansible-playbook playbooks/secret-rotate.yml -e secret_key=ebay_production_token
 curl https://yourdomain.com/api/ebay/test
 
 # Or manual test
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 # Test eBay API calls with new token
 ```
 
@@ -804,10 +804,10 @@ curl https://yourdomain.com/health
 
 ```bash
 # 1. Connect to server
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 
 # 2. Backup database
-cd /home/ubuntu/app_item_listing_tool
+cd /opt/{app_name}
 python -c "from app import backup; backup.create_backup()"
 
 # 3. Run migrations
@@ -817,7 +817,7 @@ flask db upgrade
 flask db current
 
 # 5. Restart application
-sudo systemctl restart app_item_listing_tool
+sudo supervisorctl restart {app_name}
 ```
 
 ---
@@ -874,81 +874,81 @@ sudo systemctl restart app_item_listing_tool
 
 ```bash
 # Real-time tail
-sudo tail -f /var/log/app_item_listing_tool/app.log
+sudo tail -f /var/log/{app_name}/app.log
 
 # Last 100 lines
-sudo tail -n 100 /var/log/app_item_listing_tool/app.log
+sudo tail -n 100 /var/log/{app_name}/app.log
 
 # Error logs only
-sudo tail -f /var/log/app_item_listing_tool/error.log
+sudo tail -f /var/log/{app_name}/error.log
 
 # Search for specific error
-sudo grep "ERROR" /var/log/app_item_listing_tool/app.log | tail -20
+sudo grep "ERROR" /var/log/{app_name}/app.log | tail -20
 
 # Search by timestamp
-sudo grep "2026-02-09 14:" /var/log/app_item_listing_tool/app.log
+sudo grep "2026-02-09 14:" /var/log/{app_name}/app.log
 ```
 
 #### View Access Logs
 
 ```bash
 # Nginx access logs
-sudo tail -f /var/log/app_item_listing_tool/nginx_access.log
+sudo tail -f /var/log/{app_name}/nginx_access.log
 
 # Gunicorn access logs
-sudo tail -f /var/log/app_item_listing_tool/access.log
+sudo tail -f /var/log/{app_name}/access.log
 
 # Count requests per hour
-sudo awk '{print $4}' /var/log/app_item_listing_tool/nginx_access.log | cut -d: -f1-2 | sort | uniq -c
+sudo awk '{print $4}' /var/log/{app_name}/nginx_access.log | cut -d: -f1-2 | sort | uniq -c
 
 # Top requesting IPs
-sudo awk '{print $1}' /var/log/app_item_listing_tool/nginx_access.log | sort | uniq -c | sort -rn | head -20
+sudo awk '{print $1}' /var/log/{app_name}/nginx_access.log | sort | uniq -c | sort -rn | head -20
 
 # 404 errors
-sudo grep " 404 " /var/log/app_item_listing_tool/nginx_access.log | tail -20
+sudo grep " 404 " /var/log/{app_name}/nginx_access.log | tail -20
 
 # 500 errors
-sudo grep " 500 " /var/log/app_item_listing_tool/nginx_access.log | tail -20
+sudo grep " 500 " /var/log/{app_name}/nginx_access.log | tail -20
 ```
 
 #### Log Analysis Commands
 
 ```bash
 # Errors in last hour
-sudo find /var/log/app_item_listing_tool -name "*.log" -mmin -60 -exec grep -H "ERROR" {} \;
+sudo find /var/log/{app_name} -name "*.log" -mmin -60 -exec grep -H "ERROR" {} \;
 
 # Count errors by type
-sudo grep ERROR /var/log/app_item_listing_tool/app.log | awk '{print $5}' | sort | uniq -c | sort -rn
+sudo grep ERROR /var/log/{app_name}/app.log | awk '{print $5}' | sort | uniq -c | sort -rn
 
 # Find slow requests (> 5 seconds)
-sudo awk '$NF > 5 {print $0}' /var/log/app_item_listing_tool/access.log
+sudo awk '$NF > 5 {print $0}' /var/log/{app_name}/access.log
 
 # Memory errors
-sudo grep -i "memory\|out of memory\|oom" /var/log/app_item_listing_tool/*.log
+sudo grep -i "memory\|out of memory\|oom" /var/log/{app_name}/*.log
 
 # Database errors
-sudo grep -i "database\|sql\|connection" /var/log/app_item_listing_tool/error.log | tail -20
+sudo grep -i "database\|sql\|connection" /var/log/{app_name}/error.log | tail -20
 ```
 
 #### Log Rotation
 
 ```bash
 # Check logrotate configuration
-sudo cat /etc/logrotate.d/app_item_listing_tool
+sudo cat /etc/logrotate.d/{app_name}
 
 # Manual rotation (if needed)
-sudo logrotate -f /etc/logrotate.d/app_item_listing_tool
+sudo logrotate -f /etc/logrotate.d/{app_name}
 
 # Verify rotation is working
-ls -lh /var/log/app_item_listing_tool/*.gz
+ls -lh /var/log/{app_name}/*.gz
 
 # View rotated logs
-sudo zcat /var/log/app_item_listing_tool/app.log.1.gz | tail -100
+sudo zcat /var/log/{app_name}/app.log.1.gz | tail -100
 ```
 
 **Logrotate Config:**
 ```
-/var/log/app_item_listing_tool/*.log {
+/var/log/{app_name}/*.log {
     daily
     rotate 14
     compress
@@ -957,7 +957,7 @@ sudo zcat /var/log/app_item_listing_tool/app.log.1.gz | tail -100
     create 0640 ubuntu ubuntu
     sharedscripts
     postrotate
-        systemctl reload app_item_listing_tool > /dev/null
+        systemctl reload {app_name} > /dev/null
     endscript
 }
 ```
@@ -1139,7 +1139,7 @@ aws logs filter-log-events \
 
 ```bash
 # Via SSM Session Manager (no SSH key needed)
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 
 # Via SSH (if port 22 is open)
 ssh -i ~/.ssh/app-key.pem ubuntu@<instance-ip>
@@ -1401,7 +1401,7 @@ aws logs filter-log-events \
   --filter-pattern "ERROR"
 
 # Count errors by type
-sudo grep ERROR /var/log/app_item_listing_tool/error.log | \
+sudo grep ERROR /var/log/{app_name}/error.log | \
   awk '{print $5}' | sort | uniq -c | sort -rn
 ```
 
@@ -1433,7 +1433,7 @@ time_total:       %{time_total}\n
 
 ```bash
 # Full backup
-aws ssm start-session --target i-xxxxxxxxxxxxx
+ssh ubuntu@YOUR_SERVER_IP
 sudo /opt/app-scripts/backup-all.sh
 
 # Verify backup in S3
@@ -1452,14 +1452,14 @@ aws s3 sync \
   /tmp/restore/
 
 # 3. Stop application
-aws ssm start-session --target i-xxxxxxxxxxxxx
-sudo systemctl stop app_item_listing_tool
+ssh ubuntu@YOUR_SERVER_IP
+sudo supervisorctl stop {app_name}
 
 # 4. Restore files
-sudo cp -r /tmp/restore/* /home/ubuntu/app_item_listing_tool/instance/
+sudo cp -r /tmp/restore/* /opt/{app_name}/instance/
 
 # 5. Restart application
-sudo systemctl start app_item_listing_tool
+sudo supervisorctl start {app_name}
 
 # 6. Verify
 curl https://yourdomain.com/health
@@ -1592,7 +1592,7 @@ aws ce get-cost-and-usage \
 
 **EC2:**
 - Use reserved instances (50% savings)
-- Use t3.nano instead of t3.micro if sufficient
+- Use a smaller instance type if sufficient
 - Stop instances during non-business hours (if acceptable)
 
 **CloudFront:**
@@ -1641,7 +1641,7 @@ aws budgets create-budget \
 curl http://localhost:8000/api/admin/security/blocked-ips
 
 # Or check logs
-sudo grep "IP BLOCKED" /var/log/app_item_listing_tool/app.log | tail -20
+sudo grep "IP BLOCKED" /var/log/{app_name}/app.log | tail -20
 ```
 
 ### Unblock an IP (if legitimate user)
@@ -1653,7 +1653,7 @@ curl -X POST http://localhost:8000/api/admin/security/unblock-ip \
   -d '{"ip": "192.168.1.100"}'
 
 # Or edit blocklist file directly
-sudo nano /home/ubuntu/app_item_listing_tool/instance/blocked_ips.json
+sudo nano /opt/{app_name}/instance/blocked_ips.json
 # Remove the IP, save, restart app
 ./scripts/app-deploy.sh restart
 ```
@@ -1665,20 +1665,20 @@ sudo nano /home/ubuntu/app_item_listing_tool/instance/blocked_ips.json
 curl http://localhost:8000/api/admin/security/rate-limit/192.168.1.100
 
 # Review rate-limited IPs in logs
-sudo grep "RATE LIMIT EXCEEDED" /var/log/app_item_listing_tool/app.log | tail -20
+sudo grep "RATE LIMIT EXCEEDED" /var/log/{app_name}/app.log | tail -20
 ```
 
 ### Review Security Events
 
 ```bash
 # All security events
-sudo grep -E "🚨|🚫|⚠️" /var/log/app_item_listing_tool/app.log | tail -50
+sudo grep -E "🚨|🚫|⚠️" /var/log/{app_name}/app.log | tail -50
 
 # Attack attempts
-sudo grep "ATTACK DETECTED" /var/log/app_item_listing_tool/app.log | tail -20
+sudo grep "ATTACK DETECTED" /var/log/{app_name}/app.log | tail -20
 
 # By IP
-sudo grep "192.168.1.100" /var/log/app_item_listing_tool/app.log | grep -E "BLOCKED|ATTACK"
+sudo grep "192.168.1.100" /var/log/{app_name}/app.log | grep -E "BLOCKED|ATTACK"
 ```
 
 **Note:** Application security (IP blocking, attack detection) runs automatically. See `app/security.py` for implementation details.
@@ -1814,7 +1814,7 @@ Checklist:
 ```bash
 # Download application files
 scp -r -i ~/.ssh/${app_name}-key.pem \
-  ubuntu@YOUR_SERVER_IP:/home/ubuntu/${app_name} \
+  ubuntu@YOUR_SERVER_IP:/opt/${app_name} \
   ./backup-${app_name}-$(date +%Y%m%d)/
 
 # Backup logs
@@ -1822,10 +1822,10 @@ scp -r -i ~/.ssh/${app_name}-key.pem \
   ubuntu@YOUR_SERVER_IP:/var/log/${app_name} \
   ./backup-logs-$(date +%Y%m%d)/
 
-# Backup configuration
-scp -i ~/.ssh/${app_name}-key.pem \
-  ubuntu@YOUR_SERVER_IP:/home/ubuntu/.env \
-  ./backup-config-$(date +%Y%m%d)/.env
+# Backup instance data (CSV, preferences, uploads)
+scp -r -i ~/.ssh/${app_name}-key.pem \
+  ubuntu@YOUR_SERVER_IP:/opt/${app_name}/instance \
+  ./backup-config-$(date +%Y%m%d)/
 ```
 
 ### Delete AWS Resources
