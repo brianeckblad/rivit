@@ -1,9 +1,13 @@
 # AWS Deployment Architecture — Generic Reference
 
 A complete blueprint for deploying a Python/Flask web application on AWS using
-Ansible, EC2, S3, CloudWatch, Secrets Manager, CloudFront, and WAF. Every
-component, IAM permission, and configuration value described here maps directly
-to a working production deployment.
+Ansible, S3, CloudWatch, Secrets Manager, CloudFront, and WAF.
+
+> **This project uses a shared-server model.** There is no per-app EC2 instance.
+> The server is pre-existing and shared between multiple applications.
+> This document describes the AWS service layer, which is the same regardless
+> of whether you use a dedicated or shared server.
+> See [Architecture Reference](ARCHITECTURE.md) for the full deployment architecture.
 
 > Replace every `{app_name}` placeholder with your application name
 > (e.g. `myapp`). All other variables are defined in `deployment/group_vars/vault.yml`.

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Decommission -- App Resource Discovery and Teardown
+d# Decommission -- App Resource Discovery and Teardown
 # Supported shells: bash, zsh
 #
 # Interactive wrapper that checks for existing app-level AWS resources

@@ -1,17 +1,6 @@
 # Architecture Reference
 
-System design, component diagram, and technology choices.
-
----
-
-## Table of Contents
-
-- [Deployment Architecture](#deployment-architecture)
-- [Infrastructure Components](#infrastructure-components)
-- [Ansible Playbooks](#ansible-playbooks)
-- [Shell Scripts](#shell-scripts)
-- [Security Model](#security-model)
-- [Design Decisions](#design-decisions)
+System design, component diagram, and technology choices for the shared-server deployment model.
 
 ---
 
@@ -20,291 +9,159 @@ System design, component diagram, and technology choices.
 ### Overview
 
 ```
-Local Machine                     AWS Cloud
-┌─────────────────┐              ┌──────────────────────────────┐
-│                 │              │                              │
-│  Ansible        │──────────────▶│  EC2 Instance                │
-│  Playbooks      │   SSH        │  ┌────────────────────────┐  │
-│                 │              │  │ Application            │  │
-│  Templates      │              │  │ - Gunicorn workers     │  │
-│  Variables      │              │  │ - Systemd service      │  │
-│                 │              │  └────────────────────────┘  │
-└─────────────────┘              │  ┌────────────────────────┐  │
-                                 │  │ Nginx                  │  │
-                                 │  │ - Reverse proxy        │  │
-                                 │  │ - SSL termination      │  │
-                                 │  │ - Static files         │  │
-                                 │  └────────────────────────┘  │
-                                 │                              │
-                                 │  IAM Role                    │
-                                 │  - S3 access                 │
-                                 │  - Secrets Manager           │
-                                 │  - CloudWatch                │
-                                 └──────────────────────────────┘
-                                          │         │
-                    ┌─────────────────────┴─────────┴──────────┐
-                    │                                           │
-              ┌─────▼──────┐                          ┌────────▼────────┐
-              │ S3 Bucket  │                          │ CloudWatch      │
-              │ - Images   │                          │ - Logs          │
-              │ - Backups  │                          │ - Metrics       │
-              └────────────┘                          │ - Alarms        │
-                                                      └─────────────────┘
+Local Machine (Ansible)
+┌──────────────────────────────────────────┐
+│  deployment/                             │
+│  ├── playbooks/                          │
+│  ├── group_vars/vault.yml  (AES256)      │
+│  └── templates/  (Jinja2)               │
+└──────────────┬───────────────────────────┘
+               │
+       ┌───────┴───────────────────────────────────────────────┐
+       │                                                        │
+       ▼ AWS API calls (localhost)          ▼ SSH (shared server)
+┌──────────────────────────┐        ┌────────────────────────────────────────┐
+│  AWS                     │        │  Shared Server                         │
+│                          │        │                                        │
+│  S3 Bucket               │        │  /opt/{app_name}/   ← code + venv      │
+│  IAM Managed Policies    │        │  /var/log/{app_name}/  ← logs          │
+│  Secrets Manager         │        │                                        │
+│  CloudFront (optional)   │        │  Supervisor     ← per-app process mgr  │
+│  WAF (optional)          │        │  Nginx vhost    ← per-app reverse proxy │
+│  CloudWatch              │        │  SSL cert       ← per-domain           │
+└──────────────────────────┘        └────────────────────────────────────────┘
 ```
+
+**Two deployment phases:**
+
+1. **`provision-app.yml`** — runs locally, makes AWS API calls. Creates S3, IAM policies, Secrets Manager. Run once per application.
+2. **`setup.yml`** — SSHes into the shared server and deploys code + services. Safe to re-run.
 
 ---
 
 ## Infrastructure Components
 
-### EC2 Instance
-- **OS:** Ubuntu 22.04 LTS
-- **Type:** t3.micro (default, configurable)
-- **Python:** 3.10
-- **Services:** Gunicorn (4 workers), Nginx, CloudWatch agent
+### Shared Server
 
-### IAM Role
-- **S3 Access:** Read/write to application bucket
-- **Secrets Manager:** Read secrets
-- **CloudWatch:** Write logs and metrics
-- **SSM:** Remote management (optional)
+- **OS:** Ubuntu 22.04 LTS (pre-existing, not provisioned by this deployment)
+- **Python:** Configured by `python_version` in vault.yml (3.10 or 3.12)
+- **Services:** Gunicorn (configurable workers), Nginx, Supervisor
+- **Multiple apps:** Each app gets its own supervisor process, nginx vhost, and OS user
+
+### IAM Managed Policies (three per app)
+
+| Policy name | Permissions | Scope |
+|-------------|------------|-------|
+| `{app_name}-s3-access` | Read/write S3 | This app's bucket only |
+| `{app_name}-secrets-access` | Read secrets | `{app_name}/` prefix only |
+| `{app_name}-cloudwatch-access` | Write logs and metrics | All CloudWatch |
+
+Policies are attached to the existing shared server IAM role (`server_iam_role_name` in vault.yml).
 
 ### S3 Bucket
-- **Purpose:** Image storage, backups
-- **Versioning:** Enabled
-- **Lifecycle:** Configurable retention
 
-### Security Group
-- **Ingress:**
-  - Port 22 (SSH)
-  - Port 80 (HTTP)
-  - Port 443 (HTTPS)
-- **Egress:** All traffic (for package updates)
+- **Purpose:** Image storage, CSV backups, exports
+- **Versioning:** Enabled (point-in-time restore)
+- **Access:** Blocked from public; server accesses via IAM role (no keys on disk)
+- **Lifecycle:** Configurable version retention
+
+### AWS Secrets Manager
+
+All runtime configuration (Flask secret, eBay API keys, credentials) lives in one secret at `{app_name}/production`. The app reads it at startup via `get_secret()` in `app/config.py`. No `.env` file is needed on the server.
 
 ---
 
 ## Ansible Playbooks
 
-### Infrastructure Provisioning
+### AWS Resource Provisioning (localhost, idempotent)
 
-**Single-Purpose Playbooks:**
-- `create-s3-bucket.yml` - Create S3 bucket with versioning, encryption
-- `create-iam-role.yml` - Create IAM role with policies  
-- `create-security-group.yml` - Create security group (ports 22, 80, 443)
-- `create-ssh-key.yml` - Create SSH key pair
-- `launch-ec2-instance.yml` - Launch EC2 instance with existing resources
+| Playbook | Creates |
+|----------|---------|
+| `create-s3-bucket.yml` | S3 bucket with versioning and encryption |
+| `create-iam-policies.yml` | Three app-scoped IAM managed policies |
+| `setup-secrets-manager.yml` | Secrets Manager secret from vault |
+| `setup-cloudfront.yml` | CloudFront distribution (optional) |
+| `setup-waf.yml` | WAF web ACL (optional) |
+| `provision-app.yml` | Orchestrates all of the above |
 
-**Orchestration:**
-- `provision-infrastructure.yml` - Calls all playbooks above in order, plus CloudFront if `enable_cloudfront: true`
-- `provision-complete.yml` - Complete deployment (infrastructure + app + SSL + monitoring)
+### Application Deployment (remote server)
 
-### Application Deployment
+| Playbook | Does |
+|----------|------|
+| `setup.yml` | Full initial deploy: users, dirs, git, venv, supervisor, nginx, SSL |
+| `update.yml` | Pull code, update deps, reload nginx, restart app |
+| `setup-ssl.yml` | Obtain or renew Let's Encrypt certificate |
+| `setup-monitoring.yml` | Install CloudWatch agent, logrotate, monitoring cron |
+| `harden-permissions.yml` | Re-apply file permissions (app files only) |
 
-**`setup.yml`**
-- Updates system packages
-- Installs Python 3.10, dependencies
-- Clones repository
-- Creates virtual environment
-- Configures systemd service
-- Configures nginx
-- Applies security hardening
-- Starts services
+### Secret Management (localhost)
 
-**`update.yml`**
-- Pulls latest code
-- Updates dependencies
-- Restarts application
-- Validates service started
+| Playbook | Does |
+|----------|------|
+| `secret-sync.yml` | Push all vault values to Secrets Manager |
+| `secret-rotate.yml` | Stage a new secret as AWSPENDING |
+| `secret-promote.yml` | Promote AWSPENDING → AWSCURRENT |
 
-### SSL & Monitoring
+### Teardown (localhost)
 
-**`setup-ssl.yml`**
-- Installs certbot
-- Obtains Let's Encrypt certificate
-- Configures nginx for HTTPS
-- Sets up auto-renewal
+| Playbook | Removes |
+|----------|---------|
+| `delete-iam-policies.yml` | Three app-scoped IAM policies |
+| `delete-secrets-manager.yml` | Secrets Manager secret |
+| `delete-s3-bucket.yml` | S3 bucket and all contents |
+| `delete-cloudfront.yml` | CloudFront distribution |
+| `delete-waf.yml` | WAF web ACL |
+| `decommission.yml` | Orchestrates all of the above |
 
-**`setup-monitoring.yml`**
-- Installs CloudWatch agent
-- Configures log shipping
-- Configures metrics collection
-- Sets up log rotation
-- Creates monitoring scripts
+### Server-Admin Only (run with caution on shared server)
 
-### Secret Management
-
-**`secret-rotate.yml`**
-- Reads new secret from vault
-- Creates AWSPENDING version in AWS
-- Tracks rotation state
-
-**`secret-promote.yml`**
-- Promotes AWSPENDING → AWSCURRENT
-- Updates vault
-- Confirms with user
-
-**`secret-sync.yml`**
-- Syncs all vault secrets to AWS
-- Creates secret if doesn't exist
-
----
-
-## Shell Scripts
-
-**Only 3 scripts remain - all legitimate:**
-
-### `app-deploy.sh`
-**Type:** Wrapper around Ansible playbooks  
-**Purpose:** User-friendly interface  
-**Commands:** setup, update, logs, status, rollback  
-**Why kept:** Better UX than raw ansible-playbook
-
-### `infra-complete-setup.sh`
-**Type:** Orchestration wrapper  
-**Purpose:** Entry point for complete setup  
-**Why kept:** Validates prerequisites, provides guidance
-
-### `app-hard-restart.sh`
-**Type:** Server-side maintenance  
-**Purpose:** Force restart with cache clearing  
-**Runs:** ON the server (not from local)  
-**Why kept:** Complex server-side operations
+| Playbook | Does | Risk |
+|----------|------|------|
+| `security-hardening.yml` | OS hardening: SSH, sysctl, fail2ban, apt upgrade | Affects all apps — requires `-e server_hardening_confirmed=true` |
 
 ---
 
 ## Security Model
 
-### User Separation
+### User separation
 
 ```
-Admin User (ubuntu)
-├── SSH access (deployment)
+ubuntu (admin_user)
+├── SSH access and deployment
 ├── sudo privileges
-├── Owns application code
-└── Manages services
+├── Member of {app_name} group
+└── Does not run the application
 
-App User ({app_name})
-├── No SSH access
-├── No login shell
-├── Runs application
-└── Limited file access
+{app_user}  (e.g. myapp_runtime)
+├── No SSH access, no login shell
+├── Runs gunicorn workers
+├── Member of {app_name} group
+└── Limited file access (app dir + logs only)
 ```
 
-### File Permissions
+Each app on the shared server gets its own `{app_user}` and `{app_name}` group. File permissions use setgid (`2775`) on directories so new files inherit the group automatically.
 
-```
-/opt/{app_name}/                   # Mount point (ubuntu:{app_name}, setgid 2775)
-/opt/{app_name}/.venv/             # Virtual env (ubuntu:{app_name})
-/var/log/{app_name}/              # Logs ({app_name}:{app_name}, setgid 2775)
-/opt/{app_name}/instance/          # Data ({app_name}:{app_name}, setgid 2775)
-```
+### File permissions
 
-### Network Security
+| Path | Owner | Group | Mode | Purpose |
+|------|-------|-------|------|---------|
+| `/opt/{app_name}/` | `{app_user}` | `{app_name}` | `2775` | App code |
+| `/opt/{app_name}/instance/` | `{app_user}` | `{app_name}` | `2775` | Data |
+| `/var/log/{app_name}/` | `{app_user}` | `{app_name}` | `2775` | Logs |
 
-- Security group restricts ports
-- Nginx only exposes necessary routes
-- Application runs on localhost only (127.0.0.1:8000)
-- Nginx proxies to application
+### Secret management
 
-### Secret Management
+- Secrets in Ansible Vault (`group_vars/vault.yml`, AES256)
+- Synced to AWS Secrets Manager; app reads at startup
+- IAM managed policies (not static keys) — no AWS credentials on the server
+- No `.env` file on the server
 
-- Secrets in Ansible Vault (encrypted)
-- Synced to AWS Secrets Manager
-- IAM role for secure access
-- No secrets in code or config files
+### Network security (nginx per-vhost)
 
----
-
-## Design Decisions
-
-### Why Ansible?
-
-✅ **Idempotent** - Safe to run multiple times  
-✅ **Declarative** - Describe desired state  
-✅ **Agentless** - No agent on servers  
-✅ **Templates** - Configuration as code  
-✅ **Modules** - Built-in AWS support  
-
-### Why Not Shell Scripts?
-
-❌ **Not idempotent** - Can't run twice safely  
-❌ **Complex error handling** - Bash is error-prone  
-❌ **Hard to test** - No dry-run mode  
-❌ **Not maintainable** - Complex bash is unreadable  
-
-**Exception:** Thin wrappers for UX (app-deploy.sh)
-
-### Why Virtual Environment Outside App Folder?
-
-✅ **Security** - Nginx can't serve .venv files  
-✅ **Backup size** - Backups don't include 300MB of packages  
-✅ **Permissions** - Clear separation of concerns  
-✅ **Git cleanliness** - .venv outside git scope  
-
-**Location:** `/home/ubuntu/.venv/` (sibling to app folder)
-
-### Why Systemd Service?
-
-✅ **Auto-restart** - Survives crashes and reboots  
-✅ **Logging** - Integrated with journald  
-✅ **Resource limits** - CPU, memory limits  
-✅ **Security** - NoNewPrivileges, ProtectSystem  
-✅ **Standard** - Ubuntu/Linux standard  
-
-### Why Gunicorn + Nginx?
-
-**Gunicorn:**
-- ✅ WSGI server for Python
-- ✅ Multiple workers (4 workers = 4x throughput)
-- ✅ Graceful restarts
-
-**Nginx:**
-- ✅ Reverse proxy
-- ✅ Static file serving
-- ✅ SSL termination
-- ✅ Rate limiting
-- ✅ Security headers
-
-**Together:** Production-grade Python stack
-
-### Why IAM Role vs. Access Keys?
-
-✅ **No credentials on server** - IAM role uses temporary credentials  
-✅ **Automatic rotation** - AWS rotates automatically  
-✅ **No credential leakage** - Can't accidentally commit  
-✅ **Audit trail** - CloudTrail tracks all API calls  
-✅ **Best practice** - AWS recommended approach  
-
-### Why T3.micro?
-
-✅ **Cost-effective** - $7.50/month  
-✅ **Free tier** - 750 hours/month for 12 months  
-✅ **Sufficient** - 1GB RAM, 2 vCPUs for small apps  
-✅ **Burstable** - CPU credits for traffic spikes  
-✅ **Upgradeable** - Easy to resize later  
-
----
-
-## Statistics
-
-### Scripts Removed
-- **Before:** 20 shell scripts
-- **After:** 3 shell scripts (wrappers only)
-- **Reduction:** 85%
-
-### Playbooks Created
-- **Before:** 6 playbooks
-- **After:** 11 playbooks
-- **Increase:** 83%
-
-### Code
-- **Shell:** 1500 lines → 200 lines (-87%)
-- **Ansible:** 600 lines → 1200 lines (+100%)
-
-### Result
-✅ **More maintainable** (Ansible YAML vs bash)  
-✅ **More reliable** (idempotent operations)  
-✅ **More professional** (infrastructure-as-code)  
-✅ **Better tested** (can run in check mode)  
+- `server_tokens off` — hides nginx version
+- Security headers: HSTS, CSP, X-Frame-Options, X-Content-Type-Options
+- Rate limiting: per-endpoint zones (login, API, general)
+- Gunicorn bound to `127.0.0.1:{gunicorn_port}` — never exposed directly
 
 ---
 
@@ -312,17 +169,16 @@ App User ({app_name})
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Application** | Python 3.10, Flask | Web framework |
-| **WSGI Server** | Gunicorn (4 workers) | Python app server |
-| **Web Server** | Nginx | Reverse proxy, static files |
-| **Process Manager** | Systemd | Service management |
-| **OS** | Ubuntu 22.04 LTS | Operating system |
-| **Cloud** | AWS EC2 (t3.micro) | Compute |
-| **Storage** | AWS S3 | Object storage |
-| **Secrets** | AWS Secrets Manager | Secret storage |
-| **Monitoring** | AWS CloudWatch | Logs and metrics |
-| **Deployment** | Ansible 2.9+ | Infrastructure automation |
-| **SSL** | Let's Encrypt (certbot) | Free SSL certificates |
+| Application | Python 3.10+, Flask | Web framework |
+| WSGI server | Gunicorn (configurable workers) | Python app server |
+| Web server | Nginx (per-app vhost) | Reverse proxy, SSL, static files |
+| Process manager | Supervisor (per-app conf.d) | Auto-restart, log capture |
+| OS | Ubuntu 22.04 LTS (shared) | Server operating system |
+| Storage | AWS S3 | Images, backups, exports |
+| Secrets | AWS Secrets Manager | Runtime configuration |
+| Monitoring | AWS CloudWatch (per-app config fragment) | Logs and metrics |
+| SSL | Let's Encrypt (certbot, per-domain) | Free SSL certificates |
+| Deployment | Ansible 2.9+ | Infrastructure automation |
 
 ---
 
@@ -330,62 +186,45 @@ App User ({app_name})
 
 ```
 deployment/
-├── playbooks/              # Ansible playbooks
+├── playbooks/              # Ansible playbooks (one concern per file)
+│   ├── provision-app.yml   # Orchestrator: provision all AWS resources
 │   ├── create-s3-bucket.yml
-│   ├── create-iam-role.yml
-│   ├── create-security-group.yml
-│   ├── create-ssh-key.yml
-│   ├── launch-ec2-instance.yml
-│   ├── provision-infrastructure.yml
-│   ├── provision-complete.yml
-│   ├── setup.yml
-│   ├── update.yml
-│   ├── setup-ssl.yml
-│   ├── setup-monitoring.yml
+│   ├── create-iam-policies.yml
+│   ├── setup-secrets-manager.yml
 │   ├── setup-cloudfront.yml
 │   ├── setup-waf.yml
-│   ├── setup-secrets-manager.yml
-│   └── secret-*.yml
+│   ├── setup.yml           # Full server deploy
+│   ├── update.yml          # Code update + restart
+│   ├── setup-ssl.yml
+│   ├── setup-monitoring.yml
+│   ├── harden-permissions.yml
+│   ├── harden-permissions-tasks.yml  # Shared task include
+│   ├── security-hardening.yml  # SERVER-ADMIN ONLY
+│   ├── decommission.yml    # Full teardown orchestrator
+│   ├── delete-*.yml        # Individual resource deletion
+│   └── secret-*.yml        # Secret rotation helpers
 │
-├── templates/              # Jinja2 templates
-│   ├── nginx.conf.j2
-│   ├── systemd-with-validation.service.j2
-│   ├── env.j2
-│   └── cloudwatch-config.json.j2
+├── templates/              # Jinja2 config templates
+│   ├── nginx.conf.j2       # Per-app nginx vhost
+│   ├── supervisor.conf.j2  # Per-app supervisor process
+│   ├── logrotate.conf.j2   # Per-app log rotation
+│   ├── cloudwatch-config.json.j2    # Per-app CloudWatch fragment
+│   └── log-monitor.sh.j2   # Per-app log monitoring script
 │
-├── group_vars/            # Ansible variables
-│   ├── all.yml           # Empty stub (all config in vault.yml)
-│   └── vault.yml         # Encrypted — all configuration
+├── group_vars/
+│   ├── all.yml             # Empty stub (all config in vault.yml)
+│   └── vault.yml           # AES256 encrypted — single source of truth
 │
-├── inventories/           # Server lists
-│   └── production/
-│       └── hosts.yml
+├── inventories/
+│   └── hosts.yml           # Shared server IP and SSH key (gitignored)
 │
-├── scripts/               # Thin wrappers only
-│   ├── app-deploy.sh
-│   ├── infra-complete-setup.sh
-│   └── lib/
+├── scripts/
+│   ├── app-deploy.sh       # CLI wrapper for common playbook operations
+│   ├── infra-complete-setup.sh  # Full setup in one command
+│   ├── decommission.sh     # Interactive teardown with confirmation
+│   └── load-vars.sh        # Exports vault variables to shell
 │
-└── guides/                # Documentation
-    ├── QUICKSTART.md
-    ├── MANUAL_DEPLOYMENT.md
-    ├── OPERATIONS.md
-    └── ...
+└── docs/
+    ├── guides/             # Numbered step-by-step guides (Ch. 1–13)
+    └── reference/          # Background and architecture references
 ```
-
----
-
-## Summary
-
-**Architecture:** Modern, secure, scalable Python web application deployment on AWS
-
-**Tooling:** Ansible-first with minimal shell scripts
-
-**Security:** IAM roles, encrypted secrets, user separation, security hardening
-
-**Maintenance:** Easy updates, monitoring, backup, secret rotation
-
-**Cost:** ~$10-15/month (~$2/month on free tier)
-
-**Result:** Production-ready deployment following AWS and Python best practices
-

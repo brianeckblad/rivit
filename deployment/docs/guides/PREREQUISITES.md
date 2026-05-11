@@ -1,14 +1,28 @@
 # Chapter 1: Prerequisites
 
-Set up your AWS account, local tools, and configuration files before running any playbook.
+Set up your local tools, AWS account, and configuration files before running any playbook.
 
 ---
 
-## Local Tools
+## User and identity model
+
+Three distinct identities are involved in a deployment. Understanding these upfront avoids confusion later.
+
+| Identity | Scope | Who creates it |
+|----------|-------|----------------|
+| **AWS deployer IAM user** (`{app_name}-deployer`) | Per-app. Has S3, IAM, and Secrets Manager permissions scoped to this app. Used by the person running Ansible. | `create-iam-user.yml` |
+| **OS admin user** (`ubuntu` or similar) | Shared across all apps on the server. Used for SSH access. | Pre-existing on the shared server. |
+| **OS runtime user** (`{app_name}_runtime`) | Per-app. Unprivileged OS user that runs gunicorn. | `setup.yml` |
+
+Each app on the shared server gets its own AWS deployer and OS runtime user. This limits blast radius if credentials are compromised — one app's leaked key cannot touch another app's S3 bucket or secrets.
+
+---
+
+## Local tools
 
 | Tool | Purpose | Minimum version |
 |------|---------|----------------|
-| Python 3 | Ansible runtime, deployment scripts | 3.8+ |
+| Python 3 | Ansible runtime, deployment scripts | 3.10+ |
 | Ansible | Playbook automation | 2.9+ |
 | AWS CLI | Create S3, IAM, Secrets Manager resources | 2.x |
 | Git | Source control | 2.x |
@@ -32,19 +46,21 @@ ansible-galaxy collection install -r requirements.yml --upgrade
 
 ---
 
-## AWS Account Setup
+## AWS account setup
 
-**If you already have an AWS account and CLI configured, skip to [Deployment Configuration](#deployment-configuration).**
+**If you already have an AWS account and CLI configured with admin-level credentials, skip to [Bootstrap credentials](#bootstrap-credentials).**
 
-### Step 1: Create AWS account
+### Create an AWS account
 
-Go to [aws.amazon.com](https://aws.amazon.com) → **Create an AWS Account**. Note your **AWS Account ID** from [Account settings](https://console.aws.amazon.com/billing/home#/account).
+Go to [aws.amazon.com](https://aws.amazon.com) → **Create an AWS Account**.
 
-> **Best practice:** Never use the root account for daily work. You will create a limited deployer user below.
+> Never use the root account for daily work. You will create a scoped deployer user below and then delete the root access key.
 
-### Step 2: Bootstrap with temporary root credentials
+### Bootstrap credentials
 
-1. Sign in to the AWS Console as root
+You need temporary admin-level AWS credentials to create the deployer IAM user. Use root credentials or an existing admin-level IAM user.
+
+1. Sign in to the AWS Console as root (or admin)
 2. Click your account name (top-right) → **Security credentials**
 3. Under **Access keys**, click **Create access key** and save the values
 
@@ -53,34 +69,25 @@ aws configure
 # Enter: Access Key ID, Secret Access Key, region (e.g. us-east-2), format: json
 
 aws sts get-caller-identity
-# Arn should include :root
+# Confirm the Arn includes :root or an admin user
 ```
-
-### Step 3: Create a limited deployer user
-
-```bash
-cd deployment
-ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pass
-```
-
-This creates `{app_name}-deployer` with these permissions:
-`AmazonS3FullAccess`, `IAMFullAccess`, `SecretsManagerReadWrite`, `CloudWatchLogsFullAccess`
-
-Save the Access Key ID and Secret Key printed at the end.
-
-```bash
-aws configure
-# Enter the deployer user credentials
-
-aws sts get-caller-identity
-# Arn should show: arn:aws:iam::ACCOUNT_ID:user/{app_name}-deployer
-```
-
-Then delete the temporary root access key in the AWS Console.
 
 ---
 
-## Deployment Configuration
+## Vault password file
+
+Create the vault password file before anything else — it is needed to encrypt and decrypt all secrets.
+
+```bash
+echo "your-secure-passphrase" > ~/.vault_pass
+chmod 600 ~/.vault_pass
+```
+
+Save this passphrase in a password manager. If it is lost, the encrypted vault cannot be recovered.
+
+---
+
+## Deployment configuration
 
 ### Step 1: Copy the vault template
 
@@ -97,7 +104,7 @@ Edit `group_vars/vault.yml`. Every variable is required unless marked optional.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `app_name` | Short technical identifier. Used in paths, service names, group names. No spaces. | `myapp` |
+| `app_name` | Short technical identifier. Used in paths, service names, and IAM resource names. No spaces. | `myapp` |
 | `app_display_name` | Human-readable name shown in logs and supervisor output. | `My Inventory App` |
 | `server_name` | Fully qualified domain name for nginx and SSL. | `myapp.example.com` |
 | `ssl_email` | Email address for Let's Encrypt certificate renewal notifications. | `you@example.com` |
@@ -106,21 +113,21 @@ Edit `group_vars/vault.yml`. Every variable is required unless marked optional.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `server_host` | SSH hostname or IP address of the shared server. Find this in EC2 Console under the instance's **Public IPv4 address**. | `13.58.136.177` |
-| `ssh_key_file` | Path to the SSH private key (`.pem` file) used to connect to the server. | `~/.ssh/myapp-key.pem` |
-| `admin_user` | OS user that owns the application files and runs git commands. Usually `ubuntu` on AWS. | `ubuntu` |
-| `app_user` | Dedicated unprivileged user that runs gunicorn. Created by `setup.yml`. | `myapp_runtime` |
+| `server_host` | SSH hostname or IP address of the shared server. | `13.58.136.177` |
+| `ssh_key_file` | Path to the SSH private key (`.pem` file) used to connect to the server. | `~/.ssh/shared-server.pem` |
+| `admin_user` | OS user used for SSH. Pre-existing on the shared server — usually `ubuntu` on AWS. Shared across all apps. | `ubuntu` |
+| `app_user` | Dedicated per-app OS user that runs gunicorn. Created by `setup.yml` if it does not exist. | `myapp_runtime` |
 
 #### AWS credentials and resources
 
 | Variable | Description | How to get it |
 |----------|-------------|---------------|
-| `aws_region` | AWS region where all resources are created. | Choose based on your users' geography (e.g. `us-east-2` for Ohio). |
-| `s3_bucket_name` | S3 bucket for app images and CSV backups. Must be globally unique across all AWS accounts. | Choose a name like `yourname-appname-2026`. |
+| `aws_region` | AWS region where all resources are created. | Choose based on your users' geography (e.g. `us-east-2`). |
+| `s3_bucket_name` | S3 bucket for app images and CSV backups. Must be globally unique. | Choose a name like `yourname-appname-2026`. |
 | `s3_folder` | Top-level prefix inside the bucket. | Use `data` (default). |
-| `secret_name` | AWS Secrets Manager secret path. Auto-derived as `{app_name}/production`. | Leave as the default: `"{{ app_name }}/production"` |
-| `sns_topic_arn` | Optional SNS topic for error alerts. | Leave empty if not using alerts. |
-| `server_iam_role_name` | IAM instance role currently attached to the shared EC2 server. `provision-app.yml` attaches this app's IAM policies to that role. Find it in EC2 Console → Instances → your server → **IAM role**. | `shared-server-ec2-role` or `""` to attach manually. |
+| `secret_name` | AWS Secrets Manager secret path. | Leave as the default: `"{{ app_name }}/production"` |
+| `sns_topic_arn` | Optional SNS topic for error alerts. | Leave empty if not using alerts: `""` |
+| `server_iam_role_name` | IAM instance role currently attached to the shared EC2 server. `provision-app.yml` attaches this app's IAM policies to that role automatically. Find it in: EC2 Console → Instances → your server → **IAM role**. Leave empty (`""`) to skip auto-attach and attach manually. | `shared-server-role` |
 
 #### Git repository
 
@@ -128,72 +135,61 @@ Edit `group_vars/vault.yml`. Every variable is required unless marked optional.
 |----------|-------------|---------|
 | `git_repo_url` | HTTPS URL of the application repository. | `https://github.com/user/myapp.git` |
 | `git_branch` | Branch to deploy. | `main` |
-| `git_token` | GitHub personal access token with `repo` scope. Needed to clone a private repository. Create at: GitHub → Settings → Developer settings → Personal access tokens. | `ghp_xxxxxxxxxxxx` |
+| `git_token` | GitHub personal access token with `repo` scope. Required for private repositories. Create at: GitHub → Settings → Developer settings → Personal access tokens. | `ghp_xxxxxxxxxxxx` |
 
 #### Application credentials
 
 | Variable | Description | Notes |
 |----------|-------------|-------|
 | `app_default_username` | Default login username created on first run. | `admin` |
-| `app_default_password` | Default login password. Change this — do not use `admin`. | Min 12 chars, include symbols. |
-| `users` | Colon-separated list of `username:password` pairs for additional accounts. | `alice:Pass1! brian:Pass2!` |
+| `app_default_password` | Default login password. **Do not use a weak password.** | Min 12 chars, include symbols. |
+| `users` | Space-separated `username:password` pairs for additional accounts. | `alice:Pass1! brian:Pass2!` |
 
 #### Flask runtime
 
 | Variable | Description | Notes |
 |----------|-------------|-------|
-| `secret_key` | Flask session signing key. Must be random and secret. | Generate: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
-| `flask_env` | Flask environment. Always `production` on the server. | Leave as `production`. |
+| `secret_key` | Flask session signing key. Must be random and kept secret. | Generate: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `flask_env` | Flask environment. | Always `production` on the server. |
 
-#### Port allocation (critical for shared servers)
+#### Port allocation (critical on shared servers)
 
 | Variable | Description | Notes |
 |----------|-------------|-------|
-| `gunicorn_port` | Port gunicorn listens on (localhost only). **Must be unique across all apps on this server.** | Assign sequentially: `8000`, `8001`, `8002`, … |
+| `gunicorn_port` | Port gunicorn listens on (localhost only). **Must be unique across all apps on this server.** | Assign sequentially: `8000`, `8001`, `8002`, … Check with: `ss -tlnp | grep 80` on the server. |
+| `gunicorn_workers` | Number of gunicorn worker processes. | `4` (default) |
+| `gunicorn_timeout` | Request timeout in seconds. | `120` (default) |
 
-> When adding a second app to the same server, the only field that changes in vault.yml is `gunicorn_port`. Assign the next unused port.
+> When adding a second app to the same server, assign the next unused port. All other server-connection fields stay the same.
 
 #### CloudFront CDN (optional)
 
 | Variable | Description | Notes |
 |----------|-------------|-------|
 | `enable_cloudfront` | Set to `true` to create a CloudFront distribution. | `false` by default. |
-| `cloudfront_domain` | Filled in after running `setup-cloudfront.yml`. Leave empty until then. | e.g. `d111111abcdef8.cloudfront.net` |
-| `app_secret_token` | Shared random token between nginx and the app. | Generate: `openssl rand -hex 32` |
+| `cloudfront_domain` | Filled in after running `setup-cloudfront.yml`. Leave empty until then: `""` | e.g. `d111111abcdef8.cloudfront.net` |
+| `app_secret_token` | Shared random token between nginx and CloudFront. Required if `enable_cloudfront: true`. | Generate: `openssl rand -hex 32`. Leave `""` if not using CloudFront. |
 
 #### eBay API (if using eBay integration)
 
 | Variable | Description | Where to get it |
 |----------|-------------|-----------------|
-| `ebay_environment` | `production` or `sandbox` | `production` for live sales. |
+| `ebay_environment` | `production` or `sandbox`. | Use `production` for live sales. |
 | `ebay_production_dev_id` | eBay Developer Program Dev ID. | [eBay Developers Program](https://developer.ebay.com) → My Account → Application Keys |
 | `ebay_production_cert_id` | eBay Cert ID (client secret). | Same page as Dev ID. |
 | `ebay_production_app_id` | eBay App ID (client ID). | Same page as Dev ID. |
-| `ebay_production_token` | Per-user eBay auth token. | Generated via the eBay token flow. See `app/scripts/util-generate-ebay-token.sh`. |
+| `ebay_production_token` | Per-user eBay auth token. | Generated via the eBay token flow. See `scripts/util-generate-ebay-token.sh`. |
 | `ebay_verification_token` | Token for the eBay Marketplace Account Deletion webhook. | eBay Developer Console → Notifications. |
 
-#### Tuning (usually left at defaults)
+#### Logging and retention
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `gunicorn_workers` | `4` | Number of gunicorn worker processes. Increase for high-traffic apps. |
-| `gunicorn_timeout` | `120` | Request timeout in seconds. |
 | `log_retention_days` | `20` | How many rotated log files to keep. |
 | `log_max_size` | `10M` | Rotate log when it exceeds this size. |
 | `backup_retention_days` | `30` | Delete S3 snapshots older than this many days. |
 
----
-
-### Step 3: Create a vault password file
-
-```bash
-echo "your-secure-passphrase" > ~/.vault_pass
-chmod 600 ~/.vault_pass
-```
-
-Save this passphrase in a password manager. If lost, the encrypted vault cannot be recovered.
-
-### Step 4: Encrypt the vault
+### Step 3: Encrypt the vault
 
 ```bash
 cd deployment
@@ -207,22 +203,48 @@ head -1 group_vars/vault.yml
 # Should output: $ANSIBLE_VAULT;1.1;AES256
 ```
 
+### Step 4: Create the per-app AWS deployer user
+
+With your bootstrap (root or admin) AWS credentials still active, run:
+
+```bash
+cd deployment
+ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pass
+```
+
+This creates `{app_name}-deployer` with these permissions:
+`AmazonS3FullAccess`, `IAMFullAccess`, `SecretsManagerReadWrite`, `CloudWatchLogsFullAccess`
+
+The Access Key ID and Secret Key are printed at the end. Save them in your password manager.
+
+### Step 5: Switch to the deployer credentials
+
+```bash
+aws configure
+# Enter the {app_name}-deployer credentials
+
+aws sts get-caller-identity
+# Arn should show: arn:aws:iam::ACCOUNT_ID:user/{app_name}-deployer
+```
+
+Then **delete the temporary root access key** in the AWS Console. All subsequent playbooks run as the deployer user.
+
 ---
 
-## Server Inventory
+## Server inventory
 
-Copy the example inventory and set the server IP:
+Copy the example inventory and set the server details:
 
 ```bash
 cd deployment
 cp inventories/hosts.yml.example inventories/hosts.yml
 ```
 
-Edit `inventories/hosts.yml` and set `ansible_host` to the value of `server_host` from vault.yml:
+Edit `inventories/hosts.yml` and set `ansible_host` to match `server_host` from vault.yml:
 
 ```yaml
-ansible_host: 13.58.136.177          # your server_host value
-ansible_ssh_private_key_file: ~/.ssh/your-key.pem   # your ssh_key_file value
+ansible_host: 13.58.136.177                          # your server_host value
+ansible_ssh_private_key_file: ~/.ssh/shared-server.pem  # your ssh_key_file value
 ```
 
 Test connectivity:
@@ -234,7 +256,7 @@ ansible all -m ping --vault-password-file ~/.vault_pass
 
 ---
 
-## Load Variables for CLI Use
+## Load variables for CLI use
 
 Many shell commands in these guides use variables from vault.yml. Load them once per terminal session:
 
@@ -247,22 +269,23 @@ echo $aws_region    # e.g., us-east-2
 
 ---
 
-## Verification Checklist
+## Verification checklist
 
 Run these checks before continuing. Every command should succeed.
 
 ```bash
-# AWS credentials
+# AWS credentials (deployer user)
 aws sts get-caller-identity
+# Arn should show: arn:aws:iam::ACCOUNT_ID:user/{app_name}-deployer
 
 # Local tools
 ansible --version       # 2.9 or higher
-python3 --version       # 3.8 or higher
+python3 --version       # 3.10 or higher
 
 # Vault is encrypted
 head -1 deployment/group_vars/vault.yml   # $ANSIBLE_VAULT;1.1;AES256
 
-# Vault password file exists
+# Vault password file exists and is private
 ls -la ~/.vault_pass                      # -rw-------
 
 # Server reachable
@@ -282,6 +305,7 @@ cd deployment && ansible all -m ping --vault-password-file ~/.vault_pass
 | `Cannot access vault.yml` | `chmod 600 ~/.vault_pass` |
 | Vault shows plaintext | `ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass` |
 | `host unreachable` | Confirm `server_host` in vault.yml and `ansible_host` in hosts.yml match |
+| `gunicorn_port already in use` | SSH to server, run `ss -tlnp | grep 80xx`, assign the next free port |
 
 ---
 
