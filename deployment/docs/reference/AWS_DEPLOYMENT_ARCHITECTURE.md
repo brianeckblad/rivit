@@ -1,7 +1,7 @@
 # AWS Deployment Architecture — Generic Reference
 
 A complete blueprint for deploying a Python/Flask web application on AWS using
-Ansible, S3, CloudWatch, Secrets Manager, CloudFront, and WAF.
+Ansible, S3, CloudWatch, Secrets Manager, and WAF.
 
 > **This project uses a shared-server model.** There is no per-app EC2 instance.
 > The server is pre-existing and shared between multiple applications.
@@ -66,18 +66,17 @@ Local Machine (Ansible)
 │          │   exports)   │  │  secrets)  │  │   alarms)       │  │
 │          └──────────────┘  └────────────┘  └────────────────┘   │
 │                                                                   │
-│  ┌───────────────────┐   ┌──────────────────────────────────┐    │
-│  │  CloudFront CDN   │   │  AWS WAF Web ACL                 │    │
-│  │  (optional)       │   │  (optional, attaches to CF/ALB)  │    │
-│  └───────────────────┘   └──────────────────────────────────┘    │
+│  ┌──────────────────────────────────┐    │
+│  │  AWS WAF Web ACL                 │    │
+│  │  (optional, attaches to ALB)     │    │
+│  └──────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Request flow
 
 ```
-Browser → CloudFront (optional CDN/WAF edge) → EC2 Security Group (443/80)
-       → Nginx (SSL termination, static files, reverse proxy)
+Browser → Nginx (SSL termination, static files, reverse proxy)
        → Gunicorn (WSGI, 4 workers) → Flask application
        → S3 (object storage) / Secrets Manager (runtime config)
        → CloudWatch (all logs and metrics forwarded)
@@ -95,7 +94,6 @@ Browser → CloudFront (optional CDN/WAF edge) → EC2 Security Group (443/80)
 | **Secrets Manager** | Runtime secrets (API keys, passwords) | Yes |
 | **CloudWatch** | Logs, metrics, alarms | Yes |
 | **SNS** | Alert delivery (email/SMS) | Recommended |
-| **CloudFront** | CDN — static assets, global edge caching | Optional |
 | **WAF** | Web Application Firewall — attack filtering | Optional |
 | **EBS** | Application data volume (separate from root) | Yes |
 
@@ -396,26 +394,12 @@ Adjust via `cloudwatch_log_retention_days` in vault.yml.
 
 ---
 
-## CDN and WAF (Optional)
-
-### CloudFront CDN
-
-Enable by setting `enable_cloudfront: true` in vault.yml, then run
-`ansible-playbook playbooks/setup-cloudfront.yml`.
-
-What it provisions:
-- CloudFront distribution pointed at the EC2 origin (or ALB)
-- HTTP → HTTPS redirect at the edge
-- Cache behavior for `/static/*` (long TTL) and `/*` (short TTL)
-- Gzip compression
-- Built-in AWS Shield Standard (DDoS protection at no extra cost)
-
-Cost: ~$0.085/GB transferred (varies by region).
+## WAF (Optional)
 
 ### AWS WAF
 
 Enable by running `ansible-playbook playbooks/setup-waf.yml`. Associates
-with the CloudFront distribution (if enabled) or directly with an ALB.
+directly with an ALB or can be used standalone.
 
 AWS Managed Rule Groups attached:
 - `AWSManagedRulesCommonRuleSet` — OWASP Top 10 (SQLi, XSS, etc.)
@@ -448,7 +432,6 @@ Cost: ~$5/month base + ~$1/month per rule group.
 | `create-s3-bucket.yml` | S3 bucket with versioning, encryption, access block |
 | `create-iam-policies.yml` | Three app-scoped IAM managed policies |
 | `setup-secrets-manager.yml` | Secrets Manager secret (synced from vault) |
-| `setup-cloudfront.yml` | CloudFront distribution (optional) |
 | `setup-waf.yml` | WAF Web ACL (optional) |
 | `provision-app.yml` | Orchestrates all of the above in order |
 
@@ -465,12 +448,11 @@ Cost: ~$5/month base + ~$1/month per rule group.
 |----------|-------------|
 | `setup-monitoring.yml` | CloudWatch agent (per-app config fragment), logrotate, monitoring cron |
 | `setup-ssl.yml` | Obtain or renew Let's Encrypt certificate for this app's domain |
-| `setup-cloudfront.yml` | CloudFront distribution |
 | `setup-waf.yml` | WAF Web ACL + managed rule groups |
 | `secret-rotate.yml` | Create AWSPENDING version in Secrets Manager |
 | `secret-promote.yml` | Promote AWSPENDING → AWSCURRENT |
 | `secret-sync.yml` | Full vault → Secrets Manager sync |
-| `decommission.yml` | Full per-app teardown (S3, IAM policies, Secrets Manager, CloudFront, WAF) |
+| `decommission.yml` | Full per-app teardown (S3, IAM policies, Secrets Manager, WAF) |
 
 ### Standard deployment sequence
 
@@ -578,7 +560,6 @@ All of these are set in `deployment/group_vars/vault.yml`.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `enable_cloudfront` | `false` | Deploy CloudFront CDN |
 | `enable_waf` | `false` | Deploy WAF Web ACL |
 | `sns_topic_arn` | `""` | SNS topic for CloudWatch alarm delivery |
 | `cloudwatch_log_retention_days` | `30` | Log retention in CloudWatch |
@@ -588,16 +569,15 @@ All of these are set in `deployment/group_vars/vault.yml`.
 
 ## Cost Estimate
 
+Costs for the AWS resources managed by this deployment (not EC2 compute, which is shared).
+
 | Service | Monthly cost (approximate) |
 |---------|---------------------------|
-| EC2 t3.micro | $7.50 (free tier: $0 for 12 months) |
-| EBS (2 × 20 GB gp3) | $3.20 |
 | S3 (first 5 GB free; typical ~$1–2) | $1–2 |
 | Secrets Manager (1 secret) | $0.40 |
 | CloudWatch (logs + metrics) | $1–3 |
 | Let's Encrypt SSL | Free |
-| **Base total** | **~$13–16/month** |
-| CloudFront (optional, per GB) | ~$0.085/GB |
+| **Base total** | **~$2–5/month** |
 | WAF (optional) | ~$5 + $1–2/rule |
 
 Free-tier eligible for the first 12 months: EC2 t3.micro (750 hrs/month), S3

@@ -25,8 +25,7 @@ Backups, restarts, scaling, log management, and troubleshooting.
 
 - [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md)
 - [Chapter 8: Security Hardening](SECURITY_HARDENING.md)
-- [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md)
-- [Chapter 10: CloudFront CDN](CLOUDFRONT_CDN.md)
+- [Chapter 10: WAF Configuration](WAF_CONFIGURATION.md)
 
 ---
 
@@ -84,9 +83,6 @@ curl https://yourdomain.com/health
 # Or via script
 cd deployment
 ./scripts/app-deploy.sh status
-
-# Via AWS (if behind CloudFront)
-curl https://your-cloudfront-domain.cloudfront.net/health
 ```
 
 **What to check:**
@@ -201,19 +197,19 @@ aws cloudwatch describe-alarms --alarm-names HighErrorRate HighCPU DiskSpaceCrit
 
 ```bash
 # Get dashboard definition
-aws cloudwatch get-dashboard --dashboard-name app-item-listing-tool
+aws cloudwatch get-dashboard --dashboard-name {app_name}
 
 # Export metrics for last hour
-for metric in Requests 4xxErrorRate 5xxErrorRate; do
+for metric in CPUUtilization MemoryUtilization; do
   echo "=== $metric ==="
   aws cloudwatch get-metric-statistics \
-    --namespace AWS/CloudFront \
+    --namespace CWAgent \
     --metric-name $metric \
-    --dimensions Name=DistributionId,Value=E123456EXAMPLE \
+    --dimensions Name=InstanceId,Value=$instance_id \
     --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
     --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
     --period 300 \
-    --statistics Sum
+    --statistics Average
 done
 ```
 
@@ -838,11 +834,6 @@ sudo supervisorctl restart {app_name}
 - Disk space
 - Network I/O
 
-**CloudFront Metrics:**
-- Total requests
-- Cache hit rate
-- Error rate
-- Bytes downloaded
 
 **WAF Metrics:**
 - Allowed requests
@@ -1257,60 +1248,6 @@ aws cloudwatch get-metric-statistics \
   --statistics Average
 ```
 
-### CloudFront Operations
-
-#### Get Distribution Details
-
-```bash
-# List distributions
-aws cloudfront list-distributions --query 'DistributionList.Items[*].[Id,DomainName,Status]' --output table
-
-# Get distribution config
-aws cloudfront get-distribution --id E123456EXAMPLE
-```
-
-#### Invalidate Cache
-
-```bash
-# Invalidate all files
-aws cloudfront create-invalidation \
-  --distribution-id E123456EXAMPLE \
-  --paths "/*"
-
-# Invalidate specific paths
-aws cloudfront create-invalidation \
-  --distribution-id E123456EXAMPLE \
-  --paths "/images/*" "/css/*"
-
-# Check invalidation status
-aws cloudfront get-invalidation \
-  --distribution-id E123456EXAMPLE \
-  --id I123456EXAMPLE
-```
-
-#### Monitor CloudFront Metrics
-
-```bash
-# Request count
-aws cloudwatch get-metric-statistics \
-  --namespace AWS/CloudFront \
-  --metric-name Requests \
-  --dimensions Name=DistributionId,Value=E123456EXAMPLE \
-  --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
-  --period 300 \
-  --statistics Sum
-
-# Cache hit rate
-aws cloudwatch get-metric-statistics \
-  --namespace AWS/CloudFront \
-  --metric-name CacheHitRate \
-  --dimensions Name=DistributionId,Value=E123456EXAMPLE \
-  --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
-  --period 300 \
-  --statistics Average
-```
 
 ### Secrets Manager Operations
 
@@ -1349,15 +1286,15 @@ aws secretsmanager describe-secret --secret-id app-item-listing-tool/production
 ```bash
 # Get WAF Web ACL
 aws wafv2 get-web-acl \
-  --name app-item-listing-tool-waf \
-  --scope CLOUDFRONT \
+  --name {app_name}-waf \
+  --scope REGIONAL \
   --id <web-acl-id>
 
 # Get sampled requests
 aws wafv2 get-sampled-requests \
   --web-acl-arn <web-acl-arn> \
   --rule-metric-name ALL \
-  --scope CLOUDFRONT \
+  --scope REGIONAL \
   --time-window StartTime=$(date -d '1 hour ago' +%s),EndTime=$(date +%s) \
   --max-items 100
 ```
@@ -1367,8 +1304,8 @@ aws wafv2 get-sampled-requests \
 ```bash
 # Update rate limit rule
 aws wafv2 update-web-acl \
-  --name app-item-listing-tool-waf \
-  --scope CLOUDFRONT \
+  --name {app_name}-waf \
+  --scope REGIONAL \
   --id <web-acl-id> \
   --lock-token <lock-token> \
   --rules file://waf-rules.json
@@ -1565,7 +1502,7 @@ git log --oneline -5
 **DDoS Attack:**
 ```bash
 # Check WAF blocks
-aws wafv2 get-sampled-requests --web-acl-arn <arn> --scope CLOUDFRONT
+aws wafv2 get-sampled-requests --web-acl-arn <arn> --scope REGIONAL
 
 # If legitimate traffic blocked, adjust WAF rules
 # If attack, rate limits will automatically protect
@@ -1595,10 +1532,6 @@ aws ce get-cost-and-usage \
 - Use a smaller instance type if sufficient
 - Stop instances during non-business hours (if acceptable)
 
-**CloudFront:**
-- Optimize cache TTLs
-- Use appropriate price class
-- Compress content
 
 **S3:**
 - Use lifecycle policies
@@ -1693,11 +1626,6 @@ sudo grep "192.168.1.100" /var/log/{app_name}/app.log | grep -E "BLOCKED|ATTACK"
 ./scripts/app-deploy.sh restart
 ```
 
-### Clear CloudFront Cache
-
-```bash
-aws cloudfront create-invalidation --distribution-id E123456EXAMPLE --paths "/*"
-```
 
 ### Scale Up Instance
 

@@ -272,10 +272,10 @@ def is_attack_attempt(request_path, query_string=''):
 
 def get_real_ip(request):
     """
-    Get the real client IP, accounting for proxies and CloudFront.
+    Get the real client IP, accounting for reverse proxies.
 
     Priority order:
-    1. X-Forwarded-For (first IP, from CloudFront/proxy)
+    1. X-Forwarded-For (first IP, from proxy)
     2. X-Real-IP
     3. request.remote_addr
 
@@ -285,7 +285,7 @@ def get_real_ip(request):
     Returns:
         str: Client IP address
     """
-    # CloudFront and most proxies set X-Forwarded-For
+    # Proxies set X-Forwarded-For
     x_forwarded_for = request.headers.get('X-Forwarded-For')
     if x_forwarded_for:
         # Get first IP (client), not last (proxy)
@@ -425,39 +425,6 @@ def init_security_middleware(app):
     app.logger.info("  - Rate limiting: 600 requests/minute per IP")
     app.logger.info("  - Attack pattern detection: Enabled")
 
-
-def require_valid_origin(f):
-    """
-    Decorator to require requests come through CloudFront.
-
-    Validates X-CloudFront-Viewer-Country or custom headers set by CloudFront.
-    Use this on sensitive endpoints to ensure direct IP access is blocked.
-
-    Usage:
-        @app.route('/api/sensitive')
-        @require_valid_origin
-        def sensitive_endpoint():
-            return "data"
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for CloudFront header (set by CloudFront automatically)
-        if not request.headers.get('CloudFront-Viewer-Country') and \
-           not request.headers.get('X-Amz-Cf-Id'):
-            # Not from CloudFront - check if we're in development
-            if current_app.config.get('DEBUG'):
-                # Allow in development
-                pass
-            else:
-                current_app.logger.warning(
-                    f"⚠️  Direct access attempt bypassing CloudFront: "
-                    f"{get_real_ip(request)} - {request.path}"
-                )
-                abort(403, description="Direct access not allowed")
-
-        return f(*args, **kwargs)
-
-    return decorated_function
 
 
 # Admin endpoint to manage blocklist

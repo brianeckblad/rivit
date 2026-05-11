@@ -20,17 +20,11 @@ Manage a comic book catalog, upload images to the cloud, export to marketplaces 
 
 ## Requirements
 
-This application requires AWS cloud services for production use.
-
-| Requirement | Production | Local Development |
-|-------------|-----------|-------------------|
-| Python 3.8+ | Required | Required |
-| AWS account (S3, EC2) | Required | Optional (for S3 access) |
-| AWS CLI | Required | Optional |
-| Ansible | Required | Not needed |
-| eBay Developer account | Optional | Optional |
-
-Estimated monthly cost: $5–10 (S3 + small EC2 instance, free tier eligible).
+| Requirement | Notes |
+|-------------|-------|
+| Python 3.8+ | Required |
+| AWS account (S3) | Optional — needed for cloud image storage |
+| eBay Developer account | Optional — needed for eBay price research |
 
 ---
 
@@ -64,16 +58,9 @@ For production, all configuration comes from AWS Secrets Manager. See [Chapter 7
 
 ---
 
-## Production Deployment
+## Deployment
 
-Start at [Chapter 1: Prerequisites](deployment/docs/guides/PREREQUISITES.md), then follow the chapters in order.
-
-| Method | Time | Guide |
-|--------|------|-------|
-| Automated | 15–20 min | [Chapter 2: Quick Start](deployment/docs/guides/QUICKSTART.md) |
-| Step-by-step | 1–2 hrs | [Chapter 3: Manual Deployment](deployment/docs/guides/MANUAL_DEPLOYMENT.md) |
-
-The [full deployment guide](deployment/docs/README.md) covers 13 chapters: deploy, operate, harden, and decommission.
+Ansible playbooks for AWS EC2 deployment are in `deployment/`. See the [deployment guide](deployment/docs/README.md) for details.
 
 ---
 
@@ -83,7 +70,7 @@ The [full deployment guide](deployment/docs/README.md) covers 13 chapters: deplo
 Browser
   │
   ▼
-Flask (Gunicorn + Nginx)
+Flask app
   ├── Routes ──── URL handlers
   ├── Services ── Business logic (S3, CSV, eBay)
   ├── Models ──── Data structures
@@ -100,7 +87,6 @@ Local        AWS S3
 | Storage | CSV files (local), AWS S3 (images), JSON (settings) |
 | Image processing | Pillow (WebP thumbnails) |
 | Frontend | HTML5, CSS3, JavaScript |
-| Deployment | Ansible, Nginx, Gunicorn, Systemd |
 
 No database required. CSV-based storage for portability.
 

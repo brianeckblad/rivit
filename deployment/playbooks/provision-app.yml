@@ -36,7 +36,6 @@
           - "  2. IAM managed policies (S3, Secrets Manager, CloudWatch)"
           - "     Attached to role: {{ server_iam_role_name | default('(not specified — attach manually)') }}"
           - "  3. Secrets Manager secret (synced from vault)"
-          - "  4. CloudFront CDN: {{ 'YES' if (enable_cloudfront | default(false) | bool) else 'no (set enable_cloudfront: true in vault.yml to add later)' }}"
           - ""
           - "App:    {{ app_display_name }}"
           - "Region: {{ aws_region }}"
@@ -62,12 +61,6 @@
 - name: Step 3 - Setup Secrets Manager
   import_playbook: setup-secrets-manager.yml
 
-# ==============================================================================
-# Step 4: CloudFront CDN (if enabled)
-# ==============================================================================
-
-- name: Step 4 - Setup CloudFront (if enabled)
-  import_playbook: setup-cloudfront.yml
 
 # ==============================================================================
 # Summary
@@ -91,7 +84,6 @@
           - "    S3 Bucket:          {{ s3_bucket_name }}"
           - "    IAM Policies:       {{ app_name }}-s3-access, {{ app_name }}-secrets-access, {{ app_name }}-cloudwatch-access"
           - "    Secrets Manager:    {{ secret_name }}"
-          - "    CloudFront CDN:     {{ 'enabled' if (enable_cloudfront | default(false) | bool) else 'skipped' }}"
           - ""
           - "IAM policy attachment:"
           - "{{ '    Attached to role: ' + server_iam_role_name if server_iam_role_name is defined and server_iam_role_name else '    ⚠️  server_iam_role_name not set — attach policies manually to your server role.' }}"

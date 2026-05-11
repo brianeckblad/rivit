@@ -1,4 +1,4 @@
-# Chapter 11: WAF Configuration
+# Chapter 10: WAF Configuration
 
 Block attacks at the network edge before they reach your server.
 
@@ -55,14 +55,14 @@ ansible-playbook playbooks/setup-waf.yml \
   - AWS Known Bad Inputs
   - AWS IP Reputation List
   - Rate limiting rule
-- ✅ Associates with CloudFront or ALB
+- ✅ Associates with ALB
 
 **Duration:** 2-3 minutes
 
 **Verify:**
 ```bash
 # Check WAF is created
-aws wafv2 list-web-acls --region us-east-2 --scope CLOUDFRONT
+aws wafv2 list-web-acls --region us-east-2 --scope REGIONAL
 
 # Should show your WAF with name like "{app_name}-waf"
 ```
@@ -72,7 +72,7 @@ aws wafv2 list-web-acls --region us-east-2 --scope CLOUDFRONT
 1. Go to [AWS WAF Console](https://console.aws.amazon.com/wafv2/)
 2. Click **Create Web ACL**
 3. Name: `{app_name}-waf`
-4. CloudFront distribution (if using CDN)
+4. Associate with ALB (if configured)
 5. Add rules (see Rules section below)
 6. Review and create
 
@@ -197,7 +197,7 @@ Create Rule:
 # Via CLI:
 aws wafv2 create-ip-set \
   --name {app_name}-blocked-ips \
-  --scope CLOUDFRONT \
+  --scope REGIONAL \
   --region us-east-2 \
   --ip-address-version IPV4 \
   --addresses ["X.X.X.X/32"]
@@ -209,7 +209,7 @@ aws wafv2 create-ip-set \
 # Block a /24 subnet (256 IPs)
 aws wafv2 update-ip-set \
   --name {app_name}-blocked-ips \
-  --scope CLOUDFRONT \
+  --scope REGIONAL \
   --region us-east-2 \
   --id ID_FROM_ABOVE \
   --addresses ["X.X.X.0/24"]
@@ -304,7 +304,7 @@ aws cloudwatch put-metric-alarm \
 # Create IP set for whitelist
 aws wafv2 create-ip-set \
   --name {app_name}-whitelist \
-  --scope CLOUDFRONT \
+  --scope REGIONAL \
   --region us-east-2 \
   --ip-address-version IPV4 \
   --addresses ["YOUR_OFFICE_IP/32", "YOUR_HOME_IP/32"]
@@ -360,7 +360,7 @@ aws logs insights query: \
 # Create rule to block them
 aws wafv2 create-ip-set \
   --name ddos-attack-ips \
-  --scope CLOUDFRONT \
+  --scope REGIONAL \
   --region us-east-2 \
   --ip-address-version IPV4 \
   --addresses ["X.X.X.X/32", "Y.Y.Y.Y/32"]
@@ -484,12 +484,12 @@ aws logs tail /aws/waf/{app_name}/ --follow
 
 **Diagnosis:**
 ```bash
-# Check if WAF is associated with CloudFront/ALB
+# Check if WAF is associated with ALB
 aws wafv2 list-resources-for-web-acl \
   --web-acl-arn arn:aws:wafv2:... \
   --region us-east-2
 
-# Should show CloudFront distribution
+# Should show associated resource ARN
 ```
 
 **Solution:**
@@ -550,10 +550,9 @@ Cost: $5–50/month depending on rules and traffic volume.
 
 ## Next step
 
-Continue to [Chapter 12: Git Configuration](GIT_CONFIGURATION.md).
+Continue to [Chapter 11: Git Configuration](GIT_CONFIGURATION.md).
 
 ## See also
 
-- [Chapter 10: CloudFront CDN](CLOUDFRONT_CDN.md) — attach WAF to CloudFront
 - [Application Security](../reference/APPLICATION_SECURITY.md) — security layers reference
 

@@ -129,9 +129,6 @@ class Config:
     S3_BUCKET = get_secret('S3_BUCKET_NAME') or get_secret('S3_BUCKET')
     S3_FOLDER = get_secret('S3_FOLDER', 'production')  # Default to production folder
 
-    # CloudFront Configuration (optional - for rate limiting external downloads)
-    CLOUDFRONT_DOMAIN = get_secret('CLOUDFRONT_DOMAIN')
-    APP_SECRET_TOKEN = get_secret('APP_SECRET_TOKEN')
 
     # SNS Configuration (optional - for notifications)
     SNS_TOPIC_ARN = get_secret('SNS_TOPIC_ARN')

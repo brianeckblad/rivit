@@ -141,35 +141,9 @@ aws secretsmanager get-secret-value --secret-id ${app_name}/production --region 
 
 ---
 
-### Step 4 — CloudFront CDN (optional)
-
-Only needed if you set `enable_cloudfront: true` in vault.yml.
-
-**Vault variables used:** `s3_bucket_name`, `server_name`, `cloudfront_price_class`, `app_secret_token`
-
-**What it creates:**
-- A CloudFront distribution pointing to the application server
-- Origin set to `{server_name}` with the `app_secret_token` header for request validation
-
-```bash
-ansible-playbook playbooks/setup-cloudfront.yml --vault-password-file ~/.vault_pass
-```
-
-**After this runs:** copy the CloudFront domain from the playbook output into `cloudfront_domain` in vault.yml, then sync the updated secret:
-
-```bash
-# Edit vault.yml and fill in cloudfront_domain
-ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
-
-# Push the updated value to Secrets Manager
-ansible-playbook playbooks/secret-sync.yml --vault-password-file ~/.vault_pass
-```
-
----
-
 ### Run all Phase 1 steps at once
 
-The `provision-app.yml` orchestrator runs Steps 1–4 in order:
+The `provision-app.yml` orchestrator runs Steps 1–3 in order:
 
 ```bash
 ansible-playbook playbooks/provision-app.yml --vault-password-file ~/.vault_pass
@@ -183,7 +157,7 @@ This phase SSHes into the shared server and deploys the application. It is safe 
 
 **Prerequisite:** `inventories/hosts.yml` must have the correct `ansible_host`. See [Chapter 1: Prerequisites](PREREQUISITES.md#server-inventory).
 
-### Step 5 — Deploy application
+### Step 4 — Deploy application
 
 **Vault variables used:** all connection, path, service, git, and nginx variables
 
@@ -239,7 +213,7 @@ curl -I http://{server_name}
 
 ---
 
-### Step 6 — Harden file permissions (optional, recommended)
+### Step 5 — Harden file permissions (optional, recommended)
 
 Sets secure ownership and mode on all application files. Run after deployment and after any manual file operations on the server.
 
@@ -251,7 +225,7 @@ ansible-playbook playbooks/harden-permissions.yml --vault-password-file ~/.vault
 
 ---
 
-### Step 7 — Set up monitoring (optional)
+### Step 6 — Set up monitoring (optional)
 
 Installs the CloudWatch agent and configures log and metric collection. Each app writes its own config fragment — safe to run alongside other apps on the same server.
 

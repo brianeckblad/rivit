@@ -680,7 +680,6 @@ All decorators are defined in `app/routes/auth.py`.
 | `@admin_required` | Admin-only API routes | Returns 403 if `session['username']` is not flagged as admin in `user_preferences.json` |
 | `@sync_not_locked` | Write routes that conflict with S3 sync | Returns 503 while background sync lock is held |
 | `@disk_space_required(min_percent=15)` | Upload and write routes | Returns 507 if free disk falls below 15% |
-| `@require_valid_origin` | (Optional) Sensitive endpoints | Returns 403 if request does not carry CloudFront headers — enforces CDN-only access |
 
 The `admin_required` decorator must always be layered **after** `login_required`:
 ```python
@@ -736,8 +735,8 @@ def update_admin_settings():
 
 #### Real IP extraction
 
-`get_real_ip(request)` reads `X-Forwarded-For` (first entry, set by CloudFront
-or Nginx), then `X-Real-IP`, then `request.remote_addr`. This ensures rate
+`get_real_ip(request)` reads `X-Forwarded-For` (first entry, set by Nginx
+or a reverse proxy), then `X-Real-IP`, then `request.remote_addr`. This ensures rate
 limits and blocklist entries target the actual client, not the proxy.
 
 ---
@@ -1095,7 +1094,6 @@ variable tier.
 | `S3_BUCKET_NAME` | S3 bucket for all object storage |
 | `S3_FOLDER` | Top-level S3 prefix (e.g. `production`) |
 | `AWS_REGION` | AWS region for all SDK calls |
-| `CLOUDFRONT_DOMAIN` | Optional CDN domain for image URLs |
 | `SNS_TOPIC_ARN` | Optional alert delivery |
 | `EBAY_PRODUCTION_APP_ID` / `CERT_ID` / `DEV_ID` / `TOKEN` | eBay API credentials |
 | `APP_NAME` | App identity injected into logs and metric namespaces |

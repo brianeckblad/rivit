@@ -31,15 +31,14 @@ Complete Chapter 2 or 3. Your application is live.
 |-----|-------|
 | 8 | [Security Hardening](guides/SECURITY_HARDENING.md) |
 | 9 | [Multi-User Support](guides/MULTI_USER.md) |
-| 10 | [CloudFront CDN](guides/CLOUDFRONT_CDN.md) |
-| 11 | [WAF Configuration](guides/WAF_CONFIGURATION.md) |
-| 12 | [Git Configuration](guides/GIT_CONFIGURATION.md) |
+| 10 | [WAF Configuration](guides/WAF_CONFIGURATION.md) |
+| 11 | [Git Configuration](guides/GIT_CONFIGURATION.md) |
 
 ## Part IV — Decommission
 
 | Ch. | Guide |
 |-----|-------|
-| 13 | [Decommission](guides/DECOMMISSION.md) — remove app resources without touching the shared server |
+| 12 | [Decommission](guides/DECOMMISSION.md) — remove app resources without touching the shared server |
 
 ---
 
@@ -64,7 +63,6 @@ Complete Chapter 2 or 3. Your application is live.
 | `create-s3-bucket.yml` | `delete-s3-bucket.yml` | S3 Bucket |
 | `create-iam-policies.yml` | `delete-iam-policies.yml` | App-scoped IAM managed policies |
 | `setup-secrets-manager.yml` | `delete-secrets-manager.yml` | Secrets Manager secret |
-| `setup-cloudfront.yml` | `delete-cloudfront.yml` | CloudFront distribution |
 | `setup-waf.yml` | `delete-waf.yml` | WAF Web ACL + IP set |
 
 ### Application Deployment Playbooks (run against shared server)
@@ -81,7 +79,7 @@ Complete Chapter 2 or 3. Your application is live.
 
 | Playbook | Purpose |
 |----------|---------|
-| `provision-app.yml` | Orchestrates all AWS resource creation (S3 + IAM + Secrets Manager + CloudFront) |
+| `provision-app.yml` | Orchestrates all AWS resource creation (S3 + IAM + Secrets Manager) |
 | `decommission.yml` | Removes all app-level AWS resources |
 
 ### Deployer IAM User Playbooks

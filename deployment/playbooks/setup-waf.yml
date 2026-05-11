@@ -163,8 +163,8 @@
           - ""
           - "CloudWatch Metrics: {{ app_name }}WebACL"
           - ""
-          - "To associate with ALB/CloudFront:"
-          - "aws wafv2 associate-web-acl --web-acl-arn {{ waf_data.Summary.ARN }} --resource-arn YOUR_RESOURCE_ARN"
+          - "To associate with ALB:"
+          - "aws wafv2 associate-web-acl --web-acl-arn {{ waf_data.Summary.ARN }} --resource-arn YOUR_ALB_ARN"
       when: waf_data is defined
 
     - name: Save WAF info
@@ -185,10 +185,10 @@
           
           CloudWatch Metrics: {{ app_name }}WebACL
           
-          Associate with resource:
+          Associate with ALB:
           aws wafv2 associate-web-acl \
             --web-acl-arn {{ waf_data.Summary.ARN }} \
-            --resource-arn YOUR_ALB_OR_CLOUDFRONT_ARN \
+            --resource-arn YOUR_ALB_ARN \
             --region {{ aws_region }}
         dest: "{{ playbook_dir }}/../waf-info.txt"
       when: waf_data is defined

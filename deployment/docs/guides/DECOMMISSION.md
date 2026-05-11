@@ -1,4 +1,4 @@
-# Chapter 13: Decommission
+# Chapter 12: Decommission
 
 Remove all app-level AWS resources. The shared server and other applications on it are not affected.
 
@@ -42,7 +42,6 @@ DELETE ORDER
 
 Optional:
 4. WAF Web ACL (if configured)
-5. CloudFront distribution (if configured)
 ```
 
 The shared server remains running. Other applications on the same server are not affected.
@@ -70,7 +69,7 @@ ansible-playbook playbooks/decommission.yml \
     -e decommission_confirmed=true
 ```
 
-**Duration:** 2–5 minutes (CloudFront can take up to 15 minutes if configured).
+**Duration:** 2–5 minutes.
 
 ---
 
@@ -146,9 +145,6 @@ aws s3api delete-bucket --bucket $s3_bucket_name --region $aws_region
 ```bash
 # WAF (if configured)
 ansible-playbook playbooks/delete-waf.yml --vault-password-file ~/.vault_pass
-
-# CloudFront (takes 15 min to disable before deletion)
-ansible-playbook playbooks/delete-cloudfront.yml --vault-password-file ~/.vault_pass
 ```
 
 ---
@@ -184,7 +180,6 @@ To remove a specific resource without running the full decommission:
 | Secrets Manager | `ansible-playbook playbooks/delete-secrets-manager.yml --vault-password-file ~/.vault_pass` |
 | S3 Bucket | `ansible-playbook playbooks/delete-s3-bucket.yml --vault-password-file ~/.vault_pass` |
 | WAF | `ansible-playbook playbooks/delete-waf.yml --vault-password-file ~/.vault_pass` |
-| CloudFront | `ansible-playbook playbooks/delete-cloudfront.yml --vault-password-file ~/.vault_pass` |
 
 ---
 
@@ -212,9 +207,6 @@ aws s3 rm s3://$s3_bucket_name --recursive
 
 Then re-run the delete playbook.
 
-### CloudFront takes too long
-
-CloudFront distributions must be disabled (status: `Deployed` → disabled) before deletion. This takes 10–15 minutes. Wait and re-run the playbook.
 
 ---
 

@@ -162,13 +162,6 @@ Edit `group_vars/vault.yml`. Every variable is required unless marked optional.
 
 > When adding a second app to the same server, assign the next unused port. All other server-connection fields stay the same.
 
-#### CloudFront CDN (optional)
-
-| Variable | Description | Notes |
-|----------|-------------|-------|
-| `enable_cloudfront` | Set to `true` to create a CloudFront distribution. | `false` by default. |
-| `cloudfront_domain` | Filled in after running `setup-cloudfront.yml`. Leave empty until then: `""` | e.g. `d111111abcdef8.cloudfront.net` |
-| `app_secret_token` | Shared random token between nginx and CloudFront. Required if `enable_cloudfront: true`. | Generate: `openssl rand -hex 32`. Leave `""` if not using CloudFront. |
 
 #### eBay API (if using eBay integration)
 

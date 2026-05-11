@@ -36,7 +36,7 @@ source scripts/load-vars.sh
 cd deployment
 
 # Step 1: Create AWS resources
-# Creates S3 bucket, IAM policies, Secrets Manager secret (and optionally CloudFront)
+# Creates S3 bucket, IAM policies, Secrets Manager secret
 ansible-playbook playbooks/provision-app.yml \
     --vault-password-file ~/.vault_pass
 
@@ -53,15 +53,14 @@ ansible-playbook playbooks/setup.yml \
 2. Creates three app-scoped IAM managed policies (S3, Secrets Manager, CloudWatch)
 3. Attaches policies to the shared server's IAM role (if `server_iam_role_name` is set)
 4. Creates Secrets Manager secret (synced from vault)
-5. Sets up CloudFront CDN (if `enable_cloudfront: true` in vault.yml)
 
 `setup.yml`:
-6. Creates application user and group on the server
-7. Creates application directories
-8. Clones the git repository and installs Python dependencies
-9. Configures Supervisor (process manager) and Nginx (web server)
-10. Installs SSL certificate via Let's Encrypt (auto-renewal enabled)
-11. Starts the application
+5. Creates application user and group on the server
+6. Creates application directories
+7. Clones the git repository and installs Python dependencies
+8. Configures Supervisor (process manager) and Nginx (web server)
+9. Installs SSL certificate via Let's Encrypt (auto-renewal enabled)
+10. Starts the application
 
 **Duration:** 10–15 minutes
 

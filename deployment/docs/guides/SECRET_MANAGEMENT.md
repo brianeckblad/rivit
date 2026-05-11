@@ -249,9 +249,6 @@ secret_key: "your-secret-key-here"
 flask_port: "8000"
 flask_env: "production"
 
-# CloudFront (leave empty until enable_cloudfront is set to true)
-cloudfront_domain: ""
-app_secret_token: ""
 
 # eBay Production Credentials
 ebay_environment: "production"

@@ -120,15 +120,6 @@ def generate_env_file(vault_data, env_file):
         f"EBAY_VERIFICATION_TOKEN={vault_data.get('ebay_verification_token', '')}",
     ])
 
-    # Optional CloudFront
-    if vault_data.get('cloudfront_domain'):
-        lines.extend([
-            "",
-            "# CloudFront & Rate Limiting",
-            f"CLOUDFRONT_DOMAIN={vault_data['cloudfront_domain']}",
-        ])
-    if vault_data.get('app_secret_token'):
-        lines.append(f"APP_SECRET_TOKEN={vault_data['app_secret_token']}")
 
     # AWS Configuration (commented out)
     lines.extend([

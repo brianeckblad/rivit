@@ -8,9 +8,9 @@ Security layers, WAF rules, attack detection, and rate limiting.
 
 Multi-layer security architecture:
 
-1. **CloudFront + AWS WAF** - Edge protection (AWS managed)
+1. **AWS WAF** - Edge protection (AWS managed, optional)
 2. **Application Security** - IP blocking, attack detection (`app/security.py`)
-3. **Nginx** - Origin validation, direct access blocking
+3. **Nginx** - Rate limiting, request filtering
 
 **For operational tasks (blocking/unblocking IPs, monitoring):** See [OPERATIONS.md](../guides/OPERATIONS.md)
 
@@ -18,13 +18,7 @@ Multi-layer security architecture:
 
 ## Security Layers
 
-### Layer 1: CloudFront + AWS WAF (External)
-
-**CloudFront:**
-- Global CDN with edge caching
-- DDoS protection (AWS Shield Standard - automatic)
-- TLS/SSL termination
-- Geographic restrictions (optional)
+### Layer 1: AWS WAF (Optional)
 
 **AWS WAF:**
 - Rate limiting: 2000 requests per 5 minutes per IP
@@ -35,11 +29,11 @@ Multi-layer security architecture:
   - XSS protection
 - Custom rules as needed
 
-**Configuration:** `deployment/scripts/infra-complete-setup.sh`
+**Configuration:** `deployment/playbooks/setup-waf.yml`
 
 ---
 
-### Layer 2: Application Security Middleware (NEW!)
+### Layer 2: Application Security Middleware
 
 **Location:** `app/security.py`
 
@@ -77,20 +71,20 @@ Automatically adds to all responses:
 
 **5. Real IP Detection**
 Gets actual client IP from:
-- `X-Forwarded-For` (CloudFront/proxy)
+- `X-Forwarded-For` (reverse proxy)
 - `X-Real-IP` (fallback)
 - `request.remote_addr` (final fallback)
 
 ---
 
-### Layer 3: Nginx Origin Protection
+### Layer 3: Nginx
 
 **Location:** Nginx configuration on server
 
-**Validates:**
-- CloudFront viewer-country header
-- Custom origin headers
-- Blocks direct IP access (403)
+**Provides:**
+- HTTPS enforcement (HTTP → HTTPS redirect)
+- Security headers (HSTS, X-Frame-Options, etc.)
+- Rate limiting at the edge
 
 ---
 
@@ -334,29 +328,6 @@ See [Admin Security Dashboard](#admin-security-dashboard) section above.
 
 ---
 
-## CloudFront Origin Protection
-
-### require_valid_origin Decorator
-
-**Use on sensitive endpoints:**
-
-```python
-from app.security import require_valid_origin
-
-@app.route('/api/sensitive')
-@login_required
-@require_valid_origin
-def sensitive_endpoint():
-    """Only accessible through CloudFront."""
-    return jsonify({'data': 'sensitive'})
-```
-
-**What it does:**
-- Checks for CloudFront headers (`CloudFront-Viewer-Country`, `X-Amz-Cf-Id`)
-- Blocks direct IP access (bypass CloudFront)
-- Allows in development mode
-
----
 
 ## Best Practices
 
@@ -476,9 +447,7 @@ if rate_limiter.is_rate_limited(client_ip, max_requests=200, window_seconds=60):
 
 ## Related Documentation
 
-- **WAF Configuration:** [Chapter 11: WAF Configuration](../guides/WAF_CONFIGURATION.md)
-- **CloudFront Setup:** [Chapter 10: CloudFront CDN](../guides/CLOUDFRONT_CDN.md)
+- **WAF Configuration:** [Chapter 10: WAF Configuration](../guides/WAF_CONFIGURATION.md)
 - **Nginx Configuration:** `deployment/templates/nginx.conf.j2`
 - **Security Admin API:** `app/routes/api/admin.py`
-
 

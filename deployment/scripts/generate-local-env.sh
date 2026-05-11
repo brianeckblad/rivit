@@ -119,18 +119,6 @@ echo "EBAY_PRODUCTION_DEV_ID=${EBAY_PROD_DEV}" >> "$ENV_FILE"
 echo "EBAY_PRODUCTION_TOKEN=${EBAY_PROD_TOKEN}" >> "$ENV_FILE"
 echo "EBAY_VERIFICATION_TOKEN=${EBAY_VERIFY}" >> "$ENV_FILE"
 
-# Extract and add optional CloudFront configuration
-echo "" >> "$ENV_FILE"
-echo "# CloudFront & Rate Limiting (optional)" >> "$ENV_FILE"
-CLOUDFRONT=$(extract_var "cloudfront_domain")
-APP_TOKEN=$(extract_var "app_secret_token")
-
-if [ -n "$CLOUDFRONT" ]; then
-    echo "CLOUDFRONT_DOMAIN=${CLOUDFRONT}" >> "$ENV_FILE"
-fi
-if [ -n "$APP_TOKEN" ]; then
-    echo "APP_SECRET_TOKEN=${APP_TOKEN}" >> "$ENV_FILE"
-fi
 
 # Add commented out AWS configuration
 echo "" >> "$ENV_FILE"

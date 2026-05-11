@@ -84,17 +84,6 @@ users: "admin:change-this-strong-password"            # Format: user1:pass1,user
 secret_key: "replace-with-64-char-random-hex-string"
 flask_env: "production"
 
-# ============================================================================
-# CLOUDFRONT (OPTIONAL)
-# ============================================================================
-# Set enable_cloudfront: true and run setup-cloudfront.yml to add a CDN.
-# After setup, paste the distribution domain into cloudfront_domain, then sync:
-#   ansible-playbook playbooks/secret-sync.yml --vault-password-file ~/.vault_pass
-enable_cloudfront: false
-cloudfront_price_class: "PriceClass_100"
-cloudfront_domain: ""
-# Generate: openssl rand -hex 32
-app_secret_token: ""
 
 # ============================================================================
 # PERFORMANCE

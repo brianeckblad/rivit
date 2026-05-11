@@ -201,7 +201,7 @@ Alerts if disk space is running out (logs filling up, S3 sync issue, etc.).
 
 1. Click **Add widget** → **Number**
 2. Metrics:
-   - Namespace: `AWS/CloudFront` or `Custom`
+   - Namespace: `CWAgent` or `Custom`
    - Select: Request count metric
 3. Label: "Requests/min"
 4. Add widget
