@@ -201,85 +201,80 @@ if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
 fi
 
 # =========================================================================
-# Sync server_host → inventories/hosts.yml
+# Sync vault connection values → inventories/hosts.yml
 # =========================================================================
-# server_host is the SSH target for all remote playbooks. If it is set in
-# vault.yml and differs from what is in hosts.yml, sync it automatically so
-# the operator does not have to edit two files.
+# Ansible cannot resolve vault variable templates for connection keywords
+# (ansible_host, ansible_user, ansible_ssh_private_key_file) at SSH setup
+# time. hosts.yml is gitignored and serves as the resolved local config;
+# load-vars.sh keeps it in sync so vault is the single source of truth.
 # =========================================================================
 INVENTORY_FILE="$DEPLOYMENT_DIR/inventories/hosts.yml"
 
-if [ -n "${server_host:-}" ] && [ "$server_host" != "YOUR_SERVER_IP" ]; then
-    export SERVER_IP="$server_host"
+if [ -f "$INVENTORY_FILE" ]; then
+    _changed=false
 
-    if [ -f "$INVENTORY_FILE" ]; then
-        _inv_ip=$(python3 -c "
+    # ── ansible_host (server_host) ─────────────────────────────────────────
+    if [ -n "${server_host:-}" ] && [ "$server_host" != "YOUR_SERVER_IP" ]; then
+        export SERVER_IP="$server_host"
+        _inv_host=$(python3 -c "
 import re
 with open('$INVENTORY_FILE') as f:
     for line in f:
         m = re.search(r'ansible_host:\s*(\S+)', line)
         if m: print(m.group(1)); break
 " 2>/dev/null)
-        if [ "$_inv_ip" != "$server_host" ]; then
+        if [ "$_inv_host" != "$server_host" ]; then
             python3 -c "
 import re
 text = open('$INVENTORY_FILE').read()
-# Replace entire rest-of-line after ansible_host: (handles templates AND literals)
 text = re.sub(r'(ansible_host:\s*)[^\n]+', r'\g<1>$server_host', text)
-text = re.sub(r'(ansible_connection:\s*)[^\n]+', r'\g<1>ssh', text)
 open('$INVENTORY_FILE', 'w').write(text)
 " 2>/dev/null
-            echo -e "${YELLOW}ℹ️  Updated inventories/hosts.yml: $_inv_ip → $server_host${NC}"
+            echo -e "${YELLOW}ℹ️  hosts.yml ansible_host: $_inv_host → $server_host${NC}"
+            _changed=true
         fi
     fi
-fi
 
-# =========================================================================
-# Sync server_admin_user + ssh_key_file → ansible.cfg
-# =========================================================================
-# Ansible cannot resolve vault variable templates for connection keywords
-# (remote_user, private_key_file) — they must be literal values.
-# ansible.cfg is the authoritative place for these; keep it synced from vault.
-# =========================================================================
-ANSIBLE_CFG="$DEPLOYMENT_DIR/ansible.cfg"
-
-if [ -f "$ANSIBLE_CFG" ]; then
-    _cfg_user=$(python3 -c "
+    # ── ansible_user (server_admin_user) ──────────────────────────────────
+    if [ -n "${server_admin_user:-}" ]; then
+        _inv_user=$(python3 -c "
 import re
-with open('$ANSIBLE_CFG') as f:
+with open('$INVENTORY_FILE') as f:
     for line in f:
-        m = re.match(r'remote_user\s*=\s*(\S+)', line.strip())
+        m = re.search(r'ansible_user:\s*(\S+)', line)
         if m: print(m.group(1)); break
 " 2>/dev/null)
-    _cfg_key=$(python3 -c "
+        if [ "$_inv_user" != "$server_admin_user" ]; then
+            python3 -c "
 import re
-with open('$ANSIBLE_CFG') as f:
-    for line in f:
-        m = re.match(r'private_key_file\s*=\s*(\S+)', line.strip())
-        if m: print(m.group(1)); break
-" 2>/dev/null)
-
-    _vault_user="${server_admin_user:-}"
-    _vault_key="${ssh_key_file:-}"
-
-    if [ -n "$_vault_user" ] && [ "$_cfg_user" != "$_vault_user" ]; then
-        python3 -c "
-import re
-text = open('$ANSIBLE_CFG').read()
-text = re.sub(r'(remote_user\s*=\s*)[^\n]+', r'\g<1>$_vault_user', text)
-open('$ANSIBLE_CFG', 'w').write(text)
+text = open('$INVENTORY_FILE').read()
+text = re.sub(r'(ansible_user:\s*)[^\n]+', r'\g<1>$server_admin_user', text)
+open('$INVENTORY_FILE', 'w').write(text)
 " 2>/dev/null
-        echo -e "${YELLOW}ℹ️  Updated ansible.cfg remote_user: $_cfg_user → $_vault_user${NC}"
+            echo -e "${YELLOW}ℹ️  hosts.yml ansible_user: $_inv_user → $server_admin_user${NC}"
+            _changed=true
+        fi
     fi
 
-    if [ -n "$_vault_key" ] && [ "$_cfg_key" != "$_vault_key" ]; then
-        python3 -c "
+    # ── ansible_ssh_private_key_file (ssh_key_file) ───────────────────────
+    if [ -n "${ssh_key_file:-}" ]; then
+        _inv_key=$(python3 -c "
 import re
-text = open('$ANSIBLE_CFG').read()
-text = re.sub(r'(private_key_file\s*=\s*)[^\n]+', r'\g<1>$_vault_key', text)
-open('$ANSIBLE_CFG', 'w').write(text)
+with open('$INVENTORY_FILE') as f:
+    for line in f:
+        m = re.search(r'ansible_ssh_private_key_file:\s*(\S+)', line)
+        if m: print(m.group(1)); break
+" 2>/dev/null)
+        if [ "$_inv_key" != "$ssh_key_file" ]; then
+            python3 -c "
+import re
+text = open('$INVENTORY_FILE').read()
+text = re.sub(r'(ansible_ssh_private_key_file:\s*)[^\n]+', r'\g<1>$ssh_key_file', text)
+open('$INVENTORY_FILE', 'w').write(text)
 " 2>/dev/null
-        echo -e "${YELLOW}ℹ️  Updated ansible.cfg private_key_file: $_cfg_key → $_vault_key${NC}"
+            echo -e "${YELLOW}ℹ️  hosts.yml ansible_ssh_private_key_file: $_inv_key → $ssh_key_file${NC}"
+            _changed=true
+        fi
     fi
 fi
 
