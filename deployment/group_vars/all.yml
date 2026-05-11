@@ -2,7 +2,7 @@
 # ============================================================================
 # ALL CONFIGURATION IS IN vault.yml (ENCRYPTED)
 # ============================================================================
-# This file is intentionally empty.  All deployment variables — identity,
+# This file is intentionally minimal.  All deployment variables — identity,
 # credentials, tuning, infrastructure sizing, and computed paths — live in
 # vault.yml so the encrypted file can be committed to git.
 #
@@ -12,3 +12,11 @@
 # View configuration:
 #   ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
 # ============================================================================
+
+# SSH connection variables — set here (not in the inventory file) so that
+# the Jinja2 references to vault variables resolve correctly.  Ansible
+# resolves group_vars together with vault; inventory templates are parsed
+# before vault is available, which is why {{admin_user}} fails there.
+ansible_user: "{{ admin_user }}"
+ansible_ssh_private_key_file: "{{ ssh_key_file }}"
+
