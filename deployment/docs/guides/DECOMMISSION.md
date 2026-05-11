@@ -1,4 +1,4 @@
-# Chapter 12: Decommission
+# Chapter 11: Decommission
 
 Remove all app-level AWS resources. The shared server and other applications on it are not affected.
 
@@ -39,9 +39,6 @@ DELETE ORDER
 1. IAM managed policies (detached from server role, then deleted)
 2. Secrets Manager secret
 3. S3 Bucket (ALL DATA — cannot be undone)
-
-Optional:
-4. WAF Web ACL (if configured)
 ```
 
 The shared server remains running. Other applications on the same server are not affected.
@@ -140,12 +137,6 @@ aws s3 rm s3://$s3_bucket_name --recursive
 aws s3api delete-bucket --bucket $s3_bucket_name --region $aws_region
 ```
 
-### Step 4: Delete Optional Features
-
-```bash
-# WAF (if configured)
-ansible-playbook playbooks/delete-waf.yml --vault-password-file ~/.vault_pass
-```
 
 ---
 
@@ -179,7 +170,6 @@ To remove a specific resource without running the full decommission:
 | IAM policies | `ansible-playbook playbooks/delete-iam-policies.yml --vault-password-file ~/.vault_pass` |
 | Secrets Manager | `ansible-playbook playbooks/delete-secrets-manager.yml --vault-password-file ~/.vault_pass` |
 | S3 Bucket | `ansible-playbook playbooks/delete-s3-bucket.yml --vault-password-file ~/.vault_pass` |
-| WAF | `ansible-playbook playbooks/delete-waf.yml --vault-password-file ~/.vault_pass` |
 
 ---
 

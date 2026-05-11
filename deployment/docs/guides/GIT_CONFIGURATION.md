@@ -1,4 +1,4 @@
-# Chapter 11: Git Configuration
+# Chapter 10: Git Configuration
 
 Repository setup for deployment workflows.
 

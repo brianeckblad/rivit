@@ -17,13 +17,11 @@
 #   1. IAM managed policies (detached from server role, then deleted)
 #   2. Secrets Manager secret
 #   3. S3 Bucket (emptied then deleted — ALL DATA LOST)
-#   4. Optional: WAF
 #
 # To decommission only a single resource, run its individual playbook:
 #   ansible-playbook playbooks/delete-iam-policies.yml --vault-password-file ~/.vault_pass
 #   ansible-playbook playbooks/delete-secrets-manager.yml --vault-password-file ~/.vault_pass
 #   ansible-playbook playbooks/delete-s3-bucket.yml --vault-password-file ~/.vault_pass
-#   ansible-playbook playbooks/delete-waf.yml --vault-password-file ~/.vault_pass
 
 # ==============================================================================
 # Safety Gate
@@ -79,12 +77,6 @@
 - name: Step 3 - Delete S3 Bucket
   import_playbook: delete-s3-bucket.yml
 
-# ==============================================================================
-# Step 4: Delete Optional Features (best-effort, skip if not configured)
-# ==============================================================================
-
-- name: Step 4 - Delete WAF
-  import_playbook: delete-waf.yml
 
 
 # ==============================================================================
@@ -104,7 +96,6 @@
         path: "{{ item }}"
         state: absent
       loop:
-        - "{{ playbook_dir }}/../waf-info.txt"
         - "{{ playbook_dir }}/../.last-rotation.txt"
       failed_when: false
 
@@ -120,9 +111,6 @@
           - "  ✓ IAM Policies:      {{ app_name }}-s3-access, {{ app_name }}-secrets-access, {{ app_name }}-cloudwatch-access"
           - "  ✓ Secrets Manager:   {{ secret_name }}"
           - "  ✓ S3 Bucket:         {{ s3_bucket_name }}"
-          - ""
-          - "Optional (deleted if present):"
-          - "  ✓ WAF Web ACL:       {{ app_name }}-web-acl"
           - ""
           - "Note: The shared server and other applications on it are unchanged."
           - ""

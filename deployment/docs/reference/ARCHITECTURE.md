@@ -26,8 +26,7 @@ Local Machine (Ansible)
 │  S3 Bucket               │        │  /opt/{app_name}/   ← code + venv      │
 │  IAM Managed Policies    │        │  /var/log/{app_name}/  ← logs          │
 │  Secrets Manager         │        │                                        │
-│  WAF (optional)          │        │  Supervisor     ← per-app process mgr  │
-│  CloudWatch              │        │  Nginx vhost    ← per-app reverse proxy │
+│  CloudWatch              │        │  Supervisor     ← per-app process mgr  │
 └──────────────────────────┘        └────────────────────────────────────────┘
 ```
 
@@ -79,7 +78,6 @@ All runtime configuration (Flask secret, eBay API keys, credentials) lives in on
 | `create-s3-bucket.yml` | S3 bucket with versioning and encryption |
 | `create-iam-policies.yml` | Three app-scoped IAM managed policies |
 | `setup-secrets-manager.yml` | Secrets Manager secret from vault |
-| `setup-waf.yml` | WAF web ACL (optional) |
 | `provision-app.yml` | Orchestrates all of the above |
 
 ### Application Deployment (remote server)
@@ -107,7 +105,6 @@ All runtime configuration (Flask secret, eBay API keys, credentials) lives in on
 | `delete-iam-policies.yml` | Three app-scoped IAM policies |
 | `delete-secrets-manager.yml` | Secrets Manager secret |
 | `delete-s3-bucket.yml` | S3 bucket and all contents |
-| `delete-waf.yml` | WAF web ACL |
 | `decommission.yml` | Orchestrates all of the above |
 
 ### Server-Admin Only (run with caution on shared server)
@@ -188,7 +185,6 @@ deployment/
 │   ├── create-s3-bucket.yml
 │   ├── create-iam-policies.yml
 │   ├── setup-secrets-manager.yml
-│   ├── setup-waf.yml
 │   ├── setup.yml           # Full server deploy
 │   ├── update.yml          # Code update + restart
 │   ├── setup-ssl.yml

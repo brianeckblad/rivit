@@ -2,7 +2,7 @@
 
 **Deploy, operate, and maintain a Python web application on a shared server with AWS backing services.**
 
-Start at Chapter 1 and follow in order. Chapters 9–12 are optional.
+Start at Chapter 1 and follow in order. Chapters 9–11 are optional.
 
 ---
 
@@ -31,14 +31,13 @@ Complete Chapter 2 or 3. Your application is live.
 |-----|-------|
 | 8 | [Security Hardening](guides/SECURITY_HARDENING.md) |
 | 9 | [Multi-User Support](guides/MULTI_USER.md) |
-| 10 | [WAF Configuration](guides/WAF_CONFIGURATION.md) |
-| 11 | [Git Configuration](guides/GIT_CONFIGURATION.md) |
+| 10 | [Git Configuration](guides/GIT_CONFIGURATION.md) |
 
 ## Part IV — Decommission
 
 | Ch. | Guide |
 |-----|-------|
-| 12 | [Decommission](guides/DECOMMISSION.md) — remove app resources without touching the shared server |
+| 11 | [Decommission](guides/DECOMMISSION.md) — remove app resources without touching the shared server |
 
 ---
 
@@ -48,7 +47,7 @@ Complete Chapter 2 or 3. Your application is live.
 |----------|-------|
 | [Architecture](reference/ARCHITECTURE.md) | System design and technology choices |
 | [Application Architecture](reference/APPLICATION_ARCHITECTURE.md) | Flask app internals — structure, services, data model, patterns |
-| [Application Security](reference/APPLICATION_SECURITY.md) | WAF rules, attack detection, rate limiting |
+| [Application Security](reference/APPLICATION_SECURITY.md) | Attack detection, rate limiting, security middleware |
 | [User Isolation](reference/SECURITY.md) | Two-user privilege model |
 | [User Types](reference/USER_MODEL.md) | Admin vs. application user permissions |
 
@@ -63,7 +62,6 @@ Complete Chapter 2 or 3. Your application is live.
 | `create-s3-bucket.yml` | `delete-s3-bucket.yml` | S3 Bucket |
 | `create-iam-policies.yml` | `delete-iam-policies.yml` | App-scoped IAM managed policies |
 | `setup-secrets-manager.yml` | `delete-secrets-manager.yml` | Secrets Manager secret |
-| `setup-waf.yml` | `delete-waf.yml` | WAF Web ACL + IP set |
 
 ### Application Deployment Playbooks (run against shared server)
 

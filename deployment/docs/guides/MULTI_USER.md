@@ -1061,7 +1061,7 @@ The payload includes `userId` to identify which user's item was affected.
 
 ## Next step
 
-Continue to [Chapter 10: WAF Configuration](WAF_CONFIGURATION.md).
+Continue to [Chapter 10: Git Configuration](GIT_CONFIGURATION.md).
 
 ## See also
 

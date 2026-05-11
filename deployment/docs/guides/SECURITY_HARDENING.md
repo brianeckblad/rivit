@@ -273,5 +273,4 @@ Continue to [Chapter 9: Multi-User Support](MULTI_USER.md).
 
 ## See also
 
-- [Chapter 11: WAF Configuration](WAF_CONFIGURATION.md) — block attacks at the edge
 - [Chapter 6: Monitoring](MONITORING.md) — CloudWatch dashboards and alarms

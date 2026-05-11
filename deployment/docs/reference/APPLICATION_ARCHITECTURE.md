@@ -602,13 +602,11 @@ Internet
   │
   ▼  1. Nginx — SSL/TLS, static file isolation, Nginx-level rate limit
   │
-  ▼  2. AWS WAF (optional) — managed rule groups, IP reputation, rate limit at CDN edge
+  ▼  2. Flask before_request — IP blocklist check, attack pattern detection, app-level rate limit
   │
-  ▼  3. Flask before_request — IP blocklist check, attack pattern detection, app-level rate limit
+  ▼  3. Route decorators — @login_required, @csrf_required, @admin_required
   │
-  ▼  4. Route decorators — @login_required, @csrf_required, @admin_required
-  │
-  ▼  5. Input validation — username regex, secure_filename, Pillow verify, size cap
+  ▼  4. Input validation — username regex, secure_filename, Pillow verify, size cap
   │
   ▼  6. Service layer — user_context path confinement, csv_service locking, mass deletion protection
   │

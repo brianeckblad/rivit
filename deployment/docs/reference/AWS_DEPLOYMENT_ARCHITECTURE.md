@@ -1,7 +1,7 @@
 # AWS Deployment Architecture — Generic Reference
 
 A complete blueprint for deploying a Python/Flask web application on AWS using
-Ansible, S3, CloudWatch, Secrets Manager, and WAF.
+Ansible, S3, CloudWatch, and Secrets Manager.
 
 > **This project uses a shared-server model.** There is no per-app EC2 instance.
 > The server is pre-existing and shared between multiple applications.
@@ -23,11 +23,10 @@ Ansible, S3, CloudWatch, Secrets Manager, and WAF.
 5. [Security Model](#security-model)
 6. [Secret Management](#secret-management)
 7. [Monitoring and Alerting](#monitoring-and-alerting)
-8. [CDN and WAF (Optional)](#cdn-and-waf-optional)
-9. [Deployment Toolchain](#deployment-toolchain)
-10. [File and Directory Layout](#file-and-directory-layout)
-11. [Key Configuration Variables](#key-configuration-variables)
-12. [Cost Estimate](#cost-estimate)
+8. [Deployment Toolchain](#deployment-toolchain)
+9. [File and Directory Layout](#file-and-directory-layout)
+10. [Key Configuration Variables](#key-configuration-variables)
+11. [Cost Estimate](#cost-estimate)
 
 ---
 
@@ -65,11 +64,6 @@ Local Machine (Ansible)
 │          │   backups,   │  │ (runtime   │  │   metrics,      │  │
 │          │   exports)   │  │  secrets)  │  │   alarms)       │  │
 │          └──────────────┘  └────────────┘  └────────────────┘   │
-│                                                                   │
-│  ┌──────────────────────────────────┐    │
-│  │  AWS WAF Web ACL                 │    │
-│  │  (optional, attaches to ALB)     │    │
-│  └──────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -94,7 +88,6 @@ Browser → Nginx (SSL termination, static files, reverse proxy)
 | **Secrets Manager** | Runtime secrets (API keys, passwords) | Yes |
 | **CloudWatch** | Logs, metrics, alarms | Yes |
 | **SNS** | Alert delivery (email/SMS) | Recommended |
-| **WAF** | Web Application Firewall — attack filtering | Optional |
 | **EBS** | Application data volume (separate from root) | Yes |
 
 ---
@@ -394,22 +387,6 @@ Adjust via `cloudwatch_log_retention_days` in vault.yml.
 
 ---
 
-## WAF (Optional)
-
-### AWS WAF
-
-Enable by running `ansible-playbook playbooks/setup-waf.yml`. Associates
-directly with an ALB or can be used standalone.
-
-AWS Managed Rule Groups attached:
-- `AWSManagedRulesCommonRuleSet` — OWASP Top 10 (SQLi, XSS, etc.)
-- `AWSManagedRulesKnownBadInputsRuleSet` — known malicious inputs
-- `AWSManagedRulesAmazonIpReputationList` — malicious IP blocklist
-- Custom rate-limit rule: block IPs sending > 2000 requests / 5 min
-
-Cost: ~$5/month base + ~$1/month per rule group.
-
----
 
 ## Deployment Toolchain
 
@@ -432,7 +409,6 @@ Cost: ~$5/month base + ~$1/month per rule group.
 | `create-s3-bucket.yml` | S3 bucket with versioning, encryption, access block |
 | `create-iam-policies.yml` | Three app-scoped IAM managed policies |
 | `setup-secrets-manager.yml` | Secrets Manager secret (synced from vault) |
-| `setup-waf.yml` | WAF Web ACL (optional) |
 | `provision-app.yml` | Orchestrates all of the above in order |
 
 #### Application deployment
@@ -448,11 +424,10 @@ Cost: ~$5/month base + ~$1/month per rule group.
 |----------|-------------|
 | `setup-monitoring.yml` | CloudWatch agent (per-app config fragment), logrotate, monitoring cron |
 | `setup-ssl.yml` | Obtain or renew Let's Encrypt certificate for this app's domain |
-| `setup-waf.yml` | WAF Web ACL + managed rule groups |
 | `secret-rotate.yml` | Create AWSPENDING version in Secrets Manager |
 | `secret-promote.yml` | Promote AWSPENDING → AWSCURRENT |
 | `secret-sync.yml` | Full vault → Secrets Manager sync |
-| `decommission.yml` | Full per-app teardown (S3, IAM policies, Secrets Manager, WAF) |
+| `decommission.yml` | Full per-app teardown (S3, IAM policies, Secrets Manager) |
 
 ### Standard deployment sequence
 
@@ -560,7 +535,6 @@ All of these are set in `deployment/group_vars/vault.yml`.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `enable_waf` | `false` | Deploy WAF Web ACL |
 | `sns_topic_arn` | `""` | SNS topic for CloudWatch alarm delivery |
 | `cloudwatch_log_retention_days` | `30` | Log retention in CloudWatch |
 | `admin_user` | `ubuntu` | SSH/sudo user on EC2 |
@@ -578,7 +552,6 @@ Costs for the AWS resources managed by this deployment (not EC2 compute, which i
 | CloudWatch (logs + metrics) | $1–3 |
 | Let's Encrypt SSL | Free |
 | **Base total** | **~$2–5/month** |
-| WAF (optional) | ~$5 + $1–2/rule |
 
 Free-tier eligible for the first 12 months: EC2 t3.micro (750 hrs/month), S3
 (5 GB), CloudWatch (basic monitoring). Realistic first-year cost: ~$2–5/month.

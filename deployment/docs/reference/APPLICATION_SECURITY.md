@@ -1,6 +1,6 @@
 # Application Security Reference
 
-Security layers, WAF rules, attack detection, and rate limiting.
+Attack detection, rate limiting, and security middleware.
 
 ---
 
@@ -8,9 +8,8 @@ Security layers, WAF rules, attack detection, and rate limiting.
 
 Multi-layer security architecture:
 
-1. **AWS WAF** - Edge protection (AWS managed, optional)
-2. **Application Security** - IP blocking, attack detection (`app/security.py`)
-3. **Nginx** - Rate limiting, request filtering
+1. **Application Security** - IP blocking, attack detection (`app/security.py`)
+2. **Nginx** - Rate limiting, path filtering, security headers
 
 **For operational tasks (blocking/unblocking IPs, monitoring):** See [OPERATIONS.md](../guides/OPERATIONS.md)
 
@@ -18,22 +17,7 @@ Multi-layer security architecture:
 
 ## Security Layers
 
-### Layer 1: AWS WAF (Optional)
-
-**AWS WAF:**
-- Rate limiting: 2000 requests per 5 minutes per IP
-- Managed rule sets:
-  - Core Rule Set (CRS)
-  - Known bad inputs
-  - SQL injection protection
-  - XSS protection
-- Custom rules as needed
-
-**Configuration:** `deployment/playbooks/setup-waf.yml`
-
----
-
-### Layer 2: Application Security Middleware
+### Layer 1: Application Security Middleware
 
 **Location:** `app/security.py`
 
@@ -77,7 +61,7 @@ Gets actual client IP from:
 
 ---
 
-### Layer 3: Nginx
+### Layer 2: Nginx
 
 **Location:** Nginx configuration on server
 
@@ -280,9 +264,6 @@ if rate_limiter.is_rate_limited(client_ip, max_requests=100, window_seconds=60):
     # Block IP
 ```
 
-**AWS WAF Level:**
-- 2000 requests per 5 minutes per IP
-- Configured in CloudFormation/WAF
 
 ### Block Durations
 
@@ -447,7 +428,6 @@ if rate_limiter.is_rate_limited(client_ip, max_requests=200, window_seconds=60):
 
 ## Related Documentation
 
-- **WAF Configuration:** [Chapter 10: WAF Configuration](../guides/WAF_CONFIGURATION.md)
 - **Nginx Configuration:** `deployment/templates/nginx.conf.j2`
 - **Security Admin API:** `app/routes/api/admin.py`
-
+- **Security Hardening:** [Chapter 8: Security Hardening](../guides/SECURITY_HARDENING.md)

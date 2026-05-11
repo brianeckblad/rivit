@@ -25,7 +25,6 @@ Backups, restarts, scaling, log management, and troubleshooting.
 
 - [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md)
 - [Chapter 8: Security Hardening](SECURITY_HARDENING.md)
-- [Chapter 10: WAF Configuration](WAF_CONFIGURATION.md)
 
 ---
 
@@ -178,7 +177,6 @@ aws cloudwatch describe-alarms --alarm-names HighErrorRate HighCPU DiskSpaceCrit
 - **HighCPU** → Check for traffic spike, runaway process
 - **HighMemory** → Check for memory leak, restart application
 - **DiskSpaceCritical** → Clean up old logs, snapshots
-- **WAFBlocked** → Review blocked IPs, adjust rules if false positive
 
 ### Monitor Dashboard
 
@@ -268,7 +266,6 @@ sudo grep "IP BLOCKED" /var/log/{app_name}/app.log | tail -20
 **Action if many blocked IPs:**
 - Review patterns (same subnet? same attack signature?)
 - Check if legitimate users affected (unblock if needed)
-- Consider updating WAF rules
 - Document attack pattern
 
 ### System Resource Check
@@ -312,27 +309,6 @@ ps aux | grep defunct
 
 ## Weekly Maintenance
 
-### Review WAF Activity
-
-```bash
-# Get WAF metrics
-aws cloudwatch get-metric-statistics \
-  --namespace AWS/WAFV2 \
-  --metric-name BlockedRequests \
-  --dimensions Name=WebACL,Value=app-item-listing-tool-waf \
-  --start-time $(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
-  --period 86400 \
-  --statistics Sum
-
-# Or via console
-# AWS Console → WAF & Shield → Web ACLs → Sampled requests
-```
-
-**Actions:**
-- Review blocked requests
-- Check for false positives
-- Adjust rules if needed
 
 ### Verify Backups
 
@@ -835,11 +811,6 @@ sudo supervisorctl restart {app_name}
 - Network I/O
 
 
-**WAF Metrics:**
-- Allowed requests
-- Blocked requests
-- Rate limit triggers
-
 ---
 
 ## Log Management
@@ -1279,40 +1250,6 @@ aws secretsmanager put-secret-value \
 aws secretsmanager describe-secret --secret-id app-item-listing-tool/production
 ```
 
-### WAF Operations
-
-#### View WAF Rules and Metrics
-
-```bash
-# Get WAF Web ACL
-aws wafv2 get-web-acl \
-  --name {app_name}-waf \
-  --scope REGIONAL \
-  --id <web-acl-id>
-
-# Get sampled requests
-aws wafv2 get-sampled-requests \
-  --web-acl-arn <web-acl-arn> \
-  --rule-metric-name ALL \
-  --scope REGIONAL \
-  --time-window StartTime=$(date -d '1 hour ago' +%s),EndTime=$(date +%s) \
-  --max-items 100
-```
-
-#### Update WAF Rules
-
-```bash
-# Update rate limit rule
-aws wafv2 update-web-acl \
-  --name {app_name}-waf \
-  --scope REGIONAL \
-  --id <web-acl-id> \
-  --lock-token <lock-token> \
-  --rules file://waf-rules.json
-```
-
----
-- Rate limit triggers
 
 ### Setting Up Alerts
 
@@ -1324,7 +1261,6 @@ aws wafv2 update-web-acl \
 **Alarms created:**
 - High error rate (>5% for 10 minutes)
 - High request rate (>10,000/minute)
-- WAF blocking spike (>100/minute)
 - EC2 CPU high (>80% for 15 minutes)
 - Disk space critical (>85%)
 
@@ -1450,7 +1386,7 @@ curl https://yourdomain.com/health
 - [ ] Check monitoring dashboard
 - [ ] Review recent changes
 - [ ] Check CloudWatch logs
-- [ ] Check WAF for attacks
+- [ ] Check application security blocked IPs
 
 #### Investigation
 
@@ -1501,13 +1437,13 @@ git log --oneline -5
 
 **DDoS Attack:**
 ```bash
-# Check WAF blocks
-aws wafv2 get-sampled-requests --web-acl-arn <arn> --scope REGIONAL
+# Check application-level rate limiting blocks
+curl http://localhost:{app_port}/api/admin/security/blocked-ips
 
-# If legitimate traffic blocked, adjust WAF rules
-# If attack, rate limits will automatically protect
-
-# Consider temporary IP blocks
+# Rate limits will automatically protect; manually block persistent attackers
+curl -X POST http://localhost:{app_port}/api/admin/security/block-ip \
+  -H "Content-Type: application/json" \
+  -d '{"ip": "1.2.3.4", "duration_hours": 24}'
 ```
 
 ---
@@ -1538,10 +1474,6 @@ aws ce get-cost-and-usage \
 - Enable S3 Intelligent-Tiering
 - Clean up old backups
 
-**WAF:**
-- Review rule usage
-- Remove unused rules
-- Consider AWS Managed Rules vs custom
 
 ### Budget Alerts
 
