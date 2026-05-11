@@ -119,7 +119,7 @@ def get_user_secret_name(username=None):
         username (str, optional): Username. If None, uses current session user.
 
     Returns:
-        str: Secret name (e.g., 'rampe/users/brian' or 'rampe/production')
+        str: Secret name (e.g., 'rivit/users/brian' or 'rivit/production')
     """
     if username is None:
         username = get_current_username()
@@ -132,7 +132,7 @@ def get_user_secret_name(username=None):
     _assert_safe_username(username)
     # Multi-user: {app_prefix}/users/{username}
     # Keeps user secrets under the same IAM policy prefix as the main app secret
-    secret_name = os.environ.get('SECRET_NAME', 'rampe/production')
+    secret_name = os.environ.get('SECRET_NAME', 'rivit/production')
     prefix = secret_name.split('/')[0]
     return f"{prefix}/users/{username}"
 

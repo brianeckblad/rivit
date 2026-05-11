@@ -17,7 +17,7 @@ def get_secrets_from_aws():
     Returns dict of secrets or empty dict if unavailable.
     Falls back to environment variables if Secrets Manager is not accessible.
     """
-    secret_name = os.environ.get('SECRET_NAME', 'rampe/production')
+    secret_name = os.environ.get('SECRET_NAME', 'rivit/production')
     region_name = os.environ.get('AWS_REGION', 'us-east-2')
 
     # Try to fetch from Secrets Manager

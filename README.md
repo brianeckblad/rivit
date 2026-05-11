@@ -1,4 +1,4 @@
-# Rampe
+# rivit
 
 A Flask application for managing comic book inventory with AWS S3 storage, marketplace exports, and eBay price research.
 
@@ -37,8 +37,8 @@ Estimated monthly cost: $5–10 (S3 + small EC2 instance, free tier eligible).
 ## Local Development
 
 ```bash
-git clone https://github.com/yourusername/rampe.git
-cd rampe
+git clone https://github.com/yourusername/rivit.git
+cd rivit
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -131,7 +131,7 @@ python main.py --s3delete         # Manage S3 images
 ## Project Structure
 
 ```
-rampe/
+rivit/
 ├── app/
 │   ├── models/              Data models (Comic, User)
 │   ├── routes/              URL handlers

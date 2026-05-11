@@ -10,9 +10,9 @@ class CloudWatchService:
 
     def __init__(self):
         self.client = None
-        # Use environment variable for namespace, default to 'Rampe'
+        # Use environment variable for namespace, default to 'rivit'
         # This can be set in deployment configs or .env file
-        self.namespace = os.environ.get('CLOUDWATCH_NAMESPACE', 'Rampe')
+        self.namespace = os.environ.get('CLOUDWATCH_NAMESPACE', 'rivit')
 
     def _get_client(self):
         """Get or create boto3 CloudWatch client."""

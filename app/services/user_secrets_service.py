@@ -15,7 +15,7 @@ class UserSecretsService:
     in AWS Secrets Manager under the pattern: {app_prefix}/users/{username}
 
     The app_prefix is derived from the SECRET_NAME environment variable
-    (e.g., SECRET_NAME='rampe/production' → prefix='rampe'), which keeps
+    (e.g., SECRET_NAME='rivit/production' → prefix='rivit'), which keeps
     user secrets under the same IAM policy as the main app secret.
     """
 
@@ -42,9 +42,9 @@ class UserSecretsService:
         so user secrets share the same IAM policy prefix.
 
         Returns:
-            str: App prefix (e.g., 'rampe' from 'rampe/production')
+            str: App prefix (e.g., 'rivit' from 'rivit/production')
         """
-        secret_name = os.environ.get('SECRET_NAME', 'rampe/production')
+        secret_name = os.environ.get('SECRET_NAME', 'rivit/production')
         return secret_name.split('/')[0]
 
     def get_user_secret_name(self, username):
@@ -55,7 +55,7 @@ class UserSecretsService:
             username (str): The username
 
         Returns:
-            str: Secret name (e.g., 'rampe/users/brian')
+            str: Secret name (e.g., 'rivit/users/brian')
         """
         prefix = self._get_app_prefix()
         return f"{prefix}/users/{username}"

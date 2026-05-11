@@ -2,7 +2,7 @@
 """Fix comics whose Description field contains leaked eBay HTML template markup.
 
 Run on the server:
-    cd /home/ubuntu/rampe
+    cd /home/ubuntu/rivit
     source .venv/bin/activate
     python app/scripts/fix_html_in_descriptions.py [--csv-path PATH]
 
