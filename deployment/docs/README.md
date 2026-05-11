@@ -1,5 +1,4 @@
-# rivit Deployment Guide
-
+# Application Deployment Guide
 **Deploy, operate, and maintain a Python web application on a shared server with AWS backing services.**
 
 Start at Chapter 1 and follow in order. Chapters 9–11 are optional.
