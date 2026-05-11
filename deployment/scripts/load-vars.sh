@@ -233,6 +233,55 @@ open('$INVENTORY_FILE', 'w').write(text)
     fi
 fi
 
+# =========================================================================
+# Sync server_admin_user + ssh_key_file → ansible.cfg
+# =========================================================================
+# Ansible cannot resolve vault variable templates for connection keywords
+# (remote_user, private_key_file) — they must be literal values.
+# ansible.cfg is the authoritative place for these; keep it synced from vault.
+# =========================================================================
+ANSIBLE_CFG="$DEPLOYMENT_DIR/ansible.cfg"
+
+if [ -f "$ANSIBLE_CFG" ]; then
+    _cfg_user=$(python3 -c "
+import re
+with open('$ANSIBLE_CFG') as f:
+    for line in f:
+        m = re.match(r'remote_user\s*=\s*(\S+)', line.strip())
+        if m: print(m.group(1)); break
+" 2>/dev/null)
+    _cfg_key=$(python3 -c "
+import re
+with open('$ANSIBLE_CFG') as f:
+    for line in f:
+        m = re.match(r'private_key_file\s*=\s*(\S+)', line.strip())
+        if m: print(m.group(1)); break
+" 2>/dev/null)
+
+    _vault_user="${server_admin_user:-}"
+    _vault_key="${ssh_key_file:-}"
+
+    if [ -n "$_vault_user" ] && [ "$_cfg_user" != "$_vault_user" ]; then
+        python3 -c "
+import re
+text = open('$ANSIBLE_CFG').read()
+text = re.sub(r'(remote_user\s*=\s*)\S+', r'\g<1>$_vault_user', text)
+open('$ANSIBLE_CFG', 'w').write(text)
+" 2>/dev/null
+        echo -e "${YELLOW}ℹ️  Updated ansible.cfg remote_user: $_cfg_user → $_vault_user${NC}"
+    fi
+
+    if [ -n "$_vault_key" ] && [ "$_cfg_key" != "$_vault_key" ]; then
+        python3 -c "
+import re
+text = open('$ANSIBLE_CFG').read()
+text = re.sub(r'(private_key_file\s*=\s*)\S+', r'\g<1>$_vault_key', text)
+open('$ANSIBLE_CFG', 'w').write(text)
+" 2>/dev/null
+        echo -e "${YELLOW}ℹ️  Updated ansible.cfg private_key_file: $_cfg_key → $_vault_key${NC}"
+    fi
+fi
+
 # ---- Display results ----
 
 echo ""

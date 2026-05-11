@@ -12,10 +12,10 @@
 # View configuration:
 #   ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
 # ============================================================================
-
-# SSH connection variables — set here (not in the inventory file) so that
-# the Jinja2 references to vault variables resolve correctly.  Ansible
-# resolves group_vars together with vault; inventory templates are parsed
-# before vault is available, which is why {{server_admin_user}} fails there.
-ansible_user: "{{ server_admin_user }}"
-ansible_ssh_private_key_file: "{{ ssh_key_file }}"
+#
+# NOTE: ansible_user / ansible_ssh_private_key_file are NOT set here.
+# Ansible resolves connection keywords before vault variable interpolation
+# completes, so template expressions like "{{ server_admin_user }}" fail with
+# 'undefined' errors for both adhoc and playbook runs.
+# These values live in ansible.cfg (remote_user, private_key_file) instead,
+# kept in sync by scripts/load-vars.sh.
