@@ -225,7 +225,10 @@
     # =========================================================================
     - name: Ensure SSL renewal cron job exists
       cron:
-        name: "Renew Let's Encrypt certificates"
+        # Name must match setup.yml exactly so this creates/updates one entry,
+        # not a second duplicate cron.  certbot renew covers ALL certs on the
+        # server — this is shared infrastructure but idempotent.
+        name: "Renew Let's Encrypt certificates for {{ app_name }}"
         job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
         special_time: daily
         user: root
@@ -276,9 +279,11 @@
       changed_when: false
 
     - name: Restart nginx
+      # Use reload, not restart — reload applies config gracefully without
+      # dropping connections for other apps on the same shared server.
       service:
         name: nginx
-        state: restarted
+        state: reloaded
       when: nginx_test.rc == 0
 
     - name: Reload supervisor configuration

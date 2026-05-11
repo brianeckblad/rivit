@@ -253,13 +253,15 @@ ansible-playbook playbooks/harden-permissions.yml --vault-password-file ~/.vault
 
 ### Step 7 — Set up monitoring (optional)
 
-Installs the CloudWatch agent and configures log and metric collection.
+Installs the CloudWatch agent and configures log and metric collection. Each app writes its own config fragment — safe to run alongside other apps on the same server.
 
 **Vault variables used:** `app_name`, `log_dir`, `aws_region`
 
 ```bash
 ansible-playbook playbooks/setup-monitoring.yml --vault-password-file ~/.vault_pass
 ```
+
+> **Note:** Running this playbook restarts the CloudWatch agent to reload config for all apps. The restart is brief (a few seconds) and metrics collection resumes immediately.
 
 ---
 

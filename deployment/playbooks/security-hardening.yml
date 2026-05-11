@@ -1,15 +1,44 @@
 ---
-# Security hardening for Ubuntu servers
-# NOTE: These tasks are automatically applied by setup-server.yml during
-# initial deployment. This standalone playbook exists to re-apply hardening
-# or update settings after the initial deploy.
+# ⚠️  SERVER-ADMIN PLAYBOOK — NOT PART OF NORMAL APP DEPLOYMENT
 #
-# Usage: ansible-playbook playbooks/security-hardening.yml \
-#          --vault-password-file ~/.vault_pass
+# This playbook applies OS-level hardening to the shared server:
+#   - apt dist-upgrade (upgrades ALL packages system-wide — may require reboot)
+#   - SSH config changes (affects ALL users on the server)
+#   - sysctl kernel parameters (system-wide networking settings)
+#   - fail2ban configuration (replaces /etc/fail2ban/jail.local for the whole server)
+#   - Disables services: apache2, avahi-daemon, cups, bluetooth
+#   - /etc/fstab entry for shared memory
+#   - Automatic security updates (unattended-upgrades)
 #
-# IMPORTANT: If vault.yml is encrypted, provide vault password via:
-# 1. ~/.vault_pass file (recommended), OR
-# 2. --ask-vault-pass flag (will prompt for password)
+# These tasks affect EVERY application running on the server, not just this one.
+# Coordinate with the server admin before running.  Do NOT run this as part of
+# routine per-app deployments.
+#
+# For per-app hardening (file permissions only), use update.yml or harden-permissions.yml.
+#
+# Usage:
+#   ansible-playbook playbooks/security-hardening.yml --vault-password-file ~/.vault_pass
+#
+# Requires confirmation:
+#   ansible-playbook playbooks/security-hardening.yml \
+#     --vault-password-file ~/.vault_pass \
+#     -e server_hardening_confirmed=true
+
+- name: Confirm server-admin intent
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Require explicit confirmation flag
+      fail:
+        msg: |
+          security-hardening.yml modifies system-wide settings (SSH, sysctl,
+          fail2ban, apt upgrades) that affect ALL apps on this server.
+
+          Coordinate with the server admin before running.
+
+          To confirm you understand the scope, pass:
+            -e server_hardening_confirmed=true
+      when: server_hardening_confirmed | default(false) | bool != true
 
 - name: Apply Security Hardening
   hosts: all

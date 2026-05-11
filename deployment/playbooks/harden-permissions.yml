@@ -10,7 +10,7 @@
 #     --vault-password-file ~/.vault_pass
 
 - name: Harden File Permissions
-  hosts: app_servers
+  hosts: all
   become: yes
 
   vars_files:

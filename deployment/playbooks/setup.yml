@@ -411,9 +411,11 @@
         state: restarted
 
     - name: restart nginx
+      # Use reload, not restart — reload applies config gracefully without
+      # dropping connections for other apps on the same shared server.
       service:
         name: nginx
-        state: restarted
+        state: reloaded
 
     - name: restart application
       supervisorctl:
