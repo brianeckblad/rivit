@@ -201,122 +201,17 @@ if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
 fi
 
 # =========================================================================
-# Load SERVER_IP — query AWS or start fresh for a new deployment
+# Sync server_host → inventories/hosts.yml
+# =========================================================================
+# server_host is the SSH target for all remote playbooks. If it is set in
+# vault.yml and differs from what is in hosts.yml, sync it automatically so
+# the operator does not have to edit two files.
 # =========================================================================
 INVENTORY_FILE="$DEPLOYMENT_DIR/inventories/hosts.yml"
 
+if [ -n "${server_host:-}" ] && [ "$server_host" != "YOUR_SERVER_IP" ]; then
+    export SERVER_IP="$server_host"
 
-_server_ip=""
-_instance_id=""
-
-# ---- Menu: AWS instance or new deployment ----
-
-echo ""
-echo "  1) Use an existing AWS instance"
-echo "  2) New deployment (no instance yet)"
-echo ""
-printf "  Select [1-2]: "
-read -r _menu_choice
-
-case "$_menu_choice" in
-
-    # ── Option 1: Query AWS for live instances ────────────────────
-    1)
-        if ! command -v aws &>/dev/null; then
-            echo -e "${RED}ERROR: AWS CLI not installed.${NC}"
-            return 1 2>/dev/null || exit 1
-        fi
-
-        _aws_json=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=$app_name" \
-                      "Name=instance-state-name,Values=running,stopped,stopping,pending" \
-            --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,IP:PublicIpAddress,Type:InstanceType,Launch:LaunchTime}' \
-            --region "$aws_region" --output json 2>/dev/null) || true
-
-        _aws_count=0
-        if [ -n "$_aws_json" ] && [ "$_aws_json" != "[]" ]; then
-            _aws_count=$(python3 -c "import json; print(len(json.loads('''$_aws_json''')))" 2>/dev/null || echo 0)
-        fi
-
-        if [ "$_aws_count" -eq 0 ] 2>/dev/null; then
-            echo ""
-            echo "No instances found. Re-run and select option 2 for a new deployment."
-            return 0 2>/dev/null || exit 0
-        elif [ "$_aws_count" -eq 1 ] 2>/dev/null; then
-            eval "$(python3 -c "
-import json
-data = json.loads('''$_aws_json''')
-i = data[0]
-print(f'_server_ip=\"{i.get(\"IP\") or \"\"}\"')
-print(f'_instance_id=\"{i[\"ID\"]}\"')
-" 2>/dev/null)"
-            if [ -z "$_server_ip" ]; then
-                echo -e "${YELLOW}⚠️  Instance ${_instance_id} has no public IP (stopped?)${NC}"
-            fi
-        else
-            echo ""
-            echo -e "${YELLOW}Found $_aws_count instances named '$app_name' in AWS:${NC}"
-            echo ""
-            python3 -c "
-import json
-data = json.loads('''$_aws_json''')
-for idx, i in enumerate(data, 1):
-    ip = i.get('IP') or 'no public IP'
-    state = i.get('State', '?')
-    itype = i.get('Type', '?')
-    launched = (i.get('Launch') or '?')[:10]
-    print(f'  {idx}) {i[\"ID\"]}   {ip:<16s} {state:<10s} {itype}  launched {launched}')
-" 2>/dev/null
-            echo ""
-            printf "  Select instance [1-%d]: " "$_aws_count"
-            read -r _choice
-
-            if [[ "$_choice" =~ ^[0-9]+$ ]] && [ "$_choice" -ge 1 ] && [ "$_choice" -le "$_aws_count" ]; then
-                eval "$(python3 -c "
-import json
-data = json.loads('''$_aws_json''')
-i = data[int('$_choice') - 1]
-print(f'_server_ip=\"{i.get(\"IP\") or \"\"}\"')
-print(f'_instance_id=\"{i[\"ID\"]}\"')
-" 2>/dev/null)"
-            else
-                echo -e "${RED}Invalid selection — SERVER_IP not set${NC}"
-            fi
-        fi
-        ;;
-
-    # ── Option 2: New deployment ──────────────────────────────────
-    2)
-        # Clear stale instance data from previous runs in this shell
-        unset SERVER_IP 2>/dev/null
-        unset INSTANCE_ID 2>/dev/null
-
-        echo ""
-        echo "Setting up for a new deployment."
-        echo ""
-        echo "Resetting inventories/hosts.yml to localhost..."
-
-        # Reset hosts.yml to the pre-deploy template (localhost / local)
-        if [ -f "$DEPLOYMENT_DIR/inventories/hosts.yml.example" ]; then
-            cp "$DEPLOYMENT_DIR/inventories/hosts.yml.example" "$INVENTORY_FILE"
-            echo -e "${GREEN}✓ hosts.yml reset to localhost${NC}"
-        else
-            echo -e "${YELLOW}⚠️  hosts.yml.example not found — hosts.yml not changed${NC}"
-        fi
-        ;;
-
-    *)
-        echo -e "${RED}Invalid choice — SERVER_IP not set${NC}"
-        ;;
-esac
-
-# ---- Export and sync inventory ----
-
-if [ -n "$_server_ip" ]; then
-    export SERVER_IP="$_server_ip"
-    [ -n "$_instance_id" ] && export INSTANCE_ID="$_instance_id"
-
-    # Update hosts.yml with the live IP from AWS
     if [ -f "$INVENTORY_FILE" ]; then
         _inv_ip=$(python3 -c "
 import re
@@ -325,20 +220,17 @@ with open('$INVENTORY_FILE') as f:
         m = re.search(r'ansible_host:\s*(\S+)', line)
         if m: print(m.group(1)); break
 " 2>/dev/null)
-        if [ "$_inv_ip" != "$_server_ip" ]; then
+        if [ "$_inv_ip" != "$server_host" ]; then
             python3 -c "
-import re
+import re, sys
 text = open('$INVENTORY_FILE').read()
-text = re.sub(r'(ansible_host:\s*)\S+', r'\g<1>$_server_ip', text)
+text = re.sub(r'(ansible_host:\s*)\S+', r'\g<1>$server_host', text)
 text = re.sub(r'(ansible_connection:\s*)\S+', r'\g<1>ssh', text)
-text = re.sub(r'(# Server IP:\s*)\S+', r'\g<1>$_server_ip', text)
 open('$INVENTORY_FILE', 'w').write(text)
 " 2>/dev/null
-            echo -e "${YELLOW}ℹ️  Updated inventories/hosts.yml: $_inv_ip → $_server_ip${NC}"
+            echo -e "${YELLOW}ℹ️  Updated inventories/hosts.yml: $_inv_ip → $server_host${NC}"
         fi
     fi
-elif [ -n "$_instance_id" ]; then
-    export INSTANCE_ID="$_instance_id"
 fi
 
 # ---- Display results ----
@@ -351,12 +243,10 @@ echo "  app_display_name=${app_display_name:-}"
 echo "  aws_region=$aws_region"
 echo "  admin_user=${admin_user:-ubuntu}"
 echo "  server_name=${server_name:-}"
+echo "  server_host=${server_host:-  (not set — update in vault.yml)}"
 
 if [ -n "${SERVER_IP:-}" ]; then
     echo "  SERVER_IP=$SERVER_IP"
-    [ -n "${INSTANCE_ID:-}" ] && echo "  INSTANCE_ID=$INSTANCE_ID"
-elif [ -n "${INSTANCE_ID:-}" ]; then
-    echo "  INSTANCE_ID=$INSTANCE_ID (no public IP — instance may be stopped)"
 fi
 
 

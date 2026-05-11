@@ -1,13 +1,16 @@
 ---
-# Playbook to setup monitoring and CloudWatch integration
-# This replaces setup-monitoring.sh
+# Setup application monitoring: CloudWatch agent, log rotation, log monitoring cron.
 #
-# Usage: ansible-playbook playbooks/setup-monitoring.yml \
-#          --vault-password-file ~/.vault_pass
+# The CloudWatch agent is downloaded directly from AWS — it is not in the Ubuntu
+# default apt repository.  This playbook downloads the .deb, installs it, and
+# configures it to ship application logs to CloudWatch Logs.
 #
-# IMPORTANT: If vault.yml is encrypted, provide vault password via:
-# 1. ~/.vault_pass file (recommended), OR
-# 2. --ask-vault-pass flag (will prompt for password)
+# Usage:
+#   ansible-playbook playbooks/setup-monitoring.yml --vault-password-file ~/.vault_pass
+#
+# Prerequisites:
+#   - The server's IAM role must have the {app_name}-cloudwatch-access policy attached.
+#     Run create-iam-policies.yml first if you have not already.
 
 - name: Setup Application Monitoring
   hosts: all
@@ -17,11 +20,22 @@
     - ../group_vars/vault.yml
 
   tasks:
-    - name: Install CloudWatch agent
+    - name: Download CloudWatch agent .deb (amd64)
+      get_url:
+        url: "https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb"
+        dest: /tmp/amazon-cloudwatch-agent.deb
+        mode: '0644'
+        timeout: 60
+
+    - name: Install CloudWatch agent from .deb
       apt:
-        name: amazon-cloudwatch-agent
+        deb: /tmp/amazon-cloudwatch-agent.deb
         state: present
-        update_cache: yes
+
+    - name: Remove CloudWatch agent installer
+      file:
+        path: /tmp/amazon-cloudwatch-agent.deb
+        state: absent
 
     - name: Create CloudWatch agent config
       template:
@@ -37,7 +51,7 @@
         state: started
         enabled: yes
 
-    - name: Create log monitoring script
+    - name: Deploy log monitoring script
       template:
         src: ../templates/log-monitor.sh.j2
         dest: /usr/local/bin/{{ app_name }}-log-monitor.sh
@@ -45,7 +59,7 @@
         group: root
         mode: '0755'
 
-    - name: Setup log rotation for application logs
+    - name: Install logrotate configuration
       template:
         src: ../templates/logrotate.conf.j2
         dest: /etc/logrotate.d/{{ app_name }}
@@ -53,21 +67,29 @@
         group: root
         mode: '0644'
 
-    - name: Create monitoring cron job
+    - name: Verify logrotate configuration syntax
+      command: logrotate -d /etc/logrotate.d/{{ app_name }}
+      changed_when: false
+      failed_when: false
+
+    - name: Create log monitoring cron job
       cron:
         name: "{{ app_name }} log monitoring"
         job: "/usr/local/bin/{{ app_name }}-log-monitor.sh"
         minute: "*/5"
         user: root
 
-    - name: Display monitoring information
+    - name: Display monitoring summary
       debug:
         msg:
-          - "Monitoring setup complete!"
-          - "CloudWatch agent: Running"
-          - "Log rotation: Configured ({{ log_retention_days }} days)"
-          - "Log monitoring: Every 5 minutes"
+          - "╔══════════════════════════════════════════════════════════╗"
+          - "║   Monitoring Setup Complete                              ║"
+          - "╚══════════════════════════════════════════════════════════╝"
           - ""
-          - "View logs: sudo journalctl -u {{ app_name }} -f"
-          - "CloudWatch: Check AWS Console → CloudWatch → Logs"
-
+          - "  CloudWatch agent:  running"
+          - "  Log rotation:      /etc/logrotate.d/{{ app_name }}"
+          - "  Log monitor cron:  every 5 minutes"
+          - ""
+          - "  View agent status: sudo systemctl status amazon-cloudwatch-agent"
+          - "  View logs:         sudo tail -f {{ log_dir }}/app.log"
+          - "  CloudWatch Logs:   AWS Console → CloudWatch → Log groups"

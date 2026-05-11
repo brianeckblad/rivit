@@ -1,28 +1,24 @@
 ---
 # ============================================================================
-# DEPLOYMENT CONFIGURATION -- SINGLE SOURCE OF TRUTH
+# DEPLOYMENT CONFIGURATION — SINGLE SOURCE OF TRUTH
 # ============================================================================
 # Setup:
 #   1. cp vault.yml.example vault.yml
-#   2. Edit your values
+#   2. Fill in all required values
 #   3. ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
-#   4. ansible-vault view vault.yml --vault-password-file ~/.vault_pass
 #
+# See deployment/docs/guides/PREREQUISITES.md for a description of every variable.
 # ============================================================================
 # SHARED SERVER MODEL
 # ============================================================================
-# This deployment assumes the server is already provisioned and shared.
-# Each app manages its own AWS resources (S3, Secrets Manager, IAM policies)
-# and its own app components (git, venv, supervisor process, nginx vhost, SSL).
-#
-# The server itself (OS, nginx install, supervisor, fail2ban) is managed
-# separately by the platform team.
+# This deployment targets a server that is already provisioned and shared.
+# Each app manages its own AWS resources (S3, IAM, Secrets Manager) and its
+# own app stack (git, venv, supervisor process, nginx vhost, SSL cert).
 #
 # Multiple apps on one server need UNIQUE values for:
-#   app_name       - drives paths, groups, supervisor name, log dirs
-#   server_name    - domain this app's nginx vhost listens on
-#   gunicorn_port  - unique localhost port (app1=8000, app2=8001, ...)
-#   secret_name    - must be unique per app in Secrets Manager
+#   app_name       — drives paths, group names, supervisor name, log dirs
+#   server_name    — domain this app's nginx vhost listens on
+#   gunicorn_port  — unique localhost port (app1=8000, app2=8001, …)
 # ============================================================================
 
 # ============================================================================
@@ -30,81 +26,87 @@
 # ============================================================================
 app_name: "your_app_name"
 app_display_name: "My Application"
-server_name: "your-domain.example.com"       # Must resolve to your server IP
-ssl_email: "your-email@example.com"          # For Let's Encrypt notifications
+server_name: "your-domain.example.com"       # Must resolve to server_host IP
+ssl_email: "you@example.com"                 # For Let's Encrypt renewal notices
 service_name: "{{ app_name }}"               # Supervisor process name
+
+# ============================================================================
+# SERVER CONNECTION (REQUIRED)
+# ============================================================================
+# server_host: SSH host/IP of the shared server. Find in EC2 Console → Instances →
+#   your server → Public IPv4 address.
+server_host: "YOUR_SERVER_IP"
+ssh_key_file: "~/.ssh/your-key.pem"         # SSH private key for ansible_ssh_private_key_file
 
 # ============================================================================
 # USERS (REQUIRED)
 # ============================================================================
-admin_user: "ubuntu"                         # SSH/deployment user
-app_user: "app_runtime"                      # Runtime user (no SSH, no shell)
+admin_user: "ubuntu"                         # OS user that owns files, runs git
+app_user: "your_app_runtime"                 # Unprivileged runtime user (no SSH, no shell)
 
 # ============================================================================
 # GIT (REQUIRED)
 # ============================================================================
 git_branch: "main"
-git_repo_url: "https://github.com/YOUR_USERNAME/YOUR_APP.git"
-git_token: ""                                # GitHub PAT for private repos (empty = public)
-git_repo: "{{ git_repo_url }}"               # Override with token if needed
+git_repo_url: "https://github.com/USER/REPO.git"
+git_token: ""                                # GitHub PAT with repo scope (empty = public repo)
+git_repo: "{{ git_repo_url | replace('https://', 'https://' + git_token + '@') if git_token | default('') else git_repo_url }}"
 
 # ============================================================================
 # AWS (REQUIRED)
 # ============================================================================
 aws_region: "us-east-2"
-s3_bucket_name: "your-unique-bucket-name"   # Must be globally unique
+s3_bucket_name: "yourname-appname-2026"      # Globally unique across all AWS accounts
 s3_folder: "data"
 secret_name: "{{ app_name }}/production"
+sns_topic_arn: ""                            # SNS ARN for alerts (leave empty to disable)
 
 # ============================================================================
-# AWS IAM -- SHARED SERVER ROLE (OPTIONAL)
+# IAM — SHARED SERVER ROLE (OPTIONAL)
 # ============================================================================
-# Name of the shared EC2 server's existing IAM instance role.
-# When set, the three app-specific policies are attached to this role.
-# Leave blank to attach manually after running create-iam-policies.yml.
-#
-# Find your server's role:
-#   aws ec2 describe-instances --instance-id <id> \
-#     --query 'Reservations[].Instances[].IamInstanceProfile.Arn'
-server_iam_role_name: ""                     # e.g., "shared-server-role"
-
-# ============================================================================
-# ALERTS (OPTIONAL)
-# ============================================================================
-sns_topic_arn: ""                            # SNS topic ARN (leave blank to disable)
+# IAM instance role attached to the shared server. provision-app.yml attaches
+# the three app-scoped policies to this role automatically.
+# Find it: EC2 Console → Instances → your server → IAM role.
+# Leave empty to attach IAM policies manually after running create-iam-policies.yml.
+server_iam_role_name: ""                     # e.g., "shared-server-ec2-role"
 
 # ============================================================================
 # APPLICATION CREDENTIALS (REQUIRED)
 # ============================================================================
 app_default_username: "admin"
-app_default_password: "change-this-password"
-users: "admin:change-this-password"          # Format: user1:pass1,user2:pass2
+app_default_password: "change-this-strong-password"   # Min 12 chars, include symbols
+users: "admin:change-this-strong-password"            # Format: user1:pass1,user2:pass2
 
 # ============================================================================
 # FLASK (REQUIRED)
 # ============================================================================
-secret_key: "change-this-to-a-random-secret-key"
+# Generate: python3 -c "import secrets; print(secrets.token_hex(32))"
+secret_key: "replace-with-64-char-random-hex-string"
 flask_env: "production"
 
 # ============================================================================
 # CLOUDFRONT (OPTIONAL)
 # ============================================================================
+# Set enable_cloudfront: true and run setup-cloudfront.yml to add a CDN.
+# After setup, paste the distribution domain into cloudfront_domain, then sync:
+#   ansible-playbook playbooks/secret-sync.yml --vault-password-file ~/.vault_pass
 enable_cloudfront: false
 cloudfront_price_class: "PriceClass_100"
 cloudfront_domain: ""
+# Generate: openssl rand -hex 32
 app_secret_token: ""
 
 # ============================================================================
 # PERFORMANCE
 # ============================================================================
-# gunicorn_port: UNIQUE per app on a shared host!
+# gunicorn_port: MUST be unique per app on a shared server.
+# Assign sequentially: 8000, 8001, 8002, …
 gunicorn_port: "8000"
 gunicorn_bind: "127.0.0.1:{{ gunicorn_port }}"
 app_port: "{{ gunicorn_port }}"
 flask_port: "{{ gunicorn_port }}"
 gunicorn_workers: 4
 gunicorn_timeout: 120
-python_version: "3.10"
 
 # ============================================================================
 # LOG RETENTION
@@ -121,7 +123,7 @@ backup_retention_days: 30
 s3_version_retention_days: 30
 
 # ============================================================================
-# PATHS (derived from app_name -- usually no need to change)
+# PATHS (derived from app_name — usually no need to change)
 # ============================================================================
 app_dir: "/opt/{{ app_name }}"
 venv_dir: "{{ app_dir }}/.venv"
@@ -129,7 +131,7 @@ log_dir: "/var/log/{{ app_name }}"
 instance_dir: "{{ app_dir }}/instance"
 
 # ============================================================================
-# eBay API (OPTIONAL)
+# eBay API (OPTIONAL — leave all empty if not using eBay)
 # ============================================================================
 ebay_environment: "production"
 ebay_production_dev_id: ""
@@ -137,22 +139,4 @@ ebay_production_cert_id: ""
 ebay_production_app_id: ""
 ebay_production_token: ""
 ebay_verification_token: ""
-
-# ============================================================================
-# SYSTEM PACKAGES (installed on shared server if missing)
-# ============================================================================
-system_packages:
-  - python3
-  - python3-pip
-  - python3-venv
-  - python3-dev
-  - build-essential
-  - nginx
-  - git
-  - curl
-  - supervisor
-  - libjpeg-dev
-  - zlib1g-dev
-  - libpng-dev
-  - net-tools
 

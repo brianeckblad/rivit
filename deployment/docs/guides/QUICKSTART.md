@@ -19,12 +19,13 @@ source scripts/load-vars.sh
 
 **You should see:**
 ```
-Variables loaded successfully
+✅ Variables loaded
 
-  app_name=rivit
+  app_name=myapp
   aws_region=us-east-2
   admin_user=ubuntu
-  server_name=rivit.example.com
+  server_name=myapp.example.com
+  server_host=13.58.136.177
 ```
 
 ---
@@ -81,7 +82,7 @@ curl https://{server_name}
 ### Connect to the server
 
 ```bash
-ssh ubuntu@<server-ip>
+ssh ubuntu@$server_host     # server_host is loaded from vault.yml by load-vars.sh
 
 # Check app status
 sudo supervisorctl status {app_name}
