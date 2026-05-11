@@ -1,9 +1,10 @@
 ---
-# Playbook to create the IAM deployer user
-# Single purpose: Create an IAM user with the policies needed to provision infrastructure
+# Playbook to create the IAM deployer user.
+# Creates a limited IAM user with permissions to manage only app-level AWS resources
+# (S3, Secrets Manager, IAM policies, CloudWatch). No EC2 permissions needed.
 #
-# Run once with root (or admin) AWS credentials to create the limited deployer
-# user, then reconfigure the AWS CLI to use the new user's access keys.
+# Run once with root (or admin) AWS credentials, then reconfigure the AWS CLI
+# to use the new user's access keys.
 #
 # Usage (recommended — after vault.yml exists):
 #   ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pass
@@ -13,8 +14,8 @@
 #
 # What gets created:
 #   1. IAM user:  {app_name}-deployer
-#   2. Managed policies: EC2, S3, IAM, SecretsManager, CloudWatch Logs
-#   3. Inline policy:    CloudWatch Alarms
+#   2. Managed policies: S3, IAM, SecretsManager, CloudWatch Logs
+#   3. Inline policy: CloudWatch Alarms
 #   4. Access key pair (printed once — save immediately)
 #
 # To delete: ansible-playbook playbooks/delete-iam-user.yml --vault-password-file ~/.vault_pass
@@ -29,7 +30,6 @@
     iam_user_name: "{{ app_name }}-deployer"
 
     managed_policies:
-      - "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
       - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
       - "arn:aws:iam::aws:policy/IAMFullAccess"
       - "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
@@ -112,7 +112,6 @@
           - "     be retrieved again."
           - ""
           - "  Managed Policies:"
-          - "    • AmazonEC2FullAccess"
           - "    • AmazonS3FullAccess"
           - "    • IAMFullAccess"
           - "    • SecretsManagerReadWrite"

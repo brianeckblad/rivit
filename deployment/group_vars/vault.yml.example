@@ -1,170 +1,145 @@
 ---
 # ============================================================================
-# DEPLOYMENT CONFIGURATION — SINGLE SOURCE OF TRUTH
+# DEPLOYMENT CONFIGURATION -- SINGLE SOURCE OF TRUTH
 # ============================================================================
-# This file contains ALL deployment variables: identity, credentials,
-# tuning, infrastructure sizing, and computed paths.
-#
 # Setup:
-#   1. Copy this file:   cp vault.yml.example vault.yml
-#   2. Edit your values: nano vault.yml
-#   3. Encrypt it:       ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
-#   4. Verify:           ansible-vault view vault.yml --vault-password-file ~/.vault_pass
-#
-# After encryption, commit to git (encrypted content only).
-#
-# Edit later:  ansible-vault edit group_vars/vault.yml --vault-password-file ~/.vault_pass
-# View later:  ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
+#   1. cp vault.yml.example vault.yml
+#   2. Edit your values
+#   3. ansible-vault encrypt vault.yml --vault-password-file ~/.vault_pass
+#   4. ansible-vault view vault.yml --vault-password-file ~/.vault_pass
 #
 # ============================================================================
-# MULTI-APP ON ONE EC2 HOST
+# SHARED SERVER MODEL
 # ============================================================================
-# Multiple instances of this app (or any other Flask app using this playbook)
-# can run on the same EC2 server. Nginx routes traffic by FQDN (server_name).
-# Each app deployment needs its own vault.yml with UNIQUE values for:
+# This deployment assumes the server is already provisioned and shared.
+# Each app manages its own AWS resources (S3, Secrets Manager, IAM policies)
+# and its own app components (git, venv, supervisor process, nginx vhost, SSL).
 #
-#   app_name        - must differ per app (drives paths, groups, log dirs)
-#   server_name     - must differ per app (the FQDN nginx routes on)
-#   gunicorn_bind   - must use a different localhost port per app
-#                       app 1: "127.0.0.1:8000"
-#                       app 2: "127.0.0.1:8001"
-#                       app 3: "127.0.0.1:8002"
-#   app_dir         - already unique if it derives from app_name (e.g. /opt/app2)
-#   log_dir         - already unique if it derives from app_name (e.g. /var/log/app2)
-#   s3_bucket_name  - may be shared or separate depending on data isolation needs
-#   secret_name     - must differ per app in Secrets Manager
+# The server itself (OS, nginx install, supervisor, fail2ban) is managed
+# separately by the platform team.
 #
-# Run setup.yml once per app, each time pointing at its own vault.yml.
-# Nginx virtual hosts are stored as /etc/nginx/sites-available/<service_name>,
-# so each app produces its own vhost file without overwriting the others.
+# Multiple apps on one server need UNIQUE values for:
+#   app_name       - drives paths, groups, supervisor name, log dirs
+#   server_name    - domain this app's nginx vhost listens on
+#   gunicorn_port  - unique localhost port (app1=8000, app2=8001, ...)
+#   secret_name    - must be unique per app in Secrets Manager
 # ============================================================================
 
 # ============================================================================
 # APPLICATION IDENTITY (REQUIRED)
 # ============================================================================
-app_name: "your_app_name"                        # Technical name (e.g., myapp, comic_tracker)
-app_display_name: "My Application"               # Human-readable name for systemd/UI
-server_name: "your-domain.example.com"           # REQUIRED: Domain for SSL (e.g., myapp.example.com)
-                                                 # Must be a real domain pointed at your server
-ssl_email: "your-email@example.com"              # REQUIRED: Email for Let's Encrypt SSL notifications
-service_name: "{{ app_name }}"                   # systemd service name (usually same as app_name)
+app_name: "your_app_name"
+app_display_name: "My Application"
+server_name: "your-domain.example.com"       # Must resolve to your server IP
+ssl_email: "your-email@example.com"          # For Let's Encrypt notifications
+service_name: "{{ app_name }}"               # Supervisor process name
 
 # ============================================================================
 # USERS (REQUIRED)
 # ============================================================================
-admin_user: "ubuntu"                             # SSH/deployment user (ubuntu for EC2 Ubuntu AMI)
-app_user: "app_runtime"                          # Application runtime user (no SSH, no shell)
+admin_user: "ubuntu"                         # SSH/deployment user
+app_user: "app_runtime"                      # Runtime user (no SSH, no shell)
 
 # ============================================================================
 # GIT (REQUIRED)
 # ============================================================================
-git_branch: "main"                               # Git branch to deploy
+git_branch: "main"
 git_repo_url: "https://github.com/YOUR_USERNAME/YOUR_APP.git"
-git_token: ""                                    # GitHub PAT (required for private repos, empty for public)
-git_repo: "{{ git_repo_url | replace('https://', 'https://' + git_token + '@') if git_token | default('') else git_repo_url }}"
+git_token: ""                                # GitHub PAT for private repos (empty = public)
+git_repo: "{{ git_repo_url }}"               # Override with token if needed
 
 # ============================================================================
 # AWS (REQUIRED)
 # ============================================================================
-aws_region: "us-east-2"                          # AWS region for your resources
-aws_root_account_email: "you@example.com"        # AWS root account email (for serial console access)
-s3_bucket_name: "your-unique-bucket-name"        # S3 bucket (must be globally unique)
-s3_folder: "data"                                # Folder/prefix within S3 bucket
-secret_name: "{{ app_name }}/production"            # AWS Secrets Manager secret name
-sns_topic_arn: ""                                # SNS topic for alerts (optional)
+aws_region: "us-east-2"
+s3_bucket_name: "your-unique-bucket-name"   # Must be globally unique
+s3_folder: "data"
+secret_name: "{{ app_name }}/production"
+
+# ============================================================================
+# AWS IAM -- SHARED SERVER ROLE (OPTIONAL)
+# ============================================================================
+# Name of the shared EC2 server's existing IAM instance role.
+# When set, the three app-specific policies are attached to this role.
+# Leave blank to attach manually after running create-iam-policies.yml.
+#
+# Find your server's role:
+#   aws ec2 describe-instances --instance-id <id> \
+#     --query 'Reservations[].Instances[].IamInstanceProfile.Arn'
+server_iam_role_name: ""                     # e.g., "shared-server-role"
+
+# ============================================================================
+# ALERTS (OPTIONAL)
+# ============================================================================
+sns_topic_arn: ""                            # SNS topic ARN (leave blank to disable)
 
 # ============================================================================
 # APPLICATION CREDENTIALS (REQUIRED)
 # ============================================================================
-app_default_username: "admin"                    # Default web login username
-app_default_password: "change-this-password"     # Default web login password
-users: "admin:change-this-password"              # Format: user1:pass1,user2:pass2
+app_default_username: "admin"
+app_default_password: "change-this-password"
+users: "admin:change-this-password"          # Format: user1:pass1,user2:pass2
 
 # ============================================================================
 # FLASK (REQUIRED)
 # ============================================================================
-secret_key: "change-this-to-a-random-secret-key"    # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+secret_key: "change-this-to-a-random-secret-key"
 flask_env: "production"
 
 # ============================================================================
-# CLOUDFRONT & RATE LIMITING (OPTIONAL)
+# CLOUDFRONT (OPTIONAL)
 # ============================================================================
-enable_cloudfront: false                         # true = deploy CloudFront CDN
-cloudfront_price_class: "PriceClass_100"         # PriceClass_100 | PriceClass_200 | PriceClass_All
-cloudfront_domain: ""                            # Filled after CloudFront provisioning
-app_secret_token: ""                             # Generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+enable_cloudfront: false
+cloudfront_price_class: "PriceClass_100"
+cloudfront_domain: ""
+app_secret_token: ""
 
 # ============================================================================
-# PERFORMANCE (OPTIONAL)
+# PERFORMANCE
 # ============================================================================
-# gunicorn_port: THE key value to change when deploying multiple apps on one EC2.
-#   Allocate ports sequentially: app1=8000, app2=8001, app3=8002, ...
-#   All other port-related variables derive from this single value.
-gunicorn_port: "8000"                            # UNIQUE per app on a shared EC2 host
-gunicorn_bind: "127.0.0.1:{{ gunicorn_port }}"  # Derived — gunicorn listens on loopback only
-app_port: "{{ gunicorn_port }}"                  # Derived — used by nginx proxy_pass
-flask_port: "{{ gunicorn_port }}"                # Derived — used by Flask dev server
-gunicorn_workers: 4                              # Worker processes (2-4 x CPU cores)
-gunicorn_timeout: 120                            # Request timeout in seconds
-python_version: "3.10"                           # Python version on target server
+# gunicorn_port: UNIQUE per app on a shared host!
+gunicorn_port: "8000"
+gunicorn_bind: "127.0.0.1:{{ gunicorn_port }}"
+app_port: "{{ gunicorn_port }}"
+flask_port: "{{ gunicorn_port }}"
+gunicorn_workers: 4
+gunicorn_timeout: 120
+python_version: "3.10"
 
 # ============================================================================
-# LOG RETENTION (OPTIONAL)
+# LOG RETENTION
 # ============================================================================
-log_retention_days: 20                           # Days to keep logs before rotation
-log_max_size: "10M"                              # Max size per log file
+log_retention_days: 20
+log_max_size: "10M"
 
 # ============================================================================
-# BACKUPS (OPTIONAL)
+# BACKUPS
 # ============================================================================
-backup_cleanup_hour: "3"                         # Hour to run cleanup (0-23, UTC)
-backup_cleanup_minute: "0"                       # Minute to run cleanup (0-59)
-backup_retention_days: 30                        # Days to keep backups
-s3_version_retention_days: 30                    # Days to keep old S3 versions
+backup_cleanup_hour: "3"
+backup_cleanup_minute: "0"
+backup_retention_days: 30
+s3_version_retention_days: 30
 
 # ============================================================================
-# STORAGE (EBS VOLUME)
+# PATHS (derived from app_name -- usually no need to change)
 # ============================================================================
-# app_dir is the single base path — all other paths derive from it.
 app_dir: "/opt/{{ app_name }}"
-app_storage_mount_path: "{{ app_dir }}"
-ebs_volume_mount_path: "{{ app_dir }}"
 venv_dir: "{{ app_dir }}/.venv"
 log_dir: "/var/log/{{ app_name }}"
 instance_dir: "{{ app_dir }}/instance"
 
-ebs_volume_size: 100                             # EBS volume size in GB
-ebs_volume_type: "gp3"                           # gp3 recommended
-ebs_volume_encrypted: true
-ebs_boot_delete_on_termination: true
-ebs_data_delete_on_termination: false
-ebs_volume_snapshot_id: ""                       # Set to restore from snapshot
-ebs_device_name: "/dev/sdf"
-ebs_nvme_device: "/dev/nvme1n1"
-
 # ============================================================================
-# EC2
+# eBay API (OPTIONAL)
 # ============================================================================
-ec2_instance_type: "t3.micro"                    # Instance type
-assign_public_ip: true
-ec2_monitoring_enabled: false
-ec2_termination_protection: true
-ec2_ebs_optimized: false
-ec2_source_dest_check: true
-
-# ============================================================================
-# eBay API (OPTIONAL — only if using eBay features)
-# ============================================================================
-ebay_environment: "production"                   # sandbox or production
+ebay_environment: "production"
 ebay_production_dev_id: ""
 ebay_production_cert_id: ""
 ebay_production_app_id: ""
 ebay_production_token: ""
 ebay_verification_token: ""
 
-
 # ============================================================================
-# SYSTEM PACKAGES
+# SYSTEM PACKAGES (installed on shared server if missing)
 # ============================================================================
 system_packages:
   - python3
@@ -180,4 +155,4 @@ system_packages:
   - zlib1g-dev
   - libpng-dev
   - net-tools
-  - xfsprogs
+

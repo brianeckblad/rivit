@@ -1,6 +1,6 @@
 # Chapter 2: Quick Start
 
-Deploy the application in 15–20 minutes using automation.
+Deploy the application in 10–15 minutes using automation.
 
 > **Prerequisite:** Complete [Chapter 1: Prerequisites](PREREQUISITES.md) before continuing.
 
@@ -13,107 +13,62 @@ Before running commands, load your deployment variables:
 ```bash
 cd deployment
 
-# IMPORTANT: Use 'source' command
+# IMPORTANT: Use 'source', not './'
 source scripts/load-vars.sh
 ```
 
 **You should see:**
 ```
-✅ Variables loaded and EXPORTED successfully
+Variables loaded successfully
 
-Available variables (exported to this shell):
-  app_name=rampe
-  app_display_name=Rampe Application
+  app_name=rivit
   aws_region=us-east-2
   admin_user=ubuntu
-  server_name=rampe.ipix.io
-
-Variables are NOW AVAILABLE in your shell. Try these commands:
-  echo $app_name
-  aws s3 ls | grep $app_name
-  aws iam get-role --role-name ${app_name}-ec2-role
+  server_name=rivit.example.com
 ```
-
-Now your variables are available in all CLI commands:
-```bash
-echo $app_name           # Shows: rampe
-echo $aws_region         # Shows: us-east-2
-aws s3 ls | grep $app_name
-```
-
 
 ---
 
-## Quick Deploy (10-15 minutes)
-
-Everything is automated with playbooks:
+## Deploy in Two Steps
 
 ```bash
 cd deployment
 
-# Variables already loaded from previous step
-# Now run the deployment playbooks
-
-# 1. Create AWS resources (S3, IAM, SG, SSH key, EC2, Secrets Manager)
-ansible-playbook playbooks/provision-infrastructure.yml \
+# Step 1: Create AWS resources
+# Creates S3 bucket, IAM policies, Secrets Manager secret (and optionally CloudFront)
+ansible-playbook playbooks/provision-app.yml \
     --vault-password-file ~/.vault_pass
 
-# 2. Prepare the server (system packages, app user, EBS volume mount)
-ansible-playbook playbooks/setup-server.yml \
-    --vault-password-file ~/.vault_pass
-
-# 3. Deploy the application (code, dependencies, Nginx, Supervisor)
+# Step 2: Deploy the application to the server
+# Clones code, installs dependencies, configures nginx + supervisor, installs SSL
 ansible-playbook playbooks/setup.yml \
     --vault-password-file ~/.vault_pass
 ```
 
-**What it does automatically:**
+**What each step does:**
 
-`provision-infrastructure.yml`:
-1. ✅ Creates S3 bucket for application data
-2. ✅ Creates IAM role with proper permissions
-3. ✅ Creates security group (allows ports 22, 80, 443)
-4. ✅ Creates SSH key pair
-5. ✅ Launches EC2 instance (Ubuntu 22.04)
-6. ✅ Creates Secrets Manager secret (synced from vault)
-7. ✅ Sets up CloudFront CDN (if `enable_cloudfront: true` in vault.yml)
-
-`setup-server.yml`:
-8. ✅ Installs system packages (Python, Nginx, git)
-9. ✅ Creates dedicated app user
-10. ✅ Formats and mounts EBS data volume
-11. ✅ Applies security hardening (SSH lockdown, fail2ban, auto-updates, sysctl)
+`provision-app.yml`:
+1. Creates S3 bucket for application data
+2. Creates three app-scoped IAM managed policies (S3, Secrets Manager, CloudWatch)
+3. Attaches policies to the shared server's IAM role (if `server_iam_role_name` is set)
+4. Creates Secrets Manager secret (synced from vault)
+5. Sets up CloudFront CDN (if `enable_cloudfront: true` in vault.yml)
 
 `setup.yml`:
-12. ✅ Clones code and installs Python dependencies
-13. ✅ Configures Nginx and Supervisor
-14. ✅ Starts the application
-15. ✅ Installs SSL certificate (Let's Encrypt, auto-renewal enabled)
+6. Creates application user and group on the server
+7. Creates application directories
+8. Clones the git repository and installs Python dependencies
+9. Configures Supervisor (process manager) and Nginx (web server)
+10. Installs SSL certificate via Let's Encrypt (auto-renewal enabled)
+11. Starts the application
 
-**Duration:** 10-15 minutes
-**Cost:** ~$0.01 (minimal during creation)
+**Duration:** 10–15 minutes
 
 ---
 
 ## After Deployment
 
-### 1. Get Your Server IP
-
-Your server information is saved in `deployment/instances/`:
-
-```bash
-ls deployment/instances/
-cat deployment/instances/*.txt
-```
-
-Shows:
-```
-Server IP:     1.2.3.4
-Instance ID:   i-xxxxx
-SSH Command:   ssh -i ~/.ssh/{app_name}-key.pem ubuntu@1.2.3.4
-```
-
-### 2. Test Your Application
+### Test your application
 
 ```bash
 # In your browser:
@@ -123,106 +78,74 @@ https://{server_name}
 curl https://{server_name}
 ```
 
-### 3. Connect via SSH
+### Connect to the server
 
 ```bash
-ssh -i ~/.ssh/{app_name}-key.pem ubuntu@1.2.3.4
+ssh ubuntu@<server-ip>
 
 # Check app status
 sudo supervisorctl status {app_name}
+
+# View logs
+sudo tail -f /var/log/{app_name}/app.log
 ```
 
-### 4. View Application Logs
-
-```bash
-# From your EC2 instance
-sudo tail -f /var/log/{app_name}/app.log          # Application logs
-sudo tail -f /var/log/nginx/access.log          # Nginx access logs
-```
-
----
-
-## Verify SSL and Security Hardening
-
-SSL and security hardening are applied automatically during deployment. Verify they are working:
+### Verify SSL
 
 ```bash
 # Test HTTPS
-curl https://{server_name}
+curl -I https://{server_name}
+# Should show: HTTP/2 200
 
-# Test HTTP redirects to HTTPS
+# HTTP redirects to HTTPS
 curl -I http://{server_name}
 # Should show: 301 → https://...
 ```
-
-To verify hardening settings, see [Chapter 8: Security Hardening](SECURITY_HARDENING.md).
-
-**Requirements (configured before deploying):**
-- `server_name` set to a real domain in vault.yml
-- `ssl_email` set in vault.yml
-- Domain DNS pointing to your server IP
 
 ---
 
 ## Troubleshooting
 
-### Playbook Fails Early
+### Common pre-flight issues
 
-**Common issues:**
-1. AWS CLI not working
+1. **AWS CLI not working:**
    ```bash
    aws sts get-caller-identity
    ```
 
-2. Vault not encrypted
+2. **Vault not encrypted:**
    ```bash
    head -1 deployment/group_vars/vault.yml
    # Should show: $ANSIBLE_VAULT;1.1;AES256
    ```
 
-3. Vault password file missing
+3. **Vault password file missing:**
    ```bash
    ls -la ~/.vault_pass
    # Should show: -rw------- (600 permissions)
    ```
 
-4. Ansible not installed
+4. **Ansible not installed:**
    ```bash
    cd deployment
    pip install -r requirements.txt
+   ansible-galaxy collection install -r requirements.yml --upgrade
    ```
 
-### Playbook Fails in Middle
+### Playbook fails partway through
 
-If a playbook fails partway through:
+Ansible is idempotent — re-run the same playbook. It skips completed steps and retries only the failed one.
 
-1. **Fix the issue** and re-run the same playbook — Ansible is idempotent, it skips completed steps.
+For individual steps, use the single-resource playbooks instead:
 
-2. **Or run individual playbooks** for the failed step only. See [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) for individual commands.
+```bash
+# AWS resources individually
+ansible-playbook playbooks/create-s3-bucket.yml --vault-password-file ~/.vault_pass
+ansible-playbook playbooks/create-iam-policies.yml --vault-password-file ~/.vault_pass
+ansible-playbook playbooks/setup-secrets-manager.yml --vault-password-file ~/.vault_pass
+```
 
-### Deployment Completes But App Not Working
-
-1. **Check EC2 is running:**
-   ```bash
-   aws ec2 describe-instances --region $aws_region \
-       --filters "Name=tag:Name,Values=$app_name" \
-       --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,IP:PublicIpAddress}'
-   ```
-
-2. **Check app on server:**
-   ```bash
-   ssh -i ~/.ssh/{app_name}-key.pem ubuntu@<IP>
-   sudo supervisorctl status {app_name}
-    sudo tail -50 /var/log/{app_name}/app.log
-   ```
-
-3. **Check web server:**
-   ```bash
-   sudo nginx -t
-   sudo systemctl status nginx
-   ```
-
-4. **Wait 2-3 minutes** for services to fully start, then try `curl http://<IP>`.
+See [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) for full step-by-step instructions.
 
 ---
 
@@ -235,5 +158,3 @@ Continue to [Chapter 4: Updating Your Application](UPDATING_APPLICATION.md).
 - [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) — deploy step-by-step instead
 - [Chapter 6: Monitoring](MONITORING.md) — set up CloudWatch dashboards and alarms
 - [Chapter 8: Security Hardening](SECURITY_HARDENING.md) — verify and tune hardening settings
-- [Architecture](../reference/ARCHITECTURE.md) — how the system is designed
-

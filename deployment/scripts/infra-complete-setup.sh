@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Infrastructure Complete Setup
+# Application Complete Setup
 # Supported shells: bash, zsh
-# Runs all three deployment playbooks: provision, server prep, app deploy
+# Runs both deployment playbooks: provision-app (AWS resources) + setup (application)
 #
 # Usage: ./deployment/scripts/infra-complete-setup.sh
 
@@ -20,7 +20,7 @@ case "$current_shell" in
     bash|zsh)
         ;; # Supported shell
     *)
-        echo "⚠️  WARNING: Unsupported shell detected!" >&2
+        echo "WARNING: Unsupported shell detected!" >&2
         echo "   Current shell: $current_shell" >&2
         echo "   Supported shells: bash, zsh" >&2
         echo "" >&2
@@ -33,7 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║   Complete Infrastructure Provisioning                   ║"
+echo "║   Application Deployment                                 ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -55,37 +55,31 @@ if ! aws sts get-caller-identity &> /dev/null; then
     exit 1
 fi
 
-echo "✓ All prerequisites met"
+echo "All prerequisites met"
 echo ""
 
 # Run the playbooks
 cd "$DEPLOYMENT_DIR"
 
-echo "Step 1/3: Provisioning infrastructure..."
+echo "Step 1/2: Creating AWS resources (S3, IAM policies, Secrets Manager)..."
 echo ""
-ansible-playbook playbooks/provision-infrastructure.yml
+ansible-playbook playbooks/provision-app.yml --vault-password-file ~/.vault_pass
 
 echo ""
-echo "Step 2/3: Preparing server..."
+echo "Step 2/2: Deploying application to server (code, nginx, supervisor, SSL)..."
 echo ""
-ansible-playbook playbooks/setup-server.yml
-
-echo ""
-echo "Step 3/3: Deploying application..."
-echo ""
-ansible-playbook playbooks/setup.yml
+ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║   Deployment Complete!                                   ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
-echo "Automatically configured:"
-echo "  ✓ Security hardening (SSH lockdown, fail2ban, auto-updates, sysctl)"
-echo "  ✓ SSL certificate (Let's Encrypt, auto-renewal enabled)"
+echo "Configured:"
+echo "  S3 bucket, IAM policies, Secrets Manager"
+echo "  Application code, nginx vhost, supervisor process, SSL certificate"
 echo ""
 echo "Next steps:"
-echo "  1. Check deployment/instances/ for server details"
-echo "  2. Test: curl https://<YOUR_DOMAIN>"
+echo "  1. Test: curl https://\$(grep 'server_name:' group_vars/vault.yml 2>/dev/null | head -1 | awk '{print \$2}')"
+echo "  2. Check logs: sudo tail -f /var/log/\$(grep 'app_name:' group_vars/vault.yml 2>/dev/null | head -1 | awk '{print \$2}')/app.log"
 echo ""
-

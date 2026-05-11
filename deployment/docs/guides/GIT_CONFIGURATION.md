@@ -26,7 +26,7 @@ Git Configuration Setup
 
 📝 Configuration:
    Name: Brian Eckblad
-   Email: rampe@brianeckblad.dev
+   Email: rivit@brianeckblad.dev
    Scope: Local (this repo)
 
 Setting git config for this repository...
@@ -34,7 +34,7 @@ Setting git config for this repository...
 ✅ Local git config set (.git/config)
 
 Your commits will now use:
-   Author: Brian Eckblad <rampe@brianeckblad.dev>
+   Author: Brian Eckblad <rivit@brianeckblad.dev>
 
 ================================================== 
 ✅ Git configuration complete!
@@ -64,15 +64,15 @@ cd deployment
 Useful if outside the deployment directory:
 
 ```bash
-# Set for rampe project
-./scripts/configure-git.sh rampe
+# Set for rivit project
+./scripts/configure-git.sh rivit
 
 # Or with full path
-/path/to/rampe/deployment/scripts/configure-git.sh myapp
+/path/to/rivit/deployment/scripts/configure-git.sh myapp
 ```
 
 **Sets up for:** This repository only (local config)  
-**Email:** `rampe@brianeckblad.dev`
+**Email:** `rivit@brianeckblad.dev`
 
 ---
 
@@ -82,10 +82,10 @@ Set git email globally for all repositories:
 
 ```bash
 # Set globally for this app
-./scripts/configure-git.sh --global rampe
+./scripts/configure-git.sh --global rivit
 
 # Or from anywhere
-/path/to/rampe/deployment/scripts/configure-git.sh -g myapp
+/path/to/rivit/deployment/scripts/configure-git.sh -g myapp
 ```
 
 **Sets up for:** All repositories on this machine  
@@ -117,13 +117,13 @@ Configuration scope:
 
 ## Examples
 
-### Example 1: Rampe Project
+### Example 1: rivit Project
 
 ```bash
-cd ~/Development/rampe/deployment
+cd ~/Development/rivit/deployment
 ./scripts/configure-git.sh
 
-# Sets: rampe@brianeckblad.dev (local)
+# Sets: rivit@brianeckblad.dev (local)
 ```
 
 ### Example 2: Comic Tracker Project
@@ -150,7 +150,7 @@ cd ~/Development/comic-tracker/deployment
 ```bash
 # Check what email git will use
 git config user.email
-# Shows: rampe@brianeckblad.dev
+# Shows: rivit@brianeckblad.dev
 
 # Check where it's configured
 git config --show-origin user.email
@@ -160,7 +160,7 @@ git config --show-origin user.email
 git add .
 git commit -m "test: verify git config"
 git log -1 --format=fuller
-# Should show: Author: Brian Eckblad <rampe@brianeckblad.dev>
+# Should show: Author: Brian Eckblad <rivit@brianeckblad.dev>
 ```
 
 ---
@@ -208,7 +208,7 @@ The script works perfectly with your deployment workflow:
 # 2. Configure git automatically  
 ./scripts/configure-git.sh
 
-# 3. Your commits now use rampe@brianeckblad.dev
+# 3. Your commits now use rivit@brianeckblad.dev
 git add .
 git commit -m "Initial setup"
 ```
@@ -233,7 +233,7 @@ git commit -m "Initial setup"
 **Want to verify the script works?**
 ```bash
 cd /path/to/any/repo
-/path/to/rampe/deployment/scripts/configure-git.sh myapp
+/path/to/rivit/deployment/scripts/configure-git.sh myapp
 ```
 
 ---

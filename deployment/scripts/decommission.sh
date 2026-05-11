@@ -1,20 +1,16 @@
 #!/bin/bash
 #
-# Decommission - Resource Discovery and Teardown
+# Decommission -- App Resource Discovery and Teardown
 # Supported shells: bash, zsh
 #
-# Interactive wrapper that checks for existing resources before
-# calling the decommission playbook.  Provides graceful exits
-# when there is nothing to tear down.
+# Interactive wrapper that checks for existing app-level AWS resources
+# (S3, IAM policies, Secrets Manager) before calling the decommission playbook.
 #
 # Usage:
 #   cd deployment
 #   ./scripts/decommission.sh
 #
-# What it does:
-#   1. Presents a discovery menu (AWS / local files / new deployment)
-#   2. Checks whether resources actually exist
-#   3. Only calls the playbook when there is something to remove
+# The shared server is NOT touched — only app-level AWS resources are removed.
 
 set -e
 
@@ -29,7 +25,7 @@ fi
 case "$current_shell" in
     bash|zsh) ;;
     *)
-        echo "⚠️  Unsupported shell: $current_shell (need bash or zsh)" >&2
+        echo "Unsupported shell: $current_shell (need bash or zsh)" >&2
         exit 1
         ;;
 esac
@@ -42,7 +38,6 @@ GROUP_VARS_DIR="$DEPLOYMENT_DIR/group_vars"
 # ── Colors ───────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # ── Load app_name and aws_region ─────────────────────────────────────
@@ -52,7 +47,6 @@ if [[ ! -f "$GROUP_VARS_DIR/vault.yml" ]]; then
     exit 1
 fi
 
-# Read app_name from vault (handles encrypted and unencrypted)
 app_name=""
 if head -1 "$GROUP_VARS_DIR/vault.yml" 2>/dev/null | grep -q "ANSIBLE_VAULT"; then
     if [[ -f "$HOME/.vault_pass" ]]; then
@@ -73,7 +67,6 @@ if [[ -z "$app_name" ]]; then
     exit 1
 fi
 
-# Resolve aws_region — try vault first, then default
 aws_region=""
 if [[ -f "$HOME/.vault_pass" ]] && [[ -f "$GROUP_VARS_DIR/vault.yml" ]]; then
     aws_region=$(ansible-vault view "$GROUP_VARS_DIR/vault.yml" \
@@ -86,90 +79,84 @@ if [[ -z "$aws_region" ]]; then
     aws_region="us-east-2"
 fi
 
+s3_bucket=""
+if [[ -f "$HOME/.vault_pass" ]] && [[ -f "$GROUP_VARS_DIR/vault.yml" ]]; then
+    s3_bucket=$(ansible-vault view "$GROUP_VARS_DIR/vault.yml" \
+        --vault-password-file "$HOME/.vault_pass" 2>/dev/null \
+        | grep -E "^s3_bucket_name:" | head -1 \
+        | sed 's/^s3_bucket_name:[[:space:]]*//' | sed 's/#.*//' \
+        | sed 's/[[:space:]]*$//' | tr -d '"' | tr -d "'")
+fi
 
-# ── Discovery menu ───────────────────────────────────────────────────
+# ── Discover existing resources ───────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║            Decommission — Resource Discovery             ║"
+echo "║          Decommission — Resource Discovery               ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "  App:    $app_name"
 echo "  Region: $aws_region"
 echo ""
-echo "    1) Query AWS for live instance data"
-echo "    2) This is a new deployment (nothing to decommission)"
+echo "Querying AWS for app resources..."
 echo ""
-printf "  Enter choice [1-2]: "
-read -r menu_choice
 
-case "$menu_choice" in
+found_resources=0
 
-    # ── Option 1: Query AWS ──────────────────────────────────────
-    1)
-        echo ""
-        echo "Querying AWS for EC2 instances named '$app_name' in $aws_region..."
+# S3 bucket
+if [[ -n "$s3_bucket" ]]; then
+    if aws s3api head-bucket --bucket "$s3_bucket" --region "$aws_region" 2>/dev/null; then
+        echo -e "  ${GREEN}FOUND${NC}  S3 bucket:        $s3_bucket"
+        found_resources=$((found_resources + 1))
+    else
+        echo "  MISSING  S3 bucket:        $s3_bucket"
+    fi
+fi
 
-        if ! command -v aws &>/dev/null; then
-            echo -e "${RED}ERROR: AWS CLI not installed.${NC}"
-            exit 1
+# IAM policies
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")
+if [[ -n "$ACCOUNT" ]]; then
+    for policy_suffix in s3-access secrets-access cloudwatch-access; do
+        policy_name="${app_name}-${policy_suffix}"
+        if aws iam get-policy --policy-arn "arn:aws:iam::${ACCOUNT}:policy/${policy_name}" 2>/dev/null | grep -q PolicyName; then
+            echo -e "  ${GREEN}FOUND${NC}  IAM policy:       $policy_name"
+            found_resources=$((found_resources + 1))
+        else
+            echo "  MISSING  IAM policy:       $policy_name"
         fi
+    done
+fi
 
-        aws_json=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=$app_name" \
-                      "Name=instance-state-name,Values=running,stopped,stopping,pending" \
-            --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,IP:PublicIpAddress,Type:InstanceType}' \
-            --region "$aws_region" --output json 2>/dev/null) || true
+# Secrets Manager
+secret_exists=$(aws secretsmanager describe-secret \
+    --secret-id "${app_name}/production" \
+    --region "$aws_region" 2>/dev/null | grep -c '"Name"' || true)
+if [[ "$secret_exists" -gt 0 ]]; then
+    echo -e "  ${GREEN}FOUND${NC}  Secrets Manager:  ${app_name}/production"
+    found_resources=$((found_resources + 1))
+else
+    echo "  MISSING  Secrets Manager:  ${app_name}/production"
+fi
 
-        aws_count=0
-        if [[ -n "$aws_json" && "$aws_json" != "[]" ]]; then
-            aws_count=$(python3 -c "import json; print(len(json.loads('''$aws_json''')))" 2>/dev/null || echo 0)
-        fi
+echo ""
 
-        if [[ "$aws_count" -eq 0 ]]; then
-            echo ""
-            echo "  No running or stopped instances named '$app_name' in $aws_region."
-            echo ""
-            exit 0
-        fi
+if [[ "$found_resources" -eq 0 ]]; then
+    echo "  No app resources found for '$app_name'. Nothing to decommission."
+    echo ""
+    exit 0
+fi
 
-        echo ""
-        echo -e "${GREEN}Found $aws_count instance(s) in AWS:${NC}"
-        echo ""
-        python3 -c "
-import json
-data = json.loads('''$aws_json''')
-for i in data:
-    ip = i.get('IP') or 'no public IP'
-    print(f'  {i[\"ID\"]}  {i[\"State\"]:<10s}  {ip:<16s}  {i[\"Type\"]}')
-" 2>/dev/null
-        echo ""
-        echo "These resources will be targeted for decommission."
-        ;;
-
-    # ── Option 2: New deployment ─────────────────────────────────
-    2)
-        echo ""
-        echo "  Nothing to decommission."
-        echo ""
-        exit 0
-        ;;
-
-    # ── Invalid ──────────────────────────────────────────────────
-    *)
-        echo -e "${RED}Invalid choice. Run again and enter 1 or 2.${NC}"
-        exit 1
-        ;;
-esac
+echo "  Found $found_resources resource(s) to remove."
+echo ""
 
 # ── Confirm before calling the playbook ──────────────────────────────
-echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  ⚠️  DESTRUCTIVE OPERATION — ALL DATA WILL BE DELETED   ║"
+echo "║  DESTRUCTIVE OPERATION -- ALL DATA WILL BE DELETED      ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
-echo "  This will permanently delete ALL resources for '$app_name'."
+echo "  S3 bucket data, Secrets Manager secrets, IAM policies will be"
+echo "  permanently deleted. The shared server is NOT affected."
 echo ""
-printf "  Type the app name to confirm: "
+printf "  Type the app name to confirm (%s): " "$app_name"
 read -r confirm
 
 if [[ "$confirm" != "$app_name" ]]; then

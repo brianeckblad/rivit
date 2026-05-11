@@ -1,11 +1,12 @@
 ---
-# Playbook to decommission ALL AWS infrastructure
-# Removes resources in REVERSE order of creation to respect dependencies
+# Playbook to decommission application-level AWS resources.
+# Removes per-app resources in REVERSE order of creation.
+# Does NOT touch the shared server or other applications on it.
 #
-# ⚠️  WARNING: This is DESTRUCTIVE and IRREVERSIBLE
-# All data in S3, EC2 instances, and associated resources will be PERMANENTLY deleted
+# ⚠️  WARNING: This is DESTRUCTIVE and IRREVERSIBLE.
+# All data in S3 will be PERMANENTLY deleted.
 #
-# Recommended usage (interactive menu with graceful exits):
+# Recommended usage (interactive wrapper with confirmation):
 #   cd deployment
 #   ./scripts/decommission.sh
 #
@@ -13,22 +14,17 @@
 #   ansible-playbook playbooks/decommission.yml --vault-password-file ~/.vault_pass -e decommission_confirmed=true
 #
 # What gets deleted (in order):
-#   1. EC2 Instance (terminated)
-#   2. SSH Key Pair (AWS + local file)
-#   3. Security Group
-#   4. IAM Role, Policies, Instance Profile
-#   5. S3 Bucket (emptied then deleted - ALL DATA LOST)
-#   6. Optional: WAF, CloudFront, Secrets Manager
+#   1. IAM managed policies (detached from server role, then deleted)
+#   2. Secrets Manager secret
+#   3. S3 Bucket (emptied then deleted — ALL DATA LOST)
+#   4. Optional: WAF, CloudFront
 #
-# To delete a SINGLE resource instead, use the individual playbooks:
-#   ansible-playbook playbooks/terminate-ec2-instance.yml --vault-password-file ~/.vault_pass
-#   ansible-playbook playbooks/delete-ssh-key.yml --vault-password-file ~/.vault_pass
-#   ansible-playbook playbooks/delete-security-group.yml --vault-password-file ~/.vault_pass
-#   ansible-playbook playbooks/delete-iam-role.yml --vault-password-file ~/.vault_pass
+# To decommission only a single resource, run its individual playbook:
+#   ansible-playbook playbooks/delete-iam-policies.yml --vault-password-file ~/.vault_pass
+#   ansible-playbook playbooks/delete-secrets-manager.yml --vault-password-file ~/.vault_pass
 #   ansible-playbook playbooks/delete-s3-bucket.yml --vault-password-file ~/.vault_pass
 #   ansible-playbook playbooks/delete-waf.yml --vault-password-file ~/.vault_pass
 #   ansible-playbook playbooks/delete-cloudfront.yml --vault-password-file ~/.vault_pass
-#   ansible-playbook playbooks/delete-secrets-manager.yml --vault-password-file ~/.vault_pass
 
 # ==============================================================================
 # Safety Gate
@@ -49,71 +45,53 @@
             cd deployment
             ./scripts/decommission.sh
 
-          The script provides a discovery menu and graceful exits when
-          there are no resources to decommission.
+          The script provides a discovery menu and graceful exits.
 
-          To bypass the script and run directly, pass:
+          To run directly (skipping the script), pass:
             -e decommission_confirmed=true
       when: decommission_confirmed | default(false) | bool != true
 
     - name: Display decommission plan
       debug:
         msg:
-          - "Decommissioning: {{ app_name }}"
+          - "Decommissioning app resources for: {{ app_name }}"
           - "Region: {{ aws_region }}"
           - ""
           - "Starting teardown in reverse order..."
 
 # ==============================================================================
-# Step 1: Terminate EC2 Instance
+# Step 1: Delete IAM Policies
 # ==============================================================================
 
-- name: Step 1 - Terminate EC2 Instance
-  import_playbook: terminate-ec2-instance.yml
+- name: Step 1 - Delete IAM Policies
+  import_playbook: delete-iam-policies.yml
 
 # ==============================================================================
-# Step 2: Delete SSH Key Pair
+# Step 2: Delete Secrets Manager Secret
 # ==============================================================================
 
-- name: Step 2 - Delete SSH Key Pair
-  import_playbook: delete-ssh-key.yml
-
-# ==============================================================================
-# Step 3: Delete Security Group
-# ==============================================================================
-
-- name: Step 3 - Delete Security Group
-  import_playbook: delete-security-group.yml
-
-# ==============================================================================
-# Step 4: Delete IAM Role, Policies, Instance Profile
-# ==============================================================================
-
-- name: Step 4 - Delete IAM Role
-  import_playbook: delete-iam-role.yml
-
-# ==============================================================================
-# Step 5: Delete S3 Bucket
-# ==============================================================================
-
-- name: Step 5 - Delete S3 Bucket
-  import_playbook: delete-s3-bucket.yml
-
-# ==============================================================================
-# Step 6: Delete Optional Features (best-effort, skip if not configured)
-# ==============================================================================
-
-- name: Step 6a - Delete WAF
-  import_playbook: delete-waf.yml
-
-- name: Step 6b - Delete CloudFront
-  import_playbook: delete-cloudfront.yml
-
-- name: Step 6c - Delete Secrets Manager
+- name: Step 2 - Delete Secrets Manager
   import_playbook: delete-secrets-manager.yml
 
 # ==============================================================================
-# Step 7: Final Cleanup
+# Step 3: Delete S3 Bucket
+# ==============================================================================
+
+- name: Step 3 - Delete S3 Bucket
+  import_playbook: delete-s3-bucket.yml
+
+# ==============================================================================
+# Step 4: Delete Optional Features (best-effort, skip if not configured)
+# ==============================================================================
+
+- name: Step 4a - Delete WAF
+  import_playbook: delete-waf.yml
+
+- name: Step 4b - Delete CloudFront
+  import_playbook: delete-cloudfront.yml
+
+# ==============================================================================
+# Final Cleanup
 # ==============================================================================
 
 - name: Decommission Cleanup
@@ -129,15 +107,9 @@
         path: "{{ item }}"
         state: absent
       loop:
-        - "{{ playbook_dir }}/../instance-info.txt"
         - "{{ playbook_dir }}/../cloudfront-info.txt"
         - "{{ playbook_dir }}/../waf-info.txt"
         - "{{ playbook_dir }}/../.last-rotation.txt"
-      failed_when: false
-
-    - name: Remove all instance info files
-      shell: "rm -f {{ playbook_dir }}/../instances/*.txt"
-      changed_when: false
       failed_when: false
 
     - name: Display decommission summary
@@ -145,23 +117,20 @@
         msg:
           - ""
           - "╔══════════════════════════════════════════════════════════╗"
-          - "║   Decommission Complete                                 ║"
+          - "║   Application Resources Decommissioned                  ║"
           - "╚══════════════════════════════════════════════════════════╝"
           - ""
-          - "Core Resources Deleted:"
-          - "  ✓ EC2 Instance:       {{ app_name }}"
-          - "  ✓ SSH Key Pair:       {{ app_name }}-key"
-          - "  ✓ Security Group:     {{ app_name }}-sg"
-          - "  ✓ IAM Role:           {{ app_name }}-ec2-role"
-          - "  ✓ Instance Profile:   {{ app_name }}-instance-profile"
-          - "  ✓ S3 Bucket:          {{ s3_bucket_name }}"
+          - "Deleted:"
+          - "  ✓ IAM Policies:      {{ app_name }}-s3-access, {{ app_name }}-secrets-access, {{ app_name }}-cloudwatch-access"
+          - "  ✓ Secrets Manager:   {{ secret_name }}"
+          - "  ✓ S3 Bucket:         {{ s3_bucket_name }}"
           - ""
-          - "Optional Features (deleted if present):"
-          - "  ✓ WAF Web ACL:        {{ app_name }}-web-acl"
-          - "  ✓ CloudFront:         {{ app_name }} distribution"
-          - "  ✓ Secrets Manager:    {{ secret_name }}"
+          - "Optional (deleted if present):"
+          - "  ✓ WAF Web ACL:       {{ app_name }}-web-acl"
+          - "  ✓ CloudFront:        {{ app_name }} distribution"
           - ""
-          - "All AWS resources for {{ app_name }} have been removed."
+          - "Note: The shared server and other applications on it are unchanged."
           - ""
-          - "To recreate everything:"
-          - "  ansible-playbook playbooks/provision-infrastructure.yml --vault-password-file ~/.vault_pass"
+          - "To recreate app resources:"
+          - "  ansible-playbook playbooks/provision-app.yml --vault-password-file ~/.vault_pass"
+

@@ -17,487 +17,210 @@ Set up your AWS account, local tools, and configuration files.
 
 ## AWS Account Setup
 
-**If you already have an AWS account, skip to [AWS CLI Configuration](#aws-cli-configuration).**
+**If you already have an AWS account and CLI configured, skip to [Local Tools Installation](#local-tools-installation).**
 
 ### Step 1: Create AWS Account
 
-1. Go to [AWS Console](https://aws.amazon.com)
-2. Click **Create an AWS Account**
-3. Follow the setup wizard:
-   - Email address (use your personal email, not work)
-   - Password (strong password, save it)
-   - Account name (e.g., "my-apps" or "personal-projects")
-   - Business/Personal (choose based on use case)
-4. Add payment method (credit card required, AWS free tier available)
-5. Verify identity (phone call or SMS)
-6. Complete sign-up
+1. Go to [AWS Console](https://aws.amazon.com) and click **Create an AWS Account**
+2. Follow the wizard — email, password, payment method, identity verification
+3. Note your **AWS Account ID** from [Account settings](https://console.aws.amazon.com/billing/home#/account)
 
-**Your AWS Account ID:** Found in [AWS Console → Account](https://console.aws.amazon.com/billing/home#/account)
-- Write it down: `123456789012`
+> **Best practice:** Never use the root account for daily work. You will create a limited deployer user later in this chapter.
 
-**⚠️ Important:** Your root account has full access. **Never use it for daily work.** You will create a limited IAM deployer user later in this chapter.
+### Step 2: Create a Temporary Access Key
 
-### Step 2: Create Root Access Key (Temporary)
+You need a short-lived root credential to bootstrap the deployer user.
 
-You need a temporary root access key to bootstrap the deployer user. It will be deleted after the deployer user is created.
-
-1. Sign in to [AWS Console](https://console.aws.amazon.com) as root
+1. Sign in to the AWS Console as root
 2. Click your account name (top-right) → **Security credentials**
-3. Under **Access keys**, click **Create access key**
-4. Acknowledge the warning and create it
-5. **Save the Access Key ID and Secret Access Key** — you need them next
+3. Under **Access keys**, click **Create access key** and acknowledge the warning
+4. **Save the Access Key ID and Secret Access Key** — you need them in the next step
 
 ---
 
 ## AWS CLI Configuration
 
-**Install AWS CLI and configure it with your temporary root credentials**
-
 ### Step 1: Install AWS CLI
 
 **macOS:**
 ```bash
-# Using Homebrew (recommended)
 brew install awscli
-
-# Or download from AWS
-curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
-sudo installer -pkg AWSCLIV2.pkg -target /
-
-# Verify
 aws --version
-# Should show: aws-cli/2.x.x
 ```
 
 **Linux (Ubuntu/Debian):**
 ```bash
-sudo apt update
-sudo apt install -y awscli
-
-# Verify
-aws --version
+sudo apt update && sudo apt install -y awscli
 ```
 
-**Windows:**
-- Download and run [AWS CLI MSI installer](https://awscli.amazonaws.com/AWSCLIV2.msi)
-
-### Step 2: Configure AWS CLI with Root Credentials
-
-Enter the Access Key ID and Secret Access Key you saved in [AWS Account Setup → Step 2](#step-2-create-root-access-key-temporary).
+### Step 2: Configure CLI with temporary root credentials
 
 ```bash
 aws configure
 
-# Follow prompts:
 AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
 AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 Default region name [None]: us-east-2
 Default output format [None]: json
 ```
 
-> **This is temporary.** You will reconfigure the CLI with deployer credentials after the IAM user is created.
-
-### Step 3: Verify Configuration
+### Step 3: Verify
 
 ```bash
 aws sts get-caller-identity
-
-# Should output something like:
-{
-    "UserId": "123456789012",
-    "Account": "123456789012",
-    "Arn": "arn:aws:iam::123456789012:root"
-}
+# Arn should show: arn:aws:iam::123456789012:root
 ```
-
-**Problem?**
-- ❌ "Unable to locate credentials" → Run `aws configure` again
-- ❌ "InvalidUserID" → Check your Access Key ID is correct
-- ❌ "SignatureDoesNotMatch" → Check your Secret Access Key is correct
 
 ---
 
 ## Local Tools Installation
 
-**Install deployment tools on your local machine**
-
-### What You Need
-
 | Tool | Purpose | Min Version |
 |------|---------|------------|
-| **Python** | Runtime for deployment | 3.8+ |
-| **Ansible** | Automation tool | 2.9+ |
-| **Git** | Version control | Latest |
-| **SSH** | Secure shell (usually pre-installed) | Latest |
+| **Python** | Runtime for deployment tools | 3.8+ |
+| **Ansible** | Automation | 2.9+ |
+| **Git** | Version control | 2.x |
 
-### Step 1: Check What You Have
-
-```bash
-# Check Python
-python3 --version
-# Should show: Python 3.8 or higher
-
-# Check Ansible
-ansible --version
-# Should show: Ansible 2.9 or higher
-
-# Check Git
-git --version
-# Should show: Git 2.x or higher
-
-# Check SSH
-ssh -V
-# Should show: OpenSSH version
-```
-
-### Step 2: Install Missing Tools
+### Install
 
 **macOS:**
 ```bash
-# Using Homebrew
-brew install python3 ansible git openssh
-
-# Or install Ansible via pip
-pip3 install ansible
+brew install python3 ansible git
 ```
 
 **Linux (Ubuntu/Debian):**
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-pip git openssh-client
-
-# Install Ansible
-sudo apt install -y ansible
-# Or via pip
-pip3 install ansible
+sudo apt install -y python3 python3-pip git ansible
 ```
 
-**Windows:**
-- Install [Git Bash](https://gitforwindows.org/)
-- Install [Python 3](https://www.python.org/downloads/)
-- Install [Ansible on Windows](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible-on-windows)
+### Install deployment requirements
 
-### Step 3: Configure Git (Optional but Recommended)
+```bash
+cd /path/to/{app_name}/deployment
 
-Configure git to use your identity automatically:
+# Python packages (Ansible plugins, AWS SDK)
+pip3 install -r requirements.txt
+
+# Ansible collections (AWS Ansible modules)
+ansible-galaxy collection install -r requirements.yml --upgrade
+```
+
+### Configure Git (optional)
 
 ```bash
 cd deployment
 ./scripts/configure-git.sh
 ```
 
-**That's it!** Your commits will now use `{app_name}@brianeckblad.dev`
-
-**What it does:**
-- ✅ Reads your app name from deployment config
-- ✅ Automatically sets email to `rampe@brianeckblad.dev` (for rampe project)
-- ✅ Sets name to "Brian Eckblad"
-- ✅ Configures locally (this repo only)
-
-**Want more options?** → [GIT_CONFIGURATION.md](GIT_CONFIGURATION.md)
-- Global configuration (all repos)
-- Manual app name specification
-- Verify it's working
-
-### Step 4: Install Deployment Requirements
-
-```bash
-# Navigate to deployment directory
-cd /path/to/{app_name}/deployment
-
-# Install Python requirements (Ansible plugins, AWS SDK, etc.)
-pip3 install -r requirements.txt
-
-# Install/upgrade Ansible collections (AWS modules)
-ansible-galaxy collection install -r requirements.yml --upgrade
-
-# Verify Ansible
-ansible --version
-
-# Verify Ansible can run playbooks
-ansible-playbook --version
-```
-
 ---
 
 ## Deployment Configuration
 
-**Create your personal deployment settings (not tracked in Git)**
-
-### Updating Existing Configuration?
-
-If you already have `vault.yml`, merge it with the new template:
+### Step 1: Create vault.yml
 
 ```bash
 cd deployment
-./scripts/local-dev-setup.sh -merge
+cp group_vars/vault.yml.example group_vars/vault.yml
+
+# Edit values
+nano group_vars/vault.yml
 ```
 
-This automatically imports your existing values into updated templates. You only add new values instead of retyping everything.
+**Required variables:**
 
-→ [Using local-dev-setup.sh](#step-1-use-configuration-templates) (both new and merge modes)
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `app_name` | Technical identifier | `myapp` |
+| `server_name` | Domain for SSL | `myapp.example.com` |
+| `ssl_email` | Let's Encrypt contact | `you@example.com` |
+| `git_repo_url` | Git repository URL | `https://github.com/user/repo.git` |
+| `aws_region` | AWS region | `us-east-2` |
+| `s3_bucket_name` | S3 bucket (globally unique) | `john-myapp-2026` |
+| `app_default_username` | App login username | `admin` |
+| `app_default_password` | App login password | `Str0ng!Pass` |
+| `server_iam_role_name` | Shared server's IAM role name | `shared-server-ec2-role` |
+| `gunicorn_port` | Unique port per app | `8000` |
 
----
+> **S3 bucket names** must be globally unique across all AWS accounts. Use the pattern `yourname-appname-year`.
 
-### Step 1: Use Configuration Templates
+> **gunicorn_port** must be unique on the shared server. Assign sequentially: app1=8000, app2=8001, app3=8002.
 
-The `local-dev-setup.sh` script handles both new setup and merging:
-
-```bash
-cd deployment
-
-# Interactive mode (auto-detects if files exist)
-./scripts/local-dev-setup.sh
-
-# OR explicitly choose:
-
-# Option A: Create fresh from templates
-./scripts/local-dev-setup.sh -new
-
-# Option B: Merge existing values with updated templates
-./scripts/local-dev-setup.sh -merge
-```
-
-**This creates/updates:**
-- `group_vars/vault.yml` - All deployment configuration (encrypted, safe to commit)
-
-**Why encrypted?** The vault contains identity, credentials, and infrastructure details. Encrypting lets you commit it to Git safely.
-
-### Step 2: Edit & Encrypt Vault
-
-`vault.yml` is the single source of truth for all deployment configuration — identity, credentials, tuning, and infrastructure sizing.
-
-#### Step 2a: Create Vault Password File
-
-This is your master password for encrypting/decrypting the vault:
+### Step 2: Create vault password file
 
 ```bash
-# Create vault password file (OPTIONAL but RECOMMENDED - for convenience)
 echo "your-secure-password" > ~/.vault_pass
 chmod 600 ~/.vault_pass
 ```
 
-**About the vault password file:**
-- ✅ **If you create it** (`~/.vault_pass`) - Playbooks run automatically without prompting
-- ✅ **If you skip it** - Playbooks will prompt you to type the password when needed
-- ⚠️ **Make it strong** - Use a random, secure password (different from other passwords)
-- ⚠️ **Save it** - Store it in a password manager or secure location
-- ⚠️ **File permissions** - Must be `600` (readable only by you)
+Save the password in a password manager — if the file is lost, vault.yml cannot be decrypted.
 
-**Why create it?**
-- Convenience: No password prompt on every playbook run
-- Automation: Useful for CI/CD pipelines
-- Security: Password is only in one place, not typed repeatedly
-
-**Why skip it?**
-- Security: Don't store password in a file on disk
-- Simplicity: Just type password when prompted
-- Flexibility: Different password per deployment if needed
-
-#### Step 2b: Copy & Edit Vault
+### Step 3: Encrypt the vault
 
 ```bash
 cd deployment
-
-# Copy template to your config
-cp group_vars/vault.yml.example group_vars/vault.yml
-
-# Edit with your values (plain text for now)
-nano group_vars/vault.yml
+ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass
 ```
 
-**Key variables to set (see vault.yml.example for full list):**
-
-```yaml
----
-# ============================================================================
-# GIT REPOSITORY (REQUIRED)
-# ============================================================================
-git_repo_url: "https://github.com/YOUR_USERNAME/your_app.git"
-
-# ============================================================================
-# AWS CONFIGURATION (REQUIRED)
-# ============================================================================
-aws_region: "us-east-2"                         # Same region as your EC2 instance
-
-s3_bucket_name: "yourname-myapp-2026"           # S3 bucket name (MUST BE GLOBALLY UNIQUE)
-                                                 # Pattern: yourname-appname-year
-
-s3_folder: "data"                               # Folder within bucket
-
-# ============================================================================
-# APPLICATION CREDENTIALS (REQUIRED)
-# ============================================================================
-app_default_username: "admin"                   # Default app login username
-app_default_password: "change-this-password"    # Default app login password
-
-# ============================================================================
-# SNS TOPIC (OPTIONAL - for monitoring and alerts)
-# ============================================================================
-sns_topic_arn: ""                               # Example: arn:aws:sns:us-east-2:123456789012:my-topic
-```
-
-**How to fill in each value:**
-
-| Variable | Where to Get It | Example |
-|----------|-----------------|---------|
-| `git_repo_url` | Your GitHub repo URL | `https://github.com/myusername/myapp.git` |
-| `aws_region` | Same as AWS CLI region | `us-east-2` |
-| `s3_bucket_name` | Create a unique name | `john-myapp-2026` |
-| `s3_folder` | Choose folder name | `data` or `uploads` |
-| `app_default_username` | Choose app login | `admin` or `myusername` |
-| `app_default_password` | Create strong password | `Tr0pic@lBanana99!` |
-| `sns_topic_arn` | Optional - skip if not using | Leave as empty string `""` |
-
-**IMPORTANT about S3 bucket name:**
-- Must be **globally unique** across ALL AWS accounts (not just yours)
-- Can only contain lowercase letters, numbers, and hyphens
-- Cannot start or end with a hyphen
-- 3-63 characters long
-- Recommended pattern: `yourname-appname-year` (e.g., `john-myapp-2026`)
-
-#### Step 2c: Encrypt the Vault File
-
-**NOW encrypt your vault.yml file:**
+Verify encryption:
 
 ```bash
-cd deployment
-
-# Encrypt vault.yml with your vault password
-ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass --encrypt-vault-id default
-
-# Verify it's encrypted (should show encrypted content, not plain text)
-cat group_vars/vault.yml | head -5
-# Should show: $ANSIBLE_VAULT;1.1;AES256;... (not readable plain text)
-
-# Verify you can decrypt it
-ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass
-# Should show your secrets in plain text
-```
-
-**Vault Security:**
-- ✅ Your vault.yml is now encrypted on disk
-- ✅ Only readable with the vault password
-- ✅ Safe to commit to Git (encrypted content is unreadable)
-- ✅ All identity, credentials, and infrastructure details stay private
-- ✅ Playbooks automatically decrypt with password from `~/.vault_pass` OR prompt if missing
-
-**⚠️ CRITICAL - Save Your Vault Password:**
-- Store `~/.vault_pass` securely (don't lose this file!)
-- Back up your vault password in a password manager
-- If you lose it, you cannot decrypt vault.yml
-
-### Step 3: Verify Configuration
-
-```bash
-cd deployment
-
-# 1. Check vault.yml is encrypted
 head -1 group_vars/vault.yml
-# Should show: $ANSIBLE_VAULT;1.2;AES256; (encryption header, not plain text)
-
-# 2. Verify vault can be decrypted and shows your variables
-ansible-vault view group_vars/vault.yml --vault-password-file ~/.vault_pass | head -20
-# Should show: app_name, server_name, git_repo_url, etc.
-
-# 3. Verify AWS CLI uses correct profile/region
-aws sts get-caller-identity
-# Should show your account ID and IAM user
-
-# 4. Verify configuration files exist and have correct permissions
-ls -la group_vars/vault.yml ~/.vault_pass
-# Should show:
-#  - group_vars/vault.yml (readable)
-#  - ~/.vault_pass with -rw------- permissions (600)
+# Should show: $ANSIBLE_VAULT;1.1;AES256
 ```
 
 ---
 
 ## Create IAM Deployer User
 
-**Replace root credentials with a limited deployer account.**
+Replace the temporary root credentials with a limited deployer account.
 
-Your AWS CLI is currently configured with root credentials (from the earlier temporary step). Now that `vault.yml` exists, the playbook can read `app_name` automatically.
-
-### Option A: Ansible Playbook (Recommended)
-
-The playbook creates the user, attaches all required policies, and generates access keys in one step.
+### Option A: Ansible Playbook (recommended)
 
 ```bash
 cd deployment
 ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pass
 ```
 
-The playbook creates `{app_name}-deployer` with these permissions:
-- `AmazonEC2FullAccess` — create/manage EC2 instances
-- `AmazonS3FullAccess` — create/manage S3 buckets
-- `IAMFullAccess` — create/manage IAM roles
+Creates `{app_name}-deployer` with these permissions:
+- `AmazonS3FullAccess` — create/manage S3 buckets and objects
+- `IAMFullAccess` — create/manage IAM policies
 - `SecretsManagerReadWrite` — manage secrets
 - `CloudWatchLogsFullAccess` — application logs
 - `CloudWatchAlarmPolicy` (inline) — monitoring alarms and metrics
 
-**Save the access key and secret key** printed at the end — they cannot be retrieved again.
+**Save the Access Key ID and Secret Key** printed at the end.
 
-### Option B: AWS Console (Manual)
+### Option B: AWS Console (manual)
 
-1. Go to [IAM Console](https://console.aws.amazon.com/iam/home#/users)
-2. Click **Create User**
-3. User name: `{app_name}-deployer`
-4. Check **Access key - Programmatic access**
-5. Click **Attach existing policies directly** and search for each:
-   - `AmazonEC2FullAccess`
+1. Go to [IAM Console](https://console.aws.amazon.com/iam/home#/users) → **Create User**
+2. User name: `{app_name}-deployer`
+3. Attach these managed policies:
    - `AmazonS3FullAccess`
    - `IAMFullAccess`
    - `SecretsManagerReadWrite`
    - `CloudWatchLogsFullAccess`
-6. Create the user, then **download the .csv** with the access keys
+4. Create the user and download the CSV with access keys
 
-After creating the user manually, add the CloudWatch alarms inline policy:
-1. Select the user → **Add inline policy** → **JSON**
-2. Paste:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [{
-       "Effect": "Allow",
-       "Action": [
-         "cloudwatch:PutMetricAlarm",
-         "cloudwatch:DeleteAlarms",
-         "cloudwatch:DescribeAlarms",
-         "cloudwatch:GetMetricStatistics",
-         "cloudwatch:ListMetrics"
-       ],
-       "Resource": "*"
-     }]
-   }
-   ```
-3. Name it `CloudWatchAlarmPolicy` and save.
-
-### Switch to Deployer Credentials
-
-Reconfigure the AWS CLI to use the deployer credentials instead of root:
+### Switch to deployer credentials
 
 ```bash
 aws configure
-# Enter the deployer user's access key, secret key, region, json
+# Enter the deployer user's access key, secret key, region, json format
 ```
 
-Verify the switch:
+Verify:
 
 ```bash
 aws sts get-caller-identity
-# Arn should now show: arn:aws:iam::123456789012:user/{app_name}-deployer
+# Arn should show: arn:aws:iam::123456789012:user/{app_name}-deployer
 ```
 
-### Delete Root Access Key
+### Delete the temporary root access key
 
-Now that the deployer user is active, remove the temporary root access key:
-
-1. Sign in to [AWS Console](https://console.aws.amazon.com) as root
-2. Click your account name (top-right) → **Security credentials**
-3. Under **Access keys**, click **Actions → Delete** on the key you created earlier
-
-After this point, all AWS operations use the limited deployer account.
+1. Sign in to the AWS Console as root
+2. Click account name → **Security credentials**
+3. Under **Access keys** → **Actions → Delete** the key you created earlier
 
 ---
 
@@ -514,7 +237,7 @@ cd deployment
 head -1 group_vars/vault.yml          # Shows $ANSIBLE_VAULT;1.2;AES256
 ls -la ~/.vault_pass                  # Permissions: -rw-------
 
-source scripts/load-vars.sh           # Shows variables loaded
+source scripts/load-vars.sh           # Shows variables loaded successfully
 echo $app_name                        # Shows your application name
 ```
 
@@ -524,15 +247,15 @@ echo $app_name                        # Shows your application name
 
 | Problem | Fix |
 |---------|-----|
-| `Unable to locate credentials` | Run `aws configure` and enter your access key |
+| `Unable to locate credentials` | Run `aws configure` |
 | `ansible: command not found` | `pip3 install ansible` |
-| `No module named 'boto3'` | `cd deployment && pip3 install -r requirements.txt` |
+| `No module named boto3` | `cd deployment && pip3 install -r requirements.txt` |
 | `Cannot access vault.yml` | `chmod 600 ~/.vault_pass` |
-| Vault shows plain text, not `$ANSIBLE_VAULT` | `ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass` |
-| `source scripts/load-vars.sh` fails | Make sure you are in the `deployment/` directory |
+| Vault shows plain text | `ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass` |
+| `source scripts/load-vars.sh` fails | Confirm you are in the `deployment/` directory |
 
 ---
 
 ## Next step
 
-Continue to [Chapter 2: Quick Start](QUICKSTART.md) (automated, 15–20 min) or [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) (step-by-step, 1–2 hrs).
+Continue to [Chapter 2: Quick Start](QUICKSTART.md) (automated, 10–15 min) or [Chapter 3: Manual Deployment](MANUAL_DEPLOYMENT.md) (step-by-step, 30–60 min).

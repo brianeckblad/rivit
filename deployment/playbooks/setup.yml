@@ -1,7 +1,12 @@
 ---
-# Application deployment: code, dependencies, config, services
-# Prerequisite: Run setup-server.yml first (system packages, EBS mount, directories)
+# Application deployment: code, dependencies, config, services.
+# Run on the shared server after AWS resources are provisioned.
+# Prerequisite: provision-app.yml must be run first (S3, IAM, Secrets Manager).
+#
 # Usage: ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
+#
+# On a shared server this playbook is safe to run multiple times (idempotent)
+# and does not touch other applications on the same host.
 
 - name: Deploy Application
   hosts: all
@@ -12,9 +17,13 @@
 
   tasks:
 
+    # =========================================================================
+    # VALIDATION
+    # =========================================================================
+
     - name: Validate SSL prerequisites
       block:
-        - name: Check server_name is configured for SSL
+        - name: Check server_name is configured
           fail:
             msg: >
               server_name must be set to a real domain in group_vars/vault.yml (currently '{{ server_name }}').
@@ -24,9 +33,64 @@
         - name: Check ssl_email is configured
           fail:
             msg: >
-              ssl_email must be set in group_vars/vault.yml (currently empty).
+              ssl_email must be set in group_vars/vault.yml.
               Let's Encrypt requires an email for certificate notifications.
           when: ssl_email is not defined or ssl_email == ''
+
+    # =========================================================================
+    # USERS AND DIRECTORIES
+    # =========================================================================
+
+    - name: Create shared application group
+      group:
+        name: "{{ app_name }}"
+        state: present
+
+    - name: Create dedicated application user (no shell, no SSH)
+      user:
+        name: "{{ app_user }}"
+        comment: "{{ app_display_name }} Application User (no login)"
+        shell: /usr/sbin/nologin
+        system: yes
+        create_home: no
+        groups: "{{ app_name }}"
+        append: yes
+        state: present
+      when: app_user != admin_user
+
+    - name: Add admin user to application group
+      user:
+        name: "{{ admin_user }}"
+        groups: "{{ app_name }}"
+        append: yes
+
+    - name: Create application base directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ admin_user }}"
+        group: "{{ app_name }}"
+        mode: '2775'
+
+    - name: Create instance directory
+      file:
+        path: "{{ app_dir }}/instance"
+        state: directory
+        owner: "{{ admin_user }}"
+        group: "{{ app_name }}"
+        mode: '2775'
+
+    - name: Create log directory
+      file:
+        path: "{{ log_dir }}"
+        state: directory
+        owner: "{{ admin_user }}"
+        group: "{{ app_name }}"
+        mode: '2775'
+
+    # =========================================================================
+    # CODE DEPLOYMENT
+    # =========================================================================
 
     - name: Mark app directory as git safe.directory
       become_user: "{{ admin_user }}"
@@ -118,11 +182,6 @@
         state: link
       notify: restart nginx
 
-    - name: Remove default nginx site
-      file:
-        path: /etc/nginx/sites-enabled/default
-        state: absent
-      notify: restart nginx
 
     - name: Install logrotate configuration
       template:
@@ -152,7 +211,7 @@
         group: "{{ app_name }}"
         mode: '0755'
 
-    - name: Remove old backup cleanup cron for app_user (was nologin, could not run)
+    - name: Remove old backup cleanup cron for app_user (legacy — nologin user cannot run crons)
       cron:
         name: "Cleanup old backups (>{{ backup_retention_days }} days)"
         user: "{{ app_user }}"
@@ -186,7 +245,7 @@
         minute: "*/5"
         user: root
 
-    - name: Mark deployment maintenance window active for log monitor
+    - name: Mark deployment maintenance window active
       copy:
         content: "{{ ansible_date_time.iso8601 }}\n"
         dest: "/run/{{ app_name }}-monitor.maintenance"
@@ -194,7 +253,7 @@
         group: root
         mode: '0644'
 
-    - name: Apply security permissions
+    - name: Apply application file permissions
       import_tasks: harden-permissions-tasks.yml
 
     - name: Ensure supervisor is running
@@ -250,13 +309,13 @@
         state: started
       when: supervisor_status.rc != 0 and supervisor_status.rc != 3
 
-    - name: Clear deployment maintenance window for log monitor
+    - name: Clear deployment maintenance window
       file:
         path: "/run/{{ app_name }}-monitor.maintenance"
         state: absent
 
     # =========================================================================
-    # SSL CERTIFICATE (required for all production deployments)
+    # SSL CERTIFICATE
     # =========================================================================
     # Certbot uses the nginx plugin, so nginx must be running first.
     # On first run it obtains the cert; re-runs skip if cert exists.
@@ -300,16 +359,11 @@
 
     - name: Setup automatic certificate renewal
       cron:
-        name: "Renew Let's Encrypt certificates"
+        name: "Renew Let's Encrypt certificates for {{ app_name }}"
         job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
         special_time: daily
         user: root
 
-    - name: Ensure Certbot renewal timer is active
-      systemd:
-        name: certbot.timer
-        enabled: yes
-        state: started
 
     - name: Configure Certbot post-renewal hook for Nginx
       copy:
@@ -332,15 +386,23 @@
         state: reloaded
       when: nginx_ssl_test.rc == 0
 
-    - name: Display SSL status
+    - name: Display deployment summary
       debug:
         msg:
-          - "✓ SSL Certificate: {{ 'installed' if ssl_cert_after.stat.exists else 'FAILED - check certbot output' }}"
-          - "  Domain: {{ server_name }}"
-          - "  Certificate: /etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
-          - "  Auto-renewal: enabled (daily check)"
-          - "  Test your site: https://{{ server_name }}"
-
+          - "╔══════════════════════════════════════════════════════════╗"
+          - "║   Application Deployed                                  ║"
+          - "╚══════════════════════════════════════════════════════════╝"
+          - ""
+          - "  App:        {{ app_display_name }}"
+          - "  URL:        https://{{ server_name }}"
+          - "  App dir:    {{ app_dir }}"
+          - "  Logs:       {{ log_dir }}"
+          - "  Supervisor: {{ service_name }}"
+          - ""
+          - "  SSL: {{ 'installed' if ssl_cert_after.stat.exists else 'FAILED — check certbot output' }}"
+          - ""
+          - "  Check status:  sudo supervisorctl status {{ service_name }}"
+          - "  View logs:     sudo tail -f {{ log_dir }}/app.log"
 
   handlers:
     - name: restart supervisor

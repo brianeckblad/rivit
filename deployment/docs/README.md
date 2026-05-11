@@ -1,10 +1,8 @@
-# Rampe Deployment Guide
+# rivit Deployment Guide
 
-**Deploy, operate, and maintain a Python web application on AWS.**
+**Deploy, operate, and maintain a Python web application on a shared server with AWS backing services.**
 
-Start at Chapter 1 and follow the chapters in order. Chapters 9–12 are optional.
-
-> **Note:** Security hardening (Chapter 8) and SSL are applied automatically during deployment. Chapter 8 serves as a verification and tuning guide.
+Start at Chapter 1 and follow in order. Chapters 9–12 are optional.
 
 ---
 
@@ -12,10 +10,9 @@ Start at Chapter 1 and follow the chapters in order. Chapters 9–12 are optiona
 
 | Ch. | Guide | Time |
 |-----|-------|------|
-| 1 | [Prerequisites](guides/PREREQUISITES.md) | 30 min |
-| 2 | [Quick Start](guides/QUICKSTART.md) — automated, recommended | 15–20 min |
-| 3 | [Manual Deployment](guides/MANUAL_DEPLOYMENT.md) — step-by-step | 1–2 hrs |
-| 3b | [AWS Console Deployment](guides/AWS_CONSOLE_DEPLOYMENT.md) — point-and-click via AWS web console | 1–2 hrs |
+| 1 | [Prerequisites](guides/PREREQUISITES.md) | 20 min |
+| 2 | [Quick Start](guides/QUICKSTART.md) — automated, recommended | 10–15 min |
+| 3 | [Manual Deployment](guides/MANUAL_DEPLOYMENT.md) — step-by-step | 30–60 min |
 
 Complete Chapter 2 or 3. Your application is live.
 
@@ -42,7 +39,7 @@ Complete Chapter 2 or 3. Your application is live.
 
 | Ch. | Guide |
 |-----|-------|
-| 13 | [Decommission](guides/DECOMMISSION.md) — full teardown or single-resource rollback |
+| 13 | [Decommission](guides/DECOMMISSION.md) — remove app resources without touching the shared server |
 
 ---
 
@@ -52,9 +49,6 @@ Complete Chapter 2 or 3. Your application is live.
 |----------|-------|
 | [Architecture](reference/ARCHITECTURE.md) | System design and technology choices |
 | [Application Architecture](reference/APPLICATION_ARCHITECTURE.md) | Flask app internals — structure, services, data model, patterns |
-| [AWS Deployment Architecture](reference/AWS_DEPLOYMENT_ARCHITECTURE.md) | Generic blueprint — replicate this stack in any project |
-| [Infrastructure](guides/INFRASTRUCTURE.md) | AWS resource details (S3, IAM, EC2, SG) |
-| [EBS Storage](guides/EBS_APPLICATION_STORAGE.md) | Application storage on EBS volumes |
 | [Application Security](reference/APPLICATION_SECURITY.md) | WAF rules, attack detection, rate limiting |
 | [User Isolation](reference/SECURITY.md) | Two-user privilege model |
 | [User Types](reference/USER_MODEL.md) | Admin vs. application user permissions |
@@ -63,16 +57,41 @@ Complete Chapter 2 or 3. Your application is live.
 
 ## Playbook Reference
 
+### AWS Resource Playbooks (run from localhost)
+
 | Create | Delete | Resource |
 |--------|--------|----------|
 | `create-s3-bucket.yml` | `delete-s3-bucket.yml` | S3 Bucket |
-| `create-iam-role.yml` | `delete-iam-role.yml` | IAM Role + Policies |
-| `create-security-group.yml` | `delete-security-group.yml` | Security Group |
-| `create-ssh-key.yml` | `delete-ssh-key.yml` | SSH Key Pair |
-| `launch-ec2-instance.yml` | `terminate-ec2-instance.yml` | EC2 Instance |
-| `setup-waf.yml` | `delete-waf.yml` | WAF Web ACL + IP set |
-| `setup-cloudfront.yml` | `delete-cloudfront.yml` | CloudFront distribution (`enable_cloudfront` in vault.yml) |
+| `create-iam-policies.yml` | `delete-iam-policies.yml` | App-scoped IAM managed policies |
 | `setup-secrets-manager.yml` | `delete-secrets-manager.yml` | Secrets Manager secret |
+| `setup-cloudfront.yml` | `delete-cloudfront.yml` | CloudFront distribution |
+| `setup-waf.yml` | `delete-waf.yml` | WAF Web ACL + IP set |
+
+### Application Deployment Playbooks (run against shared server)
+
+| Playbook | Purpose |
+|----------|---------|
+| `setup.yml` | First-time application deployment (code, venv, nginx, supervisor, SSL) |
+| `update.yml` | Update code, restart application |
+| `setup-monitoring.yml` | CloudWatch agent integration |
+| `setup-ssl.yml` | Obtain or renew SSL certificate only |
+| `harden-permissions.yml` | Re-apply application file permissions |
+
+### Master Playbooks
+
+| Playbook | Purpose |
+|----------|---------|
+| `provision-app.yml` | Orchestrates all AWS resource creation (S3 + IAM + Secrets Manager + CloudFront) |
+| `decommission.yml` | Removes all app-level AWS resources |
+
+### Deployer IAM User Playbooks
+
+| Playbook | Purpose |
+|----------|---------|
+| `create-iam-user.yml` | Create the `{app_name}-deployer` IAM user with access keys |
+| `delete-iam-user.yml` | Delete the deployer IAM user |
+
+---
 
 ## Common Commands
 
@@ -80,14 +99,15 @@ Complete Chapter 2 or 3. Your application is live.
 cd deployment
 source scripts/load-vars.sh
 
-# Deploy (run all three in order)
-ansible-playbook playbooks/provision-infrastructure.yml --vault-password-file ~/.vault_pass
-ansible-playbook playbooks/setup-server.yml --vault-password-file ~/.vault_pass
+# Step 1: Create AWS resources (S3, IAM policies, Secrets Manager)
+ansible-playbook playbooks/provision-app.yml --vault-password-file ~/.vault_pass
+
+# Step 2: Deploy the application to the server (code, nginx, supervisor, SSL)
 ansible-playbook playbooks/setup.yml --vault-password-file ~/.vault_pass
 
-# Update
+# Update (pull new code and restart)
 ansible-playbook playbooks/update.yml --vault-password-file ~/.vault_pass
 
-# Teardown
+# Teardown app resources only (server unchanged)
 ansible-playbook playbooks/decommission.yml --vault-password-file ~/.vault_pass
 ```
