@@ -6,29 +6,6 @@ Deploy the application in 10–15 minutes using automation.
 
 ---
 
-## Load Configuration Variables
-
-Before running commands, load your deployment variables:
-
-```bash
-cd deployment
-
-# IMPORTANT: Use 'source', not './'
-source scripts/load-vars.sh
-```
-
-**You should see:**
-```
-✅ Variables loaded
-
-  app_name=myapp
-  aws_region=us-east-2
-  admin_user=ubuntu
-  server_name=myapp.example.com
-  server_host=13.58.136.177
-```
-
----
 
 ## Deploy in Two Steps
 
@@ -81,7 +58,7 @@ curl https://{server_name}
 ### Connect to the server
 
 ```bash
-ssh ubuntu@$server_host     # server_host is loaded from vault.yml by load-vars.sh
+ssh ubuntu@{server_host}
 
 # Check app status
 sudo supervisorctl status {app_name}
@@ -89,6 +66,12 @@ sudo supervisorctl status {app_name}
 # View logs
 sudo tail -f /var/log/{app_name}/app.log
 ```
+
+> **Tip:** To use shell variables for ad-hoc CLI commands (`ssh ubuntu@$server_host`, `aws s3 ls $s3_bucket_name`), load them once per terminal session:
+> ```bash
+> cd deployment && source scripts/load-vars.sh
+> ```
+> Playbooks do **not** require this — they read `vault.yml` directly.
 
 ### Verify SSL
 
