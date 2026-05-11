@@ -201,80 +201,79 @@ if [ -f "$GROUP_VARS_DIR/all.yml" ]; then
 fi
 
 # =========================================================================
-# Sync vault connection values → inventories/hosts.yml
+# Write inventories/hosts.yml from vault values
 # =========================================================================
 # Ansible cannot resolve vault variable templates for connection keywords
 # (ansible_host, ansible_user, ansible_ssh_private_key_file) at SSH setup
-# time. hosts.yml is gitignored and serves as the resolved local config;
-# load-vars.sh keeps it in sync so vault is the single source of truth.
+# time. hosts.yml is gitignored; this script writes it from scratch using
+# plain literal values so vault is always the single source of truth.
 # =========================================================================
 INVENTORY_FILE="$DEPLOYMENT_DIR/inventories/hosts.yml"
 
-if [ -f "$INVENTORY_FILE" ]; then
-    _changed=false
+if [ -n "${server_host:-}" ] && [ "$server_host" != "YOUR_SERVER_IP" ] && \
+   [ -n "${server_admin_user:-}" ] && [ -n "${ssh_key_file:-}" ]; then
 
-    # ── ansible_host (server_host) ─────────────────────────────────────────
-    if [ -n "${server_host:-}" ] && [ "$server_host" != "YOUR_SERVER_IP" ]; then
-        export SERVER_IP="$server_host"
-        _inv_host=$(python3 -c "
+    export SERVER_IP="$server_host"
+
+    # Check current values to avoid unnecessary rewrites
+    _cur_host=$(python3 -c "
 import re
-with open('$INVENTORY_FILE') as f:
-    for line in f:
+try:
+    for line in open('$INVENTORY_FILE'):
         m = re.search(r'ansible_host:\s*(\S+)', line)
         if m: print(m.group(1)); break
+except: pass
 " 2>/dev/null)
-        if [ "$_inv_host" != "$server_host" ]; then
-            python3 -c "
+    _cur_user=$(python3 -c "
 import re
-text = open('$INVENTORY_FILE').read()
-text = re.sub(r'(ansible_host:\s*)[^\n]+', r'\g<1>$server_host', text)
-open('$INVENTORY_FILE', 'w').write(text)
-" 2>/dev/null
-            echo -e "${YELLOW}ℹ️  hosts.yml ansible_host: $_inv_host → $server_host${NC}"
-            _changed=true
-        fi
-    fi
-
-    # ── ansible_user (server_admin_user) ──────────────────────────────────
-    if [ -n "${server_admin_user:-}" ]; then
-        _inv_user=$(python3 -c "
-import re
-with open('$INVENTORY_FILE') as f:
-    for line in f:
+try:
+    for line in open('$INVENTORY_FILE'):
         m = re.search(r'ansible_user:\s*(\S+)', line)
         if m: print(m.group(1)); break
+except: pass
 " 2>/dev/null)
-        if [ "$_inv_user" != "$server_admin_user" ]; then
-            python3 -c "
+    _cur_key=$(python3 -c "
 import re
-text = open('$INVENTORY_FILE').read()
-text = re.sub(r'(ansible_user:\s*)[^\n]+', r'\g<1>$server_admin_user', text)
-open('$INVENTORY_FILE', 'w').write(text)
-" 2>/dev/null
-            echo -e "${YELLOW}ℹ️  hosts.yml ansible_user: $_inv_user → $server_admin_user${NC}"
-            _changed=true
-        fi
-    fi
-
-    # ── ansible_ssh_private_key_file (ssh_key_file) ───────────────────────
-    if [ -n "${ssh_key_file:-}" ]; then
-        _inv_key=$(python3 -c "
-import re
-with open('$INVENTORY_FILE') as f:
-    for line in f:
+try:
+    for line in open('$INVENTORY_FILE'):
         m = re.search(r'ansible_ssh_private_key_file:\s*(\S+)', line)
         if m: print(m.group(1)); break
+except: pass
 " 2>/dev/null)
-        if [ "$_inv_key" != "$ssh_key_file" ]; then
-            python3 -c "
-import re
-text = open('$INVENTORY_FILE').read()
-text = re.sub(r'(ansible_ssh_private_key_file:\s*)[^\n]+', r'\g<1>$ssh_key_file', text)
-open('$INVENTORY_FILE', 'w').write(text)
-" 2>/dev/null
-            echo -e "${YELLOW}ℹ️  hosts.yml ansible_ssh_private_key_file: $_inv_key → $ssh_key_file${NC}"
-            _changed=true
-        fi
+
+    if [ "$_cur_host" != "$server_host" ] || \
+       [ "$_cur_user" != "$server_admin_user" ] || \
+       [ "$_cur_key" != "$ssh_key_file" ]; then
+
+        python3 << PYEOF
+content = """\
+# ===========================================================================
+# Server Inventory  — LOCAL FILE, NOT COMMITTED (gitignored)
+# ===========================================================================
+# DO NOT add Jinja2 templates here. Ansible resolves connection keywords
+# before vault variables are available, so any {{ var }} reference fails.
+# All values are plain literals written from vault.yml by load-vars.sh.
+# To regenerate:  source scripts/load-vars.sh
+# ===========================================================================
+
+all:
+  children:
+    app_servers:
+      children:
+        production:
+          hosts:
+            server:
+              ansible_host: ${server_host}
+              ansible_connection: ssh
+              ansible_user: ${server_admin_user}
+              ansible_ssh_private_key_file: ${ssh_key_file}
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+"""
+open("$INVENTORY_FILE", "w").write(content)
+PYEOF
+        echo -e "${YELLOW}ℹ️  Wrote inventories/hosts.yml from vault (host=$server_host user=$server_admin_user)${NC}"
     fi
 fi
 

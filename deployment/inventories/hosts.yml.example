@@ -1,14 +1,18 @@
 # ============================================================================
 # Server Inventory (EXAMPLE / TEMPLATE)
 # ============================================================================
-# Copy this file to hosts.yml:
-#   cp hosts.yml.example hosts.yml
+# PREFERRED — let load-vars.sh generate hosts.yml automatically:
+#   cd deployment && source scripts/load-vars.sh
 #
-# hosts.yml is gitignored — it contains your real server IP.
-# This .example file is the git-tracked template.
+# MANUAL fallback — copy and fill in values from vault.yml:
+#   cp inventories/hosts.yml.example inventories/hosts.yml
+#   (then replace the YOUR_* placeholders below)
 #
-# Set ansible_host to the value of server_host from vault.yml.
-# Run  source scripts/load-vars.sh  to auto-populate from AWS.
+# IMPORTANT: Do NOT use Jinja2 {{ }} templates in hosts.yml.
+#   Ansible resolves connection keywords (ansible_host, ansible_user,
+#   ansible_ssh_private_key_file) before vault variables are available,
+#   so any {{ vault_var }} reference will fail with 'undefined'.
+#   Use plain literal values only — load-vars.sh keeps them in sync.
 #
 # Playbook targeting:
 #   hosts: localhost    → AWS API calls (provision-app.yml and sub-playbooks)
@@ -23,12 +27,11 @@ all:
         production:
           hosts:
             server:
-              ansible_host: "{{ server_host }}"
+              ansible_host: YOUR_SERVER_IP
               ansible_connection: ssh
-              ansible_user: "{{admin_user}}"
-              ansible_ssh_private_key_file: "{{ ssh_key_file }}"
+              ansible_user: YOUR_SERVER_ADMIN_USER
+              ansible_ssh_private_key_file: YOUR_SSH_KEY_PATH
 
   vars:
-    ansible_user: "{{admin_user}}"
     ansible_python_interpreter: /usr/bin/python3
 
