@@ -222,10 +222,11 @@ with open('$INVENTORY_FILE') as f:
 " 2>/dev/null)
         if [ "$_inv_ip" != "$server_host" ]; then
             python3 -c "
-import re, sys
+import re
 text = open('$INVENTORY_FILE').read()
-text = re.sub(r'(ansible_host:\s*)\S+', r'\g<1>$server_host', text)
-text = re.sub(r'(ansible_connection:\s*)\S+', r'\g<1>ssh', text)
+# Replace entire rest-of-line after ansible_host: (handles templates AND literals)
+text = re.sub(r'(ansible_host:\s*)[^\n]+', r'\g<1>$server_host', text)
+text = re.sub(r'(ansible_connection:\s*)[^\n]+', r'\g<1>ssh', text)
 open('$INVENTORY_FILE', 'w').write(text)
 " 2>/dev/null
             echo -e "${YELLOW}ℹ️  Updated inventories/hosts.yml: $_inv_ip → $server_host${NC}"
@@ -265,7 +266,7 @@ with open('$ANSIBLE_CFG') as f:
         python3 -c "
 import re
 text = open('$ANSIBLE_CFG').read()
-text = re.sub(r'(remote_user\s*=\s*)\S+', r'\g<1>$_vault_user', text)
+text = re.sub(r'(remote_user\s*=\s*)[^\n]+', r'\g<1>$_vault_user', text)
 open('$ANSIBLE_CFG', 'w').write(text)
 " 2>/dev/null
         echo -e "${YELLOW}ℹ️  Updated ansible.cfg remote_user: $_cfg_user → $_vault_user${NC}"
@@ -275,7 +276,7 @@ open('$ANSIBLE_CFG', 'w').write(text)
         python3 -c "
 import re
 text = open('$ANSIBLE_CFG').read()
-text = re.sub(r'(private_key_file\s*=\s*)\S+', r'\g<1>$_vault_key', text)
+text = re.sub(r'(private_key_file\s*=\s*)[^\n]+', r'\g<1>$_vault_key', text)
 open('$ANSIBLE_CFG', 'w').write(text)
 " 2>/dev/null
         echo -e "${YELLOW}ℹ️  Updated ansible.cfg private_key_file: $_cfg_key → $_vault_key${NC}"
