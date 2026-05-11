@@ -48,7 +48,7 @@
 
     - name: Create dedicated application user (no shell, no SSH)
       user:
-        name: "{{ app_user }}"
+        name: "{{ app_runtime_user }}"
         comment: "{{ app_display_name }} Application User (no login)"
         shell: /usr/sbin/nologin
         system: yes
@@ -56,11 +56,11 @@
         groups: "{{ app_name }}"
         append: yes
         state: present
-      when: app_user != admin_user
+      when: app_runtime_user != server_admin_user
 
     - name: Add admin user to application group
       user:
-        name: "{{ admin_user }}"
+        name: "{{ server_admin_user }}"
         groups: "{{ app_name }}"
         append: yes
 
@@ -68,7 +68,7 @@
       file:
         path: "{{ app_dir }}"
         state: directory
-        owner: "{{ admin_user }}"
+        owner: "{{ server_admin_user }}"
         group: "{{ app_name }}"
         mode: '2775'
 
@@ -76,7 +76,7 @@
       file:
         path: "{{ app_dir }}/instance"
         state: directory
-        owner: "{{ admin_user }}"
+        owner: "{{ server_admin_user }}"
         group: "{{ app_name }}"
         mode: '2775'
 
@@ -84,7 +84,7 @@
       file:
         path: "{{ log_dir }}"
         state: directory
-        owner: "{{ admin_user }}"
+        owner: "{{ server_admin_user }}"
         group: "{{ app_name }}"
         mode: '2775'
 
@@ -93,7 +93,7 @@
     # =========================================================================
 
     - name: Mark app directory as git safe.directory
-      become_user: "{{ admin_user }}"
+      become_user: "{{ server_admin_user }}"
       command: git config --global --add safe.directory {{ app_dir }}
       changed_when: false
 
@@ -103,7 +103,7 @@
       register: git_dir_exists
 
     - name: Initialize git repo in application directory
-      become_user: "{{ admin_user }}"
+      become_user: "{{ server_admin_user }}"
       shell: |
         cd {{ app_dir }}
         git init
@@ -113,7 +113,7 @@
       when: not git_dir_exists.stat.exists
 
     - name: Update application code from git
-      become_user: "{{ admin_user }}"
+      become_user: "{{ server_admin_user }}"
       git:
         repo: "{{ git_repo }}"
         dest: "{{ app_dir }}"
@@ -122,13 +122,13 @@
       when: git_dir_exists.stat.exists
 
     - name: Create Python virtual environment
-      become_user: "{{ admin_user }}"
+      become_user: "{{ server_admin_user }}"
       command: python3 -m venv {{ venv_dir }}
       args:
         creates: "{{ venv_dir }}/bin/activate"
 
     - name: Upgrade pip in virtual environment
-      become_user: "{{ admin_user }}"
+      become_user: "{{ server_admin_user }}"
       pip:
         name: pip
         state: latest
@@ -140,14 +140,14 @@
       register: root_requirements_file
 
     - name: Install Python dependencies
-      become_user: "{{ admin_user }}"
+      become_user: "{{ server_admin_user }}"
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
         virtualenv: "{{ venv_dir }}"
       when: root_requirements_file.stat.exists
 
     - name: Install gunicorn in virtual environment
-      become_user: "{{ admin_user }}"
+      become_user: "{{ server_admin_user }}"
       pip:
         name: gunicorn
         virtualenv: "{{ venv_dir }}"
@@ -200,21 +200,21 @@
       file:
         path: "{{ app_dir }}/app/scripts"
         state: directory
-        owner: "{{ app_user }}"
+        owner: "{{ app_runtime_user }}"
         group: "{{ app_name }}"
         mode: '2775'
 
     - name: Ensure backup cleanup script is executable
       file:
         path: "{{ app_dir }}/app/scripts/cleanup_old_backups.py"
-        owner: "{{ app_user }}"
+        owner: "{{ app_runtime_user }}"
         group: "{{ app_name }}"
         mode: '0755'
 
-    - name: Remove old backup cleanup cron for app_user (legacy — nologin user cannot run crons)
+    - name: Remove old backup cleanup cron for app_runtime_user (legacy — nologin user cannot run crons)
       cron:
         name: "Cleanup old backups (>{{ backup_retention_days }} days)"
-        user: "{{ app_user }}"
+        user: "{{ app_runtime_user }}"
         state: absent
       failed_when: false
 

@@ -48,7 +48,7 @@
     notifempty
 
     # Create new log file with these permissions after rotation
-    create 0640 {{ app_user }} {{ app_user }}
+    create 0640 {{ app_runtime_user }} {{ app_runtime_user }}
 
     # Don't error if log file is missing
     missingok

@@ -43,7 +43,7 @@ command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers }} -b {{ gunicorn_bin
 directory={{ app_dir }}
 
 # Run as unprivileged user (security best practice)
-user={{ app_user }}
+user={{ app_runtime_user }}
 
 # Auto-start when supervisor starts
 autostart=true

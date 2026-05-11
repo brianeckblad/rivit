@@ -8,14 +8,14 @@
 #
 # Group strategy:
 #   All files use group {{ app_name }} which contains both
-#   {{ admin_user }} (deploy) and {{ app_user }} (runtime).
+#   {{ server_admin_user }} (deploy) and {{ app_runtime_user }} (runtime).
 #   Setgid on directories ensures new files inherit the group.
 
 - name: Ensure base application directory is traversable
   file:
     path: "{{ item }}"
     state: directory
-    owner: "{{ app_user }}"
+    owner: "{{ app_runtime_user }}"
     group: "{{ app_name }}"
     mode: '2775'
   loop:
@@ -27,7 +27,7 @@
 - name: Secure user credentials file
   file:
     path: "{{ app_dir }}/instance/user_preferences.json"
-    owner: "{{ app_user }}"
+    owner: "{{ app_runtime_user }}"
     group: "{{ app_name }}"
     mode: '0640'
   failed_when: false
@@ -36,7 +36,7 @@
   file:
     path: "{{ app_dir }}/instance/{{ item }}"
     state: directory
-    owner: "{{ app_user }}"
+    owner: "{{ app_runtime_user }}"
     group: "{{ app_name }}"
     mode: '2775'
   loop:
@@ -48,7 +48,7 @@
 - name: Secure data files in instance
   file:
     path: "{{ app_dir }}/instance/{{ item }}"
-    owner: "{{ app_user }}"
+    owner: "{{ app_runtime_user }}"
     group: "{{ app_name }}"
     mode: '0664'
   loop:
@@ -60,7 +60,7 @@
   file:
     path: "{{ app_dir }}/app/static"
     state: directory
-    owner: "{{ app_user }}"
+    owner: "{{ app_runtime_user }}"
     group: "{{ app_name }}"
     mode: '2775'
     recurse: yes
@@ -74,7 +74,7 @@
 - name: Ensure log files are not executable
   file:
     path: "{{ item.path }}"
-    owner: "{{ app_user }}"
+    owner: "{{ app_runtime_user }}"
     group: "{{ app_name }}"
     mode: '0664'
   loop: "{{ log_files.files }}"
@@ -84,16 +84,16 @@
   file:
     path: "{{ app_dir }}/app/scripts"
     state: directory
-    owner: "{{ app_user }}"
+    owner: "{{ app_runtime_user }}"
     group: "{{ app_name }}"
     mode: '2775'
     recurse: yes
 
-- name: Secure SSH authorized_keys for admin user
+- name: Secure SSH authorized_keys for server admin user
   file:
-    path: "/home/{{ admin_user }}/.ssh/authorized_keys"
-    owner: "{{ admin_user }}"
-    group: "{{ admin_user }}"
+    path: "/home/{{ server_admin_user }}/.ssh/authorized_keys"
+    owner: "{{ server_admin_user }}"
+    group: "{{ server_admin_user }}"
     mode: '0600'
   failed_when: false
 

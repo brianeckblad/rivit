@@ -41,8 +41,9 @@ ssh_key_file: "~/.ssh/your-key.pem"         # SSH private key for ansible_ssh_pr
 # ============================================================================
 # USERS (REQUIRED)
 # ============================================================================
-admin_user: "ubuntu"                         # OS user that owns files, runs git
-app_user: "your_app_runtime"                 # Unprivileged runtime user (no SSH, no shell)
+server_admin_user: "ubuntu"                  # OS user with SSH access; owns files, runs git
+app_deploy_user: "dockyard-deployer"         # AWS IAM user for deployment (S3, Secrets Manager, etc.)
+app_runtime_user: "dockyard_runtime"         # Unprivileged OS user that runs the app (no SSH, no shell)
 
 # ============================================================================
 # GIT (REQUIRED)
