@@ -32,7 +32,7 @@ Manage a comic book catalog, upload images to the cloud, export to marketplaces 
 
 ```bash
 git clone https://github.com/yourusername/rivit.git
-cd rivit
+cd dockyard
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
