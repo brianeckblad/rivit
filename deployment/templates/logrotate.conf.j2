@@ -35,8 +35,8 @@
     # Rotate daily
     daily
 
-    # Keep 20 rotated logs
-    rotate 20
+    # Keep {{ log_retention_days }} rotated logs
+    rotate {{ log_retention_days }}
 
     # Compress old logs (gzip)
     compress
@@ -63,8 +63,8 @@
 
     # Run these commands after rotation
     postrotate
-        # Reload application to pick up new log file (if needed)
-        systemctl reload {{ service_name }}.service 2>/dev/null || true
+        # Signal supervisor to reopen log file descriptors after rotation
+        supervisorctl signal HUP {{ service_name }} 2>/dev/null || true
     endscript
 
     # Share scripts between all log files
