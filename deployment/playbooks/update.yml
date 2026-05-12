@@ -4,6 +4,64 @@
 #
 # Usage: ansible-playbook playbooks/update.yml --vault-password-file ~/.vault_pass
 
+# ── Pre-flight: ensure admin IP is open on port 22 before SSH ─────────────────
+- name: Ensure admin SSH access
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+
+  tasks:
+    - name: Skip if security group not configured
+      debug:
+        msg: "ec2_ssh_security_group_id not set — skipping SSH whitelist update"
+      when: ec2_ssh_security_group_id | default('') == ''
+
+    - name: Detect current public IP (if admin_ip not set)
+      uri:
+        url: https://checkip.amazonaws.com
+        return_content: yes
+      register: detected_ip
+      when:
+        - ec2_ssh_security_group_id | default('') != ''
+        - admin_ip | default('') == ''
+      failed_when: false
+
+    - name: Set effective admin IP
+      set_fact:
+        effective_admin_ip: "{{ admin_ip if (admin_ip | default('') != '') else (detected_ip.content | default('') | trim) }}"
+      when: ec2_ssh_security_group_id | default('') != ''
+
+    - name: Whitelist admin IP on port 22
+      shell: |
+        EXISTING=$(aws ec2 describe-security-groups \
+          --group-ids {{ ec2_ssh_security_group_id }} \
+          --region {{ aws_region }} \
+          --query "SecurityGroups[0].IpPermissions[?FromPort==\`22\`].IpRanges[].CidrIp" \
+          --output text)
+        if echo "$EXISTING" | grep -q "{{ effective_admin_ip }}/32"; then
+          echo "ALREADY_SET"
+        else
+          aws ec2 authorize-security-group-ingress \
+            --group-id {{ ec2_ssh_security_group_id }} \
+            --protocol tcp --port 22 \
+            --cidr {{ effective_admin_ip }}/32 \
+            --region {{ aws_region }}
+          echo "ADDED"
+        fi
+      register: sg_result
+      changed_when: "'ADDED' in sg_result.stdout"
+      when:
+        - ec2_ssh_security_group_id | default('') != ''
+        - effective_admin_ip | default('') != ''
+
+    - name: SSH access status
+      debug:
+        msg: "{{ 'SSH ' + effective_admin_ip + '/32 already open' if 'ALREADY_SET' in (sg_result.stdout | default('')) else ('SSH ' + effective_admin_ip + '/32 opened' if 'ADDED' in (sg_result.stdout | default('')) else 'SSH whitelist skipped') }}"
+      when: ec2_ssh_security_group_id | default('') != ''
+
+# ── Main update play ──────────────────────────────────────────────────────────
 - name: Update Listing App
   hosts: all
   become: yes

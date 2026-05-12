@@ -221,10 +221,21 @@ def system_stats() -> Response:
         snapshots_size = get_directory_size(get_user_snapshots_dir())
         total_backup_size = trash_size + snapshots_size
 
-        # Get disk space percentage
+        # Get disk space percentage (root / instance path)
         instance_path = Path(current_app.instance_path)
         disk_usage = shutil.disk_usage(instance_path)
         disk_free_percent = (disk_usage.free / disk_usage.total) * 100 if disk_usage.total > 0 else 0
+        root_disk_used_percent = round(100 - disk_free_percent, 1)
+
+        # Get app-specific disk usage (/opt/apps/)
+        app_disk_used_percent = None
+        try:
+            app_disk_usage = shutil.disk_usage('/opt/apps/')
+            app_disk_used_percent = round(
+                (app_disk_usage.used / app_disk_usage.total) * 100, 1
+            ) if app_disk_usage.total > 0 else 0
+        except OSError:
+            pass
 
         # Calculate application uptime
         app_uptime_seconds = int(time.time() - APP_START_TIME)
@@ -298,6 +309,8 @@ def system_stats() -> Response:
                 'total_image_size': total_image_size,
                 'total_backup_size': total_backup_size,
                 'disk_free_percent': round(disk_free_percent, 1),
+                'root_disk_used_percent': root_disk_used_percent,
+                'app_disk_used_percent': app_disk_used_percent,
                 'app_uptime_seconds': app_uptime_seconds,
                 'server_uptime_seconds': server_uptime_seconds,
                 'disk_used': disk_usage.used,

@@ -121,6 +121,21 @@ log_dir: "/var/log/{{ app_name }}"
 instance_dir: "{{ app_dir }}/instance"
 
 # ============================================================================
+# SSH ACCESS CONTROL
+# ============================================================================
+# admin_ip: Your home/office public IP — always kept open on port 22.
+#   Find it: curl https://checkip.amazonaws.com
+#   Format: "x.x.x.x" (without /32 — the playbook appends it)
+#   The update.yml and open-ssh.yml playbooks ensure this IP is always
+#   whitelisted before attempting to SSH into the server.
+admin_ip: "YOUR_IP_ADDRESS"
+
+# ec2_ssh_security_group_id: The SG attached to the shared server.
+#   Find it: AWS Console → EC2 → Instance → Security tab
+#   Format: "sg-xxxxxxxxxxxxxxxxx"
+ec2_ssh_security_group_id: "sg-xxxxxxxxxxxxxxxxx"
+
+# ============================================================================
 # eBay API (OPTIONAL — leave all empty if not using eBay)
 # ============================================================================
 ebay_environment: "production"

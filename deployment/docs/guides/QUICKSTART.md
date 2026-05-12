@@ -11,9 +11,10 @@ Deploy the application in 10–15 minutes using automation.
 
 ```bash
 cd deployment
+source scripts/load-vars.sh   # writes literal connection values to inventories/hosts.yml
 
 # Step 1: Create AWS resources
-# Creates S3 bucket, IAM policies, Secrets Manager secret
+# Creates S3 bucket, IAM policies (including EC2 SSH access), Secrets Manager secret
 ansible-playbook playbooks/provision-app.yml \
     --vault-password-file ~/.vault_pass
 
@@ -27,7 +28,7 @@ ansible-playbook playbooks/setup.yml \
 
 `provision-app.yml`:
 1. Creates S3 bucket for application data
-2. Creates three app-scoped IAM managed policies (S3, Secrets Manager, CloudWatch)
+2. Creates four app-scoped IAM managed policies (S3, Secrets Manager, CloudWatch, EC2 SSH)
 3. Attaches policies to the shared server's IAM role (if `server_iam_role_name` is set)
 4. Creates Secrets Manager secret (synced from vault)
 
@@ -38,6 +39,8 @@ ansible-playbook playbooks/setup.yml \
 8. Configures Supervisor (process manager) and Nginx (web server)
 9. Installs SSL certificate via Let's Encrypt (auto-renewal enabled)
 10. Starts the application
+
+> Both `setup.yml` and `update.yml` include an automatic pre-flight that whitelists `admin_ip` on port 22 in the EC2 security group before connecting. Requires `admin_ip` and `ec2_ssh_security_group_id` in vault.yml.
 
 **Duration:** 10–15 minutes
 

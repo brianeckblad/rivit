@@ -84,6 +84,32 @@
               Resource: "*"
       register: cw_policy
 
+    # ── EC2 SSH management (for open-ssh.yml) ─────────────────────────────────
+    - name: Create EC2 SSH access managed policy
+      amazon.aws.iam_managed_policy:
+        policy_name: "{{ app_name }}-ec2-ssh-access"
+        description: "Allows {{ app_display_name }} deployer to whitelist admin IP on port 22"
+        state: present
+        policy:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2:DescribeSecurityGroups
+                - ec2:AuthorizeSecurityGroupIngress
+                - ec2:RevokeSecurityGroupIngress
+              Resource: "*"
+      register: ec2_ssh_policy
+
+    - name: Attach EC2 SSH policy to deployer user
+      command: >
+        aws iam attach-user-policy
+        --user-name {{ app_deploy_user }}
+        --policy-arn {{ ec2_ssh_policy.policy.arn }}
+        --region {{ aws_region }}
+      failed_when: false
+      changed_when: true
+
     # ── Attach to shared server role (if configured) ──────────────────────────
     - name: Attach S3 policy to server IAM role
       command: >
@@ -120,9 +146,10 @@
       debug:
         msg:
           - "✓ IAM policies created"
-          - "  {{ app_name }}-s3-access       — ARN: {{ s3_policy.policy.arn }}"
-          - "  {{ app_name }}-secrets-access  — ARN: {{ secrets_policy.policy.arn }}"
+          - "  {{ app_name }}-s3-access         — ARN: {{ s3_policy.policy.arn }}"
+          - "  {{ app_name }}-secrets-access    — ARN: {{ secrets_policy.policy.arn }}"
           - "  {{ app_name }}-cloudwatch-access — ARN: {{ cw_policy.policy.arn }}"
+          - "  {{ app_name }}-ec2-ssh-access    — ARN: {{ ec2_ssh_policy.policy.arn }} (attached to {{ app_deploy_user }})"
           - ""
           - "{{ 'Attached to role: ' + server_iam_role_name if server_iam_role_name is defined and server_iam_role_name else '⚠️  server_iam_role_name not set. Attach the three policies above to your server IAM role manually.' }}"
 

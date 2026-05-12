@@ -1,5 +1,5 @@
 # Chapter 8: Security Hardening
-anVerify, tune, and maintain the security controls for this application on a shared server.
+Verify, tune, and maintain the security controls for this application on a shared server.
 
 ---
 
@@ -24,17 +24,17 @@ These settings are applied automatically by `setup.yml` and re-applied on every 
 
 | Path | Owner | Group | Mode | Purpose |
 |------|-------|-------|------|---------|
-| `/opt/{app_name}/` | `{app_user}` | `{app_name}` | `2775` (setgid) | App directory |
-| `/opt/{app_name}/instance/` | `{app_user}` | `{app_name}` | `2775` (setgid) | Data directory |
-| `/var/log/{app_name}/` | `{app_user}` | `{app_name}` | `2775` (setgid) | Log directory |
-| `instance/user_preferences.json` | `{app_user}` | `{app_name}` | `0640` | User credentials |
-| `instance/*.csv`, `instance/sku.txt` | `{app_user}` | `{app_name}` | `0664` | Data files |
-| `app/static/` | `{app_user}` | `{app_name}` | `2775` (recurse) | Static assets |
-| `app/scripts/` | `{app_user}` | `{app_name}` | `2775` (recurse) | Utility scripts |
-| Log files (`*.log`) | `{app_user}` | `{app_name}` | `0664` | Not executable |
-| `~/.ssh/authorized_keys` | `{admin_user}` | `{admin_user}` | `0600` | SSH keys |
+| `/opt/{app_name}/` | `{app_runtime_user}` | `{app_name}` | `2775` (setgid) | App directory |
+| `/opt/{app_name}/instance/` | `{app_runtime_user}` | `{app_name}` | `2775` (setgid) | Data directory |
+| `/var/log/{app_name}/` | `{app_runtime_user}` | `{app_name}` | `2775` (setgid) | Log directory |
+| `instance/user_preferences.json` | `{app_runtime_user}` | `{app_name}` | `0640` | User credentials |
+| `instance/*.csv`, `instance/sku.txt` | `{app_runtime_user}` | `{app_name}` | `0664` | Data files |
+| `app/static/` | `{app_runtime_user}` | `{app_name}` | `2775` (recurse) | Static assets |
+| `app/scripts/` | `{app_runtime_user}` | `{app_name}` | `2775` (recurse) | Utility scripts |
+| Log files (`*.log`) | `{app_runtime_user}` | `{app_name}` | `0664` | Not executable |
+| `~/.ssh/authorized_keys` | `{server_admin_user}` | `{server_admin_user}` | `0600` | SSH keys |
 
-The `{app_name}` group contains both `{admin_user}` (deploy) and `{app_user}` (runtime). Setgid on directories ensures new files inherit the group automatically.
+The `{app_name}` group contains both `{server_admin_user}` (deploy) and `{app_runtime_user}` (runtime). Setgid on directories ensures new files inherit the group automatically.
 
 To re-apply permissions without redeploying code:
 
@@ -92,7 +92,7 @@ ssh ubuntu@YOUR_SERVER
 
 # App directory ownership and setgid
 ls -la /opt/{app_name}/
-# Expected: drwxrwsr-x  owner:group = {app_user}:{app_name}
+# Expected: drwxrwsr-x  owner:group = {app_runtime_user}:{app_name}
 # The 's' in group-execute confirms setgid is set.
 
 # Log directory
@@ -100,7 +100,7 @@ ls -la /var/log/{app_name}/
 
 # Both users are in the shared group
 getent group {app_name}
-# Expected: {app_name}:x:NNN:ubuntu,{app_user}
+# Expected: {app_name}:x:NNN:{server_admin_user},{app_runtime_user}
 ```
 
 ### Check SSL certificate
@@ -133,9 +133,9 @@ curl -sI https://{server_name} | grep -iE "x-frame|x-content|x-xss|strict-transp
 ```bash
 ssh ubuntu@YOUR_SERVER
 
-# Process should be owned by {app_user}, not root
+# Process should be owned by {app_runtime_user}, not root
 ps aux | grep gunicorn
-# Expected: {app_user}    ...  gunicorn...
+# Expected: {app_runtime_user}    ...  gunicorn...
 ```
 
 ---
@@ -191,11 +191,40 @@ ansible-playbook playbooks/security-hardening.yml \
 | sysctl: IP spoofing protection | `/etc/sysctl.d/` | `rp_filter = 1` |
 | sysctl: SYN flood protection | `/etc/sysctl.d/` | `tcp_syncookies = 1` |
 | sysctl: source routing disabled | `/etc/sysctl.d/` | Routing attack defense |
-| fail2ban: SSH jail | `/etc/fail2ban/jail.local` | 3 attempts, 24h ban |
-| fail2ban: nginx jails | `/etc/fail2ban/jail.local` | 404, 403, bad bots |
+| fail2ban: SSH jail | `/etc/fail2ban/jail.local` | 5 attempts, 24h ban |
+| fail2ban: nginx-403 jail | `/etc/fail2ban/jail.local` | 30 attempts/60s, 10m ban |
+| fail2ban: nginx jails | `/etc/fail2ban/jail.local` | 404, bad bots |
+| fail2ban: admin IP excluded | `/etc/fail2ban/jail.local` | `admin_ip` in `ignoreip` — admin can never be banned |
 | Automatic security updates | `/etc/apt/apt.conf.d/` | Daily security patches |
 | Disabled services | systemd | apache2, avahi-daemon, cups, bluetooth |
 | Shared memory: noexec,nosuid | `/etc/fstab` | Prevent exec from /run/shm |
+
+> The `admin_ip` from vault is automatically added to fail2ban `ignoreip`. Without this, the admin IP could be banned by its own app's 403 responses (e.g. image proxy errors generating 6+ per page load).
+
+---
+
+## SSH Access Control (EC2 Security Group)
+
+The deployer IAM user has EC2 permissions to manage port 22 rules in the security group. Two playbooks use this:
+
+- **`update.yml`** — runs a pre-flight play that whitelists `admin_ip` on port 22 before connecting to the server
+- **`security-hardening.yml`** — same pre-flight before applying hardening
+
+To whitelist your IP explicitly at any time:
+
+```bash
+cd deployment
+ansible-playbook playbooks/open-ssh.yml --vault-password-file ~/.vault_pass
+```
+
+Required vault variables:
+
+| Variable | Description |
+|----------|-------------|
+| `admin_ip` | Your public IP to whitelist |
+| `ec2_ssh_security_group_id` | Security group ID controlling port 22 |
+
+If either variable is missing, the pre-flight is skipped and you must manage the SG rule manually in the AWS Console.
 
 ### Verify server-level hardening
 
@@ -213,6 +242,10 @@ sudo sshd -T | grep -E "passwordauth|pubkeyauth|permitrootlogin|maxauthtries"
 # fail2ban running
 sudo systemctl status fail2ban
 sudo fail2ban-client status
+
+# Verify admin IP is in ignoreip
+sudo fail2ban-client get sshd ignoreip
+# Should include your admin_ip
 
 # Automatic updates enabled
 cat /etc/apt/apt.conf.d/20auto-upgrades
@@ -256,7 +289,7 @@ sudo fail2ban-client set nginx-limit-req unbanip X.X.X.X
 ### Monthly
 
 - Review user accounts: `getent group {app_name}`
-- Verify application is running as `{app_user}`, not root: `ps aux | grep gunicorn`
+- Verify application is running as `{app_runtime_user}`, not root: `ps aux | grep gunicorn`
 - Review nginx security headers: `curl -sI https://{server_name}`
 
 ### Quarterly

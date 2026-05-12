@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+a{% extends "base.html" %}
 
 {% block body_class %}landing-page{% endblock %}
 
@@ -988,12 +988,20 @@
                         return parseFloat(value || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     };
 
-                    // Build two-line footer format
-                    // Line 1: Comics breakdown with values - format: count label: $value
-                    const line1 = `<span style="color: var(--color-text);">${comicsForSale}</span> Comics: $<span style="color: var(--color-text);">${formatCurrency(comicsForSaleValue)}</span> <span style="color: var(--color-text-muted);">•</span> <span style="color: var(--color-text);">${ebayListingsCount}</span> eBay: $<span style="color: var(--color-text);">${formatCurrency(ebayValue)}</span> <span style="color: var(--color-text-muted);">•</span> <span style="color: var(--color-text);">${stats.giveaway_count}</span> WN Giveaways`;
+p                    // Build two-line footer format
+                    // Line 1: Comics breakdown with images count and values
+                    const sep = `<span style="color: var(--color-text-muted);"> • </span>`;
+                    const val = (v) => `<span style="color: var(--color-text);">${v}</span>`;
+                    const line1 = `${val(comicsForSale)} Comics: $${val(formatCurrency(comicsForSaleValue))}${sep}Images: ${val(stats.image_count)}${sep}${val(ebayListingsCount)} eBay: $${val(formatCurrency(ebayValue))}${sep}${val(stats.giveaway_count)} Givy`;
 
-                    // Line 2: System information
-                    const line2 = `Images: <span style="color: var(--color-text);">${stats.image_count}</span> <span style="color: var(--color-text-muted);">•</span> Storage: <span style="color: var(--color-text);">${formatBytes(stats.total_image_size)}</span> <span style="color: var(--color-text-muted);">•</span> Disk: <span style="color: var(--color-text);">${stats.disk_free_percent}%</span> <span style="color: var(--color-text-muted);">•</span> Uptime: <span style="color: var(--color-text);">${formatUptime(stats.app_uptime_seconds)}</span>${stats.server_uptime_seconds ? ` <span style="color: var(--color-text-muted);">•</span> Server: <span style="color: var(--color-text);">${formatUptime(stats.server_uptime_seconds)}</span>` : ''}`;
+                    // Line 2: Storage, disk usage, and uptime combined
+                    const appDiskPart = stats.app_disk_used_percent != null
+                        ? `${sep}App Disk ${val(stats.app_disk_used_percent + '%')}`
+                        : '';
+                    const serverPart = stats.server_uptime_seconds
+                        ? `${sep}Server: ${val(formatUptime(stats.server_uptime_seconds))}`
+                        : '';
+                    const line2 = `Storage: ${val(formatBytes(stats.total_image_size))}${sep}Root Disk ${val(stats.root_disk_used_percent + '%')}${appDiskPart}${sep}Uptime: ${val(formatUptime(stats.app_uptime_seconds))}${serverPart}`;
 
                     document.getElementById('footerStats').innerHTML = `<div>${line1}</div><div>${line2}</div>`;
 

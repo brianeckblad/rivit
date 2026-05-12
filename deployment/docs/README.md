@@ -67,7 +67,8 @@ Complete Chapter 2 or 3. Your application is live.
 | Playbook | Purpose |
 |----------|---------|
 | `setup.yml` | First-time application deployment (code, venv, nginx, supervisor, SSL) |
-| `update.yml` | Update code, restart application |
+| `update.yml` | Update code, restart application (includes SSH pre-flight) |
+| `open-ssh.yml` | Whitelist `admin_ip` on port 22 in the EC2 security group |
 | `setup-monitoring.yml` | CloudWatch agent integration |
 | `setup-ssl.yml` | Obtain or renew SSL certificate only |
 | `harden-permissions.yml` | Re-apply application file permissions |

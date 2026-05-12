@@ -24,6 +24,46 @@
 #     --vault-password-file ~/.vault_pass \
 #     -e server_hardening_confirmed=true
 
+# ── Pre-flight: whitelist admin IP before touching SSH ───────────────────────
+- name: Ensure admin SSH access before hardening
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+  tasks:
+    - name: Set effective admin IP
+      set_fact:
+        effective_admin_ip: "{{ admin_ip | default('') }}"
+
+    - name: Whitelist admin IP on port 22
+      shell: |
+        EXISTING=$(aws ec2 describe-security-groups \
+          --group-ids {{ ec2_ssh_security_group_id }} \
+          --region {{ aws_region }} \
+          --query "SecurityGroups[0].IpPermissions[?FromPort==\`22\`].IpRanges[].CidrIp" \
+          --output text)
+        if echo "$EXISTING" | grep -q "{{ effective_admin_ip }}/32"; then
+          echo "ALREADY_SET"
+        else
+          aws ec2 authorize-security-group-ingress \
+            --group-id {{ ec2_ssh_security_group_id }} \
+            --protocol tcp --port 22 \
+            --cidr {{ effective_admin_ip }}/32 \
+            --region {{ aws_region }}
+          echo "ADDED"
+        fi
+      register: sg_result
+      changed_when: "'ADDED' in sg_result.stdout"
+      when:
+        - ec2_ssh_security_group_id | default('') != ''
+        - effective_admin_ip != ''
+
+    - name: SSH whitelist status
+      debug:
+        msg: "{{ 'SSH ' + effective_admin_ip + '/32 already open' if 'ALREADY_SET' in (sg_result.stdout | default('')) else ('SSH ' + effective_admin_ip + '/32 opened' if 'ADDED' in (sg_result.stdout | default('')) else 'SSH whitelist skipped (ec2_ssh_security_group_id not set)') }}"
+
+# ── Confirmation gate ─────────────────────────────────────────────────────────
 - name: Confirm server-admin intent
   hosts: localhost
   gather_facts: no

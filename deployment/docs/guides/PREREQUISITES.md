@@ -8,11 +8,11 @@ Set up your local tools, AWS account, and configuration files before running any
 
 Three distinct identities are involved in a deployment. Understanding these upfront avoids confusion later.
 
-| Identity | Scope | Who creates it |
-|----------|-------|----------------|
-| **AWS deployer IAM user** (`{app_name}-deployer`) | Per-app. Has S3, IAM, and Secrets Manager permissions scoped to this app. Used by the person running Ansible. | `create-iam-user.yml` |
-| **OS admin user** (`ubuntu` or similar) | Shared across all apps on the server. Used for SSH access. | Pre-existing on the shared server. |
-| **OS runtime user** (`{app_name}_runtime`) | Per-app. Unprivileged OS user that runs gunicorn. | `setup.yml` |
+| Identity | Vault variable | Scope | Who creates it |
+|----------|---------------|-------|----------------|
+| **AWS deployer IAM user** (`{app_name}-deployer`) | `app_deploy_user` | Per-app. Has S3, IAM, Secrets Manager, and EC2 SSH permissions scoped to this app. Used by the person running Ansible. | `create-iam-user.yml` |
+| **OS admin user** (`ubuntu` or similar) | `server_admin_user` | Shared across all apps on the server. Used for SSH access. | Pre-existing on the shared server. |
+| **OS runtime user** (`{app_name}_runtime`) | `app_runtime_user` | Per-app. Unprivileged OS user that runs gunicorn. | `setup.yml` |
 
 Each app on the shared server gets its own AWS deployer and OS runtime user. This limits blast radius if credentials are compromised — one app's leaked key cannot touch another app's S3 bucket or secrets.
 
@@ -115,8 +115,9 @@ Edit `group_vars/vault.yml`. Every variable is required unless marked optional.
 |----------|-------------|---------|
 | `server_host` | SSH hostname or IP address of the shared server. | `13.58.136.177` |
 | `ssh_key_file` | Path to the SSH private key (`.pem` file) used to connect to the server. | `~/.ssh/shared-server.pem` |
-| `admin_user` | OS user used for SSH. Pre-existing on the shared server — usually `ubuntu` on AWS. Shared across all apps. | `ubuntu` |
-| `app_user` | Dedicated per-app OS user that runs gunicorn. Created by `setup.yml` if it does not exist. | `myapp_runtime` |
+| `server_admin_user` | OS user used for SSH. Pre-existing on the shared server — usually `ubuntu` on AWS. Shared across all apps. | `ubuntu` |
+| `app_deploy_user` | AWS IAM user name used by Ansible to create and manage app resources. Created by `create-iam-user.yml`. | `myapp-deployer` |
+| `app_runtime_user` | Dedicated per-app OS user that runs gunicorn. Created by `setup.yml` if it does not exist. | `myapp_runtime` |
 
 #### AWS credentials and resources
 
@@ -182,6 +183,17 @@ Edit `group_vars/vault.yml`. Every variable is required unless marked optional.
 | `log_max_size` | `10M` | Rotate log when it exceeds this size. |
 | `backup_retention_days` | `30` | Delete S3 snapshots older than this many days. |
 
+#### SSH access control (EC2 security group)
+
+These variables let `update.yml` and `security-hardening.yml` automatically whitelist your IP on port 22 in the EC2 security group before connecting, and let fail2ban exclude your IP from bans.
+
+| Variable | Description | How to get it |
+|----------|-------------|---------------|
+| `admin_ip` | Your public IP address. Added to the EC2 SG and to fail2ban `ignoreip`. | `curl -s https://checkip.amazonaws.com` |
+| `ec2_ssh_security_group_id` | Security group ID that controls port 22 access for the EC2 instance. | EC2 Console → Instances → your server → **Security** tab → security group ID (e.g. `sg-0a69da9d10235b811`) |
+
+Without these variables, the pre-flight SSH whitelist task is skipped. If your IP is restricted in the SG, add it manually before running any server playbook.
+
 ### Step 3: Encrypt the vault
 
 ```bash
@@ -206,7 +218,7 @@ ansible-playbook playbooks/create-iam-user.yml --vault-password-file ~/.vault_pa
 ```
 
 This creates `{app_name}-deployer` with these permissions:
-`AmazonS3FullAccess`, `IAMFullAccess`, `SecretsManagerReadWrite`, `CloudWatchLogsFullAccess`
+`AmazonS3FullAccess`, `IAMFullAccess`, `SecretsManagerReadWrite`, `CloudWatchLogsFullAccess`, and a custom EC2 SSH security group policy (`ec2:DescribeSecurityGroups`, `ec2:AuthorizeSecurityGroupIngress`, `ec2:RevokeSecurityGroupIngress`).
 
 The Access Key ID and Secret Key are printed at the end. Save them in your password manager.
 
@@ -226,19 +238,14 @@ Then **delete the temporary root access key** in the AWS Console. All subsequent
 
 ## Server inventory
 
-Copy the example inventory and set the server details:
+Ansible requires literal values (not Jinja2 templates) for connection keywords. The `load-vars.sh` script writes these from the vault into `inventories/hosts.yml` automatically.
 
 ```bash
 cd deployment
-cp inventories/hosts.yml.example inventories/hosts.yml
+source scripts/load-vars.sh
 ```
 
-Edit `inventories/hosts.yml` and set `ansible_host` to match `server_host` from vault.yml:
-
-```yaml
-ansible_host: 13.58.136.177                          # your server_host value
-ansible_ssh_private_key_file: ~/.ssh/shared-server.pem  # your ssh_key_file value
-```
+This rewrites `inventories/hosts.yml` with the literal `server_host`, `ssh_key_file`, and `server_admin_user` values from vault. Run it once per terminal session before any playbook that connects to the server.
 
 Test connectivity:
 
@@ -246,6 +253,8 @@ Test connectivity:
 ansible all -m ping --vault-password-file ~/.vault_pass
 # Should return: server | SUCCESS
 ```
+
+> `inventories/hosts.yml` is gitignored — it contains literal IPs and key paths. Never commit it.
 
 ---
 
@@ -256,9 +265,12 @@ Many shell commands in these guides use variables from vault.yml. Load them once
 ```bash
 cd deployment
 source scripts/load-vars.sh
-echo $app_name      # e.g., myapp
-echo $aws_region    # e.g., us-east-2
+echo $app_name              # e.g., dockyard
+echo $aws_region            # e.g., us-east-2
+echo $server_admin_user     # e.g., ubuntu
 ```
+
+This also writes literal connection values to `inventories/hosts.yml` so Ansible can resolve them before vault decryption.
 
 ---
 
@@ -294,11 +306,12 @@ cd deployment && ansible all -m ping --vault-password-file ~/.vault_pass
 | `Unable to locate credentials` | Run `aws configure` |
 | `ansible: command not found` | `pip3 install ansible` |
 | `No module named boto3` | `cd deployment && pip3 install -r requirements.txt` |
-| `Permission denied (publickey)` | Check `ansible_ssh_private_key_file` path in hosts.yml |
+| `Permission denied (publickey)` | Check `ssh_key_file` path in vault.yml and re-run `source scripts/load-vars.sh` |
 | `Cannot access vault.yml` | `chmod 600 ~/.vault_pass` |
 | Vault shows plaintext | `ansible-vault encrypt group_vars/vault.yml --vault-password-file ~/.vault_pass` |
-| `host unreachable` | Confirm `server_host` in vault.yml and `ansible_host` in hosts.yml match |
-| `gunicorn_port already in use` | SSH to server, run `ss -tlnp | grep 80xx`, assign the next free port |
+| `server_admin_user is undefined` | Run `source scripts/load-vars.sh` — Ansible cannot read vault variables for SSH connection keywords; the script writes literal values to `hosts.yml` |
+| `host unreachable` | Confirm `server_host` in vault.yml is correct; run `open-ssh.yml` to whitelist your IP |
+| `gunicorn_port already in use` | SSH to server, run `ss -tlnp \| grep 80xx`, assign the next free port |
 
 ---
 

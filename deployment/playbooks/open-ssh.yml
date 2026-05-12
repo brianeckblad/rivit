@@ -1,0 +1,76 @@
+---
+# Ensure the admin IP is always allowed on port 22 in the EC2 security group.
+#
+# Run this any time your IP changes (new network, travel, etc.):
+#   ansible-playbook playbooks/open-ssh.yml --vault-password-file ~/.vault_pass
+#
+# To override the IP from vault (e.g. you're somewhere new):
+#   ansible-playbook playbooks/open-ssh.yml --vault-password-file ~/.vault_pass \
+#     -e "admin_ip=$(curl -s https://checkip.amazonaws.com)"
+#
+# Requires: ec2_ssh_security_group_id set in vault.yml
+
+- name: Ensure admin SSH access in EC2 security group
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+
+  tasks:
+    - name: Verify required variables are set
+      fail:
+        msg: |
+          ec2_ssh_security_group_id is not set in vault.yml.
+          Find it in: AWS Console → EC2 → Instance → Security tab
+          Then add it to vault: ansible-vault edit group_vars/vault.yml
+      when: ec2_ssh_security_group_id | default('') == ''
+
+    - name: Detect current public IP (if admin_ip not set)
+      uri:
+        url: https://checkip.amazonaws.com
+        return_content: yes
+      register: detected_ip
+      when: admin_ip | default('') == ''
+      failed_when: false
+
+    - name: Set effective admin IP
+      set_fact:
+        effective_admin_ip: "{{ admin_ip if (admin_ip | default('') != '') else (detected_ip.content | trim) }}"
+
+    - name: Show IP being whitelisted
+      debug:
+        msg: "Ensuring SSH access for {{ effective_admin_ip }}/32 on {{ ec2_ssh_security_group_id }}"
+
+    - name: Ensure admin IP is allowed on port 22
+      shell: |
+        set -e
+        EXISTING=$(aws ec2 describe-security-groups \
+          --group-ids {{ ec2_ssh_security_group_id }} \
+          --region {{ aws_region }} \
+          --query "SecurityGroups[0].IpPermissions[?FromPort==\`22\`].IpRanges[].CidrIp" \
+          --output text)
+
+        if echo "$EXISTING" | grep -q "{{ effective_admin_ip }}/32"; then
+          echo "ALREADY_SET"
+        else
+          aws ec2 authorize-security-group-ingress \
+            --group-id {{ ec2_ssh_security_group_id }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr {{ effective_admin_ip }}/32 \
+            --region {{ aws_region }}
+          echo "ADDED"
+        fi
+      register: sg_result
+      changed_when: "'ADDED' in sg_result.stdout"
+
+    - name: Result
+      debug:
+        msg: >-
+          {{
+            'SSH access for ' + effective_admin_ip + '/32 was already open'
+            if 'ALREADY_SET' in sg_result.stdout
+            else 'SSH access for ' + effective_admin_ip + '/32 has been opened'
+          }}
+

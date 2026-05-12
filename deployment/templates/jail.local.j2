@@ -43,6 +43,9 @@ bantime = 86400
 findtime = 1200
 maxretry = 3
 
+# Admin IP is never banned — always preserved across hardening runs
+ignoreip = 127.0.0.1/8 ::1 {{ admin_ip }}/32
+
 # Email notifications (optional - commented out)
 # destemail = your-email@example.com
 # sendername = Fail2Ban
@@ -52,7 +55,7 @@ maxretry = 3
 enabled = true
 port = 22
 logpath = /var/log/auth.log
-maxretry = 3
+maxretry = 5
 bantime = 86400
 
 [nginx-http-auth]
@@ -100,8 +103,10 @@ bantime = 3600
 enabled = true
 port = http,https
 logpath = /var/log/nginx/*access.log
-maxretry = 10
-findtime = 120
+# Higher threshold — app-level 403s (e.g. proxy-image misses) should not
+# trigger a ban. 30 in 60s is a genuine attack pattern, not normal usage.
+maxretry = 30
+findtime = 60
 bantime = 3600
 
 [recidive]
