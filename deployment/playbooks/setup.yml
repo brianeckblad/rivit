@@ -84,7 +84,7 @@
       file:
         path: "{{ log_dir }}"
         state: directory
-        owner: "{{ server_admin_user }}"
+        owner: "{{ app_runtime_user }}"
         group: "{{ app_name }}"
         mode: '2775'
 

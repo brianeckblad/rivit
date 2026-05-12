@@ -85,15 +85,27 @@ def _setup_dedicated_logger(app, config_name, logger_name, log_filename, attr_na
         attr_name: Attribute name to set on app (e.g. 'service_logger')
     """
     try:
-        # Determine log path based on environment
+        # Determine log path based on environment.
+        # In production, /var/log/<app_name>/ is created by the deployment
+        # playbook (setup.yml) *before* the app starts — never try to mkdir
+        # it here since the runtime user lacks permission to create dirs under
+        # /var/log/.  Fall back to instance/ only in development.
         if config_name == 'production':
             app_name = os.environ.get('APP_SERVICE_NAME', os.environ.get('APP_NAME', 'app'))
             log_dir = Path(f'/var/log/{app_name}')
+            if not log_dir.exists() or not os.access(log_dir, os.W_OK):
+                app.logger.warning(
+                    f"Production log directory {log_dir} does not exist or is not "
+                    f"writable. Falling back to app logger for {logger_name}. "
+                    f"Run the setup.yml playbook to create it."
+                )
+                setattr(app, attr_name, app.logger)
+                return
         else:
             log_dir = Path(app.instance_path)
+            log_dir.mkdir(parents=True, exist_ok=True)
 
         log_path = log_dir / log_filename
-        log_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Create logger
         dedicated_logger = logging.getLogger(logger_name)
