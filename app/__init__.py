@@ -1,7 +1,9 @@
 """Flask application factory."""
 from flask import Flask, has_request_context, g
+import csv
 import hashlib
 import os
+import threading
 from dotenv import load_dotenv
 from pathlib import Path
 import logging
@@ -439,7 +441,6 @@ def create_app(config_name='development'):
 
     # Sync backups from S3 to local storage on startup (in background thread)
     # NOTE: Health check runs AFTER sync to ensure local images exist first
-    import threading
     from app.utils.sync_state import sync_state
 
     def sync_backups_background():
@@ -529,9 +530,8 @@ def create_app(config_name='development'):
 
     # Initialize cache for eBay listings (guarded by a lock because every
     # worker thread mutates it via the before_request hook below).
-    import threading as _threading
     app.ebay_cache = {}
-    app.ebay_cache_lock = _threading.Lock()
+    app.ebay_cache_lock = threading.Lock()
     app.logger.info("✓ eBay listings cache initialized")
 
     # Initialize eBay category cache (must run within app context)
@@ -639,7 +639,6 @@ def create_app(config_name='development'):
             try:
                 csv_path = get_user_csv_file(username)
                 if csv_path.exists():
-                    import csv
                     with open(csv_path, 'r', newline='', encoding='utf-8') as f:
                         comic_count = sum(1 for _ in csv.DictReader(f))
 
