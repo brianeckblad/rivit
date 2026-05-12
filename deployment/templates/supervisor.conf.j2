@@ -1,4 +1,4 @@
-a# ============================================================================
+# ============================================================================
 # SUPERVISOR PROCESS MANAGER CONFIGURATION
 # ============================================================================
 # Template: deployment/templates/supervisor.conf.j2
@@ -37,10 +37,9 @@ a# ============================================================================
 #         via RotatingFileHandler. --capture-output would duplicate INFO into
 #         Gunicorn's error.log.
 # ============================================================================
-nd # gunicorn_workers from vault.yml.
-# On a shared server hosting multiple apps, use 2 workers per app to avoid OOM.
-# Formula: (vCPUs × 2) + 1 total, divided by number of apps.
-command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers | default((ansible_processor_vcpus | default(1)) * 2 + 1) }} -b {{ gunicorn_bind }} --timeout {{ gunicorn_timeout }} --worker-tmp-dir /tmp --control-socket /tmp/{{ service_name }}-gunicorn.ctl --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level warning "runapp:app"
+# gunicorn_workers and gunicorn_threads from vault.yml.
+# On a shared server: 1 worker + 4 threads per app balances memory and concurrency.
+command={{ venv_dir }}/bin/gunicorn -w {{ gunicorn_workers | default(1) }} --threads {{ gunicorn_threads | default(4) }} -b {{ gunicorn_bind }} --timeout {{ gunicorn_timeout }} --worker-tmp-dir /tmp --control-socket /tmp/{{ service_name }}-gunicorn.ctl --access-logfile {{ log_dir }}/access.log --error-logfile {{ log_dir }}/error.log --log-level warning "runapp:app"
 
 # Working directory for the process
 directory={{ app_dir }}

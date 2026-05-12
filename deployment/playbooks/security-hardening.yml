@@ -14,6 +14,12 @@
 # Coordinate with the server admin before running.  Do NOT run this as part of
 # routine per-app deployments.
 #
+# SHARED-SERVER NOTE: On a server running multiple apps (e.g. atlas + dockyard),
+#   run security-hardening.yml from ONE project only.  Both apps share the same
+#   jail.local.j2 template — running from either project produces the same result.
+#   Running from both in sequence is safe (idempotent) but wastes time.  Prefer
+#   running from atlas (primary).
+#
 # For per-app hardening (file permissions only), use update.yml or harden-permissions.yml.
 #
 # Usage:
