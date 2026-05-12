@@ -37,6 +37,22 @@
               Let's Encrypt requires an email for certificate notifications.
           when: ssl_email is not defined or ssl_email == ''
 
+    - name: Check if gunicorn port is already in use by a different app
+      shell: |
+        ss -tlnp 2>/dev/null | grep ':{{ gunicorn_port }} ' | grep -v '{{ service_name }}' || true
+      register: port_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if port is already bound by a different process
+      fail:
+        msg: >
+          Port {{ gunicorn_port }} is already in use on this server (not by {{ service_name }}).
+          Set a unique gunicorn_port in vault.yml for each app on this server.
+          Common convention: first app=8000, second=8001, third=8002, etc.
+          Currently bound: {{ port_check.stdout }}
+      when: port_check.stdout | trim != ''
+
     # =========================================================================
     # USERS AND DIRECTORIES
     # =========================================================================
@@ -166,6 +182,18 @@
         path: "/etc/letsencrypt/live/{{ server_name }}/fullchain.pem"
       register: ssl_cert_check
 
+    # Rate-limit zones go in conf.d — NOT in sites-available.
+    # Zones in sites-available are re-declared on every nginx reload, causing
+    # "duplicate zone" errors when two apps are hosted on the same server.
+    - name: Deploy nginx rate-limit zones (conf.d — loaded once, never duplicated)
+      template:
+        src: ../templates/nginx-rate-limits.conf.j2
+        dest: /etc/nginx/conf.d/{{ app_name }}-rate-limits.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart nginx
+
     - name: Create nginx site configuration
       template:
         src: ../templates/nginx.conf.j2
@@ -181,6 +209,24 @@
         dest: /etc/nginx/sites-enabled/{{ service_name }}
         state: link
       notify: restart nginx
+
+    # Only remove the nginx default site when this is the ONLY enabled site.
+    # On a shared server with multiple apps, removing another app's site would
+    # take that app offline.
+    - name: Count currently enabled nginx sites (excluding this app)
+      find:
+        paths: /etc/nginx/sites-enabled
+        file_type: any
+        excludes: "{{ service_name }}"
+      register: other_nginx_sites
+
+    - name: Remove default nginx site (only when this is the sole site on the server)
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      when: other_nginx_sites.matched == 0
+      notify: restart nginx
+      failed_when: false
 
 
     - name: Install logrotate configuration

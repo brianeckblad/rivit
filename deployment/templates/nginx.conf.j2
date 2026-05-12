@@ -37,15 +37,13 @@
 {% set has_ssl = has_ssl | default(false) | bool %}
 
 # ============================================================================
-# RATE LIMITING ZONES — namespaced per app to support multiple apps on one host
+ment# RATE LIMITING ZONES — defined in conf.d, NOT here
 # ============================================================================
-# Zone names are prefixed with the app_name so two apps on the same server
-# do not collide (nginx requires globally unique zone names).
-# Zones are per-IP address and reset after the time window expires.
+# limit_req_zone directives are in /etc/nginx/conf.d/{{ app_name }}-rate-limits.conf
+# (written by setup.yml). Defining them here (in sites-available) causes nginx
+# to re-declare the zones on every reload — duplicate zone errors crash nginx
+# and take ALL apps on the server down when two apps are hosted on the same host.
 # ============================================================================
-limit_req_zone $binary_remote_addr zone={{ app_name }}_login_limit:10m rate=20r/m;
-limit_req_zone $binary_remote_addr zone={{ app_name }}_api_limit:10m rate=200r/m;
-limit_req_zone $binary_remote_addr zone={{ app_name }}_general_limit:10m rate=300r/m;
 
 {% if has_ssl %}
 # HTTPS - main application server
