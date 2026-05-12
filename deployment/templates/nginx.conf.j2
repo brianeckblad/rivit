@@ -37,7 +37,7 @@
 {% set has_ssl = has_ssl | default(false) | bool %}
 
 # ============================================================================
-ment# RATE LIMITING ZONES — defined in conf.d, NOT here
+# RATE LIMITING ZONES — defined in conf.d, NOT here
 # ============================================================================
 # limit_req_zone directives are in /etc/nginx/conf.d/{{ app_name }}-rate-limits.conf
 # (written by setup.yml). Defining them here (in sites-available) causes nginx

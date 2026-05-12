@@ -61,5 +61,10 @@ killasgroup=true
 stderr_logfile={{ log_dir }}/app.log
 stdout_logfile={{ log_dir }}/app.log
 
-# Environment variables (PATH must include venv, SECRET_NAME/AWS_REGION for Secrets Manager)
-environment=PATH="{{ venv_dir }}/bin",SECRET_NAME="{{ secret_name }}",AWS_REGION="{{ aws_region }}",APP_SERVICE_NAME="{{ service_name }}",APP_NAME="{{ app_name }}"
+# Environment variables:
+#   PATH             — venv bin directory for gunicorn/python
+#   SECRET_NAME      — AWS Secrets Manager secret name (app fetches credentials from it)
+#   AWS_REGION       — AWS region where the secret lives
+#   FLASK_ENV        — must be "production" to select ProductionConfig in runapp.py
+#   APP_SERVICE_NAME — used by the app for logging / restart epoch
+environment=PATH="{{ venv_dir }}/bin",SECRET_NAME="{{ secret_name }}",AWS_REGION="{{ aws_region }}",FLASK_ENV="production",APP_SERVICE_NAME="{{ service_name }}",APP_NAME="{{ app_name }}"
