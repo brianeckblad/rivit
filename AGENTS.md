@@ -42,7 +42,7 @@ app/
 │   └── user.py          # UserManager: auth, credentials, preferences (JSON file)
 ├── routes/
 │   ├── auth.py          # login_required, csrf_required, sync_not_locked decorators
-│   ├── main.py          # Page routes (landing, browse, add, download, price-lookup, account, ebay-listings, analytics)
+│   ├── main.py          # Page routes (landing, browse, add, add-from-image, trash, download, price-lookup, account, ebay-listings, analytics)
 │   └── api/             # 11 API modules (67 routes), registered on api_bp at /api
 ├── services/            # Business logic layer
 │   ├── comic_service.py # Comic CRUD orchestration (user-specific CSV + SKU)
@@ -67,7 +67,9 @@ app/
 │   ├── defaults_helpers.py         # User preferences and app defaults
 │   ├── helpers.py                  # Filename generation, CSRF tokens, directory size
 │   ├── monitoring.py               # CloudWatch @monitor_endpoint decorator
-│   └── sync_state.py              # Thread-safe singleton for S3 sync progress
+│   ├── sync_state.py              # Thread-safe singleton for S3 sync progress
+│   ├── csv_sanitizer.py           # CSV injection prevention (cell sanitization)
+│   └── upload_security.py         # Image upload validation helpers
 ├── templates/           # Jinja2 HTML templates (10 pages)
 └── static/              # CSS, JS, images, error pages
 ```
@@ -457,8 +459,7 @@ docs: comprehensive documentation update
 Added new guides:
 - UPDATING_APPLICATION.md: Deploy code changes
 - SECURITY_HARDENING.md: Secure your server
-- WAF_CONFIGURATION.md: Web Application Firewall
-- CLOUDFRONT_CDN.md: Global CDN
+- GIT_CONFIGURATION.md: Git workflow and configuration
 
 All links verified with 100% accuracy.
 EOF
@@ -1330,7 +1331,7 @@ Content...
 
 ### Chapter Numbers
 
-Guides are numbered 1–13 and live in `deployment/docs/guides/`. Reference docs live in
+Guides are numbered 1–11 and live in `deployment/docs/guides/`. Reference docs live in
 `deployment/docs/reference/`. The table of contents is `deployment/docs/README.md`.
 When adding a new guide, assign the next number and update the README.
 
@@ -1339,17 +1340,14 @@ When adding a new guide, assign the next number and update the README.
 | 1 | guides/PREREQUISITES.md |
 | 2 | guides/QUICKSTART.md |
 | 3 | guides/MANUAL_DEPLOYMENT.md |
-| 3b | guides/AWS_CONSOLE_DEPLOYMENT.md |
 | 4 | guides/UPDATING_APPLICATION.md |
 | 5 | guides/OPERATIONS.md |
 | 6 | guides/MONITORING.md |
 | 7 | guides/SECRET_MANAGEMENT.md |
 | 8 | guides/SECURITY_HARDENING.md |
 | 9 | guides/MULTI_USER.md |
-| 10 | guides/CLOUDFRONT_CDN.md |
-| 11 | guides/WAF_CONFIGURATION.md |
-| 12 | guides/GIT_CONFIGURATION.md |
-| 13 | guides/DECOMMISSION.md |
+| 10 | guides/GIT_CONFIGURATION.md |
+| 11 | guides/DECOMMISSION.md |
 
 ### Writing Checklist
 

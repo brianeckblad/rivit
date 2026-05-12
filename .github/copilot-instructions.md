@@ -184,7 +184,7 @@ All docs in `deployment/docs/` follow a consistent vendor-guide style. See [AGEN
 - End guides with a single `## Next step` link — no repeated "next step" sections
 - No emojis in headings, no analogies, no marketing bullets
 - Cross-reference by chapter number: "See [Chapter 5: Operations](OPERATIONS.md)"
-- Chapter numbers (1–13) are tracked in `deployment/docs/README.md`
+- Chapter numbers (1–11) are tracked in `deployment/docs/README.md`
 - If a code change alters a user-facing workflow, add a short matching docs note in `README.md` or the relevant `deployment/docs/` guide in the same change set
 
 ---
